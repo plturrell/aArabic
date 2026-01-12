@@ -1,10 +1,7 @@
 from memory import UnsafePointer, alloc
 
+fn return_ptr() -> UnsafePointer[UInt8, 1]:
+    return alloc[UInt8](10)
+
 fn main():
-    # Try to define a pointer with 1 arg
-    # var p1: UnsafePointer[UInt8] 
-    # This failed before.
-    
-    # Try to alloc and see type
-    var ptr = alloc[UInt8](10)
-    print("Allocated")
+    print("Compiled")
