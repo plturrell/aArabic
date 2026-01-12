@@ -1,0 +1,132 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+venv/
+env/
+ENV/
+.venv
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+*.cover
+
+# Logs
+*.log
+*.log.*
+logs/
+
+# Models (large files)
+models/*.pt
+models/*.bin
+models/*.safetensors
+*.gguf
+
+# Data directories (runtime data - sensitive)
+data/
+!data/.gitkeep
+
+# Certificates and keys
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+certs/
+
+# Docker runtime
+docker-compose.override.yml
+
+# Rust
+target/
+Cargo.lock
+**/*.rs.bk
+
+# Temporary
+tmp/
+temp/
+*.tmp
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Documentation builds
+docs/_build/
+site/
+
+# Jupyter
+.ipynb_checkpoints
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+
+# Snyk Security Extension - AI Rules (auto-generated)
+.cursor/rules/snyk_rules.mdc
+
+# Snyk Security Extension - AI Rules (auto-generated)
+.windsurf/rules/snyk_rules.md
+
+# Logs
+logs/*.log
+*.log
+
+# OS
+.DS_Store
+vendor/layerModels/huggingFace/LiquidAI-LFM2.5-1.2B-Base/model.safetensors
+
+# Zig + Mojo Build Artifacts
+*.dylib
+*.so
+src/serviceCore/serviceRAG-zig-mojo/zig-mojo-rag
+src/serviceCore/serviceRAG-zig-mojo/load_test
+*.o
+*.a
+
+# Exclude vendor .git directories and their objects
+vendor/**/.git/
+.zig-cache/
+
+# Node modules  
+vendor/**/node_modules/
+
+# Large binary files
+*.pack
