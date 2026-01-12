@@ -1,0 +1,307 @@
+# =============================================================================
+# AI NUCLEUS PLATFORM - Core Services Only (Pre-built Images)
+# =============================================================================
+# For testing persistence and integration of core infrastructure
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # IDENTITY & ACCESS MANAGEMENT
+  # ===========================================================================
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: ai_nucleus_keycloak
+    command:
+      - start-dev
+      - --import-realm
+    expose:
+      - "8080"
+    environment:
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN:-admin}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      - KC_HEALTH_ENABLED=true
+      - KC_METRICS_ENABLED=true
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://keycloak-db:5432/keycloak
+      - KC_DB_USERNAME=keycloak
+      - KC_DB_PASSWORD=${KEYCLOAK_DB_PASSWORD:-keycloak}
+    volumes:
+      - ../../config/keycloak/nucleus-realm.json:/opt/keycloak/data/import/nucleus-realm.json:ro
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  keycloak-db:
+    image: postgres:15-alpine
+    container_name: ai_nucleus_keycloak_db
+    environment:
+      - POSTGRES_USER=keycloak
+      - POSTGRES_PASSWORD=${KEYCLOAK_DB_PASSWORD:-keycloak}
+      - POSTGRES_DB=keycloak
+    volumes:
+      - ./data/keycloak_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  # ===========================================================================
+  # DATA LAYER
+  # ===========================================================================
+  qdrant:
+    image: qdrant/qdrant:v1.9.0
+    container_name: ai_nucleus_qdrant
+    expose:
+      - "6333"
+    volumes:
+      - ./data/qdrant:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__HTTP_PORT=6333
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:6333/readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  memgraph:
+    image: memgraph/memgraph:2.18.0
+    container_name: ai_nucleus_memgraph
+    platform: linux/amd64
+    expose:
+      - "7687"
+    volumes:
+      - ./data/memgraph:/var/lib/memgraph
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'RETURN 1;' | mgconsole || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  memgraph-lab:
+    image: memgraph/lab:latest
+    container_name: ai_nucleus_memgraph_lab
+    expose:
+      - "3000"
+    environment:
+      - QUICK_CONNECT_MG_HOST=memgraph
+      - QUICK_CONNECT_MG_PORT=7687
+    depends_on:
+      - memgraph
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  dragonfly:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly:v1.14.3
+    container_name: ai_nucleus_dragonfly
+    expose:
+      - "6379"
+    volumes:
+      - ./data/dragonfly:/data
+    ulimits:
+      memlock: -1
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  # ===========================================================================
+  # INFRASTRUCTURE
+  # ===========================================================================
+  gitea:
+    image: gitea/gitea:1.21
+    container_name: ai_nucleus_gitea
+    expose:
+      - "3000"
+      - "22"
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - GITEA__database__DB_TYPE=postgres
+      - GITEA__database__HOST=gitea-db:5432
+      - GITEA__database__NAME=gitea
+      - GITEA__database__USER=gitea
+      - GITEA__database__PASSWD=${GITEA_DB_PASSWORD:-gitea}
+      - GITEA__database__SSL_MODE=disable
+      - GITEA__server__ROOT_URL=http://localhost:3001/
+    volumes:
+      - ./data/gitea:/data
+    depends_on:
+      gitea-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3000/api/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  gitea-db:
+    image: postgres:15-alpine
+    container_name: ai_nucleus_gitea_db
+    expose:
+      - "5432"
+    environment:
+      - POSTGRES_USER=gitea
+      - POSTGRES_PASSWORD=${GITEA_DB_PASSWORD:-gitea}
+      - POSTGRES_DB=gitea
+    volumes:
+      - ./data/gitea_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gitea"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  marquez:
+    image: marquezproject/marquez:0.47.0
+    container_name: ai_nucleus_marquez
+    platform: linux/amd64
+    expose:
+      - "5000"
+      - "5001"
+    environment:
+      - MARQUEZ_PORT=5000
+      - MARQUEZ_ADMIN_PORT=5001
+      - POSTGRES_HOST=marquez-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=marquez
+      - POSTGRES_USER=marquez
+      - POSTGRES_PASSWORD=${MARQUEZ_DB_PASSWORD:-marquez}
+    depends_on:
+      marquez-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:5000/api/v1/namespaces"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  marquez-db:
+    image: postgres:14-alpine
+    container_name: ai_nucleus_marquez_db
+    environment:
+      - POSTGRES_USER=marquez
+      - POSTGRES_PASSWORD=${MARQUEZ_DB_PASSWORD:-marquez}
+      - POSTGRES_DB=marquez
+    volumes:
+      - ./data/marquez_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marquez"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  marquez-web:
+    image: marquezproject/marquez-web:0.47.0
+    container_name: ai_nucleus_marquez_web
+    platform: linux/amd64
+    expose:
+      - "3000"
+    environment:
+      - MARQUEZ_HOST=marquez
+      - MARQUEZ_PORT=5000
+    depends_on:
+      - marquez
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  langflow:
+    image: langflowai/langflow:latest
+    container_name: ai_nucleus_langflow
+    expose:
+      - "7860"
+    environment:
+      - LANGFLOW_HOST=0.0.0.0
+      - LANGFLOW_PORT=7860
+      - LANGFLOW_AUTO_LOGIN=false
+    volumes:
+      - ./data/langflow:/app/langflow
+    depends_on:
+      memgraph:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:7860/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  # ===========================================================================
+  # CONTAINER MANAGEMENT UI
+  # ===========================================================================
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: ai_nucleus_portainer
+    expose:
+      - "9000"
+      - "9443"
+    ports:
+      - "9000:9000"
+      - "9443:9443"
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - PORTAINER_HTTP_ENABLED=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data/portainer:/data
+    healthcheck:
+      test: ["CMD-SHELL", "if command -v wget >/dev/null 2>&1; then wget --spider -q http://localhost:9000/api/status || wget --spider -q http://localhost:9000/api/system/status || wget --spider -q https://localhost:9443/api/status --no-check-certificate || wget --spider -q https://localhost:9443/api/system/status --no-check-certificate || exit 1; elif command -v curl >/dev/null 2>&1; then curl -sf http://localhost:9000/api/status || curl -sf http://localhost:9000/api/system/status || curl -sk https://localhost:9443/api/status || curl -sk https://localhost:9443/api/system/status || exit 1; else exit 1; fi"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+networks:
+  nucleus_internal:
+    driver: bridge
+    internal: false

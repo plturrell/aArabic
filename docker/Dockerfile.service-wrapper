@@ -1,0 +1,40 @@
+# Generic Dockerfile for Rust wrapper services using service-common.
+FROM rust:1.75-slim AS builder
+
+ARG SERVICE_PATH
+ARG SERVICE_BIN
+
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY src/serviceCore/serviceCommon /app/src/serviceCore/serviceCommon
+COPY ${SERVICE_PATH} /app/${SERVICE_PATH}
+
+WORKDIR /app/${SERVICE_PATH}
+RUN cargo build --release
+
+FROM debian:bookworm-slim
+
+ARG SERVICE_PATH
+ARG SERVICE_BIN
+ARG SERVICE_PORT
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+ENV SERVICE_BIN=${SERVICE_BIN}
+ENV SERVICE_PORT=${SERVICE_PORT}
+
+COPY --from=builder /app/${SERVICE_PATH}/target/release/${SERVICE_BIN} /usr/local/bin/${SERVICE_BIN}
+
+EXPOSE ${SERVICE_PORT}
+
+CMD ["sh", "-c", "/usr/local/bin/${SERVICE_BIN}"]

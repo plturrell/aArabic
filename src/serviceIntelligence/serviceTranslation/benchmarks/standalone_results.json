@@ -1,0 +1,78 @@
+{
+  "model": "m2m100-418M",
+  "test_pairs": 10,
+  "avg_time_ms": 6537.544131278992,
+  "avg_accuracy": 0.8466666666666667,
+  "results": [
+    {
+      "arabic": "الفاتورة رقم ١٢٣٤",
+      "expected": "Invoice number 1234",
+      "translated": "Invoice number 1234",
+      "time_ms": 8950.157165527344,
+      "accuracy": 1.0
+    },
+    {
+      "arabic": "المبلغ الإجمالي ١٠٠٠ ريال سعودي",
+      "expected": "Total amount 1000 Saudi Riyals",
+      "translated": "The total amount of 1,000 Saudi Riyals",
+      "time_ms": 16989.842891693115,
+      "accuracy": 0.8
+    },
+    {
+      "arabic": "تاريخ الاستحقاق",
+      "expected": "Due date",
+      "translated": "Date of Merit",
+      "time_ms": 7519.401073455811,
+      "accuracy": 0.5
+    },
+    {
+      "arabic": "الرقم الضريبي",
+      "expected": "Tax identification number",
+      "translated": "Tax Number",
+      "time_ms": 4406.319856643677,
+      "accuracy": 0.6666666666666666
+    },
+    {
+      "arabic": "اسم الشركة",
+      "expected": "Company name",
+      "translated": "Name of the company",
+      "time_ms": 8817.013025283813,
+      "accuracy": 1.0
+    },
+    {
+      "arabic": "البنك الوطني",
+      "expected": "National Bank",
+      "translated": "National Bank",
+      "time_ms": 4334.357976913452,
+      "accuracy": 1.0
+    },
+    {
+      "arabic": "رقم الحساب",
+      "expected": "Account number",
+      "translated": "Number of Account",
+      "time_ms": 1878.5159587860107,
+      "accuracy": 1.0
+    },
+    {
+      "arabic": "ضريبة القيمة المضافة",
+      "expected": "Value Added Tax",
+      "translated": "Added value tax",
+      "time_ms": 2163.551092147827,
+      "accuracy": 1.0
+    },
+    {
+      "arabic": "شروط الدفع",
+      "expected": "Payment terms",
+      "translated": "Conditions of Payment",
+      "time_ms": 3367.5172328948975,
+      "accuracy": 0.5
+    },
+    {
+      "arabic": "العنوان",
+      "expected": "Address",
+      "translated": "Address",
+      "time_ms": 6948.76503944397,
+      "accuracy": 1.0
+    }
+  ]
+}

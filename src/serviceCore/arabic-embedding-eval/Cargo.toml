@@ -1,0 +1,45 @@
+[package]
+name = "arabic-embedding-eval"
+version = "0.1.0"
+edition = "2021"
+authors = ["Arabic Folder Project"]
+description = "Evaluation framework for Arabic-English translation embedding models"
+
+[[bin]]
+name = "arabic-model-comparison"
+path = "src/bin/model_comparison.rs"
+
+[[bin]]
+name = "arabic-benchmark"
+path = "src/bin/benchmark.rs"
+
+[dependencies]
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# HTTP client for testing services
+reqwest = { version = "0.11", features = ["json"] }
+tokio = { version = "1", features = ["full"] }
+
+# CLI
+clap = { version = "4.5", features = ["derive"] }
+
+# Tables and formatting
+tabled = "0.15"
+colored = "2.1"
+
+# Utils
+anyhow = "1.0"
+thiserror = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+
+# Statistics
+statrs = "0.16"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+tokio-test = "0.4"

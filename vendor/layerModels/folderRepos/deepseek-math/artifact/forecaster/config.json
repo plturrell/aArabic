@@ -1,0 +1,25 @@
+{
+  "d_model": 128,
+  "n_heads": 4,
+  "n_layers": 3,
+  "max_variates": 55,
+  "forecast_horizon": 24,
+  "patch_sizes": [
+    8,
+    16,
+    32,
+    64
+  ],
+  "quantiles": [
+    0.05,
+    0.25,
+    0.5,
+    0.75,
+    0.95
+  ],
+  "n_mixture_components": 3,
+  "target_coverage": 0.9,
+  "static_dim": 0,
+  "future_dim": 0,
+  "dropout": 0.1
+}

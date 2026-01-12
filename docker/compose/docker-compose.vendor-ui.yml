@@ -1,0 +1,10 @@
+services:
+  opencanvas:
+    extends:
+      file: docker-compose.yml
+      service: opencanvas
+
+  hyperbooklm:
+    extends:
+      file: docker-compose.yml
+      service: hyperbooklm

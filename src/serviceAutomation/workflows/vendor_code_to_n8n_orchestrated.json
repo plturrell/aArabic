@@ -1,0 +1,272 @@
+{
+  "name": "Vendor Code to n8n (ToolOrchestra Managed)",
+  "description": "Complete pipeline: Vendor code → SCIP → Glean → Memgraph/Qdrant → Lean4 → n8n, orchestrated by NVIDIA ToolOrchestra",
+  "version": "1.0.0",
+  "nodes": [
+    {
+      "id": "input_1",
+      "type": "TextInput",
+      "position": [100, 300],
+      "data": {
+        "node": {
+          "template": {
+            "value": {
+              "display_name": "Vendor Project Path",
+              "info": "Path to vendor project (e.g., vendor/layerIntelligence/hyperbooklm)"
+            }
+          },
+          "display_name": "Input: Project Path",
+          "description": "Vendor project to process"
+        }
+      }
+    },
+    {
+      "id": "input_2",
+      "type": "TextInput",
+      "position": [100, 400],
+      "data": {
+        "node": {
+          "template": {
+            "value": {
+              "display_name": "Language",
+              "info": "Project language: rust, typescript, or python"
+            }
+          },
+          "display_name": "Input: Language",
+          "description": "Programming language"
+        }
+      }
+    },
+    {
+      "id": "toolorchestra_1",
+      "type": "ToolOrchestraAgent",
+      "position": [400, 350],
+      "data": {
+        "node": {
+          "template": {
+            "task": {
+              "display_name": "Task",
+              "value": "Process vendor code through complete intelligence pipeline: SCIP indexing → Glean querying → Memgraph graph storage → Qdrant vector search → Lean4 formal specs → n8n component generation. Optimize tool usage for efficiency."
+            },
+            "tools_config": {
+              "display_name": "Tools Configuration",
+              "value": "config/toolorchestra_tools.json"
+            },
+            "model": {
+              "display_name": "Model",
+              "value": "nvidia/Orchestrator-8B"
+            },
+            "base_url": {
+              "display_name": "Base URL",
+              "value": "http://localhost:11435/v1"
+            },
+            "max_iterations": {
+              "display_name": "Max Iterations",
+              "value": 15
+            },
+            "enable_reasoning": {
+              "display_name": "Enable Reasoning",
+              "value": true
+            }
+          },
+          "display_name": "ToolOrchestra Agent",
+          "description": "NVIDIA ToolOrchestra coordinates all intelligence tools"
+        }
+      }
+    },
+    {
+      "id": "scip_indexer_1",
+      "type": "CustomComponent",
+      "position": [700, 200],
+      "data": {
+        "node": {
+          "template": {
+            "component_path": {
+              "value": "src/serviceAutomation/serviceLangflow/custom_components/scip_indexer.py"
+            }
+          },
+          "display_name": "SCIP Indexer",
+          "description": "Index code with SCIP"
+        }
+      }
+    },
+    {
+      "id": "glean_query_1",
+      "type": "HTTPRequest",
+      "position": [700, 350],
+      "data": {
+        "node": {
+          "template": {
+            "url": {
+              "value": "http://localhost:8011/index"
+            },
+            "method": {
+              "value": "POST"
+            },
+            "body": {
+              "value": "{\"scip_index_path\": \"{scip_index_path}\", \"project_name\": \"{project_name}\"}"
+            }
+          },
+          "display_name": "Glean Indexer",
+          "description": "Index SCIP in Glean"
+        }
+      }
+    },
+    {
+      "id": "memgraph_store_1",
+      "type": "MemgraphQuery",
+      "position": [1000, 250],
+      "data": {
+        "node": {
+          "template": {
+            "uri": {
+              "value": "bolt://localhost:7687"
+            },
+            "query": {
+              "value": "CREATE (p:Project {name: $project_name, source: 'vendor', indexed_at: datetime()})"
+            }
+          },
+          "display_name": "Store in Memgraph",
+          "description": "Store code graph"
+        }
+      }
+    },
+    {
+      "id": "qdrant_store_1",
+      "type": "HTTPRequest",
+      "position": [1000, 400],
+      "data": {
+        "node": {
+          "template": {
+            "url": {
+              "value": "http://localhost:6333/collections/code_symbols/points"
+            },
+            "method": {
+              "value": "PUT"
+            }
+          },
+          "display_name": "Store in Qdrant",
+          "description": "Store code embeddings"
+        }
+      }
+    },
+    {
+      "id": "lean4_generator_1",
+      "type": "HTTPRequest",
+      "position": [1300, 300],
+      "data": {
+        "node": {
+          "template": {
+            "url": {
+              "value": "http://localhost:8009/generate-lean4"
+            },
+            "method": {
+              "value": "POST"
+            },
+            "body": {
+              "value": "{\"scip_index_path\": \"{scip_index_path}\", \"project_name\": \"{project_name}\"}"
+            }
+          },
+          "display_name": "Lean4 Generator",
+          "description": "Generate formal specs"
+        }
+      }
+    },
+    {
+      "id": "n8n_generator_1",
+      "type": "HTTPRequest",
+      "position": [1600, 300],
+      "data": {
+        "node": {
+          "template": {
+            "url": {
+              "value": "http://localhost:8010/generate-n8n"
+            },
+            "method": {
+              "value": "POST"
+            },
+            "body": {
+              "value": "{\"lean4_file_path\": \"{lean4_file_path}\"}"
+            }
+          },
+          "display_name": "n8n Generator",
+          "description": "Generate workflow components"
+        }
+      }
+    },
+    {
+      "id": "output_1",
+      "type": "TextOutput",
+      "position": [1900, 300],
+      "data": {
+        "node": {
+          "display_name": "Pipeline Output",
+          "description": "Complete pipeline results"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "input_1",
+      "sourceHandle": "output",
+      "target": "toolorchestra_1",
+      "targetHandle": "project_path"
+    },
+    {
+      "source": "input_2",
+      "sourceHandle": "output",
+      "target": "toolorchestra_1",
+      "targetHandle": "language"
+    },
+    {
+      "source": "toolorchestra_1",
+      "sourceHandle": "scip_output",
+      "target": "scip_indexer_1",
+      "targetHandle": "input"
+    },
+    {
+      "source": "scip_indexer_1",
+      "sourceHandle": "output",
+      "target": "glean_query_1",
+      "targetHandle": "input"
+    },
+    {
+      "source": "glean_query_1",
+      "sourceHandle": "output",
+      "target": "memgraph_store_1",
+      "targetHandle": "input"
+    },
+    {
+      "source": "glean_query_1",
+      "sourceHandle": "output",
+      "target": "qdrant_store_1",
+      "targetHandle": "input"
+    },
+    {
+      "source": "memgraph_store_1",
+      "sourceHandle": "output",
+      "target": "lean4_generator_1",
+      "targetHandle": "input"
+    },
+    {
+      "source": "lean4_generator_1",
+      "sourceHandle": "output",
+      "target": "n8n_generator_1",
+      "targetHandle": "input"
+    },
+    {
+      "source": "n8n_generator_1",
+      "sourceHandle": "output",
+      "target": "output_1",
+      "targetHandle": "input"
+    }
+  ],
+  "metadata": {
+    "created_at": "2026-01-09T09:46:00Z",
+    "author": "AI Nucleus Platform",
+    "tags": ["vendor-code", "toolorchestra", "code-intelligence", "formal-verification"],
+    "orchestrator": "nvidia/Orchestrator-8B",
+    "langflow_version": "1.0.0"
+  }
+}

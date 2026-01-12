@@ -1,0 +1,152 @@
+{
+  "metadata": {
+    "id": "bh_ap_doi_v11_2025",
+    "jurisdiction": "Bahrain",
+    "entity": "SCB Bahrain",
+    "version": "11-2025",
+    "sourceDocs": [
+      "docs/documentation/Accounts_Payable_DOI_Review.md",
+      "docs/documentation/Accounts_Payable_Quick_Reference.md"
+    ]
+  },
+  "paymentTypes": [
+    {
+      "code": "PO_INVOICE",
+      "description": "PO Invoice via eProcurement and Tax-Q"
+    },
+    {
+      "code": "MANUAL_INVOICE",
+      "description": "Manual (non e-Proc) invoice"
+    },
+    {
+      "code": "MANUAL_ONE_OFF",
+      "description": "One-off manual payment"
+    },
+    {
+      "code": "MANUAL_RECURRING",
+      "description": "Recurring manual payment"
+    },
+    {
+      "code": "CBR",
+      "description": "Cross Border Recharge (CBR)"
+    }
+  ],
+  "approvalMatrix": [
+    {
+      "paymentType": "PO_INVOICE",
+      "approvals": {
+        "costCentreOwner": true,
+        "supplyChainManager": false,
+        "cfo": false,
+        "mdCeo": false,
+        "dispensation": false
+      }
+    },
+    {
+      "paymentType": "MANUAL_INVOICE",
+      "approvals": {
+        "costCentreOwner": true,
+        "supplyChainManager": true,
+        "cfo": true,
+        "mdCeo": false,
+        "dispensation": false
+      }
+    },
+    {
+      "paymentType": "MANUAL_ONE_OFF",
+      "approvals": {
+        "costCentreOwner": true,
+        "supplyChainManager": true,
+        "cfo": true,
+        "mdCeo": true,
+        "dispensation": false
+      }
+    },
+    {
+      "paymentType": "MANUAL_RECURRING",
+      "approvals": {
+        "costCentreOwner": true,
+        "supplyChainManager": true,
+        "cfo": true,
+        "mdCeo": false,
+        "dispensation": true
+      }
+    },
+    {
+      "paymentType": "CBR",
+      "approvals": {
+        "costCentreOwner": false,
+        "supplyChainManager": false,
+        "cfo": false,
+        "mdCeo": false,
+        "dispensation": false
+      }
+    }
+  ],
+  "vatCategories": [
+    {
+      "code": "FULL_TAX",
+      "label": "Full Tax Invoice"
+    },
+    {
+      "code": "SIMPLIFIED",
+      "label": "Simplified Tax Invoice",
+      "simplifiedLimit": {
+        "currency": "BHD",
+        "amountInclusive": 500
+      }
+    },
+    {
+      "code": "UNREGISTERED_VENDOR",
+      "label": "Unregistered Vendor Purchase"
+    },
+    {
+      "code": "ZERO_RATED",
+      "label": "Zero Rated Purchase"
+    },
+    {
+      "code": "EXEMPT",
+      "label": "Exempt Purchase"
+    },
+    {
+      "code": "TAX_CREDIT_NOTE",
+      "label": "Tax Credit Note"
+    },
+    {
+      "code": "REVERSE_CHARGE",
+      "label": "Reverse Charge Invoice"
+    },
+    {
+      "code": "GCC_TAX",
+      "label": "GCC Tax Invoice",
+      "currentlyUsed": false
+    },
+    {
+      "code": "INTER_BU_TRANSFER",
+      "label": "Inter Business Unit Transfer"
+    },
+    {
+      "code": "OUT_OF_SCOPE",
+      "label": "Out of Scope"
+    },
+    {
+      "code": "OTHER",
+      "label": "Other (e.g. EWA bills)"
+    }
+  ],
+  "suspenseAccounts": [
+    {
+      "businessUnit": "DBU",
+      "currency": "BHD",
+      "accountNumber": "09-0906743-50"
+    },
+    {
+      "businessUnit": "DBU",
+      "currency": "USD",
+      "accountNumber": "09-0906743-50"
+    }
+  ]
+}
+
+
+

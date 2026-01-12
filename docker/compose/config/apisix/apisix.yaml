@@ -1,0 +1,97 @@
+# APISIX Routes Configuration - Simplified without YAML anchors
+# All traffic enters via port 80/443 and routes to internal services
+
+routes:
+  # Health check endpoint (no auth)
+  - id: health
+    uri: /health
+    upstream:
+      type: roundrobin
+      nodes:
+        backend:8000: 1
+
+  # Backend API
+  - id: api
+    uri: /api/*
+    upstream:
+      type: roundrobin
+      nodes:
+        backend:8000: 1
+    plugins:
+      cors:
+        allow_origins: "*"
+        allow_methods: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+        allow_headers: "Authorization,Content-Type"
+        max_age: 3600
+
+  # Frontend / UI
+  - id: frontend
+    uri: /
+    upstream:
+      type: roundrobin
+      nodes:
+        backend:8000: 1
+
+  # AI Services
+  - id: langflow
+    uri: /langflow/*
+    upstream:
+      type: roundrobin
+      nodes:
+        langflow:7860: 1
+    plugins:
+      proxy-rewrite:
+        regex_uri: ["^/langflow/(.*)", "/$1"]
+
+  - id: hyperbooklm
+    uri: /hyperbooklm/*
+    upstream:
+      type: roundrobin
+      nodes:
+        hyperbooklm:3002: 1
+    plugins:
+      proxy-rewrite:
+        regex_uri: ["^/hyperbooklm/(.*)", "/$1"]
+
+  - id: n8n
+    uri: /n8n/*
+    upstream:
+      type: roundrobin
+      nodes:
+        n8n:5678: 1
+    plugins:
+      proxy-rewrite:
+        regex_uri: ["^/n8n/(.*)", "/$1"]
+
+  # Infrastructure
+  - id: git
+    uri: /git/*
+    upstream:
+      type: roundrobin
+      nodes:
+        gitea:3000: 1
+    plugins:
+      proxy-rewrite:
+        regex_uri: ["^/git/(.*)", "/$1"]
+
+  - id: graph
+    uri: /graph/*
+    upstream:
+      type: roundrobin
+      nodes:
+        nucleus-graph:5000: 1
+    plugins:
+      proxy-rewrite:
+        regex_uri: ["^/graph/(.*)", "/$1"]
+
+  - id: memgraph
+    uri: /memgraph/*
+    upstream:
+      type: roundrobin
+      nodes:
+        memgraph-lab:3000: 1
+    plugins:
+      proxy-rewrite:
+        regex_uri: ["^/memgraph/(.*)", "/$1"]
+
+#END

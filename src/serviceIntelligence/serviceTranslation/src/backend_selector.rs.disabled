@@ -1,0 +1,204 @@
+/// Dynamic Backend Selector for Burn
+/// Automatically detects and selects the best available backend:
+/// - Apple Metal (macOS GPU)
+/// - NVIDIA CUDA (NVIDIA GPU)
+/// - CPU fallback (NdArray)
+
+use burn::backend::{Autodiff, NdArray, Wgpu};
+use burn::tensor::backend::Backend;
+use tracing::{info, warn};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BackendType {
+    Wgpu,     // GPU via WGPU (Metal/Vulkan/DX12)
+    NdArray,  // CPU via NdArray
+}
+
+#[derive(Debug, Clone)]
+pub struct BackendInfo {
+    pub backend_type: BackendType,
+    pub device_name: String,
+    pub is_gpu: bool,
+    pub supports_metal: bool,
+    pub supports_cuda: bool,
+}
+
+/// Detect available backends and choose the best one
+pub fn detect_best_backend() -> BackendInfo {
+    info!("🔍 Detecting available compute backends...");
+    
+    // Try to initialize WGPU
+    if let Some(gpu_info) = try_wgpu_backend() {
+        info!("✅ GPU backend available: {}", gpu_info.device_name);
+        return gpu_info;
+    }
+    
+    // Fallback to CPU
+    warn!("⚠️  No GPU backend available, using CPU");
+    BackendInfo {
+        backend_type: BackendType::NdArray,
+        device_name: "CPU (NdArray)".to_string(),
+        is_gpu: false,
+        supports_metal: false,
+        supports_cuda: false,
+    }
+}
+
+/// Try to initialize WGPU backend (supports Metal, Vulkan, DX12, CUDA)
+fn try_wgpu_backend() -> Option<BackendInfo> {
+    use wgpu::{Instance, RequestAdapterOptions, PowerPreference};
+    
+    // Create WGPU instance
+    let instance = Instance::default();
+    
+    // Request high-performance adapter (prefers dedicated GPU)
+    let adapter = pollster::block_on(instance.request_adapter(&RequestAdapterOptions {
+        power_preference: PowerPreference::HighPerformance,
+        force_fallback_adapter: false,
+        compatible_surface: None,
+    }))?;
+    
+    let info = adapter.get_info();
+    
+    let supports_metal = matches!(info.backend, wgpu::Backend::Metal);
+    let supports_cuda = info.name.to_lowercase().contains("nvidia") 
+        || info.name.to_lowercase().contains("cuda");
+    
+    info!("   Backend: {:?}", info.backend);
+    info!("   Device: {}", info.name);
+    info!("   Driver: {}", info.driver);
+    
+    if supports_metal {
+        info!("   🍎 Apple Metal detected!");
+    }
+    if supports_cuda {
+        info!("   🟢 NVIDIA CUDA detected!");
+    }
+    
+    Some(BackendInfo {
+        backend_type: BackendType::Wgpu,
+        device_name: format!("{} ({:?})", info.name, info.backend),
+        is_gpu: true,
+        supports_metal,
+        supports_cuda,
+    })
+}
+
+/// Select backend based on command-line argument or auto-detection
+pub fn select_backend(backend_arg: Option<&str>) -> BackendInfo {
+    match backend_arg {
+        Some("cpu") => {
+            info!("🖥️  CPU backend explicitly requested");
+            BackendInfo {
+                backend_type: BackendType::NdArray,
+                device_name: "CPU (NdArray)".to_string(),
+                is_gpu: false,
+                supports_metal: false,
+                supports_cuda: false,
+            }
+        }
+        Some("gpu") | Some("wgpu") | Some("auto") | None => {
+            detect_best_backend()
+        }
+        Some(unknown) => {
+            warn!("⚠️  Unknown backend '{}', auto-detecting...", unknown);
+            detect_best_backend()
+        }
+    }
+}
+
+/// Helper to create the appropriate backend device
+pub fn create_device(backend_info: &BackendInfo) -> WgpuDevice {
+    match backend_info.backend_type {
+        BackendType::Wgpu => {
+            info!("🚀 Using GPU backend: {}", backend_info.device_name);
+            WgpuDevice::default()
+        }
+        BackendType::NdArray => {
+            info!("🖥️  Using CPU backend");
+            // NdArray doesn't need a device, but we return a dummy for API consistency
+            WgpuDevice::default()
+        }
+    }
+}
+
+// Type alias for the device
+pub type WgpuDevice = <Wgpu as Backend>::Device;
+pub type NdArrayDevice = <NdArray as Backend>::Device;
+
+/// Print backend information
+pub fn print_backend_info(info: &BackendInfo) {
+    println!("\n╔════════════════════════════════════════╗");
+    println!("║      Compute Backend Information       ║");
+    println!("╠════════════════════════════════════════╣");
+    println!("║ Type:           {:23} ║", format!("{:?}", info.backend_type));
+    println!("║ Device:         {:23} ║", 
+        if info.device_name.len() > 23 {
+            &info.device_name[..23]
+        } else {
+            &info.device_name
+        }
+    );
+    println!("║ GPU Accelerated: {:22} ║", if info.is_gpu { "Yes ✅" } else { "No" });
+    
+    if info.supports_metal {
+        println!("║ Apple Metal:     Yes 🍎                ║");
+    }
+    if info.supports_cuda {
+        println!("║ NVIDIA CUDA:     Yes 🟢                ║");
+    }
+    
+    println!("╚════════════════════════════════════════╝\n");
+}
+
+/// Benchmark backend performance
+pub fn benchmark_backend(info: &BackendInfo) -> f64 {
+    use std::time::Instant;
+    use burn::tensor::Tensor;
+    
+    info!("⏱️  Benchmarking backend performance...");
+    
+    let start = Instant::now();
+    
+    // Simple matrix multiplication benchmark
+    match info.backend_type {
+        BackendType::Wgpu => {
+            let device = WgpuDevice::default();
+            let a = Tensor::<Wgpu, 2>::random([1024, 1024], burn::tensor::Distribution::Uniform(0.0, 1.0), &device);
+            let b = Tensor::<Wgpu, 2>::random([1024, 1024], burn::tensor::Distribution::Uniform(0.0, 1.0), &device);
+            let _c = a.matmul(b);
+        }
+        BackendType::NdArray => {
+            let device = NdArrayDevice::default();
+            let a = Tensor::<NdArray, 2>::random([1024, 1024], burn::tensor::Distribution::Uniform(0.0, 1.0), &device);
+            let b = Tensor::<NdArray, 2>::random([1024, 1024], burn::tensor::Distribution::Uniform(0.0, 1.0), &device);
+            let _c = a.matmul(b);
+        }
+    }
+    
+    let elapsed = start.elapsed().as_secs_f64();
+    info!("   Benchmark time: {:.3}s", elapsed);
+    
+    elapsed
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_backend_detection() {
+        let info = detect_best_backend();
+        assert!(!info.device_name.is_empty());
+        println!("Detected: {:?}", info);
+    }
+
+    #[test]
+    fn test_backend_selection() {
+        let info = select_backend(Some("cpu"));
+        assert_eq!(info.backend_type, BackendType::NdArray);
+        
+        let info = select_backend(Some("auto"));
+        assert!(!info.device_name.is_empty());
+    }
+}

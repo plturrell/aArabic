@@ -1,0 +1,130 @@
+version: "3.8"
+
+services:
+  gateway:
+    extends:
+      file: docker-compose.yml
+      service: gateway
+    ports: []
+    expose:
+      - "9080"
+      - "9443"
+    depends_on:
+      keycloak:
+        condition: service_healthy
+
+  keycloak:
+    extends:
+      file: docker-compose.yml
+      service: keycloak
+
+  keycloak-db:
+    extends:
+      file: docker-compose.yml
+      service: keycloak-db
+
+  gitea:
+    extends:
+      file: docker-compose.yml
+      service: gitea
+
+  gitea-db:
+    extends:
+      file: docker-compose.yml
+      service: gitea-db
+
+  memgraph:
+    extends:
+      file: docker-compose.yml
+      service: memgraph
+
+  memgraph-lab:
+    extends:
+      file: docker-compose.yml
+      service: memgraph-lab
+
+  qdrant:
+    extends:
+      file: docker-compose.yml
+      service: qdrant
+
+  dragonfly:
+    extends:
+      file: docker-compose.yml
+      service: dragonfly
+
+  marquez:
+    extends:
+      file: docker-compose.yml
+      service: marquez
+
+  marquez-db:
+    extends:
+      file: docker-compose.yml
+      service: marquez-db
+
+  marquez-web:
+    extends:
+      file: docker-compose.yml
+      service: marquez-web
+
+  langflow:
+    extends:
+      file: docker-compose.yml
+      service: langflow
+
+  shimmy:
+    extends:
+      file: docker-compose.yml
+      service: shimmy
+
+  opencanvas:
+    extends:
+      file: docker-compose.yml
+      service: opencanvas
+
+  hyperbooklm:
+    extends:
+      file: docker-compose.yml
+      service: hyperbooklm
+
+  n8n:
+    extends:
+      file: docker-compose.yml
+      service: n8n
+
+  n8n-db:
+    extends:
+      file: docker-compose.yml
+      service: n8n-db
+
+  lean4-runtime:
+    extends:
+      file: docker-compose.yml
+      service: lean4-runtime
+
+  markitdown:
+    extends:
+      file: docker-compose.markitdown.yml
+      service: markitdown
+    ports: []
+    expose:
+      - "8005"
+
+  service-registry:
+    extends:
+      file: docker-compose.yml
+      service: service-registry
+
+  registry-db:
+    extends:
+      file: docker-compose.yml
+      service: registry-db
+
+networks:
+  nucleus_internal:
+    driver: bridge
+    internal: ${NETWORK_INTERNAL:-true}
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

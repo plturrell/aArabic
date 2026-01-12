@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # Pure Rust embedding service - High performance, multilingual support
+  embedding-rust:
+    build:
+      context: ../../src/serviceCore/serviceEmbedding-rust
+      dockerfile: Dockerfile
+    container_name: ai_nucleus_embedding_rust
+    ports:
+      - "8007:8007"
+    environment:
+      - RUST_LOG=info
+      - PORT=8007
+      - EMBEDDING_MODEL=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+      - HF_HOME=/root/.cache/huggingface
+    volumes:
+      - embedding_cache:/root/.cache/huggingface
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - ai_nucleus_network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # Legacy Python embedding service (commented out - use Rust version above)
+  # embedding:
+  #   build:
+  #     context: ../../src/serviceCore/serviceEmbedding
+  #     dockerfile: Dockerfile
+  #   container_name: ai_nucleus_embedding
+  #   ports:
+  #     - "8007:8007"
+  #   environment:
+  #     - LOG_LEVEL=info
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8007/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 40s
+  #   networks:
+  #     - ai_nucleus_network
+
+volumes:
+  embedding_cache:
+    driver: local
+
+networks:
+  ai_nucleus_network:
+    external: true

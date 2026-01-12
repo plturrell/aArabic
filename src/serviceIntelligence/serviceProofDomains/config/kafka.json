@@ -1,0 +1,35 @@
+{
+  "kafka": {
+    "bootstrap_servers": "localhost:9092",
+    "security_protocol": "PLAINTEXT",
+    "client_id": "proof-domains",
+    "group_id": "proof-domains-consumer",
+    "topics": {
+      "prefix": "proofs",
+      "domains": {
+        "mathematics": "proofs.mathematics",
+        "code": "proofs.code",
+        "language": "proofs.language",
+        "data": "proofs.data",
+        "processes": "proofs.processes",
+        "insights": "proofs.insights",
+        "regulations": "proofs.regulations"
+      },
+      "system": {
+        "all": "proofs.all",
+        "links": "proofs.links",
+        "events": "proofs.events"
+      }
+    },
+    "num_partitions": 7,
+    "replication_factor": 1
+  },
+  "n8n": {
+    "base_url": "http://localhost:5678",
+    "webhook_path": "/webhook/proof-events"
+  },
+  "toon": {
+    "indent": 2,
+    "delimiter": ","
+  }
+}

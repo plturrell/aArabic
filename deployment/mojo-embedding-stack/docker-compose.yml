@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  # Mojo Embedding Service
+  mojo-embedding:
+    build:
+      context: ./services/mojo-embedding
+      dockerfile: Dockerfile
+    container_name: mojo-embedding
+    ports:
+      - "${EMBEDDING_PORT:-8007}:8007"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - REDIS_HOST=redis-cache
+      - REDIS_PORT=6379
+    volumes:
+      - ./logs:/app/logs
+      - embedding-models:/root/.cache/torch
+    depends_on:
+      redis-cache:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - mojo-net
+
+  # Redis Distributed Cache
+  redis-cache:
+    image: redis:7-alpine
+    container_name: redis-cache
+    command: >
+      redis-server
+      --maxmemory ${REDIS_MEMORY:-1gb}
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - mojo-net
+
+  # Qdrant Vector Database
+  qdrant:
+    image: qdrant/qdrant:v1.16.3
+    container_name: qdrant
+    ports:
+      - "${QDRANT_PORT:-6333}:6333"
+      - "6334:6334"
+    environment:
+      - QDRANT__SERVICE__HTTP_PORT=6333
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    volumes:
+      - qdrant-storage:/qdrant/storage
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:6333/readyz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - mojo-net
+
+volumes:
+  embedding-models:
+    driver: local
+  redis-data:
+    driver: local
+  qdrant-storage:
+    driver: local
+
+networks:
+  mojo-net:
+    driver: bridge
+    name: mojo-net

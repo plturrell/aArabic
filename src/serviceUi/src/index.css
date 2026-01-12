@@ -1,0 +1,164 @@
+/* iOS 18 / iPadOS 18 Global Styles */
+@import './ios18-tokens.css';
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--ios-font-family);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: var(--ios-body);
+  font-weight: 400;
+  letter-spacing: var(--ios-tracking-normal);
+  line-height: var(--ios-line-height-normal);
+  background: #ffffff;
+  color: var(--ios-label);
+  overflow: hidden;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Apple HIG Button Defaults */
+button {
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform var(--ios-duration-fast) var(--ios-spring-smooth);
+  -webkit-tap-highlight-color: transparent;
+  border: none;
+  background: none;
+  padding: 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+button:active:not(:disabled) {
+  transform: scale(var(--ios-scale-pressed));
+}
+
+button:disabled {
+  opacity: 0.4; /* Apple HIG disabled state */
+  cursor: not-allowed;
+}
+
+button:disabled:active {
+  transform: none;
+}
+
+/* Apple HIG Focus Styles */
+*:focus {
+  outline: 2px solid var(--ios-blue);
+  outline-offset: 2px;
+}
+
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--ios-blue);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* iOS 18 Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ios-tertiary-fill);
+  border-radius: var(--ios-radius-medium);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ios-secondary-fill);
+  background-clip: padding-box;
+}
+
+/* iOS 18 Selection */
+::selection {
+  background: rgba(0, 122, 255, 0.25);
+  color: inherit;
+}
+
+::-moz-selection {
+  background: rgba(0, 122, 255, 0.25);
+  color: inherit;
+}
+
+/* Input and Textarea Defaults */
+input,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+  border: none;
+  background: none;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--ios-tertiary-label);
+  opacity: 1;
+}
+
+/* RTL Support */
+[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+[dir="ltr"] {
+  direction: ltr;
+  text-align: left;
+}
+
+/* High contrast mode support (accessibility) */
+@media (prefers-contrast: high) {
+  *:focus-visible {
+    outline: 3px solid var(--ios-blue);
+    outline-offset: 3px;
+  }
+  
+  button:not(:disabled) {
+    border: 1px solid currentColor;
+  }
+}
+
+/* Reduced motion support (accessibility) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Large text support (accessibility) */
+@media (prefers-color-scheme: no-preference) {
+  body {
+    font-size: var(--ios-body);
+  }
+}

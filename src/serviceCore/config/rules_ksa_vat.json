@@ -1,0 +1,88 @@
+{
+  "metadata": {
+    "id": "ksa_vat_q3_2025",
+    "jurisdiction": "KSA",
+    "entity": "Standard Chartered Capital Saudi (SCSA)",
+    "version": "Q3-2025",
+    "sourceDocs": [
+      "docs/documentation/Saudi_OTP_Entry_VAT_Review.md",
+      "docs/documentation/Saudi_OTP_Entry_VAT_Quick_Reference.md"
+    ]
+  },
+  "glTemplate": {
+    "account": "287961",
+    "product": "910",
+    "department": "8105",
+    "operatingUnit": "800",
+    "class": "98",
+    "affiliate": null,
+    "projectId": null,
+    "psid": "2002976"
+  },
+  "taxTypes": [
+    {
+      "code": "FI",
+      "name": "Full Tax Invoice",
+      "description": "Local purchase - all 11 checklist points satisfied",
+      "criteria": {
+        "checklist": {
+          "requiresAllItems": true
+        }
+      }
+    },
+    {
+      "code": "SI",
+      "name": "Simplified Tax Invoice",
+      "description": "Local purchase - mandatory checklist items satisfied",
+      "criteria": {
+        "checklist": {
+          "requiresItems": [1, 2, 3, 4, 5, 6, 7, 8],
+          "treatMissingOthersAsOk": true
+        }
+      }
+    },
+    {
+      "code": "RC",
+      "name": "Reverse Charge",
+      "description": "Purchase from supplier outside KSA",
+      "criteria": {
+        "supplierCountryNot": ["KSA"]
+      }
+    },
+    {
+      "code": "TCN",
+      "name": "Tax Credit Note",
+      "description": "Credit note referencing original invoice",
+      "criteria": {
+        "isCreditNote": true,
+        "requiresOriginalInvoiceRef": true
+      }
+    }
+  ],
+  "checklist": [
+    { "id": 1, "label": "Invoice in Arabic language", "mandatory": true },
+    { "id": 2, "label": "Addressed to Standard Chartered Capital", "mandatory": true },
+    { "id": 3, "label": "Date of issue present", "mandatory": true },
+    { "id": 4, "label": "Sequential invoice number present", "mandatory": true },
+    { "id": 5, "label": "Supplier TIN 15 digits, name, address", "mandatory": true },
+    { "id": 6, "label": "Description of goods/services", "mandatory": true },
+    { "id": 7, "label": "Tax rate applied", "mandatory": true },
+    { "id": 8, "label": "Net, VAT, Gross amounts in SAR", "mandatory": true },
+    { "id": 9, "label": "Date of supply (if different)", "mandatory": false },
+    { "id": 10, "label": "Tax treatment explanation (if not 5%)", "mandatory": false },
+    { "id": 11, "label": "Original invoice reference (credit/debit notes)", "mandatory": false }
+  ],
+  "fxRules": {
+    "required": true,
+    "source": "SAMA",
+    "rateDateField": "date_of_supply",
+    "targetCurrency": "SAR"
+  },
+  "whtRules": {
+    "appliesWhenVendorOutsideKSA": true,
+    "note": "Only if vendor location is outside Saudi Arabia per Saudi_OTP_Entry_VAT_Review.md"
+  }
+}
+
+
+

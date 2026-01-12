@@ -1,0 +1,398 @@
+{
+  "name": "Arabic Translation Training & Fine-tuning Pipeline",
+  "description": "Complete training pipeline with Lean4 integration, model persistence, and benchmarking",
+  "version": "1.0.0",
+  "nodes": [
+    {
+      "id": "data_loader",
+      "type": "CustomComponent",
+      "name": "Rust Data Loader",
+      "position": {"x": 100, "y": 100},
+      "data": {
+        "component": "RustDataLoader",
+        "description": "Ultra-fast Rust data loading (17-35x faster)",
+        "inputs": {
+          "csv_path": {
+            "type": "str",
+            "required": true,
+            "default": "/data/translation/train.csv"
+          },
+          "batch_size": {
+            "type": "int",
+            "default": 32
+          },
+          "shuffle": {
+            "type": "bool",
+            "default": true
+          }
+        },
+        "outputs": {
+          "batches": "DataBatch[]",
+          "stats": "DataStats"
+        }
+      }
+    },
+    {
+      "id": "model_loader",
+      "type": "CustomComponent",
+      "name": "M2M100 Model Loader",
+      "position": {"x": 100, "y": 250},
+      "data": {
+        "component": "M2M100ModelLoader",
+        "description": "Load M2M100 with 99.9% weight coverage",
+        "inputs": {
+          "model_path": {
+            "type": "str",
+            "default": "../../vendor/layerModels/folderRepos/arabic_models/m2m100-418M"
+          },
+          "device": {
+            "type": "str",
+            "options": ["cpu", "cuda", "metal"],
+            "default": "cpu"
+          },
+          "load_weights": {
+            "type": "bool",
+            "default": true
+          }
+        },
+        "outputs": {
+          "model": "M2M100Model",
+          "config": "ModelConfig",
+          "weight_stats": "WeightStats"
+        }
+      }
+    },
+    {
+      "id": "preprocessor",
+      "type": "CustomComponent",
+      "name": "Arabic Text Preprocessor",
+      "position": {"x": 350, "y": 100},
+      "data": {
+        "component": "ArabicPreprocessor",
+        "inputs": {
+          "normalize": {
+            "type": "bool",
+            "default": true
+          },
+          "remove_diacritics": {
+            "type": "bool",
+            "default": false
+          },
+          "segment": {
+            "type": "bool",
+            "default": true
+          }
+        },
+        "outputs": {
+          "processed_batches": "DataBatch[]"
+        }
+      }
+    },
+    {
+      "id": "trainer",
+      "type": "CustomComponent",
+      "name": "Rust Training Engine",
+      "position": {"x": 600, "y": 175},
+      "data": {
+        "component": "RustTrainer",
+        "description": "Pure Rust training loop with Burn",
+        "inputs": {
+          "model": "M2M100Model",
+          "train_data": "DataBatch[]",
+          "val_data": "DataBatch[]",
+          "epochs": {
+            "type": "int",
+            "default": 10
+          },
+          "learning_rate": {
+            "type": "float",
+            "default": 0.0001
+          },
+          "optimizer": {
+            "type": "str",
+            "options": ["Adam", "AdamW", "SGD"],
+            "default": "AdamW"
+          },
+          "checkpoint_dir": {
+            "type": "str",
+            "default": "/checkpoints/m2m100"
+          }
+        },
+        "outputs": {
+          "trained_model": "M2M100Model",
+          "metrics": "TrainingMetrics",
+          "checkpoints": "Checkpoint[]"
+        }
+      }
+    },
+    {
+      "id": "evaluator",
+      "type": "CustomComponent",
+      "name": "Model Evaluator",
+      "position": {"x": 850, "y": 100},
+      "data": {
+        "component": "ModelEvaluator",
+        "description": "BLEU, accuracy, and custom metrics",
+        "inputs": {
+          "model": "M2M100Model",
+          "test_data": "DataBatch[]",
+          "metrics": {
+            "type": "list",
+            "options": ["BLEU", "Accuracy", "Perplexity", "F1"],
+            "default": ["BLEU", "Accuracy"]
+          }
+        },
+        "outputs": {
+          "evaluation_results": "EvaluationResults",
+          "bleu_score": "float",
+          "accuracy": "float"
+        }
+      }
+    },
+    {
+      "id": "lean4_verifier",
+      "type": "CustomComponent",
+      "name": "Lean4 Formal Verification",
+      "position": {"x": 850, "y": 250},
+      "data": {
+        "component": "Lean4Verifier",
+        "description": "Verify translation correctness with Lean4 proofs",
+        "inputs": {
+          "model": "M2M100Model",
+          "test_cases": "TestCase[]",
+          "proof_templates": {
+            "type": "str",
+            "default": "/proofs/translation_correctness.lean"
+          }
+        },
+        "outputs": {
+          "verification_results": "VerificationResults",
+          "proven_correct": "int",
+          "failed_proofs": "int",
+          "proof_coverage": "float"
+        }
+      }
+    },
+    {
+      "id": "benchmark",
+      "type": "CustomComponent",
+      "name": "Performance Benchmark",
+      "position": {"x": 1100, "y": 100},
+      "data": {
+        "component": "PerformanceBenchmark",
+        "description": "Comprehensive performance testing",
+        "inputs": {
+          "model": "M2M100Model",
+          "test_data": "DataBatch[]",
+          "num_iterations": {
+            "type": "int",
+            "default": 1000
+          },
+          "warmup": {
+            "type": "int",
+            "default": 100
+          }
+        },
+        "outputs": {
+          "throughput": "float",
+          "latency_p50": "float",
+          "latency_p95": "float",
+          "latency_p99": "float",
+          "memory_usage": "float"
+        }
+      }
+    },
+    {
+      "id": "model_persistence",
+      "type": "CustomComponent",
+      "name": "Model Persistence Layer",
+      "position": {"x": 1100, "y": 250},
+      "data": {
+        "component": "ModelPersistence",
+        "description": "Save/load models with versioning",
+        "inputs": {
+          "model": "M2M100Model",
+          "save_path": {
+            "type": "str",
+            "default": "/models/m2m100_finetuned"
+          },
+          "format": {
+            "type": "str",
+            "options": ["safetensors", "burn", "onnx"],
+            "default": "safetensors"
+          },
+          "version": {
+            "type": "str",
+            "default": "v1.0.0"
+          },
+          "metadata": {
+            "type": "dict",
+            "default": {
+              "training_date": "auto",
+              "metrics": "auto",
+              "dataset": "auto"
+            }
+          }
+        },
+        "outputs": {
+          "save_success": "bool",
+          "model_path": "str",
+          "metadata_path": "str"
+        }
+      }
+    },
+    {
+      "id": "qdrant_embeddings",
+      "type": "CustomComponent",
+      "name": "Qdrant Vector Storage",
+      "position": {"x": 850, "y": 400},
+      "data": {
+        "component": "QdrantEmbeddings",
+        "description": "Store embeddings for semantic search",
+        "inputs": {
+          "model": "M2M100Model",
+          "texts": "str[]",
+          "collection_name": {
+            "type": "str",
+            "default": "arabic_translations"
+          },
+          "qdrant_url": {
+            "type": "str",
+            "default": "http://localhost:6333"
+          }
+        },
+        "outputs": {
+          "stored_count": "int",
+          "collection_info": "dict"
+        }
+      }
+    },
+    {
+      "id": "memgraph_lineage",
+      "type": "CustomComponent",
+      "name": "Memgraph Model Lineage",
+      "position": {"x": 1100, "y": 400},
+      "data": {
+        "component": "MemgraphLineage",
+        "description": "Track model lineage and provenance",
+        "inputs": {
+          "model_id": "str",
+          "parent_model": "str",
+          "training_data": "str",
+          "metrics": "dict",
+          "memgraph_url": {
+            "type": "str",
+            "default": "bolt://localhost:7687"
+          }
+        },
+        "outputs": {
+          "lineage_id": "str",
+          "graph_updated": "bool"
+        }
+      }
+    },
+    {
+      "id": "metrics_dashboard",
+      "type": "CustomComponent",
+      "name": "Real-time Metrics Dashboard",
+      "position": {"x": 1350, "y": 175},
+      "data": {
+        "component": "MetricsDashboard",
+        "description": "Visualize training and inference metrics",
+        "inputs": {
+          "training_metrics": "TrainingMetrics",
+          "evaluation_results": "EvaluationResults",
+          "benchmark_results": "BenchmarkResults",
+          "update_interval": {
+            "type": "int",
+            "default": 5
+          }
+        },
+        "outputs": {
+          "dashboard_url": "str",
+          "report_path": "str"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "data_loader",
+      "sourceHandle": "batches",
+      "target": "preprocessor",
+      "targetHandle": "input"
+    },
+    {
+      "source": "preprocessor",
+      "sourceHandle": "processed_batches",
+      "target": "trainer",
+      "targetHandle": "train_data"
+    },
+    {
+      "source": "model_loader",
+      "sourceHandle": "model",
+      "target": "trainer",
+      "targetHandle": "model"
+    },
+    {
+      "source": "trainer",
+      "sourceHandle": "trained_model",
+      "target": "evaluator",
+      "targetHandle": "model"
+    },
+    {
+      "source": "trainer",
+      "sourceHandle": "trained_model",
+      "target": "lean4_verifier",
+      "targetHandle": "model"
+    },
+    {
+      "source": "trainer",
+      "sourceHandle": "trained_model",
+      "target": "benchmark",
+      "targetHandle": "model"
+    },
+    {
+      "source": "trainer",
+      "sourceHandle": "trained_model",
+      "target": "model_persistence",
+      "targetHandle": "model"
+    },
+    {
+      "source": "trainer",
+      "sourceHandle": "trained_model",
+      "target": "qdrant_embeddings",
+      "targetHandle": "model"
+    },
+    {
+      "source": "evaluator",
+      "sourceHandle": "evaluation_results",
+      "target": "metrics_dashboard",
+      "targetHandle": "evaluation_results"
+    },
+    {
+      "source": "benchmark",
+      "sourceHandle": "benchmark_results",
+      "target": "metrics_dashboard",
+      "targetHandle": "benchmark_results"
+    },
+    {
+      "source": "trainer",
+      "sourceHandle": "metrics",
+      "target": "metrics_dashboard",
+      "targetHandle": "training_metrics"
+    },
+    {
+      "source": "model_persistence",
+      "sourceHandle": "model_path",
+      "target": "memgraph_lineage",
+      "targetHandle": "model_id"
+    }
+  ],
+  "metadata": {
+    "author": "AI Nucleus Team",
+    "created": "2026-01-10",
+    "description": "End-to-end Arabic translation training with Lean4 verification and benchmarking",
+    "tags": ["training", "arabic", "rust", "lean4", "benchmarking"]
+  }
+}

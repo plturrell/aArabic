@@ -1,0 +1,331 @@
+# APISIX Routes Configuration - Private Network with OIDC Authentication
+# All traffic enters via port 80/443 and routes to internal services
+# Protected routes require Keycloak authentication
+
+# Global OIDC configuration (referenced by plugins)
+_oidc_config: &oidc_config
+  client_id: "${{OIDC_CLIENT_ID}}"
+  client_secret: "${{OIDC_CLIENT_SECRET}}"
+  discovery: "http://keycloak:8080/realms/nucleus/.well-known/openid-configuration"
+  scope: "openid profile email roles"
+  bearer_only: false
+  realm: "nucleus"
+  introspection_endpoint_auth_method: "client_secret_post"
+  redirect_uri: "http://localhost/callback"
+  logout_path: "/logout"
+  post_logout_redirect_uri: "http://localhost/"
+  session:
+    secret: "${{SESSION_SECRET}}"
+
+routes:
+  # ==========================================================================
+  # PUBLIC ROUTES - No Authentication Required
+  # ==========================================================================
+
+  # Health check endpoint
+  - id: health
+    uri: /health
+    upstream:
+      type: roundrobin
+      nodes:
+        backend:8000: 1
+
+  # Auth callback (required for OIDC flow)
+  - id: auth-callback
+    uri: /callback
+    upstream:
+      type: roundrobin
+      nodes:
+        backend:8000: 1
+    plugins:
+      openid-connect:
+        <<: *oidc_config
+
+  # Logout endpoint
+  - id: logout
+    uri: /logout
+    upstream:
+      type: roundrobin
+      nodes:
+        backend:8000: 1
+    plugins:
+      openid-connect:
+        <<: *oidc_config
+
+  # Keycloak passthrough (for login UI)
+  - id: keycloak-auth
+    uri: /auth/*
+    upstream:
+      type: roundrobin
+      nodes:
+        keycloak:8080: 1
+    plugins:
+      proxy-rewrite:
+        regex_uri: ["^/auth/(.*)", "/$1"]
+
+  # Static assets (public)
+  - id: frontend-static
+    uri: /static/*
+    upstream:
+      type: roundrobin
+      nodes:
+        backend:8000: 1
+
+  - id: frontend-js
+    uri: /js/*
+    upstream:
+      type: roundrobin
+      nodes:
+        backend:8000: 1
+
+  - id: frontend-css
+    uri: /css/*
+    upstream:
+      type: roundrobin
+      nodes:
+        backend:8000: 1
+
+  # ==========================================================================
+  # PROTECTED ROUTES - Authentication Required
+  # ==========================================================================
+
+  # Frontend / UI (protected)
+  - id: frontend
+    uri: /
+    upstream:
+      type: roundrobin
+      nodes:
+        backend:8000: 1
+    plugins:
+      openid-connect:
+        <<: *oidc_config
+      proxy-rewrite:
+        uri: /
+
+  # Backend API (protected)
+  - id: api
+    uri: /api/*
+    upstream:
+      type: roundrobin
+      nodes:
+        backend:8000: 1
+    plugins:
+      openid-connect:
+        <<: *oidc_config
+        bearer_only: true
+      cors:
+        allow_origins: "*"
+        allow_methods: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+        allow_headers: "Authorization,Content-Type,X-Requested-With"
+        expose_headers: "*"
+        max_age: 3600
+
+  # ==========================================================================
+  # AI SERVICES (Protected)
+  # ==========================================================================
+
+  - id: shimmy
+    uri: /shimmy/*
+    upstream:
+      type: roundrobin
+      nodes:
+        shimmy:3001: 1
+    plugins:
+      openid-connect:
+        <<: *oidc_config
+        bearer_only: true
+      proxy-rewrite:
+        regex_uri: ["^/shimmy/(.*)", "/$1"]
+
+  - id: langflow
+    uri: /langflow/*
+    upstream:
+      type: roundrobin
+      nodes:
+        langflow:7860: 1
+    plugins:
+      openid-connect:
+        <<: *oidc_config
+      proxy-rewrite:
+        regex_uri: ["^/langflow/(.*)", "/$1"]
+
+  - id: langflow-root
+    uri: /langflow
+    upstream:
+      type: roundrobin
+      nodes:
+        langflow:7860: 1
+    plugins:
+      openid-connect:
+        <<: *oidc_config
+      proxy-rewrite:
+        uri: /
+
+  - id: canvas
+    uri: /canvas/*
+    upstream:
+      type: roundrobin
+      nodes:
+        opencanvas:3000: 1
+    plugins:
+      openid-connect:
+        <<: *oidc_config
+      proxy-rewrite:
+        regex_uri: ["^/canvas/(.*)", "/$1"]
+
+  - id: canvas-root
+    uri: /canvas
+    upstream:
+      type: roundrobin
+      nodes:
+        opencanvas:3000: 1
+    plugins:
+      openid-connect:
+        <<: *oidc_config
+      proxy-rewrite:
+        uri: /
+
+  - id: hyperbooklm
+    uri: /hyperbooklm/*
+    upstream:
+      type: roundrobin
+      nodes:
+        hyperbooklm:3002: 1
+    plugins:
+      openid-connect:
+        <<: *oidc_config
+      proxy-rewrite:
+        regex_uri: ["^/hyperbooklm/(.*)", "/$1"]
+
+  - id: hyperbooklm-root
+    uri: /hyperbooklm
+    upstream:
+      type: roundrobin
+      nodes:
+        hyperbooklm:3002: 1
+    plugins:
+      openid-connect:
+        <<: *oidc_config
+      proxy-rewrite:
+        uri: /
+
+  - id: lean4
+    uri: /lean4/*
+    upstream:
+      type: roundrobin
+      nodes:
+        lean4-runtime:8002: 1
+    plugins:
+      openid-connect:
+        <<: *oidc_config
+      proxy-rewrite:
+        regex_uri: ["^/lean4/(.*)", "/$1"]
+
+  - id: n8n
+    uri: /n8n/*
+    upstream:
+      type: roundrobin
+      nodes:
+        n8n:5678: 1
+    plugins:
+      openid-connect:
+        <<: *oidc_config
+      proxy-rewrite:
+        regex_uri: ["^/n8n/(.*)", "/$1"]
+
+  - id: n8n-root
+    uri: /n8n
+    upstream:
+      type: roundrobin
+      nodes:
+        n8n:5678: 1
+    plugins:
+      openid-connect:
+        <<: *oidc_config
+      proxy-rewrite:
+        uri: /
+
+  # ==========================================================================
+  # DATA LAYER (Protected - API Bearer Token Only)
+  # ==========================================================================
+
+  - id: qdrant
+    uri: /vectors/*
+    upstream:
+      type: roundrobin
+      nodes:
+        qdrant:6333: 1
+    plugins:
+      openid-connect:
+        <<: *oidc_config
+        bearer_only: true
+      proxy-rewrite:
+        regex_uri: ["^/vectors/(.*)", "/$1"]
+
+  - id: graph
+    uri: /graph/*
+    upstream:
+      type: roundrobin
+      nodes:
+        nucleus-graph:5000: 1
+    plugins:
+      openid-connect:
+        <<: *oidc_config
+        bearer_only: true
+      proxy-rewrite:
+        regex_uri: ["^/graph/(.*)", "/$1"]
+
+  - id: memgraph-lab
+    uri: /memgraph/*
+    upstream:
+      type: roundrobin
+      nodes:
+        memgraph-lab:3000: 1
+    plugins:
+      openid-connect:
+        <<: *oidc_config
+      proxy-rewrite:
+        regex_uri: ["^/memgraph/(.*)", "/$1"]
+
+  # ==========================================================================
+  # INFRASTRUCTURE (Protected - Admin Access)
+  # ==========================================================================
+
+  - id: git
+    uri: /git/*
+    upstream:
+      type: roundrobin
+      nodes:
+        gitea:3000: 1
+    plugins:
+      openid-connect:
+        <<: *oidc_config
+      proxy-rewrite:
+        regex_uri: ["^/git/(.*)", "/$1"]
+
+  - id: lineage
+    uri: /lineage/*
+    upstream:
+      type: roundrobin
+      nodes:
+        marquez:5000: 1
+    plugins:
+      openid-connect:
+        <<: *oidc_config
+        bearer_only: true
+      proxy-rewrite:
+        regex_uri: ["^/lineage/(.*)", "/api/v1/$1"]
+
+  - id: lineage-web
+    uri: /lineage-ui/*
+    upstream:
+      type: roundrobin
+      nodes:
+        marquez-web:3000: 1
+    plugins:
+      openid-connect:
+        <<: *oidc_config
+      proxy-rewrite:
+        regex_uri: ["^/lineage-ui/(.*)", "/$1"]
+
+#END

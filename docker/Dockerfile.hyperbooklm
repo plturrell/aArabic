@@ -1,0 +1,22 @@
+# HyperbookLM Dockerfile  
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install production dependencies only
+RUN apk add --no-cache libc6-compat
+
+# Copy pre-built project (includes .next and node_modules)
+COPY vendor/layerIntelligence/hyperbooklm/.next ./.next
+COPY vendor/layerIntelligence/hyperbooklm/node_modules ./node_modules
+COPY vendor/layerIntelligence/hyperbooklm/package.json ./
+COPY vendor/layerIntelligence/hyperbooklm/public ./public
+COPY vendor/layerIntelligence/hyperbooklm/next.config.ts ./
+
+# Expose port
+EXPOSE 3002
+
+ENV PORT=3002
+ENV NODE_ENV=production
+
+CMD ["node_modules/.bin/next", "start", "-p", "3002"]

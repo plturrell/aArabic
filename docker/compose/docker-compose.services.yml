@@ -1,0 +1,57 @@
+# Docker Compose - Generated Services
+# Auto-generated Rust services for Gitea features and orchestration
+
+version: '3.8'
+
+services:
+  # serviceN8n - Meta-Orchestration Service (Port 8003)
+  service-n8n:
+    build:
+      context: ./src/serviceIntelligence/serviceN8n
+      dockerfile: Dockerfile
+    expose:
+      - "8003"
+    environment:
+      - RUST_LOG=info
+      - LEAN4_PARSER_URL=${LEAN4_PARSER_URL:-http://lean4-runtime:8002}
+      - GITEA_SERVICE_PATH=/app/serviceCore/serviceGitea
+      - AUTOMATION_PATH=/app/serviceAutomation
+    volumes:
+      - ./src/serviceCore/serviceGitea:/app/serviceCore/serviceGitea
+      - ./src/serviceAutomation:/app/serviceAutomation
+      - ./src/serviceIntelligence/serviceN8n/n8n-workflows:/app/n8n-workflows
+    depends_on:
+      - lean4-runtime
+    networks:
+      - nucleus_internal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # serviceGitea - Generated Feature Services (Port 8004)
+  service-gitea:
+    build:
+      context: ./src/serviceCore/serviceGitea
+      dockerfile: Dockerfile
+    expose:
+      - "8004"
+    environment:
+      - RUST_LOG=info
+      - GITEA_URL=${GITEA_URL:-http://gitea:3000}
+      - DATABASE_URL=${GITEA_DB_URL}
+    volumes:
+      - ./src/serviceCore/serviceGitea/features:/app/features:ro
+    networks:
+      - nucleus_internal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  nucleus_internal:
+    external: true
+    name: nucleus_internal

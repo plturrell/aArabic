@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AP Co-Pilot | Exception Workflow</title>
+    <link href="https://fonts.googleapis.com/css2?family=72:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* SAP Quartz Light Theme Variables */
+        :root {
+            --sapShellColor: #354A5F;
+            --sapBackgroundColor: #F7F7F7;
+            --sapBaseColor: #FFFFFF;
+            --sapGroupContentBackground: #FFFFFF;
+            --sapBrandColor: #0A6ED1;
+            --sapActiveColor: #0854A0;
+            --sapTextColor: #32363A;
+            --sapTitleColor: #32363A;
+            --sapContent_LabelColor: #6A6D70;
+            --sapPositiveColor: #107E3E;
+            --sapPositiveBackground: #F1FDF6;
+            --sapCriticalColor: #E9730C;
+            --sapCriticalBackground: #FEF7F1;
+            --sapNegativeColor: #BB0000;
+            --sapNegativeBackground: #FFEBEB;
+            --sapInformativeColor: #0A6ED1;
+            --sapInformativeBackground: #F5FAFF;
+            --sapGroup_BorderColor: #D9D9D9;
+            --sapShadow: 0 0 0 1px rgba(0,0,0,0.05), 0 0.125rem 0.5rem rgba(0,0,0,0.1);
+            --sapFontSize: 0.875rem;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: '72', 'SAP 72', Arial, Helvetica, sans-serif;
+            font-size: var(--sapFontSize);
+            color: var(--sapTextColor);
+            background-color: var(--sapBackgroundColor);
+            line-height: 1.4;
+        }
+
+        /* SAP Shell Header */
+        .sap-shell-header {
+            background-color: var(--sapShellColor);
+            height: 2.75rem;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            color: #FFFFFF;
+        }
+
+        .shell-logo {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-right: 1.5rem;
+        }
+
+        .shell-title {
+            font-weight: 400;
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        /* Page Header */
+        .page-header {
+            background: var(--sapBaseColor);
+            border-bottom: 1px solid var(--sapGroup_BorderColor);
+            padding: 1rem 2rem;
+        }
+
+        .page-header h1 {
+            font-size: 1.5rem;
+            font-weight: 400;
+            color: var(--sapTitleColor);
+            margin-bottom: 0.25rem;
+        }
+
+        .page-header-subtitle {
+            color: var(--sapContent_LabelColor);
+            font-size: 0.875rem;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 1.5rem 2rem;
+        }
+
+        /* SAP Panel */
+        .sap-panel {
+            background: var(--sapGroupContentBackground);
+            border-radius: 0.5rem;
+            box-shadow: var(--sapShadow);
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+
+        .sap-panel-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--sapGroup_BorderColor);
+            background: #FAFAFA;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .sap-panel-title {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--sapTitleColor);
+        }
+
+        .sap-panel-content {
+            padding: 1.5rem;
+        }
+
+        /* Workflow Container */
+        .workflow-container {
+            position: relative;
+            padding: 2rem 0;
+        }
+
+        /* Workflow Phases */
+        .workflow-phases {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            padding: 0 1rem;
+        }
+
+        .phase-label {
+            text-align: center;
+            flex: 1;
+        }
+
+        .phase-title {
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--sapContent_LabelColor);
+            margin-bottom: 0.25rem;
+        }
+
+        .phase-description {
+            font-size: 0.6875rem;
+            color: var(--sapContent_LabelColor);
+        }
+
+        /* Workflow Steps */
+        .workflow-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .workflow-step {
+            background: var(--sapBaseColor);
+            border: 2px solid var(--sapGroup_BorderColor);
+            border-radius: 0.5rem;
+            padding: 1rem 1.25rem;
+            min-width: 180px;
+            max-width: 220px;
+            text-align: center;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .workflow-step:hover {
+            border-color: var(--sapBrandColor);
+            box-shadow: 0 4px 12px rgba(10, 110, 209, 0.15);
+        }
+
+        .workflow-step.start {
+            background: var(--sapShellColor);
+            color: #FFFFFF;
+            border-color: var(--sapShellColor);
+        }
+
+        .workflow-step.decision {
+            background: var(--sapCriticalBackground);
+            border-color: var(--sapCriticalColor);
+            transform: rotate(0deg);
+            border-radius: 0.5rem;
+        }
+
+        .workflow-step.decision::before {
+            content: '◆';
+            position: absolute;
+            top: -0.75rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.25rem;
+            color: var(--sapCriticalColor);
+        }
+
+        .workflow-step.action {
+            background: var(--sapInformativeBackground);
+            border-color: var(--sapInformativeColor);
+        }
+
+        .workflow-step.success {
+            background: var(--sapPositiveBackground);
+            border-color: var(--sapPositiveColor);
+        }
+
+        .workflow-step.error {
+            background: var(--sapNegativeBackground);
+            border-color: var(--sapNegativeColor);
+        }
+
+        .workflow-step.feedback {
+            background: #F3E8FF;
+            border-color: #7C3AED;
+        }
+
+        .step-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .step-title {
+            font-weight: 500;
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .step-description {
+            font-size: 0.75rem;
+            color: var(--sapContent_LabelColor);
+        }
+
+        .workflow-step.start .step-description,
+        .workflow-step.start .step-title {
+            color: rgba(255,255,255,0.9);
+        }
+
+        /* Arrows */
+        .arrow {
+            color: var(--sapContent_LabelColor);
+            font-size: 1.25rem;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .arrow-down {
+            display: flex;
+            justify-content: center;
+            color: var(--sapContent_LabelColor);
+            font-size: 1.25rem;
+            margin: 0.5rem 0;
+        }
+
+        .arrow-label {
+            font-size: 0.6875rem;
+            color: var(--sapContent_LabelColor);
+            background: var(--sapBackgroundColor);
+            padding: 0.125rem 0.375rem;
+            border-radius: 0.25rem;
+            margin: 0 0.25rem;
+        }
+
+        .arrow-label.yes { color: var(--sapPositiveColor); }
+        .arrow-label.no { color: var(--sapNegativeColor); }
+
+        /* Branch Container */
+        .branch-container {
+            display: flex;
+            justify-content: center;
+            gap: 4rem;
+            margin: 1rem 0;
+            position: relative;
+        }
+
+        .branch-container::before {
+            content: '';
+            position: absolute;
+            top: -1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 1px;
+            background: var(--sapGroup_BorderColor);
+        }
+
+        .branch {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Questions Section */
+        .questions-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .question-card {
+            background: var(--sapBaseColor);
+            border: 1px solid var(--sapGroup_BorderColor);
+            border-radius: 0.5rem;
+            padding: 1.25rem;
+        }
+
+        .question-card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .question-number {
+            width: 1.5rem;
+            height: 1.5rem;
+            background: var(--sapBrandColor);
+            color: #FFFFFF;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .question-title {
+            font-weight: 500;
+            color: var(--sapTitleColor);
+        }
+
+        .question-content {
+            font-size: 0.8125rem;
+            color: var(--sapContent_LabelColor);
+            margin-bottom: 1rem;
+        }
+
+        .answer-box {
+            background: #FAFAFA;
+            border-radius: 0.25rem;
+            padding: 0.75rem;
+            font-size: 0.8125rem;
+        }
+
+        .answer-box-title {
+            font-weight: 500;
+            color: var(--sapTitleColor);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        .answer-box ul {
+            margin: 0;
+            padding-left: 1.25rem;
+            color: var(--sapTextColor);
+        }
+
+        .answer-box li {
+            margin-bottom: 0.25rem;
+        }
+
+        /* Swimlane Diagram */
+        .swimlane-container {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            border: 1px solid var(--sapGroup_BorderColor);
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        .swimlane-labels {
+            background: #FAFAFA;
+            border-right: 1px solid var(--sapGroup_BorderColor);
+        }
+
+        .swimlane-label {
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--sapGroup_BorderColor);
+            font-weight: 500;
+            font-size: 0.8125rem;
+            text-align: center;
+        }
+
+        .swimlane-label:last-child {
+            border-bottom: none;
+        }
+
+        .swimlane-label.system { background: var(--sapInformativeBackground); color: var(--sapInformativeColor); }
+        .swimlane-label.user { background: var(--sapCriticalBackground); color: var(--sapCriticalColor); }
+        .swimlane-label.model { background: #F3E8FF; color: #7C3AED; }
+
+        .swimlane-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .swimlane-row {
+            height: 100px;
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--sapGroup_BorderColor);
+            overflow-x: auto;
+        }
+
+        .swimlane-row:last-child {
+            border-bottom: none;
+        }
+
+        .lane-step {
+            background: var(--sapBaseColor);
+            border: 1px solid var(--sapGroup_BorderColor);
+            border-radius: 0.375rem;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        .lane-step.highlight {
+            border-color: var(--sapBrandColor);
+            background: var(--sapInformativeBackground);
+        }
+
+        .lane-arrow {
+            color: var(--sapContent_LabelColor);
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            gap: 1.5rem;
+            padding: 1rem;
+            background: #FAFAFA;
+            border-radius: 0.25rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8125rem;
+        }
+
+        .legend-icon {
+            width: 1.25rem;
+            height: 1.25rem;
+            border-radius: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+        }
+
+        .legend-icon.start { background: var(--sapShellColor); color: #FFF; }
+        .legend-icon.decision { background: var(--sapCriticalBackground); border: 1px solid var(--sapCriticalColor); }
+        .legend-icon.action { background: var(--sapInformativeBackground); border: 1px solid var(--sapInformativeColor); }
+        .legend-icon.success { background: var(--sapPositiveBackground); border: 1px solid var(--sapPositiveColor); }
+        .legend-icon.feedback { background: #F3E8FF; border: 1px solid #7C3AED; }
+
+        /* Vertical Flow */
+        .vertical-flow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- SAP Shell Header -->
+    <header class="sap-shell-header">
+        <div class="shell-logo">SAP</div>
+        <div class="shell-title">AP Automation Co-Pilot | Exception Workflow</div>
+    </header>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>Exception Workflow for Low-Confidence Invoices</h1>
+        <p class="page-header-subtitle">Workshop 3: Designing the flow for exception-based processing</p>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Key Questions -->
+        <div class="sap-panel">
+            <div class="sap-panel-header">
+                <span style="font-size: 1.25rem;">❓</span>
+                <span class="sap-panel-title">Key Questions Addressed</span>
+            </div>
+            <div class="sap-panel-content">
+                <div class="questions-grid">
+                    <div class="question-card">
+                        <div class="question-card-header">
+                            <span class="question-number">1</span>
+                            <span class="question-title">Present the Problem</span>
+                        </div>
+                        <div class="question-content">
+                            How does the system present the problem to the user?
+                        </div>
+                        <div class="answer-box">
+                            <div class="answer-box-title">
+                                <span style="color: var(--sapInformativeColor);">💡</span> System Response
+                            </div>
+                            <ul>
+                                <li>Visual confidence badges (Red/Yellow)</li>
+                                <li>Field highlighting with border color</li>
+                                <li>Warning banner with count of issues</li>
+                                <li>Side-by-side comparison with source</li>
+                                <li>Tooltip with extraction details</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="question-card">
+                        <div class="question-card-header">
+                            <span class="question-number">2</span>
+                            <span class="question-title">User Correction</span>
+                        </div>
+                        <div class="question-content">
+                            How does the user correct it?
+                        </div>
+                        <div class="answer-box">
+                            <div class="answer-box-title">
+                                <span style="color: var(--sapCriticalColor);">✏️</span> User Actions
+                            </div>
+                            <ul>
+                                <li>Click field to enable edit mode</li>
+                                <li>Type correct value manually</li>
+                                <li>Select from suggested alternatives</li>
+                                <li>Use dropdown for Ariba matches</li>
+                                <li>Add correction reason (optional)</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="question-card">
+                        <div class="question-card-header">
+                            <span class="question-number">3</span>
+                            <span class="question-title">Model Feedback</span>
+                        </div>
+                        <div class="question-content">
+                            How is that correction fed back to the model?
+                        </div>
+                        <div class="answer-box">
+                            <div class="answer-box-title">
+                                <span style="color: #7C3AED;">🔄</span> Feedback Loop
+                            </div>
+                            <ul>
+                                <li>Log original vs corrected value</li>
+                                <li>Store supplier name mappings</li>
+                                <li>Update confidence thresholds</li>
+                                <li>Batch corrections for retraining</li>
+                                <li>Improve future extractions</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Workflow Diagram -->
+        <div class="sap-panel">
+            <div class="sap-panel-header">
+                <span style="font-size: 1.25rem;">📊</span>
+                <span class="sap-panel-title">Exception Handling Workflow</span>
+            </div>
+            <div class="sap-panel-content">
+                <div class="vertical-flow">
+                    <!-- Start -->
+                    <div class="workflow-step start">
+                        <div class="step-icon">📄</div>
+                        <div class="step-title">Invoice Received</div>
+                        <div class="step-description">Arabic PDF uploaded</div>
+                    </div>
+
+                    <div class="arrow-down">↓</div>
+
+                    <!-- OCR Extraction -->
+                    <div class="workflow-step action">
+                        <div class="step-icon">🔍</div>
+                        <div class="step-title">OCR & Extraction</div>
+                        <div class="step-description">AI extracts fields from Arabic text</div>
+                    </div>
+
+                    <div class="arrow-down">↓</div>
+
+                    <!-- Confidence Check -->
+                    <div class="workflow-step decision">
+                        <div class="step-icon">⚖️</div>
+                        <div class="step-title">Confidence Check</div>
+                        <div class="step-description">All fields ≥ 85% confidence?</div>
+                    </div>
+
+                    <div class="branch-container">
+                        <!-- Yes Branch -->
+                        <div class="branch">
+                            <div class="arrow-label yes">YES ✓</div>
+                            <div class="arrow-down">↓</div>
+                            <div class="workflow-step success">
+                                <div class="step-icon">✅</div>
+                                <div class="step-title">Auto-Submit</div>
+                                <div class="step-description">Direct to Ariba (STP)</div>
+                            </div>
+                        </div>
+
+                        <!-- No Branch -->
+                        <div class="branch">
+                            <div class="arrow-label no">NO ✗</div>
+                            <div class="arrow-down">↓</div>
+                            <div class="workflow-step error">
+                                <div class="step-icon">⚠️</div>
+                                <div class="step-title">Flag for Review</div>
+                                <div class="step-description">Route to exception queue</div>
+                            </div>
+
+                            <div class="arrow-down">↓</div>
+
+                            <div class="workflow-step action">
+                                <div class="step-icon">👁️</div>
+                                <div class="step-title">Present to User</div>
+                                <div class="step-description">Show dual-screen with highlights</div>
+                            </div>
+
+                            <div class="arrow-down">↓</div>
+
+                            <div class="workflow-step decision">
+                                <div class="step-icon">🤔</div>
+                                <div class="step-title">User Decision</div>
+                                <div class="step-description">Accept, Edit, or Reject?</div>
+                            </div>
+
+                            <div class="branch-container" style="gap: 2rem;">
+                                <div class="branch">
+                                    <div class="arrow-label yes">ACCEPT</div>
+                                    <div class="arrow-down">↓</div>
+                                    <div class="workflow-step success" style="min-width: 140px;">
+                                        <div class="step-icon">👍</div>
+                                        <div class="step-title">Confirm</div>
+                                    </div>
+                                </div>
+                                <div class="branch">
+                                    <div class="arrow-label" style="color: var(--sapCriticalColor);">EDIT</div>
+                                    <div class="arrow-down">↓</div>
+                                    <div class="workflow-step action" style="min-width: 140px;">
+                                        <div class="step-icon">✏️</div>
+                                        <div class="step-title">Correct Field</div>
+                                    </div>
+                                </div>
+                                <div class="branch">
+                                    <div class="arrow-label no">REJECT</div>
+                                    <div class="arrow-down">↓</div>
+                                    <div class="workflow-step error" style="min-width: 140px;">
+                                        <div class="step-icon">🚫</div>
+                                        <div class="step-title">Return</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="arrow-down" style="margin-top: 1rem;">↓</div>
+
+                            <div class="workflow-step feedback">
+                                <div class="step-icon">🔄</div>
+                                <div class="step-title">Log Correction</div>
+                                <div class="step-description">Store in feedback database</div>
+                            </div>
+
+                            <div class="arrow-down">↓</div>
+
+                            <div class="workflow-step success">
+                                <div class="step-icon">📤</div>
+                                <div class="step-title">Submit to Ariba</div>
+                                <div class="step-description">With validated data</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-icon start">●</div>
+                        <span>Start/End</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-icon decision">◆</div>
+                        <span>Decision Point</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-icon action">□</div>
+                        <span>System Action</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-icon success">✓</div>
+                        <span>Success State</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-icon feedback">↺</div>
+                        <span>Feedback Loop</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Swimlane Diagram -->
+        <div class="sap-panel">
+            <div class="sap-panel-header">
+                <span style="font-size: 1.25rem;">🏊</span>
+                <span class="sap-panel-title">Swimlane View: Responsibilities</span>
+            </div>
+            <div class="sap-panel-content">
+                <div class="swimlane-container">
+                    <div class="swimlane-labels">
+                        <div class="swimlane-label system">System<br>(AP Co-Pilot)</div>
+                        <div class="swimlane-label user">User<br>(AP Clerk)</div>
+                        <div class="swimlane-label model">ML Model<br>(Feedback)</div>
+                    </div>
+                    <div class="swimlane-content">
+                        <!-- System Row -->
+                        <div class="swimlane-row">
+                            <div class="lane-step">📄 Receive PDF</div>
+                            <span class="lane-arrow">→</span>
+                            <div class="lane-step">🔍 Extract Fields</div>
+                            <span class="lane-arrow">→</span>
+                            <div class="lane-step">📊 Score Confidence</div>
+                            <span class="lane-arrow">→</span>
+                            <div class="lane-step highlight">⚠️ Flag Low Confidence</div>
+                            <span class="lane-arrow">→</span>
+                            <div class="lane-step">👁️ Present UI</div>
+                            <span class="lane-arrow">→</span>
+                            <div class="lane-step">📤 Submit to Ariba</div>
+                        </div>
+                        <!-- User Row -->
+                        <div class="swimlane-row">
+                            <div style="width: 280px;"></div>
+                            <div class="lane-step">📋 Review Queue</div>
+                            <span class="lane-arrow">→</span>
+                            <div class="lane-step highlight">🔎 Compare Source</div>
+                            <span class="lane-arrow">→</span>
+                            <div class="lane-step highlight">✏️ Edit/Confirm</div>
+                            <span class="lane-arrow">→</span>
+                            <div class="lane-step">✅ Approve</div>
+                        </div>
+                        <!-- Model Row -->
+                        <div class="swimlane-row">
+                            <div style="width: 480px;"></div>
+                            <div class="lane-step">📝 Log Correction</div>
+                            <span class="lane-arrow">→</span>
+                            <div class="lane-step">💾 Store Mapping</div>
+                            <span class="lane-arrow">→</span>
+                            <div class="lane-step highlight">🧠 Retrain Model</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feedback Loop Details -->
+        <div class="sap-panel">
+            <div class="sap-panel-header">
+                <span style="font-size: 1.25rem;">🔄</span>
+                <span class="sap-panel-title">Feedback Loop Implementation</span>
+            </div>
+            <div class="sap-panel-content">
+                <div class="questions-grid">
+                    <div class="question-card">
+                        <div class="question-card-header">
+                            <span class="question-number" style="background: #7C3AED;">A</span>
+                            <span class="question-title">Capture</span>
+                        </div>
+                        <div class="answer-box" style="background: #F3E8FF;">
+                            <ul style="list-style: none; padding-left: 0;">
+                                <li>• <strong>Original Value:</strong> Extracted text</li>
+                                <li>• <strong>Corrected Value:</strong> User input</li>
+                                <li>• <strong>Field Type:</strong> Supplier, Amount, Date, etc.</li>
+                                <li>• <strong>Source Region:</strong> PDF coordinates</li>
+                                <li>• <strong>Timestamp:</strong> When corrected</li>
+                                <li>• <strong>User ID:</strong> Who made the change</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="question-card">
+                        <div class="question-card-header">
+                            <span class="question-number" style="background: #7C3AED;">B</span>
+                            <span class="question-title">Store</span>
+                        </div>
+                        <div class="answer-box" style="background: #F3E8FF;">
+                            <ul style="list-style: none; padding-left: 0;">
+                                <li>• <strong>Correction Database:</strong> All user overrides</li>
+                                <li>• <strong>Supplier Mappings:</strong> Arabic → English pairs</li>
+                                <li>• <strong>Confidence Adjustments:</strong> Per-field thresholds</li>
+                                <li>• <strong>Pattern Library:</strong> Common corrections</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="question-card">
+                        <div class="question-card-header">
+                            <span class="question-number" style="background: #7C3AED;">C</span>
+                            <span class="question-title">Apply</span>
+                        </div>
+                        <div class="answer-box" style="background: #F3E8FF;">
+                            <ul style="list-style: none; padding-left: 0;">
+                                <li>• <strong>Immediate:</strong> Use mappings on next invoice</li>
+                                <li>• <strong>Weekly:</strong> Batch retrain OCR model</li>
+                                <li>• <strong>Monthly:</strong> Review correction patterns</li>
+                                <li>• <strong>Quarterly:</strong> Adjust confidence thresholds</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

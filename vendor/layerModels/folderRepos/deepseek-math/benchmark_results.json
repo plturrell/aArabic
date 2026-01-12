@@ -1,0 +1,188 @@
+{
+  "model": "Qwen/Qwen2.5-Math-1.5B-Instruct",
+  "accuracy": 23.333333333333332,
+  "correct": 7,
+  "total": 30,
+  "results": [
+    {
+      "question": "Janet\u2019s ducks lay 16 eggs per day. She eats three for breakfast every morning and bakes muffins for ...",
+      "gold": "18",
+      "predicted": "18",
+      "correct": true
+    },
+    {
+      "question": "A robe takes 2 bolts of blue fiber and half that much white fiber.  How many bolts in total does it ...",
+      "gold": "3",
+      "predicted": "3",
+      "correct": true
+    },
+    {
+      "question": "Josh decides to try flipping a house.  He buys a house for $80,000 and then puts in $50,000 in repai...",
+      "gold": "70000",
+      "predicted": "130",
+      "correct": false
+    },
+    {
+      "question": "James decides to run 3 sprints 3 times a week.  He runs 60 meters each sprint.  How many total meter...",
+      "gold": "540",
+      "predicted": "180",
+      "correct": false
+    },
+    {
+      "question": "Every day, Wendi feeds each of her chickens three cups of mixed chicken feed, containing seeds, meal...",
+      "gold": "20",
+      "predicted": "",
+      "correct": false
+    },
+    {
+      "question": "Kylar went to the store to buy glasses for his new apartment. One glass costs $5, but every second g...",
+      "gold": "64",
+      "predicted": "16",
+      "correct": false
+    },
+    {
+      "question": "Toulouse has twice as many sheep as Charleston. Charleston has 4 times as many sheep as Seattle. How...",
+      "gold": "260",
+      "predicted": "77777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777",
+      "correct": false
+    },
+    {
+      "question": "Carla is downloading a 200 GB file. Normally she can download 2 GB/minute, but 40% of the way throug...",
+      "gold": "160",
+      "predicted": "2",
+      "correct": false
+    },
+    {
+      "question": "John drives for 3 hours at a speed of 60 mph and then turns around because he realizes he forgot som...",
+      "gold": "45",
+      "predicted": "2.5",
+      "correct": false
+    },
+    {
+      "question": "Eliza's rate per hour for the first 40 hours she works each week is $10. She also receives an overti...",
+      "gold": "460",
+      "predicted": "460",
+      "correct": true
+    },
+    {
+      "question": "A new program had 60 downloads in the first month. The number of downloads in the second month was t...",
+      "gold": "366",
+      "predicted": "126",
+      "correct": false
+    },
+    {
+      "question": "Toula went to the bakery and bought various types of pastries. She bought 3 dozen donuts which cost ...",
+      "gold": "694",
+      "predicted": "",
+      "correct": false
+    },
+    {
+      "question": "Carlos is planting a lemon tree. The tree will cost $90 to plant. Each year it will grow 7 lemons, w...",
+      "gold": "13",
+      "predicted": "5.",
+      "correct": false
+    },
+    {
+      "question": "Melanie is a door-to-door saleswoman. She sold a third of her vacuum cleaners at the green house, 2 ...",
+      "gold": "18",
+      "predicted": "1",
+      "correct": false
+    },
+    {
+      "question": "In a dance class of 20 students, 20% enrolled in contemporary dance, 25% of the remaining enrolled i...",
+      "gold": "60",
+      "predicted": "4",
+      "correct": false
+    },
+    {
+      "question": "A merchant wants to make a choice of purchase between 2 purchase plans: jewelry worth $5,000 or elec...",
+      "gold": "125",
+      "predicted": "3.",
+      "correct": false
+    },
+    {
+      "question": "Two trains leave San Rafael at the same time. They begin traveling westward, both traveling for 80 m...",
+      "gold": "230",
+      "predicted": "230",
+      "correct": true
+    },
+    {
+      "question": "Jill gets paid $20 per hour to teach and $30 to be a cheerleading coach. If she works 50 weeks a yea...",
+      "gold": "57500",
+      "predicted": "50",
+      "correct": false
+    },
+    {
+      "question": "Claire makes a 3 egg omelet every morning for breakfast.  How many dozens of eggs will she eat in 4 ...",
+      "gold": "7",
+      "predicted": "84",
+      "correct": false
+    },
+    {
+      "question": "Marissa is hiking a 12-mile trail. She took 1 hour to walk the first 4 miles, then another hour to w...",
+      "gold": "6",
+      "predicted": "",
+      "correct": false
+    },
+    {
+      "question": "I have 10 liters of orange drink that are two-thirds water and I wish to add it to 15 liters of pine...",
+      "gold": "15",
+      "predicted": "5",
+      "correct": false
+    },
+    {
+      "question": "Raymond and Samantha are cousins. Raymond was born 6 years before Samantha. Raymond had a son at the...",
+      "gold": "14",
+      "predicted": "",
+      "correct": false
+    },
+    {
+      "question": "Billy sells DVDs. He has 8 customers on Tuesday. His first 3 customers buy one DVD each.  His next 2...",
+      "gold": "7",
+      "predicted": "4",
+      "correct": false
+    },
+    {
+      "question": "A candle melts by 2 centimeters every hour that it burns. How many centimeters shorter will a candle...",
+      "gold": "8",
+      "predicted": "8",
+      "correct": true
+    },
+    {
+      "question": "Kyle bought last year's best-selling book for $19.50. This is with a 25% discount from the original ...",
+      "gold": "26",
+      "predicted": "26",
+      "correct": true
+    },
+    {
+      "question": "Marie ordered one chicken meal that costs $12, 5 packs of milk that costs $3 each, 4 apples that cos...",
+      "gold": "2",
+      "predicted": "",
+      "correct": false
+    },
+    {
+      "question": "Mishka bought 3 pairs of shorts, 3 pairs of pants, and 3 pairs of shoes. One pair of shorts costs $1...",
+      "gold": "243",
+      "predicted": "",
+      "correct": false
+    },
+    {
+      "question": "Cynthia eats one serving of ice cream every night.  She buys cartons of ice cream with 15 servings o...",
+      "gold": "16",
+      "predicted": "",
+      "correct": false
+    },
+    {
+      "question": "Henry made two stops during his 60-mile bike trip. He first stopped after 20 miles. His second stop ...",
+      "gold": "25",
+      "predicted": "25",
+      "correct": true
+    },
+    {
+      "question": "Gloria is shoe shopping when she comes across a pair of boots that fit her shoe budget. However, she...",
+      "gold": "104",
+      "predicted": "",
+      "correct": false
+    }
+  ]
+}

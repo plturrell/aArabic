@@ -1,0 +1,56 @@
+FROM langflowai/langflow:latest
+
+LABEL maintainer="AI Nucleus Platform"
+LABEL description="Langflow with Memgraph AI Toolkit, ToolOrchestra, and custom components"
+
+# Install Memgraph AI Toolkit - all integrations
+# Note: Using latest compatible versions
+RUN pip install --no-cache-dir \
+    langchain-memgraph \
+    mcp-memgraph \
+    memgraph-toolbox \
+    unstructured2graph
+
+# Install additional AI/ML packages for ToolOrchestra integration
+RUN pip install --no-cache-dir \
+    openai>=1.0.0 \
+    anthropic>=0.18.0 \
+    qdrant-client>=1.7.0 \
+    neo4j>=5.14.0 \
+    tavily-python>=0.3.0
+
+# Create directories for custom components and workflows
+RUN mkdir -p /app/custom_components \
+             /app/workflows \
+             /app/config
+
+# Set working directory
+WORKDIR /app
+
+# Environment variables for Memgraph connection
+ENV MEMGRAPH_HOST=ai_nucleus_memgraph
+ENV MEMGRAPH_PORT=7687
+ENV MEMGRAPH_USER=""
+ENV MEMGRAPH_PASSWORD=""
+
+# Environment variables for other services
+ENV QDRANT_HOST=ai_nucleus_qdrant
+ENV QDRANT_PORT=6333
+ENV MARQUEZ_HOST=ai_nucleus_marquez
+ENV MARQUEZ_PORT=5000
+
+# Langflow configuration
+ENV LANGFLOW_HOST=0.0.0.0
+ENV LANGFLOW_PORT=7860
+ENV LANGFLOW_AUTO_LOGIN=false
+ENV LANGFLOW_STORE_ENVIRONMENT_VARIABLES=true
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=90s \
+  CMD curl -sf http://localhost:7860/health || exit 1
+
+# Expose port (internal only, will route via APIxIS)
+EXPOSE 7860
+
+# Start Langflow
+CMD ["langflow", "run", "--host", "0.0.0.0", "--port", "7860"]

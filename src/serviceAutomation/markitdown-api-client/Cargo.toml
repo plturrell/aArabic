@@ -1,0 +1,26 @@
+[package]
+name = "markitdown-api-client"
+version = "1.0.0"
+edition = "2021"
+authors = ["Arabic Folder Project"]
+description = "MarkItDown API client for Replicate - Convert documents to Markdown"
+
+[lib]
+name = "markitdown_api_client"
+path = "src/lib.rs"
+
+[[bin]]
+name = "markitdown-cli"
+path = "src/main.rs"
+
+[dependencies]
+reqwest = { version = "0.11", features = ["json", "blocking", "multipart"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1", features = ["full"] }
+anyhow = "1.0"
+clap = { version = "4.0", features = ["derive", "env"] }
+base64 = "0.21"
+
+[dev-dependencies]
+tokio-test = "0.4"

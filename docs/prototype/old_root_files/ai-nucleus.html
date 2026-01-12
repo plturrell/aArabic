@@ -1,0 +1,2352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Nucleus | Unified Workspace</title>
+    <!-- SAP 72 Font -->
+    <link href="https://fonts.googleapis.com/css2?family=72:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* =========================================
+           SAP QUARTZ LIGHT THEME VARIABLES
+           ========================================= */
+        :root {
+            /* Shell & Background */
+            --sapShellColor: #354A5F;
+            --sapBackgroundColor: #EDF0F4; /* Slightly darker for canvas contrast */
+            --sapBaseColor: #FFFFFF;
+            --sapGroupContentBackground: #FFFFFF;
+
+            /* Brand Colors */
+            --sapBrandColor: #0A6ED1;
+            --sapHighlightColor: #0A6ED1;
+            --sapActiveColor: #0854A0;
+            --sapSelectedColor: #EBF5FE;
+
+            /* Text Colors */
+            --sapTextColor: #32363A;
+            --sapTitleColor: #32363A;
+            --sapContent_LabelColor: #6A6D70;
+            --sapLink_Color: #0A6ED1;
+            --sapWhite: #FFFFFF;
+
+            /* Semantic Colors */
+            --sapPositiveColor: #107E3E;
+            --sapPositiveBackground: #F1FDF6;
+            --sapCriticalColor: #E9730C;
+            --sapCriticalBackground: #FEF7F1;
+            --sapNegativeColor: #BB0000;
+            --sapNegativeBackground: #FFEBEB;
+            --sapNeutralColor: #6A6D70;
+            --sapInformativeColor: #0A6ED1;
+            --sapInformativeBackground: #F5FAFF;
+
+            /* Border & Shadow */
+            --sapContent_BorderColor: #89919A;
+            --sapField_BorderColor: #89919A;
+            --sapGroup_BorderColor: #D9D9D9;
+            --sapShadow: 0 0 0 1px rgba(0,0,0,0.05), 0 0.125rem 0.5rem rgba(0,0,0,0.1);
+            --sapHeaderShadow: 0 0.25rem 0.5rem rgba(0,0,0,0.05);
+
+            /* Sizing */
+            --sapElement_Height: 2.25rem;
+            --sapElement_Compact_Height: 1.625rem;
+            --sapFontSize: 0.875rem;
+            --sapFontHeaderSize: 1rem;
+            
+            /* Layout Dimensions */
+            --header-height: 3rem;
+            --sidebar-width: 240px;
+            --sidebar-collapsed-width: 3rem;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: '72', 'SAP 72', Arial, Helvetica, sans-serif;
+            font-size: var(--sapFontSize);
+            color: var(--sapTextColor);
+            background-color: var(--sapBackgroundColor);
+            line-height: 1.4;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* =========================================
+           GLOBAL HEADER (AI NUCLEUS)
+           ========================================= */
+        .global-header {
+            height: var(--header-height);
+            background-color: var(--sapShellColor);
+            color: var(--sapWhite);
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: var(--sapHeaderShadow);
+            z-index: 1000;
+            flex-shrink: 0;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            width: var(--sidebar-width);
+        }
+
+        .header-logo {
+            font-weight: 700;
+            font-size: 1.125rem;
+            letter-spacing: 0.05em;
+        }
+
+        .header-title {
+            font-size: 1rem;
+            font-weight: 400;
+            opacity: 0.9;
+            border-left: 1px solid rgba(255,255,255,0.3);
+            padding-left: 1rem;
+            height: 1.5rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .header-actions {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            transition: background 0.2s;
+        }
+
+        .user-profile:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .user-avatar {
+            width: 2rem;
+            height: 2rem;
+            background: #D1E8FF;
+            color: var(--sapShellColor);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
+        /* =========================================
+           APP LAYOUT
+           ========================================= */
+        .app-body {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - var(--header-height));
+            overflow: hidden;
+        }
+
+        /* SIDEBAR NAVIGATION */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--sapBaseColor);
+            border-right: 1px solid var(--sapGroup_BorderColor);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            transition: width 0.3s ease;
+            z-index: 900;
+        }
+
+        .nav-group {
+            padding: 1rem 0;
+        }
+
+        .nav-group-title {
+            padding: 0 1.5rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--sapContent_LabelColor);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            color: var(--sapTextColor);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            border-left: 3px solid transparent;
+            gap: 0.75rem;
+        }
+
+        .nav-item:hover {
+            background: var(--sapBackgroundColor);
+            color: var(--sapBrandColor);
+        }
+
+        .nav-item.active {
+            background: var(--sapSelectedColor);
+            color: var(--sapBrandColor);
+            border-left-color: var(--sapBrandColor);
+            font-weight: 500;
+        }
+
+        .nav-icon {
+            width: 1.125rem;
+            height: 1.125rem;
+            opacity: 0.7;
+        }
+
+        .nav-item.active .nav-icon {
+            opacity: 1;
+        }
+
+        /* OPEN CANVAS AREA */
+        .canvas-area {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            background: #F5F7FA;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .view-container {
+            flex: 1;
+            overflow-y: auto;
+            display: none; /* Hidden by default */
+            padding-bottom: 2rem;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .view-container.active-view {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* =========================================
+           SHARED COMPONENT STYLES
+           ========================================= */
+        
+        /* Page Headers */
+        .page-header {
+            background: var(--sapBaseColor);
+            border-bottom: 1px solid var(--sapGroup_BorderColor);
+            padding: 1rem 2rem;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(to bottom, #fff, #fafafa);
+        }
+
+        .page-header h1 {
+            font-size: 1.5rem;
+            font-weight: 300;
+            color: var(--sapTitleColor);
+            margin-bottom: 0.25rem;
+        }
+
+        .page-header-subtitle {
+            color: var(--sapContent_LabelColor);
+            font-size: 0.875rem;
+        }
+
+        .page-header-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        /* Panels */
+        .sap-panel {
+            background: var(--sapGroupContentBackground);
+            border-radius: 0.5rem;
+            box-shadow: var(--sapShadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            border: 1px solid #E5E5E5;
+        }
+
+        .sap-panel-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--sapGroup_BorderColor);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #FCFCFC;
+        }
+
+        .sap-panel-title {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--sapTitleColor);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .sap-panel-content {
+            padding: 1rem;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        /* Buttons */
+        .sap-button {
+            height: var(--sapElement_Height);
+            padding: 0 0.75rem;
+            border-radius: 0.25rem;
+            font-family: inherit;
+            font-size: var(--sapFontSize);
+            font-weight: 400;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: 1px solid transparent;
+            transition: all 0.1s;
+        }
+
+        .sap-button-emphasized {
+            background: var(--sapBrandColor);
+            color: #FFFFFF;
+            border-color: var(--sapBrandColor);
+        }
+
+        .sap-button-emphasized:hover {
+            background: var(--sapActiveColor);
+            border-color: var(--sapActiveColor);
+        }
+
+        .sap-button-default {
+            background: var(--sapBaseColor);
+            color: var(--sapBrandColor);
+            border-color: var(--sapBrandColor);
+        }
+
+        .sap-button-default:hover {
+            background: #F7F7F7;
+        }
+
+        .sap-button-ghost {
+            background: transparent;
+            color: var(--sapBrandColor);
+            border-color: transparent;
+        }
+
+        .sap-button-ghost:hover {
+            background: rgba(10, 110, 209, 0.08);
+        }
+
+        /* =========================================
+           DASHBOARD SPECIFIC STYLES
+           ========================================= */
+        .dashboard-grid {
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 240px 1fr 1fr; /* Added column for Invoice List */
+            gap: 1.5rem;
+            height: calc(100vh - 12rem);
+        }
+
+        /* Invoice List Styles */
+        .invoice-list-panel {
+            background: var(--sapGroupContentBackground);
+            border-radius: 0.5rem;
+            box-shadow: var(--sapShadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #E5E5E5;
+        }
+
+        .invoice-list-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem;
+        }
+
+        .invoice-item {
+            padding: 0.75rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            margin-bottom: 0.25rem;
+            border: 1px solid transparent;
+            transition: all 0.1s;
+        }
+
+        .invoice-item:hover {
+            background: var(--sapBackgroundColor);
+        }
+
+        .invoice-item.selected {
+            background: var(--sapSelectedColor);
+            border-color: var(--sapBrandColor);
+        }
+
+        .invoice-item-title {
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--sapTitleColor);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 0.125rem;
+        }
+
+        .invoice-item-meta {
+            font-size: 0.6875rem;
+            color: var(--sapContent_LabelColor);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .invoice-preview {
+            background: #FAFAFA;
+            border: 1px solid var(--sapGroup_BorderColor);
+            border-radius: 0.25rem;
+            padding: 1.5rem;
+            direction: rtl;
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+            height: 100%;
+            overflow-y: auto;
+        }
+        
+        .invoice-header-ar { text-align: center; border-bottom: 2px solid var(--sapTitleColor); padding-bottom: 1rem; margin-bottom: 1rem; }
+        .invoice-header-ar h2 { font-size: 1.5rem; color: var(--sapTitleColor); margin-bottom: 0.5rem; }
+        .invoice-details-ar { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+        .invoice-field-ar { padding: 0.5rem; background: #FFFFFF; border-radius: 0.25rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .invoice-field-ar label { font-size: 0.75rem; color: var(--sapContent_LabelColor); display: block; }
+        .invoice-table-ar { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.8125rem; }
+        .invoice-table-ar th { background: var(--sapShellColor); color: #FFFFFF; padding: 0.625rem; text-align: right; }
+        .invoice-table-ar td { padding: 0.625rem; border-bottom: 1px solid var(--sapGroup_BorderColor); text-align: right; }
+
+        .sap-form-group { margin-bottom: 1rem; }
+        .sap-form-label { display: block; font-size: 0.875rem; color: var(--sapContent_LabelColor); margin-bottom: 0.25rem; }
+        .sap-input-wrapper { display: flex; align-items: center; gap: 0.5rem; }
+        .sap-input { flex: 1; height: var(--sapElement_Height); padding: 0 0.75rem; border: 1px solid var(--sapField_BorderColor); border-radius: 0.25rem; font-family: inherit; width: 100%; }
+        
+        .confidence-badge { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 500; }
+        .confidence-high { background: var(--sapPositiveBackground); color: var(--sapPositiveColor); border: 1px solid var(--sapPositiveColor); }
+        .confidence-medium { background: var(--sapCriticalBackground); color: var(--sapCriticalColor); border: 1px solid var(--sapCriticalColor); }
+        .confidence-low { background: var(--sapNegativeBackground); color: var(--sapNegativeColor); border: 1px solid var(--sapNegativeColor); }
+
+        .ariba-match-section { background: var(--sapInformativeBackground); border: 1px solid var(--sapBrandColor); border-radius: 0.25rem; padding: 1rem; margin-top: 1rem; }
+        .ariba-match-result { display: flex; align-items: center; gap: 1rem; padding: 0.75rem; background: var(--sapBaseColor); border-radius: 0.25rem; margin-bottom: 0.5rem; }
+        .ariba-match-result.match-exact { border-left: 4px solid var(--sapPositiveColor); }
+
+        /* =========================================
+           WORKFLOW SPECIFIC STYLES
+           ========================================= */
+        .workflow-content { padding: 0 2rem 2rem 2rem; }
+        .workflow-row { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; }
+        .workflow-step { background: var(--sapBaseColor); border: 2px solid var(--sapGroup_BorderColor); border-radius: 0.5rem; padding: 1rem; min-width: 160px; text-align: center; }
+        .workflow-step.start { background: var(--sapShellColor); color: #FFF; border-color: var(--sapShellColor); }
+        .workflow-step.decision { background: var(--sapCriticalBackground); border-color: var(--sapCriticalColor); }
+        .workflow-step.action { background: var(--sapInformativeBackground); border-color: var(--sapInformativeColor); }
+        .workflow-step.success { background: var(--sapPositiveBackground); border-color: var(--sapPositiveColor); }
+        
+        .swimlane-container { display: grid; grid-template-columns: 120px 1fr; border: 1px solid var(--sapGroup_BorderColor); border-radius: 0.5rem; overflow: hidden; margin-top: 2rem; background: #FFF; }
+        .swimlane-label { padding: 1rem; border-bottom: 1px solid #EEE; display: flex; align-items: center; justify-content: center; font-weight: 500; background: #FAFAFA; border-right: 1px solid #EEE; }
+        .swimlane-row-content { padding: 1rem; border-bottom: 1px solid #EEE; display: flex; align-items: center; gap: 1rem; overflow-x: auto; }
+        .lane-step { padding: 0.5rem 1rem; border: 1px solid #CCC; border-radius: 4px; font-size: 0.75rem; background: #FFF; white-space: nowrap; }
+
+        /* =========================================
+           MATRIX SPECIFIC STYLES
+           ========================================= */
+        .matrix-layout { display: grid; grid-template-columns: 1fr 1.5fr; gap: 1.5rem; padding: 0 2rem; }
+        .matrix-grid { position: relative; width: 100%; aspect-ratio: 1; background: #FAFAFA; border: 2px solid var(--sapGroup_BorderColor); border-radius: 0.25rem; }
+        .matrix-quadrant { position: absolute; width: 50%; height: 50%; padding: 1rem; display: flex; flex-direction: column; align-items: center; }
+        .quadrant-top-right { top: 0; right: 0; background: var(--sapPositiveBackground); border-bottom: 1px dashed #CCC; }
+        .quadrant-top-left { top: 0; left: 0; background: var(--sapCriticalBackground); border-right: 1px dashed #CCC; border-bottom: 1px dashed #CCC; }
+        .quadrant-bottom-right { bottom: 0; right: 0; background: var(--sapInformativeBackground); }
+        .quadrant-bottom-left { bottom: 0; left: 0; background: var(--sapNegativeBackground); border-right: 1px dashed #CCC; }
+        
+        .feature-card { background: #FFF; padding: 0.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.75rem; margin: 0.25rem; text-align: center; width: 100%; }
+        .feature-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; background: #FFF; }
+        .feature-table th { background: var(--sapShellColor); color: #FFF; padding: 0.75rem; text-align: left; }
+        .feature-table td { padding: 0.75rem; border-bottom: 1px solid #EEE; }
+
+        /* =========================================
+           COPILOT OVERLAY
+           ========================================= */
+        .copilot-fab {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #0A6ED1 0%, #0854A0 100%);
+            border: none;
+            color: #FFFFFF;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(10, 110, 209, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            z-index: 2000;
+        }
+
+        .copilot-fab:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(10, 110, 209, 0.5);
+        }
+
+        .copilot-panel {
+            position: fixed;
+            top: var(--header-height);
+            right: -400px;
+            width: 400px;
+            bottom: 0;
+            background: #FFF;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+            transition: right 0.3s ease;
+            z-index: 1900;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid var(--sapGroup_BorderColor);
+        }
+
+        .copilot-panel.open {
+            right: 0;
+        }
+
+        .copilot-header {
+            padding: 1rem;
+            background: linear-gradient(135deg, #0A6ED1 0%, #0854A0 100%);
+            color: #FFFFFF;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .copilot-header-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            background: rgba(255,255,255,0.2);
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .copilot-header-text h3 {
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 0.125rem;
+        }
+
+        .copilot-header-text p {
+            font-size: 0.6875rem;
+            opacity: 0.85;
+        }
+
+        .copilot-status {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-size: 0.6875rem;
+            background: rgba(255,255,255,0.15);
+            padding: 0.25rem 0.5rem;
+            border-radius: 1rem;
+        }
+
+        .copilot-status-dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            background: #4ADE80;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .copilot-messages {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            background: #F5F7FA;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .copilot-message {
+            display: flex;
+            gap: 0.75rem;
+            max-width: 95%;
+        }
+
+        .copilot-message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .copilot-message-avatar {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            flex-shrink: 0;
+        }
+
+        .copilot-message.assistant .copilot-message-avatar {
+            background: linear-gradient(135deg, #0A6ED1 0%, #0854A0 100%);
+            color: #FFFFFF;
+        }
+
+        .copilot-message.user .copilot-message-avatar {
+            background: #E5E5E5;
+            color: var(--sapTextColor);
+        }
+
+        .copilot-message-content {
+            background: #FFFFFF;
+            padding: 0.75rem 1rem;
+            border-radius: 1rem;
+            font-size: 0.8125rem;
+            line-height: 1.5;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .copilot-message.user .copilot-message-content {
+            background: var(--sapBrandColor);
+            color: #FFFFFF;
+            border-bottom-right-radius: 0.25rem;
+        }
+
+        .copilot-message.assistant .copilot-message-content {
+            border-bottom-left-radius: 0.25rem;
+        }
+
+        .copilot-message-content code {
+            background: rgba(0,0,0,0.08);
+            padding: 0.125rem 0.375rem;
+            border-radius: 0.25rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+
+        .copilot-message.user .copilot-message-content code {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .copilot-suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .copilot-suggestion {
+            background: var(--sapBaseColor);
+            border: 1px solid var(--sapBrandColor);
+            color: var(--sapBrandColor);
+            padding: 0.375rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .copilot-suggestion:hover {
+            background: var(--sapBrandColor);
+            color: #FFFFFF;
+        }
+
+        .copilot-input-area {
+            padding: 1rem;
+            border-top: 1px solid #EEE;
+            background: #FFF;
+        }
+
+        .copilot-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #CCC;
+            border-radius: 1.5rem;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .copilot-input:focus {
+            border-color: var(--sapBrandColor);
+        }
+
+        .copilot-backend-info {
+            padding: 0.5rem 1rem;
+            background: #F0F4F8;
+            border-top: 1px solid var(--sapGroup_BorderColor);
+            font-size: 0.6875rem;
+            color: var(--sapContent_LabelColor);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .backend-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.125rem 0.375rem;
+            background: #E0E7FF;
+            color: #3730A3;
+            border-radius: 0.25rem;
+            font-weight: 500;
+        }
+
+        /* Typing Animation */
+        .copilot-typing {
+            display: flex;
+            gap: 0.25rem;
+            padding: 0.5rem;
+        }
+
+        .copilot-typing span {
+            width: 0.5rem;
+            height: 0.5rem;
+            background: var(--sapContent_LabelColor);
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .copilot-typing span:nth-child(2) { animation-delay: 0.2s; }
+        .copilot-typing span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-0.375rem); opacity: 1; }
+        }
+        
+        /* Icons */
+        .icon-svg { width: 1.25rem; height: 1.25rem; fill: currentColor; }
+
+        /* =========================================
+           ORCHESTRATION CANVAS STYLES
+           ========================================= */
+        .orchestration-palette {
+            width: 200px;
+            background: var(--sapBaseColor);
+            border-right: 1px solid var(--sapGroup_BorderColor);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .palette-header {
+            padding: 1rem;
+            font-weight: 600;
+            color: var(--sapTitleColor);
+            border-bottom: 1px solid var(--sapGroup_BorderColor);
+            background: #FAFAFA;
+        }
+
+        .palette-items {
+            flex: 1;
+            padding: 0.5rem;
+            overflow-y: auto;
+        }
+
+        .palette-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: var(--sapBaseColor);
+            border: 1px solid var(--sapGroup_BorderColor);
+            border-radius: 0.25rem;
+            cursor: grab;
+            transition: all 0.2s;
+        }
+
+        .palette-item:hover {
+            background: var(--sapBackgroundColor);
+            border-color: var(--sapBrandColor);
+        }
+
+        .palette-item:active {
+            cursor: grabbing;
+        }
+
+        .palette-icon {
+            width: 1.5rem;
+            height: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+        }
+
+        .palette-icon.start { background: var(--sapShellColor); color: #FFF; }
+        .palette-icon.process { background: var(--sapInformativeBackground); border: 1px solid var(--sapInformativeColor); }
+        .palette-icon.decision { background: var(--sapCriticalBackground); border: 1px solid var(--sapCriticalColor); }
+        .palette-icon.action { background: var(--sapPositiveBackground); border: 1px solid var(--sapPositiveColor); }
+        .palette-icon.end { background: var(--sapShellColor); color: #FFF; }
+
+        .orchestration-canvas-container {
+            flex: 1;
+            position: relative;
+            background: #F5F7FA;
+            overflow: hidden;
+        }
+
+        .orchestration-canvas {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background-image: 
+                linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            overflow: auto;
+        }
+
+        .canvas-node {
+            position: absolute;
+            min-width: 160px;
+            padding: 1rem;
+            background: var(--sapBaseColor);
+            border: 2px solid var(--sapGroup_BorderColor);
+            border-radius: 0.5rem;
+            cursor: move;
+            box-shadow: var(--sapShadow);
+            z-index: 10;
+        }
+
+        .canvas-node.selected {
+            border-color: var(--sapBrandColor);
+            box-shadow: 0 0 0 3px rgba(10, 110, 209, 0.1);
+        }
+
+        .canvas-node.start { background: var(--sapShellColor); color: #FFF; border-color: var(--sapShellColor); }
+        .canvas-node.process { background: var(--sapInformativeBackground); border-color: var(--sapInformativeColor); }
+        .canvas-node.decision { background: var(--sapCriticalBackground); border-color: var(--sapCriticalColor); }
+        .canvas-node.action { background: var(--sapPositiveBackground); border-color: var(--sapPositiveColor); }
+        .canvas-node.end { background: var(--sapShellColor); color: #FFF; border-color: var(--sapShellColor); }
+
+        .node-header {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .node-delete {
+            width: 1.25rem;
+            height: 1.25rem;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+
+        .node-delete:hover {
+            opacity: 1;
+            background: rgba(255,255,255,0.3);
+        }
+
+        .node-content {
+            font-size: 0.8125rem;
+            color: var(--sapContent_LabelColor);
+        }
+
+        .canvas-node.start .node-content,
+        .canvas-node.end .node-content {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .canvas-connection {
+            position: absolute;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .connection-line {
+            stroke: var(--sapBrandColor);
+            stroke-width: 2;
+            fill: none;
+            marker-end: url(#arrowhead);
+        }
+
+        .orchestration-properties {
+            width: 300px;
+            background: var(--sapBaseColor);
+            border-left: 1px solid var(--sapGroup_BorderColor);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .properties-header {
+            padding: 1rem;
+            font-weight: 600;
+            color: var(--sapTitleColor);
+            border-bottom: 1px solid var(--sapGroup_BorderColor);
+            background: #FAFAFA;
+        }
+
+        .properties-content {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .properties-placeholder {
+            color: var(--sapContent_LabelColor);
+            font-style: italic;
+            text-align: center;
+            padding: 2rem 1rem;
+        }
+
+        .property-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .property-label {
+            display: block;
+            font-size: 0.875rem;
+            color: var(--sapContent_LabelColor);
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .property-input {
+            width: 100%;
+            height: var(--sapElement_Height);
+            padding: 0 0.75rem;
+            border: 1px solid var(--sapField_BorderColor);
+            border-radius: 0.25rem;
+            font-family: inherit;
+            font-size: var(--sapFontSize);
+        }
+
+        .property-input:focus {
+            outline: none;
+            border-color: var(--sapBrandColor);
+        }
+
+        /* =========================================
+           A2UI RENDERER STYLES
+           ========================================= */
+        .a2ui-container {
+            padding: 1rem;
+        }
+
+        .a2ui-surface {
+            width: 100%;
+        }
+
+        .a2ui-component {
+            margin-bottom: 0.5rem;
+        }
+
+        .a2ui-text {
+            font-size: var(--sapFontSize);
+            color: var(--sapTextColor);
+            margin: 0.5rem 0;
+        }
+
+        .a2ui-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- GLOBAL HEADER -->
+    <header class="global-header">
+        <div class="header-brand">
+            <div class="header-logo">AI Nucleus</div>
+        </div>
+        <div class="header-title">
+            AP Automation Co-Pilot
+        </div>
+        <div class="header-actions">
+            <button class="sap-button sap-button-ghost" style="color: #FFF;">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 12.5a5.5 5.5 0 110-11 5.5 5.5 0 010 11zM7.25 4v4.5l3.5 2-.75 1.25-4.25-2.5V4h1.5z"/></svg>
+            </button>
+            <div class="user-profile">
+                <span>Craig Turrell</span>
+                <div class="user-avatar">CT</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="app-body">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="nav-group">
+                <div class="nav-group-title">Operations</div>
+                <a class="nav-item active" onclick="switchView('dashboard', this)">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                    <span>Invoice Validation</span>
+                </a>
+                <a class="nav-item" onclick="switchView('workflow', this)">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    <span>Exception Workflow</span>
+                </a>
+                <a class="nav-item" onclick="switchView('graph', this)">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                    <span>Graph Analysis</span>
+                </a>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">Strategy</div>
+                <a class="nav-item" onclick="switchView('matrix', this)">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                    <span>Prioritization</span>
+                </a>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">Orchestration</div>
+                <a class="nav-item" onclick="switchView('orchestration', this)">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/><path d="M9 1v6M15 1v6M9 17v6M15 17v6M1 9h6M17 9h6M1 15h6M17 15h6"/></svg>
+                    <span>Flow Designer</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- CANVAS AREA -->
+        <main class="canvas-area">
+            
+            <!-- VIEW 1: DASHBOARD (Invoice Validation) -->
+            <div id="view-dashboard" class="view-container active-view">
+                <div class="page-header">
+                    <div style="display:flex; justify-content:space-between; align-items:start;">
+                        <div>
+                            <h1>Invoice Validation</h1>
+                            <p class="page-header-subtitle">Invoice #INV-2025-04721 | شركة الخليج للتجارة العامة</p>
+                        </div>
+                        <div class="page-header-actions">
+                            <button class="sap-button sap-button-ghost">Attachments (3)</button>
+                            <button class="sap-button sap-button-default">Re-extract</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <!-- Invoice Queue Panel -->
+                    <div class="invoice-list-panel">
+                        <div class="sap-panel-header">
+                            <span class="sap-panel-title">Invoice Queue (5)</span>
+                            <button class="sap-button sap-button-ghost" style="padding:0;">
+                                <svg class="icon-svg" viewBox="0 0 16 16"><path d="M2 4h12v1H2V4zm0 3h12v1H2V7zm0 3h8v1H2v-1z"/></svg>
+                            </button>
+                        </div>
+                        <div class="invoice-list-content">
+                            <!-- Item 1 -->
+                            <div class="invoice-item selected" onclick="selectInvoice(this, '(005).pdf')">
+                                <div class="invoice-item-title">(005).pdf</div>
+                                <div class="invoice-item-meta">
+                                    <span>Today, 10:23</span>
+                                    <span style="color:var(--sapNegativeColor);">High Risk</span>
+                                </div>
+                            </div>
+                            <!-- Item 2 -->
+                            <div class="invoice-item" onclick="selectInvoice(this, '3CPJR5CQ4PNNN9A4XHBB370K10.pdf')">
+                                <div class="invoice-item-title">3CPJR5CQ4P...10.pdf</div>
+                                <div class="invoice-item-meta">
+                                    <span>Yesterday</span>
+                                    <span style="color:var(--sapPositiveColor);">Ready</span>
+                                </div>
+                            </div>
+                            <!-- Item 3 -->
+                            <div class="invoice-item" onclick="selectInvoice(this, 'B1STE8RHNWZY9TYEXDS6WSZJ10.pdf')">
+                                <div class="invoice-item-title">B1STE8RHNW...10.pdf</div>
+                                <div class="invoice-item-meta">
+                                    <span>Jan 05</span>
+                                    <span>Review</span>
+                                </div>
+                            </div>
+                            <!-- Item 4 -->
+                            <div class="invoice-item" onclick="selectInvoice(this, 'EDAA Annual Fee Invoice 2025.pdf')">
+                                <div class="invoice-item-title">EDAA Annual Fee...</div>
+                                <div class="invoice-item-meta">
+                                    <span>Jan 04</span>
+                                    <span>New</span>
+                                </div>
+                            </div>
+                            <!-- Item 5 -->
+                            <div class="invoice-item" onclick="selectInvoice(this, 'Instruction for payment to vendor (QCSD).pdf')">
+                                <div class="invoice-item-title">Instruction for...</div>
+                                <div class="invoice-item-meta">
+                                    <span>Jan 04</span>
+                                    <span>Doc</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Invoice Preview Panel -->
+                    <div class="sap-panel">
+                        <div class="sap-panel-header">
+                            <span class="sap-panel-title" id="previewTitle">Original Invoice (Arabic)</span>
+                        </div>
+                        <div class="sap-panel-content">
+                            <div class="invoice-preview">
+                                <div class="invoice-header-ar">
+                                    <h2>شركة الخليج للتجارة العامة</h2>
+                                    <p>Gulf General Trading Company LLC</p>
+                                    <p style="font-size: 0.75rem; margin-top: 0.5rem;">TRN: 300123456789003</p>
+                                </div>
+                                <div style="text-align: center; margin: 1rem 0; font-weight: bold; color: var(--sapBrandColor);">فاتورة ضريبية</div>
+                                <div class="invoice-details-ar">
+                                    <div class="invoice-field-ar"><label>رقم الفاتورة</label><span>INV-2025-04721</span></div>
+                                    <div class="invoice-field-ar"><label>تاريخ الفاتورة</label><span>٢٠٢٥/٠١/٠٥</span></div>
+                                    <div class="invoice-field-ar"><label>اسم العميل</label><span>ستاندرد تشارترد</span></div>
+                                    <div class="invoice-field-ar"><label>شروط الدفع</label><span>صافي ٣٠ يوم</span></div>
+                                </div>
+                                <table class="invoice-table-ar">
+                                    <thead><tr><th>الوصف</th><th>المجموع</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>خدمات استشارية</td><td>٤٥,٠٠٠.٠٠ ر.س</td></tr>
+                                        <tr><td>رسوم الترجمة</td><td>٢,٥٠٠.٠٠ ر.س</td></tr>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr style="font-weight:bold;"><td>الإجمالي</td><td>٦٣,٢٥٠.٠٠ ر.س</td></tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Panel -->
+                    <div class="sap-panel">
+                        <div class="sap-panel-header">
+                            <span class="sap-panel-title">Ariba Submission Form</span>
+                            <span class="confidence-badge confidence-medium">2 Reviews Needed</span>
+                        </div>
+                        <div class="sap-panel-content">
+                            <div class="sap-form-group">
+                                <label class="sap-form-label">Supplier Name</label>
+                                <div class="sap-input-wrapper">
+                                    <input type="text" class="sap-input" value="Gulf General Trading Company LLC" readonly>
+                                    <span class="confidence-badge confidence-high">98%</span>
+                                </div>
+                            </div>
+                            <div class="sap-form-group">
+                                <label class="sap-form-label">Invoice Number</label>
+                                <div class="sap-input-wrapper">
+                                    <input type="text" class="sap-input" value="INV-2025-04721" readonly>
+                                    <span class="confidence-badge confidence-high">99%</span>
+                                </div>
+                            </div>
+                            <div class="sap-form-group">
+                                <label class="sap-form-label">Payment Terms</label>
+                                <div class="sap-input-wrapper">
+                                    <input type="text" class="sap-input" value="Net 30" style="border-color: var(--sapCriticalColor);">
+                                    <span class="confidence-badge confidence-low">52% Review</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Ariba Match -->
+                            <div class="ariba-match-section">
+                                <div class="sap-panel-title" style="margin-bottom:0.5rem; font-size:0.875rem;">Ariba Supplier Match</div>
+                                <div class="ariba-match-result match-exact">
+                                    <div style="flex:1;">
+                                        <div style="font-weight:500;">Gulf General Trading Company LLC</div>
+                                        <div style="font-size:0.75rem; color:var(--sapContent_LabelColor);">ID: GGTC-SA-001 | Approved</div>
+                                    </div>
+                                    <span class="confidence-badge confidence-high">98%</span>
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
+                                <button class="sap-button sap-button-default">Save Draft</button>
+                                <button class="sap-button sap-button-emphasized">Submit to Ariba</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW 2: EXCEPTION WORKFLOW -->
+            <div id="view-workflow" class="view-container">
+                <div class="page-header">
+                    <h1>Exception Workflow</h1>
+                    <p class="page-header-subtitle">Designing the flow for exception-based processing</p>
+                </div>
+                <div class="workflow-content">
+                    <div class="sap-panel">
+                        <div class="sap-panel-header"><span class="sap-panel-title">Workflow Logic</span></div>
+                        <div class="sap-panel-content">
+                            <div style="display:flex; flex-direction:column; align-items:center;">
+                                <div class="workflow-step start">Invoice Received</div>
+                                <div style="height:20px; border-left:2px solid #CCC;"></div>
+                                <div class="workflow-step action">OCR Extraction</div>
+                                <div style="height:20px; border-left:2px solid #CCC;"></div>
+                                <div class="workflow-step decision">Confidence > 85%?</div>
+                                <div style="display:flex; width:200px; justify-content:space-between; border-top:2px solid #CCC; margin-top:-2px;"></div>
+                                <div style="display:flex; width:200px; justify-content:space-between;">
+                                    <div style="height:20px; border-left:2px solid #CCC;"></div>
+                                    <div style="height:20px; border-left:2px solid #CCC;"></div>
+                                </div>
+                                <div style="display:flex; gap:2rem;">
+                                    <div class="workflow-step error" style="width:150px;">Flag for Review</div>
+                                    <div class="workflow-step success" style="width:150px;">Auto-Submit</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sap-panel" style="margin-top:1.5rem;">
+                        <div class="sap-panel-header"><span class="sap-panel-title">Swimlane Responsibilities</span></div>
+                        <div class="swimlane-container">
+                            <div class="swimlane-label">System</div>
+                            <div class="swimlane-row-content">
+                                <div class="lane-step">Receive PDF</div>→
+                                <div class="lane-step">Extract Data</div>→
+                                <div class="lane-step">Score Confidence</div>
+                            </div>
+                            <div class="swimlane-label">User</div>
+                            <div class="swimlane-row-content">
+                                <div class="lane-step">Monitor Queue</div>→
+                                <div class="lane-step" style="border-color:orange; background:#FFF5F0;">Review Exceptions</div>→
+                                <div class="lane-step">Approve/Reject</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW 3: PRIORITIZATION MATRIX -->
+            <div id="view-matrix" class="view-container">
+                <div class="page-header">
+                    <h1>Prioritization Matrix</h1>
+                    <p class="page-header-subtitle">Impact vs. Effort Analysis for Feature Roadmap</p>
+                </div>
+                <div class="matrix-layout">
+                    <div class="sap-panel">
+                        <div class="sap-panel-header"><span class="sap-panel-title">Impact/Effort Grid</span></div>
+                        <div class="sap-panel-content">
+                            <div class="matrix-grid">
+                                <div class="matrix-quadrant quadrant-top-left">
+                                    <span style="font-size:0.7rem; font-weight:bold; color:var(--sapCriticalColor);">MAJOR PROJECTS</span>
+                                    <div class="feature-card">Dual-Screen UI</div>
+                                </div>
+                                <div class="matrix-quadrant quadrant-top-right">
+                                    <span style="font-size:0.7rem; font-weight:bold; color:var(--sapPositiveColor);">QUICK WINS</span>
+                                    <div class="feature-card" style="border-left:3px solid var(--sapPositiveColor);">Confidence Scoring</div>
+                                    <div class="feature-card" style="border-left:3px solid var(--sapPositiveColor);">Ariba Check</div>
+                                </div>
+                                <div class="matrix-quadrant quadrant-bottom-left">
+                                    <span style="font-size:0.7rem; font-weight:bold; color:var(--sapNegativeColor);">ELIMINATE</span>
+                                </div>
+                                <div class="matrix-quadrant quadrant-bottom-right">
+                                    <span style="font-size:0.7rem; font-weight:bold; color:var(--sapInformativeColor);">FILL-INS</span>
+                                    <div class="feature-card">Audit Log</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="sap-panel">
+                        <div class="sap-panel-header"><span class="sap-panel-title">Feature Details</span></div>
+                        <div class="sap-panel-content" style="padding:0;">
+                            <table class="feature-table">
+                                <thead><tr><th>Feature</th><th>Impact</th><th>Effort</th></tr></thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Confidence Scoring</strong><br><span style="color:#666;font-size:0.7rem;">Field-level flags</span></td>
+                                        <td><div style="width:80%; height:6px; background:green; border-radius:3px;"></div></td>
+                                        <td><div style="width:30%; height:6px; background:green; border-radius:3px;"></div></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Ariba Match Check</strong><br><span style="color:#666;font-size:0.7rem;">Supplier validation</span></td>
+                                        <td><div style="width:75%; height:6px; background:green; border-radius:3px;"></div></td>
+                                        <td><div style="width:40%; height:6px; background:orange; border-radius:3px;"></div></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Dual-Screen UI</strong><br><span style="color:#666;font-size:0.7rem;">Side-by-side view</span></td>
+                                        <td><div style="width:90%; height:6px; background:green; border-radius:3px;"></div></td>
+                                        <td><div style="width:80%; height:6px; background:red; border-radius:3px;"></div></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW 4: GRAPH ANALYSIS (MEMGRAPH) -->
+            <div id="view-graph" class="view-container">
+                <div class="page-header">
+                    <div style="display:flex; justify-content:space-between; align-items:start;">
+                        <div>
+                            <h1>Network Graph Analysis</h1>
+                            <p class="page-header-subtitle">Entity Resolution & Fraud Detection | Powered by <strong>Memgraph</strong></p>
+                        </div>
+                        <div class="page-header-actions">
+                            <span style="font-size:0.75rem; color:var(--sapContent_LabelColor); display:flex; align-items:center; gap:0.5rem; background:#FFF; padding:0.5rem 1rem; border-radius:1rem; border:1px solid #CCC;">
+                                <span style="width:8px; height:8px; background:#4ADE80; border-radius:50%;"></span>
+                                Graph Database Connected
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="padding: 0 2rem; display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; height: calc(100vh - 12rem);">
+                    
+                    <!-- Graph Visualization Panel -->
+                    <div class="sap-panel">
+                        <div class="sap-panel-header">
+                            <span class="sap-panel-title">Relationship Explorer</span>
+                            <div style="display:flex; gap:0.5rem;">
+                                <button class="sap-button sap-button-ghost" style="height:1.5rem; font-size:0.75rem;">Zoom In</button>
+                                <button class="sap-button sap-button-ghost" style="height:1.5rem; font-size:0.75rem;">Fit</button>
+                            </div>
+                        </div>
+                        <div class="sap-panel-content" style="background:#F5F7FA; overflow:hidden; position:relative; display:flex; align-items:center; justify-content:center;">
+                            <!-- SVG Graph Representation -->
+                            <svg width="600" height="400" viewBox="0 0 600 400" style="width:100%; height:100%;">
+                                <!-- Edges -->
+                                <line x1="300" y1="200" x2="150" y2="100" stroke="#B0B8C1" stroke-width="2" />
+                                <line x1="300" y1="200" x2="450" y2="100" stroke="#B0B8C1" stroke-width="2" />
+                                <line x1="300" y1="200" x2="300" y2="350" stroke="#B0B8C1" stroke-width="2" />
+                                <line x1="150" y1="100" x2="150" y2="250" stroke="#B0B8C1" stroke-width="2" stroke-dasharray="5,5" /> <!-- Indirect link -->
+
+                                <!-- Nodes -->
+                                <!-- Central Node: Invoice -->
+                                <circle cx="300" cy="200" r="40" fill="#0A6ED1" />
+                                <text x="300" y="205" text-anchor="middle" fill="white" font-size="10" font-weight="bold">Invoice</text>
+                                <text x="300" y="218" text-anchor="middle" fill="white" font-size="8">#4721</text>
+
+                                <!-- Node: Supplier -->
+                                <circle cx="150" cy="100" r="35" fill="#107E3E" />
+                                <text x="150" y="105" text-anchor="middle" fill="white" font-size="10" font-weight="bold">Supplier</text>
+                                <text x="150" y="118" text-anchor="middle" fill="white" font-size="8">Gulf Gen.</text>
+
+                                <!-- Node: PO -->
+                                <circle cx="450" cy="100" r="35" fill="#E9730C" />
+                                <text x="450" y="105" text-anchor="middle" fill="white" font-size="10" font-weight="bold">Risk</text>
+                                <text x="450" y="118" text-anchor="middle" fill="white" font-size="8">No PO</text>
+
+                                <!-- Node: Tax ID -->
+                                <circle cx="300" cy="350" r="30" fill="#6A6D70" />
+                                <text x="300" y="355" text-anchor="middle" fill="white" font-size="10" font-weight="bold">Tax ID</text>
+                                
+                                <!-- Node: Bank (Shared Risk) -->
+                                <circle cx="150" cy="250" r="30" fill="#BB0000" />
+                                <text x="150" y="255" text-anchor="middle" fill="white" font-size="10" font-weight="bold">IP Addr</text>
+                                <text x="150" y="268" text-anchor="middle" fill="white" font-size="8">Shared!</text>
+
+                                <!-- Labels on edges -->
+                                <text x="210" y="140" fill="#666" font-size="10" transform="rotate(-30 210,140)">Issued By</text>
+                                <text x="390" y="140" fill="#666" font-size="10" transform="rotate(30 390,140)">Missing Link</text>
+                                <text x="310" y="280" fill="#666" font-size="10">Has VAT ID</text>
+                            </svg>
+                            
+                            <div style="position:absolute; bottom:1rem; right:1rem; font-size:0.7rem; color:#999;">
+                                Visualization by Memgraph &bull; 5 Nodes &bull; 4 Edges
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Insights Panel -->
+                    <div class="sap-panel">
+                        <div class="sap-panel-header">
+                            <span class="sap-panel-title">Graph Insights</span>
+                        </div>
+                        <div class="sap-panel-content">
+                            <!-- Alert Box -->
+                            <div style="background:var(--sapNegativeBackground); border-left:4px solid var(--sapNegativeColor); padding:1rem; border-radius:4px; margin-bottom:1.5rem;">
+                                <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                                    <span style="font-weight:bold; color:var(--sapNegativeColor);">Risk Alert Detected</span>
+                                    <span style="font-size:0.75rem; background:#FFF; padding:2px 6px; border-radius:4px;">High</span>
+                                </div>
+                                <p style="font-size:0.875rem; margin-bottom:0.5rem;">
+                                    This supplier shares an <strong>IP Address</strong> with a restricted entity.
+                                </p>
+                                <div style="font-size:0.75rem; color:#666;">Query: <code>MATCH (s:Supplier)-[:HAS_IP]->(ip)<-[:HAS_IP]-(r:Restricted) RETURN s,r</code></div>
+                            </div>
+
+                            <!-- Stats -->
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-bottom:1.5rem;">
+                                <div style="background:#FAFAFA; padding:0.75rem; border-radius:4px; text-align:center;">
+                                    <div style="font-size:1.5rem; font-weight:bold; color:var(--sapBrandColor);">0</div>
+                                    <div style="font-size:0.75rem; color:#666;">Cycles Detected</div>
+                                </div>
+                                <div style="background:#FAFAFA; padding:0.75rem; border-radius:4px; text-align:center;">
+                                    <div style="font-size:1.5rem; font-weight:bold; color:var(--sapPositiveColor);">100%</div>
+                                    <div style="font-size:0.75rem; color:#666;">Identity Match</div>
+                                </div>
+                            </div>
+
+                            <!-- Cypher Query Preview -->
+                            <div style="margin-top:1rem;">
+                                <div style="font-size:0.75rem; font-weight:bold; margin-bottom:0.5rem; color:var(--sapTitleColor);">Executed Cypher Query</div>
+                                <div style="background:#2D3748; color:#A0AEC0; padding:0.75rem; border-radius:4px; font-family:monospace; font-size:0.75rem;">
+                                    <span style="color:#F6AD55;">MATCH</span> (i:Invoice {id: 'INV-2025'})<br>
+                                    <span style="color:#F6AD55;">MATCH</span> (i)-[:ISSUED_BY]->(s:Supplier)<br>
+                                    <span style="color:#F6AD55;">OPTIONAL MATCH</span> (s)-[:HAS_IP]->(ip)<br>
+                                    <span style="color:#F6AD55;">RETURN</span> i, s, ip
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- VIEW 5: ORCHESTRATION DESIGNER (OpenCanvas) -->
+            <div id="view-orchestration" class="view-container">
+                <div class="page-header">
+                    <div style="display:flex; justify-content:space-between; align-items:start;">
+                        <div>
+                            <h1>Orchestration Flow Designer</h1>
+                            <p class="page-header-subtitle">Design intelligent workflows for invoice processing | ToolOrchestra Integration</p>
+                        </div>
+                        <div class="page-header-actions">
+                            <button class="sap-button sap-button-default" onclick="saveWorkflow()">Save Workflow</button>
+                            <button class="sap-button sap-button-default" onclick="loadWorkflow()">Load Workflow</button>
+                            <button class="sap-button sap-button-emphasized" onclick="executeWorkflow()">Execute</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; height: calc(100vh - 12rem);">
+                    <!-- Tool Palette -->
+                    <div class="orchestration-palette">
+                        <div class="palette-header">Node Types</div>
+                        <div class="palette-items">
+                            <div class="palette-item" draggable="true" data-type="start" data-label="Start">
+                                <div class="palette-icon start">●</div>
+                                <span>Start</span>
+                            </div>
+                            <div class="palette-item" draggable="true" data-type="process" data-process="ocr" data-label="OCR">
+                                <div class="palette-icon process">□</div>
+                                <span>OCR</span>
+                            </div>
+                            <div class="palette-item" draggable="true" data-type="process" data-process="translation" data-label="Translation">
+                                <div class="palette-icon process">□</div>
+                                <span>Translation</span>
+                            </div>
+                            <div class="palette-item" draggable="true" data-type="process" data-process="analysis" data-label="Analysis">
+                                <div class="palette-icon process">□</div>
+                                <span>Analysis</span>
+                            </div>
+                            <div class="palette-item" draggable="true" data-type="decision" data-label="Decision">
+                                <div class="palette-icon decision">◆</div>
+                                <span>Decision</span>
+                            </div>
+                            <div class="palette-item" draggable="true" data-type="action" data-label="Action">
+                                <div class="palette-icon action">✓</div>
+                                <span>Action</span>
+                            </div>
+                            <div class="palette-item" draggable="true" data-type="end" data-label="End">
+                                <div class="palette-icon end">●</div>
+                                <span>End</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Canvas Area -->
+                    <div class="orchestration-canvas-container">
+                        <div id="orchestrationCanvas" class="orchestration-canvas">
+                            <!-- Nodes will be dynamically added here -->
+                        </div>
+                    </div>
+
+                    <!-- Properties Panel -->
+                    <div class="orchestration-properties">
+                        <div class="properties-header">Properties</div>
+                        <div class="properties-content" id="propertiesContent">
+                            <div class="properties-placeholder">Select a node to edit properties</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- AI COPILOT FAB & PANEL -->
+    <button class="copilot-fab" onclick="toggleCopilot()">
+        <svg class="icon-svg" style="width:1.5rem; height:1.5rem;" viewBox="0 0 24 24"><path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7h1a1 1 0 011 1v3a1 1 0 01-1 1h-1v1a2 2 0 01-2 2H5a2 2 0 01-2-2v-1H2a1 1 0 01-1-1v-3a1 1 0 011-1h1a7 7 0 017-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 012-2z"/></svg>
+    </button>
+
+    <div class="copilot-panel" id="copilotPanel">
+        <div class="copilot-header">
+            <div class="copilot-header-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7h1a1 1 0 011 1v3a1 1 0 01-1 1h-1v1a2 2 0 01-2 2H5a2 2 0 01-2-2v-1H2a1 1 0 01-1-1v-3a1 1 0 011-1h1a7 7 0 017-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 012-2z"/>
+                </svg>
+            </div>
+            <div class="copilot-header-text">
+                <h3>AP Co-Pilot Assistant</h3>
+                <p>Powered by U2AI + Rust Shim & Arabic Models</p>
+            </div>
+            <div class="copilot-status">
+                <span class="copilot-status-dot"></span>
+                Online
+            </div>
+        </div>
+
+        <div class="copilot-messages" id="copilotMessages">
+            <!-- Welcome Message -->
+            <div class="copilot-message assistant">
+                <div class="copilot-message-avatar">🤖</div>
+                <div class="copilot-message-content">
+                    <strong>Hello!</strong> I'm your AP Co-Pilot assistant, powered by your <strong>AP DOI</strong> and <strong>Saudi VAT guidelines</strong>.<br><br>
+                    I can help you with:<br>
+                    • Tax invoice compliance (ZATCA checklist)<br>
+                    • VAT categorization (FI/SI/RC/TCN)<br>
+                    • PO vs Manual invoice processing<br>
+                    • GL account mapping<br>
+                    • Arabic translation & field validation
+
+                    <div class="copilot-suggestions">
+                        <button class="copilot-suggestion" onclick="askQuestion('Is this a full tax invoice?')">Check tax type</button>
+                        <button class="copilot-suggestion" onclick="askQuestion('Check ZATCA compliance')">ZATCA checklist</button>
+                        <button class="copilot-suggestion" onclick="askQuestion('Is a PO required?')">PO required?</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="copilot-backend-info">
+            <span>Backend:</span>
+            <span class="backend-badge">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+                Rust Shim
+            </span>
+            <span class="backend-badge">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="12" r="10"/>
+                </svg>
+                U2AI Model
+            </span>
+            <span style="margin-left: auto;">Latency: 45ms</span>
+        </div>
+
+        <div class="copilot-input-area">
+            <input type="text" class="copilot-input" id="copilotInput" placeholder="Ask a question..." onkeypress="handleKey(event)">
+        </div>
+    </div>
+
+        // ============================================
+        // AI Copilot Logic & Backend Integration (Shimmy/Rust)
+        // ============================================
+        let backendUrl = "http://127.0.0.1:11435";
+        let isBackendOnline = false;
+
+        // Check backend status on load
+        window.addEventListener('DOMContentLoaded', checkBackend);
+
+        async function checkBackend() {
+            try {
+                const res = await fetch(`${backendUrl}/health`);
+                if (res.ok) {
+                    isBackendOnline = true;
+                    document.querySelector('.copilot-status').innerHTML = 
+                        '<span class="copilot-status-dot" style="background:#4ADE80;"></span> Shimmy Online';
+                    document.querySelector('.copilot-backend-info').innerHTML = 
+                        '<span>Backend:</span><span class="backend-badge" style="background:#FEF3C7;color:#92400E;">Rust/Shimmy</span><span class="backend-badge">TinyLlama GGUF</span>';
+                }
+            } catch (e) {
+                console.log("Shimmy backend offline, using static logic.");
+            }
+        }
+
+        function toggleCopilot() {
+            document.getElementById('copilotPanel').classList.toggle('open');
+            if (document.getElementById('copilotPanel').classList.contains('open')) {
+                setTimeout(() => document.getElementById('copilotInput').focus(), 300);
+            }
+        }
+
+        async function handleKey(e) {
+            if (e.key === 'Enter') {
+                const input = document.getElementById('copilotInput');
+                const text = input.value.trim();
+                if (!text) return;
+
+                addMsg(text, 'user');
+                input.value = '';
+                showTyping();
+
+                try {
+                    const response = await generateResponse(text);
+                    hideTyping();
+                    addMsg(response, 'assistant');
+                } catch (err) {
+                    hideTyping();
+                    addMsg("Error communicating with AI.", 'assistant');
+                }
+            }
+        }
+
+        async function askQuestion(question) {
+            const input = document.getElementById('copilotInput');
+            input.value = question;
+            addMsg(question, 'user');
+            input.value = '';
+            showTyping();
+            
+            try {
+                const response = await generateResponse(question);
+                hideTyping();
+                addMsg(response, 'assistant');
+            } catch (err) {
+                hideTyping();
+                addMsg("Error processing request.", 'assistant');
+            }
+        }
+
+        function addMsg(content, type) {
+            const container = document.getElementById('copilotMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `copilot-message ${type}`;
+            const avatar = type === 'assistant' ? '🤖' : 'CT';
+            messageDiv.innerHTML = `<div class="copilot-message-avatar">${avatar}</div><div class="copilot-message-content">${content}</div>`;
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function showTyping() {
+            const container = document.getElementById('copilotMessages');
+            const id = 'typing-' + Date.now();
+            const div = document.createElement('div');
+            div.className = 'copilot-message assistant';
+            div.id = id;
+            div.innerHTML = `<div class="copilot-message-avatar">🤖</div><div class="copilot-message-content"><div class="copilot-typing"><span></span><span></span><span></span></div></div>`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            return id;
+        }
+
+        function hideTyping() {
+            const typings = document.querySelectorAll(".copilot-message.assistant");
+            typings.forEach(el => {
+                if (el.innerHTML.includes("copilot-typing")) el.remove();
+            });
+        }
+
+        // ============================================
+        // Hybrid Logic: Shimmy (LLM) + Static
+        // ============================================
+        async function callLLM(prompt) {
+            const payload = {
+                model: "tiny", // Using the tiny.gguf we downloaded
+                messages: [{ "role": "user", "content": prompt }],
+                temperature: 0.1
+            };
+
+            const res = await fetch(`${backendUrl}/v1/chat/completions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            return data.choices[0].message.content;
+        }
+
+        async function generateResponse(question) {
+            const q = question.toLowerCase();
+
+            // 1. Shimmy Translation
+            if (isBackendOnline && (q.includes('translate') || q.includes('arabic'))) {
+                try {
+                    const prompt = `Translate the following invoice text from Arabic to English: "شركة الخليج للتجارة العامة". Return only the translation.`;
+                    const llmResponse = await callLLM(prompt);
+                    return `<strong>Shimmy Translation</strong><br><br>
+                            ${llmResponse}<br><br>
+                            <em>Powered by TinyLlama via Shimmy</em>`;
+                } catch (e) {
+                    return `Shimmy Error: ${e.message}`;
+                }
+            }
+
+            // 2. Shimmy Analysis (Compliance)
+            if (isBackendOnline && (q.includes('compliance') || q.includes('check') || q.includes('analyze'))) {
+                try {
+                    const prompt = `Analyze this invoice for ZATCA compliance. It has a VAT number, Date, and Amount. Is it valid? Answer Yes or No and explain briefly.`;
+                    const llmResponse = await callLLM(prompt);
+                    return `<strong>Shimmy Analysis</strong><br><br>
+                            ${llmResponse}<br><br>
+                            <em>Real-time inference.</em>`;
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+
+            // 3. Static Fallbacks (Legacy)
+            if (q.includes('payment terms') || q.includes('low confidence') || q.includes('52%')) {
+                return `<strong>Payment Terms Analysis</strong><br><br>
+                    The field "صافي ٣٠ يوم" was extracted with <code>52% confidence</code>.<br>
+                    Suggestion: <strong>Net 30</strong>.
+                    <div style="margin-top:0.5rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+                        <button class="sap-button sap-button-ghost" style="height:1.5rem; font-size:0.75rem;" onclick="applyCorrection('paymentTerms', 'Net 30')">Apply "Net 30"</button>
+                    </div>`;
+            }
+
+            if (q.includes('vat') || q.includes('tax')) {
+                return `<strong>VAT Calculation</strong><br>
+                    Subtotal: 55,000 SAR<br>
+                    VAT (15%): 8,250 SAR<br>
+                    Total: 63,250 SAR<br>
+                    ✅ Verified correct.`;
+            }
+
+            // Default
+            return `I understand you're asking about: "<em>${question}</em>".<br>
+                I can help with Invoice Validation, ZATCA Compliance, and VAT checks.`;
+        }
+
+        function applyCorrection(field, value) {
+            addMsg(`✅ <strong>Correction Applied</strong><br>Field "<code>${field}</code>" updated.`, 'assistant');
+            const inputs = document.querySelectorAll('.sap-input');
+            inputs.forEach(input => {
+                if (input.value.includes('Net 30') || (field === 'paymentTerms' && input.value.includes('30'))) {
+                    input.style.borderColor = 'var(--sapPositiveColor)';
+                }
+            });
+        }
+
+        // ============================================
+        // ORCHESTRATION CANVAS LOGIC
+        // ============================================
+        let canvasNodes = [];
+        let canvasEdges = [];
+        let selectedNode = null;
+        let nodeIdCounter = 0;
+        let isDragging = false;
+        let dragOffset = { x: 0, y: 0 };
+
+        // Initialize canvas
+        function initOrchestrationCanvas() {
+            const canvas = document.getElementById('orchestrationCanvas');
+            if (!canvas) return;
+
+            // Add SVG for connections
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('class', 'canvas-connections');
+            svg.style.position = 'absolute';
+            svg.style.top = '0';
+            svg.style.left = '0';
+            svg.style.width = '100%';
+            svg.style.height = '100%';
+            svg.style.pointerEvents = 'none';
+            
+            // Arrow marker definition
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+            marker.setAttribute('id', 'arrowhead');
+            marker.setAttribute('markerWidth', '10');
+            marker.setAttribute('markerHeight', '10');
+            marker.setAttribute('refX', '9');
+            marker.setAttribute('refY', '3');
+            marker.setAttribute('orient', 'auto');
+            const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            polygon.setAttribute('points', '0 0, 10 3, 0 6');
+            polygon.setAttribute('fill', 'var(--sapBrandColor)');
+            marker.appendChild(polygon);
+            defs.appendChild(marker);
+            svg.appendChild(defs);
+            canvas.appendChild(svg);
+
+            // Setup palette drag
+            setupPaletteDrag();
+            
+            // Load default workflow
+            loadDefaultWorkflow();
+        }
+
+        function setupPaletteDrag() {
+            const paletteItems = document.querySelectorAll('.palette-item');
+            paletteItems.forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('application/json', JSON.stringify({
+                        type: item.dataset.type,
+                        process: item.dataset.process,
+                        label: item.dataset.label
+                    }));
+                });
+            });
+
+            const canvas = document.getElementById('orchestrationCanvas');
+            canvas.addEventListener('dragover', (e) => {
+                e.preventDefault();
+            });
+
+            canvas.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const data = JSON.parse(e.dataTransfer.getData('application/json'));
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                addNode(data.type, data.process, data.label, x, y);
+            });
+        }
+
+        function addNode(type, processType, label, x, y) {
+            nodeIdCounter++;
+            const nodeId = `node_${nodeIdCounter}`;
+            const node = {
+                id: nodeId,
+                type: type,
+                processType: processType,
+                label: label || `${type.charAt(0).toUpperCase() + type.slice(1)} Node`,
+                x: x,
+                y: y,
+                config: {}
+            };
+
+            canvasNodes.push(node);
+            renderNode(node);
+            updateConnections();
+        }
+
+        function renderNode(node) {
+            const canvas = document.getElementById('orchestrationCanvas');
+            const nodeEl = document.createElement('div');
+            nodeEl.id = node.id;
+            nodeEl.className = `canvas-node ${node.type}`;
+            nodeEl.style.left = `${node.x}px`;
+            nodeEl.style.top = `${node.y}px`;
+            
+            nodeEl.innerHTML = `
+                <div class="node-header">
+                    <span>${node.label}</span>
+                    <button class="node-delete" onclick="deleteNode('${node.id}')">×</button>
+                </div>
+                <div class="node-content">${node.processType || node.type}</div>
+            `;
+
+            // Make draggable
+            nodeEl.addEventListener('mousedown', (e) => {
+                if (e.target.classList.contains('node-delete')) return;
+                isDragging = true;
+                selectedNode = node;
+                const rect = nodeEl.getBoundingClientRect();
+                dragOffset.x = e.clientX - rect.left;
+                dragOffset.y = e.clientY - rect.top;
+                nodeEl.classList.add('selected');
+                updateProperties(node);
+            });
+
+            canvas.appendChild(nodeEl);
+        }
+
+        function deleteNode(nodeId) {
+            canvasNodes = canvasNodes.filter(n => n.id !== nodeId);
+            canvasEdges = canvasEdges.filter(e => e.source !== nodeId && e.target !== nodeId);
+            const nodeEl = document.getElementById(nodeId);
+            if (nodeEl) nodeEl.remove();
+            updateConnections();
+            if (selectedNode && selectedNode.id === nodeId) {
+                selectedNode = null;
+                document.getElementById('propertiesContent').innerHTML = '<div class="properties-placeholder">Select a node to edit properties</div>';
+            }
+        }
+
+        // Mouse events for dragging
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging && selectedNode) {
+                const canvas = document.getElementById('orchestrationCanvas');
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left - dragOffset.x;
+                const y = e.clientY - rect.top - dragOffset.y;
+                
+                selectedNode.x = Math.max(0, x);
+                selectedNode.y = Math.max(0, y);
+                
+                const nodeEl = document.getElementById(selectedNode.id);
+                if (nodeEl) {
+                    nodeEl.style.left = `${selectedNode.x}px`;
+                    nodeEl.style.top = `${selectedNode.y}px`;
+                }
+                updateConnections();
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging && selectedNode) {
+                const nodeEl = document.getElementById(selectedNode.id);
+                if (nodeEl) nodeEl.classList.remove('selected');
+            }
+            isDragging = false;
+        });
+
+        function updateConnections() {
+            const svg = document.querySelector('.canvas-connections');
+            if (!svg) return;
+            
+            // Clear existing connections
+            const existing = svg.querySelectorAll('.connection-line');
+            existing.forEach(el => el.remove());
+
+            // Render connections (simplified - would need proper connection logic)
+            canvasEdges.forEach(edge => {
+                const sourceNode = canvasNodes.find(n => n.id === edge.source);
+                const targetNode = canvasNodes.find(n => n.id === edge.target);
+                if (sourceNode && targetNode) {
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('class', 'connection-line');
+                    line.setAttribute('x1', sourceNode.x + 80);
+                    line.setAttribute('y1', sourceNode.y + 40);
+                    line.setAttribute('x2', targetNode.x + 80);
+                    line.setAttribute('y2', targetNode.y + 40);
+                    svg.appendChild(line);
+                }
+            });
+        }
+
+        function updateProperties(node) {
+            const propsContent = document.getElementById('propertiesContent');
+            propsContent.innerHTML = `
+                <div class="property-group">
+                    <label class="property-label">Node ID</label>
+                    <input type="text" class="property-input" value="${node.id}" readonly>
+                </div>
+                <div class="property-group">
+                    <label class="property-label">Label</label>
+                    <input type="text" class="property-input" value="${node.label}" 
+                           onchange="updateNodeProperty('${node.id}', 'label', this.value)">
+                </div>
+                <div class="property-group">
+                    <label class="property-label">Type</label>
+                    <input type="text" class="property-input" value="${node.type}" readonly>
+                </div>
+                ${node.processType ? `
+                <div class="property-group">
+                    <label class="property-label">Process Type</label>
+                    <input type="text" class="property-input" value="${node.processType}" readonly>
+                </div>
+                ` : ''}
+            `;
+        }
+
+        function updateNodeProperty(nodeId, property, value) {
+            const node = canvasNodes.find(n => n.id === nodeId);
+            if (node) {
+                node[property] = value;
+                const nodeEl = document.getElementById(nodeId);
+                if (nodeEl) {
+                    const header = nodeEl.querySelector('.node-header span');
+                    if (header) header.textContent = value;
+                }
+            }
+        }
+
+        function loadDefaultWorkflow() {
+            // Load default invoice processing workflow
+            canvasNodes = [];
+            canvasEdges = [];
+            nodeIdCounter = 0;
+            
+            const defaultNodes = [
+                { type: 'start', label: 'Invoice Received', x: 100, y: 100 },
+                { type: 'process', processType: 'ocr', label: 'OCR Extraction', x: 100, y: 200 },
+                { type: 'process', processType: 'translation', label: 'Translate Arabic', x: 100, y: 300 },
+                { type: 'process', processType: 'analysis', label: 'Analyze Invoice', x: 100, y: 400 },
+                { type: 'decision', label: 'Confidence > 85%?', x: 100, y: 500 },
+                { type: 'action', label: 'Auto Submit', x: 50, y: 600 },
+                { type: 'action', label: 'Flag Review', x: 150, y: 600 },
+                { type: 'end', label: 'Complete', x: 100, y: 700 }
+            ];
+
+            defaultNodes.forEach((nodeData, index) => {
+                nodeIdCounter++;
+                const node = {
+                    id: `node_${nodeIdCounter}`,
+                    ...nodeData
+                };
+                canvasNodes.push(node);
+                renderNode(node);
+            });
+
+            // Add default edges
+            canvasEdges = [
+                { source: 'node_1', target: 'node_2' },
+                { source: 'node_2', target: 'node_3' },
+                { source: 'node_3', target: 'node_4' },
+                { source: 'node_4', target: 'node_5' },
+                { source: 'node_5', target: 'node_6' },
+                { source: 'node_5', target: 'node_7' },
+                { source: 'node_6', target: 'node_8' },
+                { source: 'node_7', target: 'node_8' }
+            ];
+
+            updateConnections();
+        }
+
+        async function saveWorkflow() {
+            const workflow = {
+                id: 'user-workflow-' + Date.now(),
+                name: 'User Workflow',
+                description: 'Workflow created in OpenCanvas',
+                nodes: canvasNodes.map(n => ({
+                    id: n.id,
+                    type: n.type,
+                    label: n.label,
+                    process_type: n.processType,
+                    position: { x: n.x, y: n.y },
+                    config: n.config
+                })),
+                edges: canvasEdges.map((e, i) => ({
+                    id: `edge_${i}`,
+                    source: e.source,
+                    target: e.target,
+                    label: e.label
+                })),
+                inputs: {},
+                outputs: []
+            };
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/orchestrate/workflows', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(workflow)
+                });
+                const result = await response.json();
+                alert('Workflow saved successfully!');
+            } catch (error) {
+                alert('Error saving workflow: ' + error.message);
+            }
+        }
+
+        async function loadWorkflow() {
+            try {
+                const response = await fetch('http://127.0.0.1:8000/orchestrate/workflows');
+                const data = await response.json();
+                if (data.workflows && data.workflows.length > 0) {
+                    const workflowId = prompt('Enter workflow ID to load:', data.workflows[0].id);
+                    if (workflowId) {
+                        const loadResponse = await fetch(`http://127.0.0.1:8000/orchestrate/workflows/${workflowId}`);
+                        const workflow = await loadResponse.json();
+                        // Load workflow into canvas (simplified)
+                        alert('Workflow loaded: ' + workflow.name);
+                    }
+                }
+            } catch (error) {
+                alert('Error loading workflow: ' + error.message);
+            }
+        }
+
+        async function executeWorkflow() {
+            const workflow = {
+                id: 'execution-' + Date.now(),
+                name: 'Execution Workflow',
+                description: 'Workflow execution',
+                nodes: canvasNodes.map(n => ({
+                    id: n.id,
+                    type: n.type,
+                    label: n.label,
+                    process_type: n.processType,
+                    position: { x: n.x, y: n.y },
+                    config: n.config
+                })),
+                edges: canvasEdges.map((e, i) => ({
+                    id: `edge_${i}`,
+                    source: e.source,
+                    target: e.target
+                })),
+                inputs: { invoice_document: 'sample_invoice.pdf' },
+                outputs: []
+            };
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/orchestrate/execute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ workflow, inputs: { invoice_document: 'test.pdf' } })
+                });
+                const result = await response.json();
+                alert('Workflow execution started! Check console for results.');
+                console.log('Execution result:', result);
+            } catch (error) {
+                alert('Error executing workflow: ' + error.message);
+            }
+        }
+
+        // Initialize canvas when orchestration view is shown
+        function switchView(viewName, element) {
+            // Update navigation
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            if (element) element.classList.add('active');
+
+            // Hide all views
+            document.querySelectorAll('.view-container').forEach(view => {
+                view.classList.remove('active-view');
+            });
+
+            // Show selected view
+            const targetView = document.getElementById(`view-${viewName}`);
+            if (targetView) {
+                targetView.classList.add('active-view');
+                
+                // Initialize canvas if orchestration view
+                if (viewName === 'orchestration') {
+                    setTimeout(() => initOrchestrationCanvas(), 100);
+                }
+            }
+        }
+
+        // ============================================
+        // A2UI RENDERER
+        // ============================================
+        class A2UIRenderer {
+            constructor(container) {
+                this.container = container;
+                this.data = {};
+            }
+
+            render(a2uiResponse) {
+                if (!a2uiResponse || !a2uiResponse.surface) {
+                    console.error('Invalid A2UI response');
+                    return;
+                }
+
+                const surface = a2uiResponse.surface;
+                this.data = surface.data || {};
+
+                // Clear container
+                this.container.innerHTML = '';
+
+                // Render surface
+                const surfaceEl = this.renderSurface(surface);
+                this.container.appendChild(surfaceEl);
+            }
+
+            renderSurface(surface) {
+                const surfaceEl = document.createElement('div');
+                surfaceEl.className = `a2ui-surface a2ui-surface-${surface.type}`;
+                surfaceEl.setAttribute('data-surface-id', surface.id);
+
+                if (surface.components) {
+                    surface.components.forEach(component => {
+                        const componentEl = this.renderComponent(component);
+                        surfaceEl.appendChild(componentEl);
+                    });
+                }
+
+                return surfaceEl;
+            }
+
+            renderComponent(component) {
+                const componentEl = document.createElement('div');
+                componentEl.className = `a2ui-component a2ui-${component.type}`;
+                componentEl.setAttribute('data-component-id', component.id);
+
+                switch (component.type) {
+                    case 'card':
+                        return this.renderCard(component);
+                    case 'text':
+                        return this.renderText(component);
+                    case 'text-field':
+                        return this.renderTextField(component);
+                    case 'button':
+                        return this.renderButton(component);
+                    case 'form':
+                        return this.renderForm(component);
+                    default:
+                        console.warn(`Unknown component type: ${component.type}`);
+                        return componentEl;
+                }
+            }
+
+            renderCard(component) {
+                const card = document.createElement('div');
+                card.className = 'sap-panel';
+                card.setAttribute('data-component-id', component.id);
+
+                if (component.properties && component.properties.title) {
+                    const header = document.createElement('div');
+                    header.className = 'sap-panel-header';
+                    header.innerHTML = `<span class="sap-panel-title">${component.properties.title}</span>`;
+                    card.appendChild(header);
+                }
+
+                const content = document.createElement('div');
+                content.className = 'sap-panel-content';
+
+                if (component.components) {
+                    component.components.forEach(child => {
+                        const childEl = this.renderComponent(child);
+                        content.appendChild(childEl);
+                    });
+                }
+
+                card.appendChild(content);
+                return card;
+            }
+
+            renderText(component) {
+                const textEl = document.createElement('div');
+                textEl.className = 'a2ui-text';
+                textEl.setAttribute('data-component-id', component.id);
+
+                let content = component.properties?.content || '';
+                if (component.data_path) {
+                    content = this.resolveDataPath(component.data_path) || content;
+                }
+
+                textEl.textContent = content;
+                return textEl;
+            }
+
+            renderTextField(component) {
+                const fieldGroup = document.createElement('div');
+                fieldGroup.className = 'sap-form-group';
+                fieldGroup.setAttribute('data-component-id', component.id);
+
+                const label = document.createElement('label');
+                label.className = 'sap-form-label';
+                label.textContent = component.properties?.label || '';
+
+                const inputWrapper = document.createElement('div');
+                inputWrapper.className = 'sap-input-wrapper';
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'sap-input';
+                if (component.data_path) {
+                    input.value = this.resolveDataPath(component.data_path) || '';
+                    input.setAttribute('data-path', component.data_path);
+                }
+
+                inputWrapper.appendChild(input);
+                fieldGroup.appendChild(label);
+                fieldGroup.appendChild(inputWrapper);
+
+                return fieldGroup;
+            }
+
+            renderButton(component) {
+                const button = document.createElement('button');
+                button.className = 'sap-button sap-button-emphasized';
+                button.setAttribute('data-component-id', component.id);
+                button.textContent = component.properties?.label || 'Button';
+
+                if (component.events && component.events.click) {
+                    button.addEventListener('click', () => {
+                        this.handleEvent(component.events.click, component.id);
+                    });
+                }
+
+                return button;
+            }
+
+            renderForm(component) {
+                const form = document.createElement('form');
+                form.className = 'a2ui-form';
+                form.setAttribute('data-component-id', component.id);
+
+                if (component.components) {
+                    component.components.forEach(child => {
+                        const childEl = this.renderComponent(child);
+                        form.appendChild(childEl);
+                    });
+                }
+
+                return form;
+            }
+
+            resolveDataPath(path) {
+                const parts = path.split('.');
+                let value = this.data;
+                for (const part of parts) {
+                    if (value && typeof value === 'object' && part in value) {
+                        value = value[part];
+                    } else {
+                        return null;
+                    }
+                }
+                return value;
+            }
+
+            handleEvent(eventName, componentId) {
+                console.log(`A2UI Event: ${eventName} from component ${componentId}`);
+                // Handle events (e.g., submit_invoice, etc.)
+                if (eventName === 'submit_invoice') {
+                    alert('Invoice submission triggered from A2UI component');
+                }
+            }
+        }
+
+        // Global A2UI renderer instance
+        let a2uiRenderer = null;
+
+        // Function to render A2UI response
+        async function renderA2UIResponse(a2uiJson, containerId = 'a2ui-container') {
+            let container = document.getElementById(containerId);
+            if (!container) {
+                // Create container if it doesn't exist
+                container = document.createElement('div');
+                container.id = containerId;
+                container.className = 'a2ui-container';
+                document.body.appendChild(container);
+            }
+
+            if (!a2uiRenderer) {
+                a2uiRenderer = new A2UIRenderer(container);
+            }
+
+            a2uiRenderer.render(a2uiJson);
+        }
+
+        // Example: Render A2UI from API response
+        async function fetchAndRenderA2UI(endpoint, data) {
+            try {
+                const response = await fetch(`http://127.0.0.1:8000${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const a2uiResponse = await response.json();
+                renderA2UIResponse(a2uiResponse);
+            } catch (error) {
+                console.error('Error fetching A2UI:', error);
+            }
+        }
+    </script>
+</body>
+</html>

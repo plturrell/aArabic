@@ -1,0 +1,693 @@
+# =============================================================================
+# AI NUCLEUS PLATFORM - Private Network Deployment
+# =============================================================================
+# All services run on internal network with Keycloak SSO authentication.
+# Only the gateway (port 80/443) is exposed externally.
+# Access: http://localhost → Redirects to Keycloak login → Protected services
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # GATEWAY - Single Entry Point (ONLY EXPOSED PORT)
+  # ===========================================================================
+  gateway:
+    image: apache/apisix:3.8.0-debian
+    container_name: ai_nucleus_gateway
+    ports:
+      - "80:9080"     # HTTP  - Main entry point
+      - "443:9443"    # HTTPS - Secure entry point
+    volumes:
+      - ./config/apisix/config.yaml:/usr/local/apisix/conf/config.yaml:rw
+      - ./config/apisix/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:rw
+      - apisix_logs:/usr/local/apisix/logs
+    environment:
+      - APISIX_STAND_ALONE=true
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-nucleus-gateway}
+      - OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET}
+      - SESSION_SECRET=${SESSION_SECRET}
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9080/apisix/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  # ===========================================================================
+  # IDENTITY & ACCESS MANAGEMENT
+  # ===========================================================================
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: ai_nucleus_keycloak
+    command:
+      - start-dev
+      - --import-realm
+    expose:
+      - "8080"
+    environment:
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN:-admin}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      - KC_HEALTH_ENABLED=true
+      - KC_METRICS_ENABLED=true
+      - KC_PROXY=edge
+      - KC_HTTP_ENABLED=true
+      - KC_HOSTNAME_STRICT=false
+      # Database configuration (PostgreSQL)
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://keycloak-db:5432/keycloak
+      - KC_DB_USERNAME=keycloak
+      - KC_DB_PASSWORD=${KEYCLOAK_DB_PASSWORD:-keycloak}
+      # Realm import variables
+      - NUCLEUS_CLIENT_SECRET=${NUCLEUS_CLIENT_SECRET}
+      - NUCLEUS_SERVICE_SECRET=${NUCLEUS_SERVICE_SECRET}
+      - NUCLEUS_ADMIN_PASSWORD=${NUCLEUS_ADMIN_PASSWORD:-admin}
+    volumes:
+      - ./config/keycloak/nucleus-realm.json:/opt/keycloak/data/import/nucleus-realm.json:ro
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '200 OK' <&3"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  keycloak-db:
+    image: postgres:15-alpine
+    container_name: ai_nucleus_keycloak_db
+    expose:
+      - "5432"
+    environment:
+      - POSTGRES_USER=keycloak
+      - POSTGRES_PASSWORD=${KEYCLOAK_DB_PASSWORD:-keycloak}
+      - POSTGRES_DB=keycloak
+    volumes:
+      - ./data/keycloak_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  # ===========================================================================
+  # CORE BACKEND
+  # ===========================================================================
+  backend:
+    platform: linux/amd64
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.backend
+    container_name: ai_nucleus_backend
+    expose:
+      - "8000"
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - DEBUG=${DEBUG:-false}
+      - ENABLE_AUTH=${ENABLE_AUTH:-true}
+      - BACKEND_SECRET_KEY=${BACKEND_SECRET_KEY}
+      - N8N_URL=${N8N_URL:-http://n8n:5678}
+      - QDRANT_URL=http://qdrant:6333
+      - MEMGRAPH_URI=bolt://memgraph:7687
+      - SHIMMY_URL=http://shimmy:3001
+      - LANGFLOW_URL=http://langflow:7860
+      - GITEA_URL=http://gitea:3000
+      - HYPERBOOKLM_URL=http://hyperbooklm:3002
+      - OPENCANVAS_URL=http://opencanvas:3000
+      - DRAGONFLY_URL=redis://dragonfly:6379
+      - KEYCLOAK_URL=http://keycloak:8080
+      - MARQUEZ_URL=http://marquez:5000
+      - NUCLEUS_GRAPH_URL=http://nucleus-graph:5000
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      # LOCAL MODEL CONFIGURATION - NO EXTERNAL APIs
+      - USE_LOCAL_MODELS_ONLY=true
+      - MODEL_BASE_PATH=/models
+      - DEFAULT_MODEL=Qwen3-Coder-30B-A3B-Instruct
+      # TRANSLATION STRATEGY: 3-tier approach
+      - TRANSLATION_MODEL_GENERAL=HY-MT1.5-1.8B
+      - TRANSLATION_MODEL_FINANCIAL=arabic_models/camelbert-dialect-financial
+      - TRANSLATION_MODEL_INTELLIGENT=rlm
+      - ARABIC_FINANCIAL_MODEL=arabic_models/camelbert-dialect-financial
+      - MATH_MODEL=deepseek-math
+      - MODEL_SERVER_URL=http://model-server:8000
+    volumes:
+      - ../../vendor/layerModels:/models:ro
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      memgraph:
+        condition: service_healthy
+      dragonfly:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/api/discovery/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  # ===========================================================================
+  # AI SERVICES (Internal Only)
+  # ===========================================================================
+  lean4-runtime:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.lean4
+    container_name: ai_nucleus_lean4
+    expose:
+      - "8002"
+    environment:
+      - QDRANT_URL=http://qdrant:6333
+      - MEMGRAPH_HOST=memgraph
+      - MEMGRAPH_PORT=7687
+      - MARQUEZ_URL=http://marquez:5000
+      - GITEA_URL=http://gitea:3000
+      - GITEA_TOKEN=${GITEA_TOKEN:-}
+    volumes:
+      - ./vendor/layerIntelligence/lean4:/lean4_repo:ro
+      - ./data/lean4_projects:/lean_projects
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      memgraph:
+        condition: service_healthy
+      marquez:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  shimmy:
+    image: ghcr.io/michael-a-kuykendall/shimmy:latest
+    container_name: ai_nucleus_shimmy
+    expose:
+      - "11434"
+    volumes:
+      - ../../vendor/layerModels:/models:ro
+      - ./data/models:/app/models
+    environment:
+      - SHIMMY_HOST=0.0.0.0
+      - SHIMMY_PORT=11434
+      - USE_LOCAL_MODELS_ONLY=true
+      - MODEL_BASE_PATH=/models
+      - DEFAULT_MODEL=Qwen3-Coder-30B-A3B-Instruct
+    healthcheck:
+      test: ["CMD", "shimmy", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  translation-rust:
+    build:
+      context: ../../src/serviceCore/serviceTranslation-rust
+      dockerfile: Dockerfile
+    container_name: ai_nucleus_translation
+    expose:
+      - "8010"
+    environment:
+      - RUST_LOG=info
+      - GENERAL_MODEL_PATH=/models/tencent/HY-MT1.5-1.8B
+      - FINANCIAL_MODEL_PATH=/models/arabic_models
+      - REDIS_URL=redis://dragonfly:6379
+      - KAFKA_BROKERS=kafka:9092
+      - TRANSLATION_LLM_MODEL=${TRANSLATION_LLM_MODEL:-Qwen3-Coder-30B-A3B-Instruct}
+      - LIQUIDAI_URL=http://shimmy:11434
+    volumes:
+      - ../../vendor/layerModels:/models:ro
+    depends_on:
+      dragonfly:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8010/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  langflow:
+    image: langflowai/langflow:latest
+    container_name: ai_nucleus_langflow
+    expose:
+      - "7860"
+    environment:
+      - LANGFLOW_HOST=0.0.0.0
+      - LANGFLOW_PORT=7860
+      - LANGFLOW_AUTO_LOGIN=false
+      - USE_LOCAL_MODELS_ONLY=true
+      - MODEL_BASE_PATH=/models
+    volumes:
+      - ./data/langflow:/app/langflow
+      - ../../vendor/layerModels:/models:ro
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:7860/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  opencanvas:
+    build:
+      context: ./vendor/layerUi/open-canvas
+      dockerfile: Dockerfile
+      args:
+        OPEN_CANVAS_VERSION: ${OPEN_CANVAS_VERSION:-local}
+    container_name: ai_nucleus_opencanvas
+    expose:
+      - "3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=/api
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  hyperbooklm:
+    build:
+      context: ./vendor/layerIntelligence/hyperbooklm
+      dockerfile: Dockerfile
+      args:
+        HYPERBOOKLM_VERSION: ${HYPERBOOKLM_VERSION:-local}
+    container_name: ai_nucleus_hyperbooklm
+    expose:
+      - "3002"
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"const http=require('http');const req=http.get('http://localhost:3002/',res=>process.exit(res.statusCode===200?0:1));req.on('error',()=>process.exit(1));\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: ai_nucleus_n8n
+    expose:
+      - "5678"
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=n8n-db
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=${N8N_DB_PASSWORD:-n8n}
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
+      - N8N_HOST=${EXTERNAL_HOSTNAME:-localhost}
+      - N8N_PORT=${N8N_PORT:-80}
+      - N8N_PATH=/n8n/
+      - N8N_EDITOR_BASE_URL=${N8N_EDITOR_BASE_URL:-http://localhost/n8n/}
+      - WEBHOOK_URL=${N8N_WEBHOOK_URL:-http://localhost/n8n/}
+      - GENERIC_TIMEZONE=${N8N_TIMEZONE:-UTC}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-aec8f9d2b1c3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9}
+      - N8N_LOG_LEVEL=info
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_PERSONALIZATION_ENABLED=false
+      - N8N_TEMPLATES_ENABLED=false
+      - N8N_VERSION_NOTIFICATIONS_ENABLED=false
+      - N8N_VERSION_NOTIFICATIONS_WHATS_NEW_ENABLED=false
+      - NODE_FUNCTION_ALLOW_BUILTIN=*
+      - NODE_FUNCTION_ALLOW_EXTERNAL=lodash
+      - SERVICE_REGISTRY_URL=${SERVICE_REGISTRY_URL:-http://service-registry:8100}
+      - LEAN4_PARSER_URL=${LEAN4_PARSER_URL:-http://lean4-runtime:8002}
+      - SERVICE_N8N_URL=${SERVICE_N8N_URL:-http://service-n8n:8003}
+      - SERVICE_GITEA_URL=${SERVICE_GITEA_URL:-http://service-gitea:8004}
+      - MEMGRAPH_URI=${MEMGRAPH_URI:-bolt://memgraph:7687}
+      - QDRANT_URL=${QDRANT_URL:-http://qdrant:6333}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      n8n-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"const http=require('http');const req=http.get('http://localhost:5678/healthz',res=>process.exit(res.statusCode===200?0:1));req.on('error',()=>process.exit(1));\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  service-registry:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.service-registry
+    container_name: ai_nucleus_service_registry
+    expose:
+      - "8100"
+    environment:
+      - SERVICE_REGISTRY_BIND=${SERVICE_REGISTRY_BIND:-0.0.0.0:8100}
+      - SERVICE_REGISTRY_URL=${SERVICE_REGISTRY_URL:-http://service-registry:8100}
+      - SERVICE_REGISTRY_CONFIG=${SERVICE_REGISTRY_CONFIG:-config/service_registry.json}
+      - SERVICE_REGISTRY_DB_URL=${SERVICE_REGISTRY_DB_URL:-postgres://registry:registry@registry-db:5432/service_registry}
+      - SERVICE_REGISTRY_EMBEDDING_DIM=${SERVICE_REGISTRY_EMBEDDING_DIM:-384}
+      - MEMGRAPH_HOST=memgraph
+      - MEMGRAPH_PORT=7687
+      - QDRANT_URL=http://qdrant:6333
+    volumes:
+      - ./config/service_registry.json:/app/config/service_registry.json:ro
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      memgraph:
+        condition: service_healthy
+      registry-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8100/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  # ===========================================================================
+  # DATA LAYER (Internal Only)
+  # ===========================================================================
+  n8n-db:
+    image: postgres:15-alpine
+    container_name: ai_nucleus_n8n_db
+    expose:
+      - "5432"
+    environment:
+      - POSTGRES_USER=n8n
+      - POSTGRES_PASSWORD=${N8N_DB_PASSWORD:-n8n}
+      - POSTGRES_DB=n8n
+    volumes:
+      - ./data/n8n_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8n"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  registry-db:
+    image: postgres:15-alpine
+    container_name: ai_nucleus_registry_db
+    expose:
+      - "5432"
+    environment:
+      - POSTGRES_USER=registry
+      - POSTGRES_PASSWORD=${SERVICE_REGISTRY_DB_PASSWORD:-registry}
+      - POSTGRES_DB=service_registry
+    volumes:
+      - ./data/registry_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U registry"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:v1.9.0
+    container_name: ai_nucleus_qdrant
+    expose:
+      - "6333"
+      - "6334"
+    volumes:
+      - ./data/qdrant:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__HTTP_PORT=6333
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/readyz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  memgraph:
+    image: memgraph/memgraph:2.18.0
+    container_name: ai_nucleus_memgraph
+    platform: linux/amd64
+    expose:
+      - "7687"
+    volumes:
+      - ./data/memgraph:/var/lib/memgraph
+    environment:
+      - MEMGRAPH_BOLT_PORT=7687
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'RETURN 1;' | mgconsole || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  memgraph-lab:
+    image: memgraph/lab:latest
+    container_name: ai_nucleus_memgraph_lab
+    expose:
+      - "3000"
+    environment:
+      - QUICK_CONNECT_MG_HOST=memgraph
+      - QUICK_CONNECT_MG_PORT=7687
+    depends_on:
+      - memgraph
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  dragonfly:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly:v1.14.3
+    container_name: ai_nucleus_dragonfly
+    expose:
+      - "6379"
+    volumes:
+      - ./data/dragonfly:/data
+    ulimits:
+      memlock: -1
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  nucleus-graph:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.nucleusgraph
+    container_name: ai_nucleus_graph
+    expose:
+      - "5000"
+    environment:
+      - FLASK_ENV=production
+      - MEMGRAPH_URL=bolt://memgraph:7687
+      - MEMGRAPH_HOST=memgraph
+      - MEMGRAPH_PORT=7687
+    depends_on:
+      memgraph:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c 'import socket; s=socket.socket(); s.settimeout(1); s.connect((\"localhost\",5000)); s.close()' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  # ===========================================================================
+  # INFRASTRUCTURE (Internal Only)
+  # ===========================================================================
+  gitea:
+    image: gitea/gitea:1.21
+    container_name: ai_nucleus_gitea
+    expose:
+      - "3000"
+      - "22"
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - GITEA__server__ROOT_URL=http://localhost/git/
+      - GITEA__server__DOMAIN=localhost
+      - GITEA__security__SECRET_KEY=${GITEA_SECRET_KEY:-}
+      - GITEA__database__DB_TYPE=postgres
+      - GITEA__database__HOST=gitea-db:5432
+      - GITEA__database__NAME=gitea
+      - GITEA__database__USER=gitea
+      - GITEA__database__PASSWD=${GITEA_DB_PASSWORD:-gitea}
+      - GITEA__database__SSL_MODE=disable
+    volumes:
+      - ./data/gitea:/data
+    depends_on:
+      gitea-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3000/api/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  gitea-db:
+    image: postgres:15-alpine
+    container_name: ai_nucleus_gitea_db
+    expose:
+      - "5432"
+    environment:
+      - POSTGRES_USER=gitea
+      - POSTGRES_PASSWORD=${GITEA_DB_PASSWORD:-gitea}
+      - POSTGRES_DB=gitea
+    volumes:
+      - ./data/gitea_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gitea"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  marquez:
+    image: marquezproject/marquez:0.46.0
+    container_name: ai_nucleus_marquez
+    expose:
+      - "5000"
+      - "5001"
+    environment:
+      - MARQUEZ_PORT=5000
+      - MARQUEZ_ADMIN_PORT=5001
+      - MARQUEZ_CONFIG=/etc/marquez/marquez.yml
+      - POSTGRES_HOST=marquez-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=marquez
+      - POSTGRES_USER=marquez
+      - POSTGRES_PASSWORD=${MARQUEZ_DB_PASSWORD:-marquez}
+    volumes:
+      - ./config/marquez/marquez.yml:/etc/marquez/marquez.yml:ro
+    depends_on:
+      marquez-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:5000/api/v1/namespaces"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  marquez-db:
+    image: postgres:14-alpine
+    container_name: ai_nucleus_marquez_db
+    expose:
+      - "5432"
+    environment:
+      - POSTGRES_USER=marquez
+      - POSTGRES_PASSWORD=${MARQUEZ_DB_PASSWORD:-marquez}
+      - POSTGRES_DB=marquez
+    volumes:
+      - ./data/marquez_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marquez"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  marquez-web:
+    image: marquezproject/marquez-web:0.47.0
+    container_name: ai_nucleus_marquez_web
+    expose:
+      - "3000"
+    environment:
+      - MARQUEZ_HOST=marquez
+      - MARQUEZ_PORT=5000
+    depends_on:
+      - marquez
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+# =============================================================================
+# NETWORK - Private Internal Network
+# =============================================================================
+networks:
+  nucleus_internal:
+    driver: bridge
+    # Set internal: true for complete isolation (no internet access from containers)
+    internal: ${NETWORK_INTERNAL:-false}
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+# =============================================================================
+# VOLUMES - Persistent Data
+# =============================================================================
+volumes:
+  qdrant_data:
+  memgraph_data:
+  dragonfly_data:
+  keycloak_db_data:
+  gitea_data:
+  marquez_db_data:
+  langflow_data:
+  apisix_logs:
+  n8n_data:

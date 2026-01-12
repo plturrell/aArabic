@@ -1,0 +1,468 @@
+version: "3.8"
+
+services:
+  wrapper-apisix:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service-wrapper
+      args:
+        SERVICE_PATH: src/serviceCore/serviceApisix
+        SERVICE_BIN: service-apisix
+        SERVICE_PORT: 8101
+    environment:
+      - RUST_LOG=info
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      - SERVICE_PORT=8101
+    expose:
+      - "8101"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  wrapper-keycloak:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service-wrapper
+      args:
+        SERVICE_PATH: src/serviceCore/serviceKeycloak
+        SERVICE_BIN: service-keycloak
+        SERVICE_PORT: 8102
+    environment:
+      - RUST_LOG=info
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      - SERVICE_PORT=8102
+    expose:
+      - "8102"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  wrapper-markitdown:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service-wrapper
+      args:
+        SERVICE_PATH: src/serviceCore/serviceMarkItDownWrapper
+        SERVICE_BIN: service-markitdown
+        SERVICE_PORT: 8103
+    environment:
+      - RUST_LOG=info
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      - SERVICE_PORT=8103
+    expose:
+      - "8103"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  wrapper-memgraph:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service-wrapper
+      args:
+        SERVICE_PATH: src/serviceData/serviceMemgraph
+        SERVICE_BIN: service-memgraph
+        SERVICE_PORT: 8201
+    environment:
+      - RUST_LOG=info
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      - SERVICE_PORT=8201
+    expose:
+      - "8201"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  wrapper-qdrant:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service-wrapper
+      args:
+        SERVICE_PATH: src/serviceData/serviceQdrant
+        SERVICE_BIN: service-qdrant
+        SERVICE_PORT: 8202
+    environment:
+      - RUST_LOG=info
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      - SERVICE_PORT=8202
+    expose:
+      - "8202"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  wrapper-dragonfly:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service-wrapper
+      args:
+        SERVICE_PATH: src/serviceData/serviceDragonfly
+        SERVICE_BIN: service-dragonfly
+        SERVICE_PORT: 8203
+    environment:
+      - RUST_LOG=info
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      - SERVICE_PORT=8203
+    expose:
+      - "8203"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  wrapper-postgres-keycloak:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service-wrapper
+      args:
+        SERVICE_PATH: src/serviceData/servicePostgres
+        SERVICE_BIN: service-postgres
+        SERVICE_PORT: 8206
+    environment:
+      - RUST_LOG=info
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      - SERVICE_PORT=8206
+      - SERVICE_ID=keycloak-db
+      - SERVICE_NAME=Keycloak Postgres
+      - SERVICE_VERSION=15-alpine
+      - UPSTREAM_URL=postgres://keycloak-db:5432/keycloak
+      - SERVICE_TAGS=sql,postgres
+    expose:
+      - "8206"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  wrapper-postgres-marquez:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service-wrapper
+      args:
+        SERVICE_PATH: src/serviceData/servicePostgres
+        SERVICE_BIN: service-postgres
+        SERVICE_PORT: 8207
+    environment:
+      - RUST_LOG=info
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      - SERVICE_PORT=8207
+      - SERVICE_ID=marquez-db
+      - SERVICE_NAME=Marquez Postgres
+      - SERVICE_VERSION=14-alpine
+      - UPSTREAM_URL=postgres://marquez-db:5432/marquez
+      - SERVICE_TAGS=sql,postgres
+    expose:
+      - "8207"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  wrapper-marquez:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service-wrapper
+      args:
+        SERVICE_PATH: src/serviceData/serviceMarquez
+        SERVICE_BIN: service-marquez
+        SERVICE_PORT: 8204
+    environment:
+      - RUST_LOG=info
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      - SERVICE_PORT=8204
+    expose:
+      - "8204"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  wrapper-postgres-gitea:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service-wrapper
+      args:
+        SERVICE_PATH: src/serviceData/servicePostgres
+        SERVICE_BIN: service-postgres
+        SERVICE_PORT: 8205
+    environment:
+      - RUST_LOG=info
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      - SERVICE_PORT=8205
+      - SERVICE_ID=gitea-db
+      - SERVICE_NAME=Gitea Postgres
+      - SERVICE_VERSION=15-alpine
+      - UPSTREAM_URL=postgres://gitea-db:5432/gitea
+      - SERVICE_TAGS=sql,postgres
+    expose:
+      - "8205"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  wrapper-postgres-n8n:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service-wrapper
+      args:
+        SERVICE_PATH: src/serviceData/servicePostgres
+        SERVICE_BIN: service-postgres
+        SERVICE_PORT: 8208
+    environment:
+      - RUST_LOG=info
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      - SERVICE_PORT=8208
+      - SERVICE_ID=n8n-db
+      - SERVICE_NAME=n8n Postgres
+      - SERVICE_VERSION=15-alpine
+      - UPSTREAM_URL=postgres://n8n-db:5432/n8n
+      - SERVICE_TAGS=sql,postgres
+    expose:
+      - "8208"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  wrapper-postgres-registry:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service-wrapper
+      args:
+        SERVICE_PATH: src/serviceData/servicePostgres
+        SERVICE_BIN: service-postgres
+        SERVICE_PORT: 8209
+    environment:
+      - RUST_LOG=info
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      - SERVICE_PORT=8209
+      - SERVICE_ID=registry-db
+      - SERVICE_NAME=Service Registry Postgres
+      - SERVICE_VERSION=15-alpine
+      - UPSTREAM_URL=postgres://registry-db:5432/service_registry
+      - SERVICE_TAGS=sql,postgres
+    expose:
+      - "8209"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  wrapper-langflow:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service-wrapper
+      args:
+        SERVICE_PATH: src/serviceAutomation/serviceLangflow
+        SERVICE_BIN: service-langflow
+        SERVICE_PORT: 8301
+    environment:
+      - RUST_LOG=info
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      - SERVICE_PORT=8301
+    expose:
+      - "8301"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  wrapper-shimmy:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service-wrapper
+      args:
+        SERVICE_PATH: src/serviceIntelligence/serviceShimmy
+        SERVICE_BIN: service-shimmy
+        SERVICE_PORT: 8401
+    environment:
+      - RUST_LOG=info
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      - SERVICE_PORT=8401
+    expose:
+      - "8401"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  wrapper-hyperbooklm:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service-wrapper
+      args:
+        SERVICE_PATH: src/serviceIntelligence/serviceHyperbookLM
+        SERVICE_BIN: service-hyperbooklm
+        SERVICE_PORT: 8402
+    environment:
+      - RUST_LOG=info
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      - SERVICE_PORT=8402
+    expose:
+      - "8402"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  wrapper-n8n-vendor:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service-wrapper
+      args:
+        SERVICE_PATH: src/serviceIntelligence/serviceN8nVendor
+        SERVICE_BIN: service-n8n-vendor
+        SERVICE_PORT: 8403
+    environment:
+      - RUST_LOG=info
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      - SERVICE_PORT=8403
+    expose:
+      - "8403"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  wrapper-memgraph-toolkit:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service-wrapper
+      args:
+        SERVICE_PATH: src/serviceIntelligence/serviceMemgraphToolkit
+        SERVICE_BIN: service-memgraph-ai-toolkit
+        SERVICE_PORT: 8404
+    environment:
+      - RUST_LOG=info
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      - SERVICE_PORT=8404
+    expose:
+      - "8404"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  wrapper-opencanvas:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service-wrapper
+      args:
+        SERVICE_PATH: src/serviceUi/serviceOpenCanvas
+        SERVICE_BIN: service-opencanvas
+        SERVICE_PORT: 8501
+    environment:
+      - RUST_LOG=info
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      - SERVICE_PORT=8501
+    expose:
+      - "8501"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  wrapper-models-huggingface:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service-wrapper
+      args:
+        SERVICE_PATH: src/serviceModels/serviceHuggingFace
+        SERVICE_BIN: service-models-huggingface
+        SERVICE_PORT: 8601
+    environment:
+      - RUST_LOG=info
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      - SERVICE_PORT=8601
+    expose:
+      - "8601"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  wrapper-models-repos:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service-wrapper
+      args:
+        SERVICE_PATH: src/serviceModels/serviceModelRepos
+        SERVICE_BIN: service-models-folderrepos
+        SERVICE_PORT: 8602
+    environment:
+      - RUST_LOG=info
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      - SERVICE_PORT=8602
+    expose:
+      - "8602"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+
+  wrapper-toolorchestra:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service-wrapper
+      args:
+        SERVICE_PATH: src/serviceModels/serviceToolOrchestra
+        SERVICE_BIN: service-toolorchestra
+        SERVICE_PORT: 8603
+    environment:
+      - RUST_LOG=info
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      - SERVICE_PORT=8603
+    expose:
+      - "8603"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    networks:
+      - nucleus_internal
+    restart: unless-stopped

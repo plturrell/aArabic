@@ -1,0 +1,212 @@
+{
+  "name": "Simple Chat Flow (Lean4 Generated)",
+  "description": "Basic chat input to output flow generated from Lean4 specifications",
+  "data": {
+    "nodes": [
+      {
+        "id": "ChatInput-93733395",
+        "type": "ChatInput",
+        "data": {
+          "type": "ChatInput",
+          "node": {
+            "template": {
+              "_type": "Component",
+              "code": {
+                "type": "code",
+                "required": true,
+                "placeholder": "",
+                "list": false,
+                "show": true,
+                "multiline": true,
+                "value": "from langflow.custom import Component\nfrom langflow.io import *\nfrom langflow.schema import Data\n\nclass ChatInput(Component):\n    display_name = 'Chat Input'\n    description = 'Get chat inputs from the Playground.'\n    icon = 'MessagesSquare'\n\n    inputs = [\n        MessageTextInput(name='input_value', display_name='Input Text', info='Message to be passed as input.'),\n        BoolInput(name='should_store_message', display_name='Store Messages', value=True),\n        DropdownInput(name='sender', display_name='Sender Type', options=['Machine', 'User']),\n    ]\n\n    outputs = [\n        Output(name='message', display_name='Message', method='build'),\n    ]\n\n    def build(self):\n        # Component implementation\n        return self.build_output()\n",
+                "fileTypes": [],
+                "file_path": "",
+                "password": false,
+                "name": "code",
+                "advanced": true,
+                "dynamic": true,
+                "info": "",
+                "load_from_db": false,
+                "title_case": false
+              },
+              "input_value": {
+                "type": "str",
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "multiline": true,
+                "value": "",
+                "password": false,
+                "name": "input_value",
+                "display_name": "Input Text",
+                "advanced": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "Message to be passed as input.",
+                "load_from_db": false,
+                "title_case": false
+              }
+            },
+            "description": "Get chat inputs from the Playground.",
+            "base_classes": [
+              "Message"
+            ],
+            "display_name": "Chat Input",
+            "documentation": "https://docs.langflow.org/chat-input-and-output",
+            "custom_fields": {},
+            "output_types": [],
+            "pinned": false,
+            "conditional_paths": [],
+            "frozen": false,
+            "outputs": [
+              {
+                "types": [
+                  "Message"
+                ],
+                "selected": "Message",
+                "name": "message",
+                "display_name": "Message",
+                "method": "message_response",
+                "value": "__UNDEFINED__",
+                "cache": true
+              }
+            ],
+            "field_order": [
+              "input_value",
+              "should_store_message",
+              "sender"
+            ],
+            "beta": false,
+            "edited": false,
+            "lf_version": "1.4.3"
+          },
+          "id": "ChatInput-93733395",
+          "value": null,
+          "position": {
+            "x": 100,
+            "y": 100
+          }
+        }
+      },
+      {
+        "id": "ChatOutput-eb09a463",
+        "type": "ChatOutput",
+        "data": {
+          "type": "ChatOutput",
+          "node": {
+            "template": {
+              "_type": "Component",
+              "code": {
+                "type": "code",
+                "required": true,
+                "value": "from langflow.custom import Component\nfrom langflow.io import MessageInput, Output\nfrom langflow.schema import Message\n\nclass ChatOutput(Component):\n    display_name = 'Chat Output'\n    description = 'Display message in chat.'\n    icon = 'MessagesSquare'\n\n    inputs = [\n        MessageInput(name='input_value', display_name='Text'),\n    ]\n    outputs = [\n        Output(name='message', display_name='Message'),\n    ]\n\n    def build(self, input_value: Message) -> Message:\n        self.status = input_value\n        return input_value\n",
+                "show": true,
+                "multiline": true,
+                "name": "code",
+                "advanced": true,
+                "dynamic": true
+              },
+              "input_value": {
+                "type": "str",
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "multiline": true,
+                "value": "",
+                "password": false,
+                "name": "input_value",
+                "display_name": "Text",
+                "advanced": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "Message to be displayed.",
+                "load_from_db": false
+              }
+            },
+            "description": "Display message in chat.",
+            "base_classes": [
+              "Message"
+            ],
+            "display_name": "Chat Output",
+            "documentation": "https://docs.langflow.org/chat-input-and-output",
+            "custom_fields": {},
+            "output_types": [],
+            "pinned": false,
+            "conditional_paths": [],
+            "frozen": false,
+            "outputs": [
+              {
+                "types": [
+                  "Message"
+                ],
+                "selected": "Message",
+                "name": "message",
+                "display_name": "Message",
+                "method": "build",
+                "value": "__UNDEFINED__",
+                "cache": true
+              }
+            ],
+            "field_order": [
+              "input_value"
+            ],
+            "beta": false,
+            "edited": false,
+            "lf_version": "1.4.3"
+          },
+          "id": "ChatOutput-eb09a463",
+          "value": null,
+          "position": {
+            "x": 400,
+            "y": 100
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge-365fead5",
+        "source": "ChatInput-93733395",
+        "target": "ChatOutput-eb09a463",
+        "sourceHandle": "{\"dataType\": \"Message\", \"id\": \"ChatInput-93733395\", \"name\": \"message\", \"output_types\": [\"Message\"]}",
+        "targetHandle": "{\"fieldName\": \"input_value\", \"id\": \"ChatOutput-eb09a463\", \"inputTypes\": [\"Message\"], \"type\": \"str\"}",
+        "data": {
+          "sourceHandle": {
+            "dataType": "Message",
+            "id": "ChatInput-93733395",
+            "name": "message",
+            "output_types": [
+              "Message"
+            ]
+          },
+          "targetHandle": {
+            "fieldName": "input_value",
+            "id": "ChatOutput-eb09a463",
+            "inputTypes": [
+              "Message"
+            ],
+            "type": "str"
+          }
+        },
+        "style": {},
+        "className": "stroke-gray-900 stroke-connection",
+        "animated": false,
+        "selected": false
+      }
+    ],
+    "viewport": {
+      "x": 0,
+      "y": 0,
+      "zoom": 1
+    }
+  },
+  "is_component": false,
+  "updated_at": "2026-01-10T00:00:00.000Z",
+  "folder": null,
+  "id": "b7165c6c-871d-45fd-8b04-c8fadda3721f",
+  "user_id": "6a8de5fb-a315-4304-9eca-5b8f09dae40c"
+}
