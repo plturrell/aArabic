@@ -1,7 +1,7 @@
-from memory import UnsafePointer, alloc, AddressSpace
-
-fn ret_ptr() -> UnsafePointer[UInt8, AddressSpace.GENERIC]:
-    return alloc[UInt8](10)
+from memory import UnsafePointer
+# from sys import Origin # Guess
+import sys
 
 fn main():
-    print("Works")
+    # print(sys.Origin) # ?
+    pass
