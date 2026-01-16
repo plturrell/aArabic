@@ -7,6 +7,57 @@
 # =============================================================================
 
 services:
+  docling:
+    build:
+      context: ./vendor/layerCore/docling
+      dockerfile: Dockerfile
+    container_name: ai_nucleus_docling
+    command: ["uvx", "--from=docling-mcp", "docling-mcp-server", "--http", "--host", "0.0.0.0", "--port", "8060"]
+    expose:
+      - "8060"
+    environment:
+      - DOCLING_ARTIFACTS_PATH=/root/.cache/docling/models
+      - DOCLING_ENABLE_REMOTE_SERVICES=false
+      - DOCLING_OMP_THREADS=4
+    volumes:
+      - ./vendor/layerCore/docling:/app/docling:ro
+      - docling_models:/root/.cache/docling/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8060/mcp/health"]
+      interval: 45s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+    labels:
+      - "ai.nucleus.service=docling"
+      - "ai.nucleus.layer=core"
+
+  langextract:
+    build:
+      context: ./vendor/layerCore/langextract
+      dockerfile: Dockerfile
+    container_name: ai_nucleus_langextract
+    expose:
+      - "8070"
+    command: ["python", "-m", "langextract.server", "--host", "0.0.0.0", "--port", "8070"]
+    environment:
+      - LANGEXTRACT_LOG_LEVEL=info
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8070/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    networks:
+      - nucleus_internal
+    restart: unless-stopped
+    labels:
+      - "ai.nucleus.service=langextract"
+      - "ai.nucleus.layer=core"
+
   # ===========================================================================
   # GATEWAY - Single Entry Point (ONLY EXPOSED PORT)
   # ===========================================================================
@@ -691,3 +742,4 @@ volumes:
   langflow_data:
   apisix_logs:
   n8n_data:
+  docling_models:

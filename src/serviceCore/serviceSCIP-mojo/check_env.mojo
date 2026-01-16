@@ -1,7 +1,9 @@
-from memory import UnsafePointer
-# from sys import Origin # Guess
-import sys
+from memory import UnsafePointer, alloc
+
+fn takes_ptr(p: UnsafePointer[UInt8]):
+    p.store(0, 1)
 
 fn main():
-    # print(sys.Origin) # ?
-    pass
+    var ptr = alloc[UInt8](10)
+    takes_ptr(ptr)
+    print("Stored")

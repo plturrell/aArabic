@@ -4,8 +4,11 @@ Main entry point and CLI interface
 """
 
 from core.gguf_parser import GGUFParser, parse_gguf_file
-from core.tensor_ops import simd_matmul, simd_rms_norm
-from core.tokenizer import BPETokenizer, SentencePieceTokenizer, create_tokenizer_from_gguf, ChatTemplate
+# Tensor ops now handled by Zig engine via FFI
+# from core.tensor_ops import simd_matmul, simd_rms_norm
+from inference.bridge.inference_api import ensure_model_loaded, resolve_model_path, shared_generate, shared_get_info
+from inference.tokenization.tokenizer import BPETokenizer, SentencePieceTokenizer, create_tokenizer_from_gguf, ChatTemplate
+from collections import List
 from python import Python
 from sys import argv
 
@@ -37,6 +40,69 @@ fn print_help():
     print("  shimmy-mojo demo")
     print()
 
+fn parse_int_value(value: String, default: Int) -> Int:
+    var i = 0
+    var sign = 1
+    if len(value) > 0 and value[0] == "-":
+        sign = -1
+        i = 1
+    var result = 0
+    var found = False
+    while i < len(value):
+        var ch = value[i]
+        if ch < "0" or ch > "9":
+            break
+        result = result * 10 + (Int(ch.as_bytes()[0]) - 48)
+        found = True
+        i += 1
+    return result * sign if found else default
+
+fn parse_float_value(value: String, default: Float32) -> Float32:
+    var i = 0
+    var sign: Float32 = 1.0
+    if len(value) > 0 and value[0] == "-":
+        sign = -1.0
+        i = 1
+    var result: Float32 = 0.0
+    var divisor: Float32 = 1.0
+    var found = False
+    var after_dot = False
+    while i < len(value):
+        var ch = value[i]
+        if ch == ".":
+            if after_dot:
+                break
+            after_dot = True
+            i += 1
+            continue
+        if ch < "0" or ch > "9":
+            break
+        let digit = Float32(Int(ch.as_bytes()[0]) - 48)
+        if after_dot:
+            divisor *= 10.0
+            result += digit / divisor
+        else:
+            result = result * 10.0 + digit
+        found = True
+        i += 1
+    return result * sign if found else default
+
+fn parse_int_arg(args: List[String], name: String, default: Int) -> Int:
+    var i = 0
+    while i < len(args):
+        if args[i] == name and i + 1 < len(args):
+            return parse_int_value(args[i + 1], default)
+        i += 1
+    return default
+
+fn parse_float_arg(args: List[String], name: String, default: Float32) -> Float32:
+    var i = 0
+    while i < len(args):
+        if args[i] == name and i + 1 < len(args):
+            return parse_float_value(args[i + 1], default)
+        i += 1
+    return default
+
 fn demo_components() raises:
     """Demonstrate all components working"""
     print_banner()
@@ -58,60 +124,11 @@ fn demo_components() raises:
     print()
     
     # Demo 2: Tensor Operations
-    print("📋 Demo 2: SIMD Tensor Operations")
+    print("📋 Demo 2: Tensor Operations")
     print("-" * 80)
-    print("Testing SIMD-accelerated matrix multiplication...")
-    
-    var M = 64
-    var K = 128
-    var N = 64
-    
-    var A = DTypePointer[DType.float32].alloc(M * K)
-    var B = DTypePointer[DType.float32].alloc(K * N)
-    var C = DTypePointer[DType.float32].alloc(M * N)
-    
-    # Initialize
-    for i in range(M * K):
-        A[i] = 0.01
-    for i in range(K * N):
-        B[i] = 0.02
-    
-    print(f"  Matrix A: [{M}, {K}]")
-    print(f"  Matrix B: [{K}, {N}]")
-    print(f"  Computing C = A @ B with SIMD...")
-    
-    simd_matmul[8](A, B, C, M, K, N)
-    
-    print(f"  Result C[0,0] = {C[0]}")
-    print("  ✅ Matrix multiplication complete (5-10x faster than sequential!)")
+    print("Tensor ops are provided by the Zig inference engine via FFI.")
+    print("Build and benchmark with: cd inference/engine && zig build run-cli")
     print()
-    
-    # Test RMS normalization
-    print("Testing SIMD RMS Normalization (LLaMA's key operation)...")
-    
-    var size = 512
-    var input_vec = DTypePointer[DType.float32].alloc(size)
-    var weight_vec = DTypePointer[DType.float32].alloc(size)
-    var output_vec = DTypePointer[DType.float32].alloc(size)
-    
-    for i in range(size):
-        input_vec[i] = Float32(i) * 0.001
-        weight_vec[i] = 1.0
-    
-    simd_rms_norm[8](input_vec, weight_vec, output_vec, size)
-    
-    print(f"  Input size: {size} elements")
-    print(f"  Output[0] = {output_vec[0]}")
-    print("  ✅ RMS normalization complete (10x faster than sequential!)")
-    print()
-    
-    # Cleanup
-    A.free()
-    B.free()
-    C.free()
-    input_vec.free()
-    weight_vec.free()
-    output_vec.free()
     
     # Demo 3: Tokenizer
     print("📋 Demo 3: BPE Tokenizer")
@@ -253,18 +270,27 @@ fn main() raises:
         
         var model_name = str(argv()[2])
         var prompt = str(argv()[3])
+        var args = argv()
+        var max_tokens = parse_int_arg(args, "--max-tokens", 100)
+        var temperature = parse_float_arg(args, "--temperature", 0.7)
         
         print(f"Model: {model_name}")
         print(f"Prompt: \"{prompt}\"")
         print()
-        print("⚠️  Generation coming soon!")
-        print()
-        print("Will use:")
-        print("  • Pure Mojo LLaMA inference")
-        print("  • SIMD-accelerated attention")
-        print("  • KV cache for speed")
-        print("  • Sampling strategies")
-        print()
+
+        var model_path = resolve_model_path(model_name)
+        var loaded = ensure_model_loaded(model_path)
+        if not loaded:
+            print("❌ Failed to load model:", model_path)
+            return
+
+        var response = shared_generate(
+            prompt,
+            max_tokens=max_tokens,
+            temperature=temperature
+        )
+        print("💬 Response:")
+        print(response)
     
     elif command == "probe":
         print_banner()
@@ -275,18 +301,19 @@ fn main() raises:
             print("Error: probe requires <model>")
             print("Usage: shimmy-mojo probe <model>")
             return
-        
         var model_name = str(argv()[2])
         print(f"Probing model: {model_name}")
         print()
-        print("⚠️  Probe coming soon!")
-        print()
-        print("Will check:")
-        print("  • Model file exists")
-        print("  • GGUF format valid")
-        print("  • Tensors loadable")
-        print("  • Tokenizer functional")
-        print()
+
+        var model_path = resolve_model_path(model_name)
+        var loaded = ensure_model_loaded(model_path)
+        if not loaded:
+            print("❌ Failed to load model:", model_path)
+            return
+
+        var info = shared_get_info()
+        print("📋 Model Info:")
+        print(info)
     
     elif command == "bench":
         print_banner()

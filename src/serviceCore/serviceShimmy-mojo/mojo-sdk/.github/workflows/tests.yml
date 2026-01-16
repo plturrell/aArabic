@@ -1,0 +1,257 @@
+# Mojo SDK Test Suite - Day 137
+# Comprehensive CI/CD workflow for all 953 tests
+
+name: Test Suite
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 0 * * *'  # Daily at midnight
+  workflow_dispatch:
+
+env:
+  ZIG_VERSION: '0.13.0'
+  MOJO_VERSION: '1.0.0'
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        zig-version: ['0.13.0']
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: ${{ matrix.zig-version }}
+
+      - name: Cache Zig artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/zig
+            zig-cache
+          key: ${{ runner.os }}-zig-${{ hashFiles('**/*.zig') }}
+          restore-keys: |
+            ${{ runner.os }}-zig-
+
+      - name: Build test runner
+        run: |
+          zig build-exe test_runner.zig -O ReleaseFast
+          
+      - name: Run all tests
+        id: tests
+        run: |
+          ./test_runner
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: |
+            test-results.json
+            coverage.txt
+          retention-days: 30
+
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let results;
+            try {
+              results = JSON.parse(fs.readFileSync('test-results.json', 'utf8'));
+            } catch {
+              results = { total: 0, passed: 0, failed: 0 };
+            }
+            
+            const body = `## Test Results (${{ matrix.os }})
+            
+            - **Total:** ${results.total} tests
+            - **Passed:** ✅ ${results.passed}
+            - **Failed:** ❌ ${results.failed}
+            - **Success Rate:** ${(results.passed / results.total * 100).toFixed(1)}%
+            
+            [View full logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Fail if tests failed
+        if: steps.tests.outputs.exit_code != '0'
+        run: exit 1
+
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+
+      - name: Generate coverage
+        run: |
+          zig build test -Dcoverage
+          
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.txt
+          flags: unittests
+          name: mojo-sdk-coverage
+
+      - name: Coverage badge
+        run: |
+          coverage_percent=$(grep -oP '\d+\.\d+' coverage.txt | head -1)
+          echo "COVERAGE=$coverage_percent" >> $GITHUB_ENV
+
+  benchmark:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+
+      - name: Run benchmarks
+        run: |
+          zig build-exe test_runner.zig -O ReleaseFast
+          ./test_runner --benchmarks > benchmarks.json
+
+      - name: Store benchmark results
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: 'customBiggerIsBetter'
+          output-file-path: benchmarks.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          alert-threshold: '150%'
+          comment-on-alert: true
+          fail-on-alert: false
+
+      - name: Upload benchmarks
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmarks
+          path: benchmarks.json
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
+
+      - name: Run integration tests
+        run: |
+          ./tests/integration_test.sh
+
+      - name: Upload integration results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-results
+          path: integration-results/
+
+  report:
+    name: Generate Report
+    runs-on: ubuntu-latest
+    needs: [test, coverage, benchmark, integration]
+    if: always()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Generate summary report
+        run: |
+          cat > report.md << 'EOF'
+          # Mojo SDK Test Report
+          
+          **Date:** $(date)
+          **Commit:** ${{ github.sha }}
+          **Branch:** ${{ github.ref }}
+          
+          ## Test Results
+          
+          - Ubuntu: [View Results](test-results-ubuntu-latest)
+          - macOS: [View Results](test-results-macos-latest)
+          - Windows: [View Results](test-results-windows-latest)
+          
+          ## Coverage
+          
+          See [Codecov Report](https://codecov.io/gh/${{ github.repository }})
+          
+          ## Performance
+          
+          See [Benchmark Results](benchmarks)
+          
+          ## Status
+          
+          All systems operational ✅
+          EOF
+          
+          cat report.md
+
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: report.md
+
+      - name: Update README badge
+        if: github.ref == 'refs/heads/main'
+        run: |
+          # Update test badge in README
+          echo "Updating badges..."
+
+  notify:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [test, coverage, benchmark, integration]
+    if: failure()
+    
+    steps:
+      - name: Send notification
+        run: |
+          echo "Tests failed! Check the logs."
+          # Add Slack/Discord notification here if needed

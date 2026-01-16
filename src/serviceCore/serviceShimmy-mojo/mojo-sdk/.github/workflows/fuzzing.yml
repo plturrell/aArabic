@@ -1,0 +1,315 @@
+# Continuous Fuzzing Workflow - Day 112
+# Runs fuzzing on every commit and nightly
+
+name: Continuous Fuzzing
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run nightly at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Fuzz target to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - parser
+          - type-checker
+          - borrow-checker
+          - ffi-bridge
+          - ir-builder
+          - optimizer
+      iterations:
+        description: 'Number of iterations'
+        required: false
+        default: '10000'
+
+env:
+  ZIG_VERSION: '0.13.0'
+  CORPUS_BUCKET: 'mojo-fuzzing-corpus'
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      targets: ${{ steps.set-targets.outputs.targets }}
+    steps:
+      - name: Set fuzz targets
+        id: set-targets
+        run: |
+          if [ "${{ github.event.inputs.target }}" == "all" ] || [ -z "${{ github.event.inputs.target }}" ]; then
+            echo 'targets=["parser","type-checker","borrow-checker","ffi-bridge","ir-builder","optimizer"]' >> $GITHUB_OUTPUT
+          else
+            echo 'targets=["${{ github.event.inputs.target }}"]' >> $GITHUB_OUTPUT
+          fi
+
+  fuzz:
+    needs: setup
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        target: ${{ fromJson(needs.setup.outputs.targets) }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+
+      - name: Cache Zig artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/zig
+            zig-cache
+          key: ${{ runner.os }}-zig-${{ hashFiles('**/build.zig') }}
+          restore-keys: |
+            ${{ runner.os }}-zig-
+
+      - name: Build fuzzer
+        run: |
+          cd tools/fuzz
+          zig build-exe run_fuzzer.zig fuzzer.zig -O ReleaseFast
+
+      - name: Download corpus
+        id: download-corpus
+        continue-on-error: true
+        run: |
+          mkdir -p corpus
+          # Download from artifact or S3 if available
+          echo "Downloading corpus for ${{ matrix.target }}..."
+          # TODO: Implement corpus download from storage
+
+      - name: Seed corpus if not exists
+        if: steps.download-corpus.outcome == 'failure'
+        run: |
+          ./run_fuzzer corpus seed
+
+      - name: Run fuzzer
+        id: fuzz
+        continue-on-error: true
+        run: |
+          ITERATIONS=${{ github.event.inputs.iterations || '10000' }}
+          if [ "${{ github.event_name }}" == "schedule" ]; then
+            ITERATIONS=100000  # Longer runs for nightly
+          fi
+          
+          echo "Running fuzzer for ${{ matrix.target }} with $ITERATIONS iterations..."
+          ./run_fuzzer run ${{ matrix.target }} --iterations $ITERATIONS --corpus corpus --crashes crashes
+          
+          # Capture exit code
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+
+      - name: Check for crashes
+        if: always()
+        id: check-crashes
+        run: |
+          if [ -d crashes ] && [ "$(ls -A crashes)" ]; then
+            echo "crashes_found=true" >> $GITHUB_OUTPUT
+            echo "crash_count=$(ls -1 crashes | wc -l)" >> $GITHUB_OUTPUT
+          else
+            echo "crashes_found=false" >> $GITHUB_OUTPUT
+            echo "crash_count=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Analyze crashes
+        if: steps.check-crashes.outputs.crashes_found == 'true'
+        run: |
+          echo "Found ${{ steps.check-crashes.outputs.crash_count }} crashes!"
+          ./run_fuzzer analyze crashes
+
+      - name: Upload crashes
+        if: steps.check-crashes.outputs.crashes_found == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: crashes-${{ matrix.os }}-${{ matrix.target }}-${{ github.run_number }}
+          path: crashes/
+          retention-days: 30
+
+      - name: Upload corpus
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: corpus-${{ matrix.os }}-${{ matrix.target }}-${{ github.run_number }}
+          path: corpus/
+          retention-days: 7
+
+      - name: Get coverage
+        if: always()
+        id: coverage
+        run: |
+          ./run_fuzzer coverage > coverage.txt
+          cat coverage.txt
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.os }}-${{ matrix.target }}-${{ github.run_number }}
+          path: coverage.txt
+
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const crashCount = '${{ steps.check-crashes.outputs.crash_count }}';
+            const target = '${{ matrix.target }}';
+            const os = '${{ matrix.os }}';
+            
+            let body = `## Fuzzing Results: ${target} (${os})\n\n`;
+            
+            if (crashCount > 0) {
+              body += `### ⚠️ Found ${crashCount} crashes!\n\n`;
+              body += `Check the artifacts for details.\n\n`;
+            } else {
+              body += `### ✅ No crashes found!\n\n`;
+            }
+            
+            body += `See [full logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.\n`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Fail if crashes found
+        if: steps.check-crashes.outputs.crashes_found == 'true'
+        run: |
+          echo "::error::Found ${{ steps.check-crashes.outputs.crash_count }} crashes in ${{ matrix.target }}!"
+          exit 1
+
+  report:
+    needs: fuzz
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Generate summary report
+        run: |
+          echo "# Fuzzing Summary Report" > summary.md
+          echo "" >> summary.md
+          echo "**Date:** $(date)" >> summary.md
+          echo "**Commit:** ${{ github.sha }}" >> summary.md
+          echo "" >> summary.md
+          
+          # Count crashes across all targets
+          total_crashes=0
+          if [ -d crashes-* ]; then
+            for dir in crashes-*; do
+              if [ -d "$dir" ]; then
+                count=$(ls -1 "$dir" 2>/dev/null | wc -l)
+                total_crashes=$((total_crashes + count))
+                echo "- $dir: $count crashes" >> summary.md
+              fi
+            done
+          fi
+          
+          echo "" >> summary.md
+          echo "**Total Crashes:** $total_crashes" >> summary.md
+          
+          if [ $total_crashes -gt 0 ]; then
+            echo "" >> summary.md
+            echo "⚠️ **Action Required:** Fix crashes before merging!" >> summary.md
+          else
+            echo "" >> summary.md
+            echo "✅ **All targets passed without crashes!**" >> summary.md
+          fi
+          
+          cat summary.md
+
+      - name: Upload summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzzing-summary-${{ github.run_number }}
+          path: summary.md
+
+      - name: Update status check
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('summary.md', 'utf8');
+            
+            github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.payload.pull_request.head.sha,
+              state: summary.includes('Total Crashes: 0') ? 'success' : 'failure',
+              context: 'Fuzzing',
+              description: summary.includes('Total Crashes: 0') ? 
+                'All fuzz targets passed' : 
+                'Crashes detected',
+              target_url: `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`
+            });
+
+  # Nightly corpus sync (only on schedule)
+  sync-corpus:
+    if: github.event_name == 'schedule'
+    needs: fuzz
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download corpus artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: corpus-*
+
+      - name: Merge corpus
+        run: |
+          mkdir -p merged-corpus
+          for dir in corpus-*; do
+            if [ -d "$dir" ]; then
+              cp -n "$dir"/* merged-corpus/ 2>/dev/null || true
+            fi
+          done
+          
+          echo "Merged corpus size: $(ls -1 merged-corpus | wc -l) files"
+
+      - name: Minimize corpus
+        run: |
+          # TODO: Implement corpus minimization
+          echo "Minimizing corpus..."
+
+      - name: Upload to S3 (or artifact storage)
+        run: |
+          # TODO: Upload merged corpus to long-term storage
+          echo "Uploading corpus to storage..."
+
+  # Create issue for crashes (nightly only)
+  create-issue:
+    if: github.event_name == 'schedule' && failure()
+    needs: fuzz
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Create issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🐛 Fuzzing found crashes on ${new Date().toISOString().split('T')[0]}`,
+              body: `Nightly fuzzing run found crashes.\n\nSee [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.\n\nDownload crash artifacts to reproduce.`,
+              labels: ['bug', 'fuzzing', 'needs-triage']
+            });

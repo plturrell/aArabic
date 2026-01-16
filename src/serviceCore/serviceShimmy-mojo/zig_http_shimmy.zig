@@ -44,6 +44,20 @@ export fn zig_shimmy_serve(config: *const ServerConfig) callconv(.C) c_int {
     return 0;
 }
 
+/// Convenience entry point for Mojo callers (avoids struct construction).
+export fn zig_shimmy_serve_simple(
+    port: u16,
+    host: [*:0]const u8,
+    callback: RequestCallback,
+) callconv(.C) c_int {
+    const config = ServerConfig{
+        .port = port,
+        .host = host,
+        .callback = callback,
+    };
+    return zig_shimmy_serve(&config);
+}
+
 fn startServer(config: *const ServerConfig) !void {
     // Parse address
     const host = mem.span(config.host);

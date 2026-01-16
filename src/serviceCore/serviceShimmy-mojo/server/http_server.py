@@ -14,6 +14,7 @@ import time
 import json
 import asyncio
 from datetime import datetime
+from mojo_bridge import get_bridge
 
 # ============================================================================
 # Configuration
@@ -120,6 +121,7 @@ class ModelManager:
         return self.available_models
 
 model_manager = ModelManager()
+bridge = get_bridge()
 
 # ============================================================================
 # Helper Functions
@@ -154,6 +156,21 @@ async def mock_generate(prompt: str, config: Dict[str, Any]) -> str:
     # Mock response
     return f"This is a mock response to: {prompt[:50]}..."
 
+async def generate_text(model: str, prompt: str, config: Dict[str, Any]) -> str:
+    """Generate text using Mojo if available, else fallback to mock."""
+    if bridge.mojo_available:
+        return await asyncio.to_thread(
+            bridge.generate,
+            model,
+            prompt,
+            config["temperature"],
+            config["top_k"],
+            config["top_p"],
+            config["max_tokens"],
+            config.get("stop"),
+        )
+    return await mock_generate(prompt, config)
+
 async def mock_generate_stream(prompt: str, config: Dict[str, Any]) -> AsyncIterator[str]:
     """Mock streaming generation"""
     response = f"This is a mock streaming response to: {prompt[:50]}..."
@@ -162,6 +179,22 @@ async def mock_generate_stream(prompt: str, config: Dict[str, Any]) -> AsyncIter
     for word in words:
         await asyncio.sleep(0.05)
         yield word + " "
+
+async def generate_stream(model: str, prompt: str, config: Dict[str, Any]) -> AsyncIterator[str]:
+    """Stream generation using Mojo if available, else fallback to mock."""
+    if bridge.mojo_available:
+        async for token in bridge.generate_stream(
+            model,
+            prompt,
+            config["temperature"],
+            config["top_k"],
+            config["top_p"],
+            config["max_tokens"],
+        ):
+            yield token + " "
+        return
+    async for token in mock_generate_stream(prompt, config):
+        yield token
 
 # ============================================================================
 # API Endpoints
@@ -235,7 +268,7 @@ async def chat_completions(request: ChatCompletionRequest):
                 yield f"data: {json.dumps({'id': completion_id, 'object': 'chat.completion.chunk', 'created': int(time.time()), 'model': request.model, 'choices': [{'index': 0, 'delta': {'role': 'assistant', 'content': ''}, 'finish_reason': None}]})}\n\n"
                 
                 # Stream tokens
-                async for token in mock_generate_stream(prompt, config):
+                async for token in generate_stream(request.model, prompt, config):
                     chunk = {
                         "id": completion_id,
                         "object": "chat.completion.chunk",
@@ -271,7 +304,7 @@ async def chat_completions(request: ChatCompletionRequest):
         
         # Non-streaming response
         start_time = time.time()
-        response_text = await mock_generate(prompt, config)
+        response_text = await generate_text(request.model, prompt, config)
         duration = time.time() - start_time
         
         # Calculate tokens (mock)
@@ -322,7 +355,7 @@ async def completions(request: CompletionRequest):
             async def generate_stream():
                 completion_id = generate_id("cmpl")
                 
-                async for token in mock_generate_stream(request.prompt, config):
+                async for token in generate_stream(request.model, request.prompt, config):
                     chunk = {
                         "id": completion_id,
                         "object": "text_completion",
@@ -357,7 +390,7 @@ async def completions(request: CompletionRequest):
             )
         
         # Non-streaming
-        response_text = await mock_generate(request.prompt, config)
+        response_text = await generate_text(request.model, request.prompt, config)
         
         return {
             "id": generate_id("cmpl"),

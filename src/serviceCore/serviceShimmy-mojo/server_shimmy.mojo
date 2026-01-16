@@ -1,7 +1,13 @@
 """
+⚠️  DEPRECATED - This file has been moved to services/llm/handlers.mojo
+This copy is kept for backward compatibility only.
+Please use services/llm/handlers.mojo for new development.
+
 Shimmy-Mojo HTTP Server
 Zero Python dependencies - Pure Zig + Mojo architecture
 OpenAI-compatible API with Pure Mojo LLM inference
+
+Canonical location: services/llm/handlers.mojo (since Phase 8)
 """
 
 from sys.ffi import OwnedDLHandle, DLHandle, external_call
@@ -10,10 +16,12 @@ from python import Python
 from collections import List
 
 # Import our Mojo inference components
-from core.llama_inference import LLaMAModel, create_phi3_mini_config, create_llama32_1b_config, create_llama32_3b_config
-from core.tokenizer import BPETokenizer
-from core.sampling import SamplingConfig
-from core.generation import TextGenerator, GenerationConfig
+# LLaMA inference now handled by Zig engine via FFI
+# from core.llama_inference import LLaMAModel, create_phi3_mini_config, create_llama32_1b_config, create_llama32_3b_config
+from inference.bridge.inference_api import InferenceEngine
+from inference.tokenization.tokenizer import BPETokenizer
+from inference.generation.sampling import SamplingConfig
+from inference.generation.generation import TextGenerator, GenerationConfig
 
 # ============================================================================
 # Helper Functions for C String Handling

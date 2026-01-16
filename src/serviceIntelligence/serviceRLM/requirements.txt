@@ -1,7 +1,0 @@
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-pydantic==2.5.0
-requests==2.31.0
-rlm @ git+https://github.com/microsoft/recursion-language-model.git
-qdrant-client==1.7.0
-neo4j==5.14.1

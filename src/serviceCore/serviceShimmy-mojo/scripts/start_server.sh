@@ -3,48 +3,42 @@
 
 set -e
 
-cd "$(dirname "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_DIR"
 
 echo "================================================================================"
 echo "🚀 Starting Shimmy-Mojo HTTP Server"
 echo "================================================================================"
 echo ""
 
-# Check for Python
-if ! command -v python3 &> /dev/null; then
-    echo "❌ Python 3 is required but not installed"
-    exit 1
-fi
-
 # Check for Mojo
 if ! command -v mojo &> /dev/null; then
-    echo "⚠️  Warning: Mojo is not installed"
-    echo "   Server will run in mock mode"
-fi
-
-# Install Python dependencies
-echo "📦 Checking Python dependencies..."
-pip3 install -q fastapi uvicorn pydantic 2>/dev/null || echo "   Dependencies already installed"
-echo ""
-
-# Check if server directory exists
-if [ ! -d "server" ]; then
-    echo "❌ Server directory not found"
+    echo "❌ Mojo is required but not installed"
     exit 1
 fi
 
-# Make sure Python files are executable
-chmod +x server/http_server.py
-chmod +x server/mojo_bridge.py
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    LIB_EXT="dylib"
+else
+    LIB_EXT="so"
+fi
+
+LIB_PATH="./libzig_http_shimmy.$LIB_EXT"
+if [ ! -f "$LIB_PATH" ]; then
+    echo "❌ Zig HTTP library not found: $LIB_PATH"
+    echo "   Build it with: ./scripts/build_zig.sh"
+    exit 1
+fi
 
 echo "🔧 Configuration:"
 echo "   Host: 0.0.0.0"
 echo "   Port: 11434"
-echo "   Models dir: ./models"
+echo "   Models dir: ./models (default)"
 echo ""
 
 echo "🌐 Starting server..."
 echo ""
 
-# Start the server
-python3 server/http_server.py
+# Start the Zig+Mojo server
+mojo run services/llm/handlers.mojo

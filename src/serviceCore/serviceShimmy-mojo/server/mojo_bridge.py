@@ -61,7 +61,14 @@ class MojoBridge:
         
         # Resolve model path
         if model_path is None:
-            model_path = self.models_dir / f"{model_name}.gguf"
+            gguf_path = self.models_dir / f"{model_name}.gguf"
+            dir_path = self.models_dir / model_name
+            if gguf_path.exists():
+                model_path = gguf_path
+            elif dir_path.exists():
+                model_path = dir_path
+            else:
+                model_path = model_name
         
         print(f"📦 Loading model via Mojo: {model_name}")
         print(f"   Path: {model_path}")

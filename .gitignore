@@ -20,17 +20,38 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
-venv/
-env/
-ENV/
-.venv
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+*.mo
+*.pot
 
-# Environment
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Environments
 .env
-.env.local
-.env.*.local
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
 
-# IDE
+# IDEs
 .vscode/
 .idea/
 *.swp
@@ -38,95 +59,61 @@ ENV/
 *~
 .DS_Store
 
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-.hypothesis/
-*.cover
+# Rust build artifacts
+**/target/
+Cargo.lock
+
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Logs
-*.log
-*.log.*
 logs/
+*.log
 
-# Models (large files)
-models/*.pt
-models/*.bin
-models/*.safetensors
-*.gguf
+# Model weights and large files
+vendor/layerModels/**/*.bin
+vendor/layerModels/**/*.safetensors
+vendor/layerModels/**/*.gguf
+vendor/layerModels/**/*.pt
+vendor/layerModels/**/*.pth
+vendor/layerModels/**/*.onnx
 
-# Data directories (runtime data - sensitive)
-data/
-!data/.gitkeep
+# DVC
+.dvc/tmp
+.dvc/cache
 
-# Certificates and keys
-*.pem
-*.key
-*.crt
-*.p12
-*.pfx
-certs/
+# Qdrant storage
+qdrant_storage/
 
-# Docker runtime
-docker-compose.override.yml
+# Docker volumes
+gitea_data/
 
-# Rust
-target/
-Cargo.lock
-**/*.rs.bk
+# Mojo build artifacts
+**/.mojo_cache/
+**/*.mojopkg
 
-# Temporary
-tmp/
-temp/
+# Zig build artifacts
+zig-cache/
+zig-out/
+
+# Compiled libraries
+*.dylib
+*.so
+*.dll
+
+# Test artifacts
+.pytest_cache/
+htmlcov/
+
+# Temporary files
 *.tmp
-
-# OS
-Thumbs.db
-.DS_Store
-
-# Documentation builds
-docs/_build/
-site/
-
-# Jupyter
-.ipynb_checkpoints
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
+*.temp
 
 # Snyk Security Extension - AI Rules (auto-generated)
 .cursor/rules/snyk_rules.mdc
 
 # Snyk Security Extension - AI Rules (auto-generated)
 .windsurf/rules/snyk_rules.md
-
-# Logs
-logs/*.log
-*.log
-
-# OS
-.DS_Store
-vendor/layerModels/huggingFace/LiquidAI-LFM2.5-1.2B-Base/model.safetensors
-
-# Zig + Mojo Build Artifacts
-*.dylib
-*.so
-src/serviceCore/serviceRAG-zig-mojo/zig-mojo-rag
-src/serviceCore/serviceRAG-zig-mojo/load_test
-*.o
-*.a
-
-# Exclude vendor .git directories and their objects
-vendor/**/.git/
-.zig-cache/
-
-# Node modules  
-vendor/**/node_modules/
-
-# Large binary files
-*.pack

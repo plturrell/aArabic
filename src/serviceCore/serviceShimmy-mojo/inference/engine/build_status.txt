@@ -1,0 +1,173 @@
+test-mojo-bridge
++- run exe test_mojo_bridge
+   +- install
+      +- install test_day6
+         +- compile exe test_day6 ReleaseFast native 1 errors
+loader/gguf_model_loader.zig:574:2: error: expected ';' after declaration
+}
+ ^
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig build-exe -OReleaseFast --dep gguf_model_loader --dep llama_model -Mroot=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/tests/test_day6.zig --dep gguf_loader --dep llama_model --dep tokenizer --dep transformer --dep q4_0 --dep q4_k --dep common -Mgguf_model_loader=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/loader/gguf_model_loader.zig --dep gguf_loader --dep transformer --dep attention --dep tokenizer --dep kv_cache --dep matrix_ops --dep thread_pool --dep compute --dep backend_cpu --dep backend_metal -Mllama_model=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/llama_model.zig -Mgguf_loader=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/gguf_loader.zig --dep gguf_loader --dep matrix_ops -Mtokenizer=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/tokenization/tokenizer.zig --dep matrix_ops --dep attention --dep feed_forward --dep kv_cache --dep thread_pool -Mtransformer=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/transformer.zig --dep common -Mq4_0=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/quantization/q4_0.zig --dep common -Mq4_k=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/quantization/q4_k.zig -Mcommon=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/quantization/common.zig --dep matrix_ops --dep kv_cache --dep thread_pool -Mattention=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/attention.zig -Mkv_cache=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/kv_cache.zig --dep gguf_loader --dep thread_pool --dep q4_k -Mmatrix_ops=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/matrix_ops.zig -Mthread_pool=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/threading/thread_pool.zig --dep gguf_loader --dep thread_pool -Mcompute=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/compute.zig --dep compute --dep matrix_ops --dep thread_pool --dep gguf_loader -Mbackend_cpu=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/backend_cpu.zig --dep compute --dep gguf_loader --dep matrix_ops -Mbackend_metal=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/backend_metal.zig --dep matrix_ops --dep thread_pool -Mfeed_forward=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/feed_forward.zig --cache-dir .zig-cache --global-cache-dir /Users/user/.cache/zig --name test_day6 --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+test-mojo-bridge
++- run exe test_mojo_bridge
+   +- install
+      +- install test_day4
+         +- compile exe test_day4 ReleaseFast native 1 errors
+quantization/q4_k.zig:129:35: error: expected type 'u3', found 'usize'
+        sc[j] |= ((byte >> (shift + 0)) & 3) << 4;
+                            ~~~~~~^~~
+quantization/q4_k.zig:129:35: note: unsigned 3-bit int cannot represent all possible unsigned 64-bit values
+referenced by:
+    run: core/matrix_ops.zig:695:54
+    w: core/matrix_ops.zig:735:46
+    9 reference(s) hidden; use '-freference-trace=11' to see all references
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig build-exe -OReleaseFast --dep attention --dep feed_forward --dep transformer -Mroot=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/tests/test_day4.zig --dep matrix_ops --dep kv_cache --dep thread_pool -Mattention=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/attention.zig --dep matrix_ops --dep thread_pool -Mfeed_forward=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/feed_forward.zig --dep matrix_ops --dep attention --dep feed_forward --dep kv_cache --dep thread_pool -Mtransformer=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/transformer.zig --dep gguf_loader --dep thread_pool --dep q4_k -Mmatrix_ops=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/matrix_ops.zig -Mkv_cache=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/kv_cache.zig -Mthread_pool=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/threading/thread_pool.zig -Mgguf_loader=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/gguf_loader.zig --dep common -Mq4_k=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/quantization/q4_k.zig -Mcommon=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/quantization/common.zig --cache-dir .zig-cache --global-cache-dir /Users/user/.cache/zig --name test_day4 --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+test-mojo-bridge
++- run exe test_mojo_bridge
+   +- install
+      +- install test_gguf_loader
+         +- compile exe test_gguf_loader ReleaseFast native 1 errors
+core/gguf_loader.zig:193:25: error: member function expected 1 argument(s), found 0
+            vocab_tokens.deinit();
+            ~~~~~~~~~~~~^~~~~~~
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/array_list.zig:654:13: note: function declared here
+        pub fn deinit(self: *Self, gpa: Allocator) void {
+        ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+referenced by:
+    main: tests/test_gguf_loader.zig:27:36
+    callMain [inlined]: /opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/start.zig:627:37
+    callMainWithArgs [inlined]: /opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/start.zig:587:20
+    main: /opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/start.zig:602:28
+    1 reference(s) hidden; use '-freference-trace=5' to see all references
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig build-exe -OReleaseFast --dep gguf_loader -Mroot=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/tests/test_gguf_loader.zig -Mgguf_loader=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/gguf_loader.zig --cache-dir .zig-cache --global-cache-dir /Users/user/.cache/zig --name test_gguf_loader --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+test-mojo-bridge
++- run exe test_mojo_bridge
+   +- install
+      +- install test_day7
+         +- compile exe test_day7 ReleaseFast native 1 errors
+tests/test_day7.zig:2:28: error: no module named 'matrix_ops' available within module 'root'
+const matrix_ops = @import("matrix_ops");
+                           ^~~~~~~~~~~~
+referenced by:
+    test_batch_with_model: tests/test_day7.zig:138:28
+    main: tests/test_day7.zig:31:30
+    4 reference(s) hidden; use '-freference-trace=6' to see all references
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig build-exe -OReleaseFast --dep batch_processor --dep llama_model --dep gguf_loader --dep transformer --dep tokenizer -Mroot=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/tests/test_day7.zig --dep llama_model --dep transformer --dep matrix_ops --dep kv_cache -Mbatch_processor=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/batch_processor.zig --dep gguf_loader --dep transformer --dep attention --dep tokenizer --dep kv_cache --dep matrix_ops --dep thread_pool --dep compute --dep backend_cpu --dep backend_metal -Mllama_model=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/llama_model.zig -Mgguf_loader=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/gguf_loader.zig --dep matrix_ops --dep attention --dep feed_forward --dep kv_cache --dep thread_pool -Mtransformer=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/transformer.zig --dep gguf_loader --dep matrix_ops -Mtokenizer=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/tokenization/tokenizer.zig --dep gguf_loader --dep thread_pool --dep q4_k -Mmatrix_ops=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/matrix_ops.zig -Mkv_cache=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/kv_cache.zig --dep matrix_ops --dep kv_cache --dep thread_pool -Mattention=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/attention.zig -Mthread_pool=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/threading/thread_pool.zig --dep gguf_loader --dep thread_pool -Mcompute=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/compute.zig --dep compute --dep matrix_ops --dep thread_pool --dep gguf_loader -Mbackend_cpu=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/backend_cpu.zig --dep compute --dep gguf_loader --dep matrix_ops -Mbackend_metal=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/backend_metal.zig --dep matrix_ops --dep thread_pool -Mfeed_forward=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/feed_forward.zig --dep common -Mq4_k=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/quantization/q4_k.zig -Mcommon=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/quantization/common.zig --cache-dir .zig-cache --global-cache-dir /Users/user/.cache/zig --name test_day7 --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+test-mojo-bridge
++- run exe test_mojo_bridge
+   +- install
+      +- install test_day3
+         +- compile exe test_day3 ReleaseFast native 1 errors
+tokenization/tokenizer.zig:99:27: error: member function expected 2 argument(s), found 1
+        try current_tokens.append(self.bos_token);
+            ~~~~~~~~~~~~~~^~~~~~~
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/array_list.zig:893:13: note: function declared here
+        pub fn append(self: *Self, gpa: Allocator, item: T) Allocator.Error!void {
+        ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+referenced by:
+    test_tokenizer: tokenization/tokenizer.zig:392:44
+    main: tests/test_day3.zig:16:33
+    4 reference(s) hidden; use '-freference-trace=6' to see all references
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig build-exe -OReleaseFast --dep tokenizer --dep kv_cache -Mroot=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/tests/test_day3.zig --dep gguf_loader --dep matrix_ops -Mtokenizer=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/tokenization/tokenizer.zig -Mkv_cache=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/kv_cache.zig -Mgguf_loader=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/gguf_loader.zig --dep gguf_loader --dep thread_pool --dep q4_k -Mmatrix_ops=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/matrix_ops.zig -Mthread_pool=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/threading/thread_pool.zig --dep common -Mq4_k=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/quantization/q4_k.zig -Mcommon=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/quantization/common.zig --cache-dir .zig-cache --global-cache-dir /Users/user/.cache/zig --name test_day3 --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+test-mojo-bridge
++- run exe test_mojo_bridge
+   +- install
+      +- install test_day5
+         +- compile exe test_day5 ReleaseFast native 2 errors
+core/llama_model.zig:124:24: error: expected type '@typeInfo(@typeInfo(@TypeOf(llama_model.LlamaModel.init)).@"fn".return_type.?).error_union.error_set!llama_model.LlamaModel', found 'compute.ComputeBackend'
+                return cpu_backend;
+                       ^~~~~~~~~~~
+core/compute.zig:7:28: note: struct declared here
+pub const ComputeBackend = struct {
+                           ^~~~~~
+core/llama_model.zig:85:24: note: struct declared here
+pub const LlamaModel = struct {
+                       ^~~~~~
+core/llama_model.zig:100:8: note: function return type declared here
+    ) !LlamaModel {
+       ^~~~~~~~~~
+referenced by:
+    test_llama_model: core/llama_model.zig:496:36
+    main: tests/test_day5.zig:15:37
+    4 reference(s) hidden; use '-freference-trace=6' to see all references
+quantization/q4_k.zig:129:35: error: expected type 'u3', found 'usize'
+        sc[j] |= ((byte >> (shift + 0)) & 3) << 4;
+                            ~~~~~~^~~
+quantization/q4_k.zig:129:35: note: unsigned 3-bit int cannot represent all possible unsigned 64-bit values
+error: the following command failed with 2 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig build-exe -OReleaseFast --dep llama_model -Mroot=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/tests/test_day5.zig --dep gguf_loader --dep transformer --dep attention --dep tokenizer --dep kv_cache --dep matrix_ops --dep thread_pool --dep compute --dep backend_cpu --dep backend_metal -Mllama_model=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/llama_model.zig -Mgguf_loader=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/gguf_loader.zig --dep matrix_ops --dep attention --dep feed_forward --dep kv_cache --dep thread_pool -Mtransformer=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/transformer.zig --dep matrix_ops --dep kv_cache --dep thread_pool -Mattention=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/attention.zig --dep gguf_loader --dep matrix_ops -Mtokenizer=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/tokenization/tokenizer.zig -Mkv_cache=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/kv_cache.zig --dep gguf_loader --dep thread_pool --dep q4_k -Mmatrix_ops=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/matrix_ops.zig -Mthread_pool=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/threading/thread_pool.zig --dep gguf_loader --dep thread_pool -Mcompute=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/compute.zig --dep compute --dep matrix_ops --dep thread_pool --dep gguf_loader -Mbackend_cpu=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/backend_cpu.zig --dep compute --dep gguf_loader --dep matrix_ops -Mbackend_metal=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/backend_metal.zig --dep matrix_ops --dep thread_pool -Mfeed_forward=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/feed_forward.zig --dep common -Mq4_k=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/quantization/q4_k.zig -Mcommon=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/quantization/common.zig --cache-dir .zig-cache --global-cache-dir /Users/user/.cache/zig --name test_day5 --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+test-mojo-bridge
++- run exe test_mojo_bridge
+   +- install
+      +- install zig-inference
+         +- compile exe zig-inference ReleaseFast native 1 errors
+loader/gguf_model_loader.zig:574:2: error: expected ';' after declaration
+}
+ ^
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig build-exe -OReleaseFast --dep gguf_loader --dep llama_model --dep gguf_model_loader --dep batch_processor --dep performance --dep sampler -Mroot=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/cli/main.zig -Mgguf_loader=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/gguf_loader.zig --dep gguf_loader --dep transformer --dep attention --dep tokenizer --dep kv_cache --dep matrix_ops --dep thread_pool --dep compute --dep backend_cpu --dep backend_metal -Mllama_model=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/llama_model.zig --dep gguf_loader --dep llama_model --dep tokenizer --dep transformer --dep q4_0 --dep q4_k --dep common -Mgguf_model_loader=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/loader/gguf_model_loader.zig --dep llama_model --dep transformer --dep matrix_ops --dep kv_cache -Mbatch_processor=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/batch_processor.zig -Mperformance=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/performance.zig -Msampler=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/sampling/sampler.zig --dep matrix_ops --dep attention --dep feed_forward --dep kv_cache --dep thread_pool -Mtransformer=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/transformer.zig --dep matrix_ops --dep kv_cache --dep thread_pool -Mattention=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/attention.zig --dep gguf_loader --dep matrix_ops -Mtokenizer=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/tokenization/tokenizer.zig -Mkv_cache=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/kv_cache.zig --dep gguf_loader --dep thread_pool --dep q4_k -Mmatrix_ops=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/matrix_ops.zig -Mthread_pool=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/threading/thread_pool.zig --dep gguf_loader --dep thread_pool -Mcompute=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/compute.zig --dep compute --dep matrix_ops --dep thread_pool --dep gguf_loader -Mbackend_cpu=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/backend_cpu.zig --dep compute --dep gguf_loader --dep matrix_ops -Mbackend_metal=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/backend_metal.zig --dep common -Mq4_0=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/quantization/q4_0.zig --dep common -Mq4_k=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/quantization/q4_k.zig -Mcommon=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/quantization/common.zig --dep matrix_ops --dep thread_pool -Mfeed_forward=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/feed_forward.zig -framework Metal -framework Foundation --cache-dir .zig-cache --global-cache-dir /Users/user/.cache/zig --name zig-inference --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+test-mojo-bridge
++- run exe test_mojo_bridge
+   +- compile exe test_mojo_bridge ReleaseFast native 2 errors
+loader/hf_to_llama_bridge.zig:112:30: error: expected type 'u32', found 'usize'
+        .head_dim = hf_config.hidden_size / hf_config.num_attention_heads,
+        ~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+loader/hf_to_llama_bridge.zig:112:30: note: unsigned 32-bit int cannot represent all possible unsigned 64-bit values
+referenced by:
+    convertHFToLLaMA: loader/hf_to_llama_bridge.zig:77:41
+    inference_load_model: mojo_bridge.zig:41:44
+    5 reference(s) hidden; use '-freference-trace=7' to see all references
+tokenization/tokenizer.zig:99:27: error: member function expected 2 argument(s), found 1
+        try current_tokens.append(self.bos_token);
+            ~~~~~~~~~~~~~~^~~~~~~
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/array_list.zig:893:13: note: function declared here
+        pub fn append(self: *Self, gpa: Allocator, item: T) Allocator.Error!void {
+        ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error: the following command failed with 2 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig build-exe -OReleaseFast --dep huggingface_loader --dep hf_to_llama_bridge --dep llama_model -Mroot=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/mojo_bridge.zig --dep config_parser --dep safetensors_sharded --dep safetensors_loader --dep bpe_tokenizer -Mhuggingface_loader=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/loader/huggingface_loader.zig --dep huggingface_loader --dep llama_model --dep transformer --dep tokenizer --dep matrix_ops --dep gguf_loader -Mhf_to_llama_bridge=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/loader/hf_to_llama_bridge.zig --dep gguf_loader --dep transformer --dep attention --dep tokenizer --dep kv_cache --dep matrix_ops --dep thread_pool --dep compute --dep backend_cpu --dep backend_metal -Mllama_model=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/llama_model.zig -Mconfig_parser=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/loader/config_parser.zig --dep safetensors_loader -Msafetensors_sharded=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/loader/safetensors_sharded.zig -Msafetensors_loader=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/loader/safetensors_loader.zig -Mbpe_tokenizer=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/tokenization/bpe_tokenizer.zig --dep matrix_ops --dep attention --dep feed_forward --dep kv_cache --dep thread_pool -Mtransformer=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/transformer.zig --dep gguf_loader --dep matrix_ops -Mtokenizer=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/tokenization/tokenizer.zig --dep gguf_loader --dep thread_pool --dep q4_k -Mmatrix_ops=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/matrix_ops.zig -Mgguf_loader=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/gguf_loader.zig --dep matrix_ops --dep kv_cache --dep thread_pool -Mattention=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/attention.zig -Mkv_cache=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/kv_cache.zig -Mthread_pool=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/threading/thread_pool.zig --dep gguf_loader --dep thread_pool -Mcompute=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/compute.zig --dep compute --dep matrix_ops --dep thread_pool --dep gguf_loader -Mbackend_cpu=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/backend_cpu.zig --dep compute --dep gguf_loader --dep matrix_ops -Mbackend_metal=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/backend_metal.zig --dep matrix_ops --dep thread_pool -Mfeed_forward=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/feed_forward.zig --dep common -Mq4_k=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/quantization/q4_k.zig -Mcommon=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/quantization/common.zig --cache-dir .zig-cache --global-cache-dir /Users/user/.cache/zig --name test_mojo_bridge --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+test-mojo-bridge
++- run exe test_mojo_bridge
+   +- install
+      +- install test_hf_to_llama
+         +- compile exe test_hf_to_llama ReleaseFast native 1 errors
+loader/hf_to_llama_bridge.zig:112:30: error: expected type 'u32', found 'usize'
+        .head_dim = hf_config.hidden_size / hf_config.num_attention_heads,
+        ~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+loader/hf_to_llama_bridge.zig:112:30: note: unsigned 32-bit int cannot represent all possible unsigned 64-bit values
+referenced by:
+    convertHFToLLaMA: loader/hf_to_llama_bridge.zig:77:41
+    test_hf_to_llama_bridge: loader/hf_to_llama_bridge.zig:276:43
+    5 reference(s) hidden; use '-freference-trace=7' to see all references
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig build-exe -OReleaseFast --dep hf_to_llama_bridge -Mroot=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/tests/test_hf_to_llama.zig --dep huggingface_loader --dep llama_model --dep transformer --dep tokenizer --dep matrix_ops --dep gguf_loader -Mhf_to_llama_bridge=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/loader/hf_to_llama_bridge.zig --dep config_parser --dep safetensors_sharded --dep safetensors_loader --dep bpe_tokenizer -Mhuggingface_loader=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/loader/huggingface_loader.zig --dep gguf_loader --dep transformer --dep attention --dep tokenizer --dep kv_cache --dep matrix_ops --dep thread_pool --dep compute --dep backend_cpu --dep backend_metal -Mllama_model=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/llama_model.zig --dep matrix_ops --dep attention --dep feed_forward --dep kv_cache --dep thread_pool -Mtransformer=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/transformer.zig --dep gguf_loader --dep matrix_ops -Mtokenizer=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/tokenization/tokenizer.zig --dep gguf_loader --dep thread_pool --dep q4_k -Mmatrix_ops=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/matrix_ops.zig -Mgguf_loader=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/gguf_loader.zig -Mconfig_parser=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/loader/config_parser.zig --dep safetensors_loader -Msafetensors_sharded=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/loader/safetensors_sharded.zig -Msafetensors_loader=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/loader/safetensors_loader.zig -Mbpe_tokenizer=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/tokenization/bpe_tokenizer.zig --dep matrix_ops --dep kv_cache --dep thread_pool -Mattention=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/attention.zig -Mkv_cache=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/kv_cache.zig -Mthread_pool=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/threading/thread_pool.zig --dep gguf_loader --dep thread_pool -Mcompute=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/compute.zig --dep compute --dep matrix_ops --dep thread_pool --dep gguf_loader -Mbackend_cpu=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/backend_cpu.zig --dep compute --dep gguf_loader --dep matrix_ops -Mbackend_metal=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/backend_metal.zig --dep matrix_ops --dep thread_pool -Mfeed_forward=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/core/feed_forward.zig --dep common -Mq4_k=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/quantization/q4_k.zig -Mcommon=/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference/quantization/common.zig --cache-dir .zig-cache --global-cache-dir /Users/user/.cache/zig --name test_hf_to_llama --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 38/59 steps succeeded; 9 failed
+test-mojo-bridge transitive failure
++- run exe test_mojo_bridge transitive failure
+   +- compile exe test_mojo_bridge ReleaseFast native 2 errors
+   +- install transitive failure
+      +- install test_hf_to_llama transitive failure
+      |  +- compile exe test_hf_to_llama ReleaseFast native 1 errors
+      +- install test_mojo_bridge transitive failure
+      |  +- compile exe test_mojo_bridge ReleaseFast native (reused)
+      +- install zig-inference transitive failure
+      |  +- compile exe zig-inference ReleaseFast native 1 errors
+      +- install test_gguf_loader transitive failure
+      |  +- compile exe test_gguf_loader ReleaseFast native 1 errors
+      +- install test_day3 transitive failure
+      |  +- compile exe test_day3 ReleaseFast native 1 errors
+      +- install test_day4 transitive failure
+      |  +- compile exe test_day4 ReleaseFast native 1 errors
+      +- install test_day5 transitive failure
+      |  +- compile exe test_day5 ReleaseFast native 2 errors
+      +- install test_day6 transitive failure
+      |  +- compile exe test_day6 ReleaseFast native 1 errors
+      +- install test_day7 transitive failure
+         +- compile exe test_day7 ReleaseFast native 1 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/d7e956d29a219afeca8ab755daa58cd0/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/inference .zig-cache /Users/user/.cache/zig --seed 0xbfac697d -Z5712936ad07f3d2d test-mojo-bridge -Doptimize=ReleaseFast
