@@ -86,19 +86,6 @@ routes:
       nodes:
         opencanvas:3000: 1
 
-  - id: hyperbook
-    name: hyperbooklm
-    uri: /hyperbooklm/*
-    plugins:
-      proxy-rewrite:
-        regex_uri:
-          - "^/hyperbooklm/(.*)"
-          - "/$1"
-    upstream:
-      type: roundrobin
-      nodes:
-        hyperbooklm:3002: 1
-
   - id: gitea
     name: gitea
     uri: /git/*

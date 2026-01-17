@@ -1,0 +1,273 @@
+<mvc:View
+    controllerName="hypershimmy.controller.Summary"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:f="sap.f"
+    xmlns:core="sap.ui.core">
+    
+    <Page
+        id="summary"
+        title="{i18n>summaryTitle}"
+        showNavButton="true"
+        navButtonPress=".onNavBack">
+        
+        <headerContent>
+            <Button
+                icon="sap-icon://download"
+                tooltip="{i18n>summaryExportButton}"
+                press=".onExportSummary"
+                enabled="{= ${appState>/summaryGenerated} }"/>
+            <Button
+                icon="sap-icon://copy"
+                tooltip="{i18n>summaryCopyButton}"
+                press=".onCopySummary"
+                enabled="{= ${appState>/summaryGenerated} }"/>
+        </headerContent>
+        
+        <content>
+            <VBox class="hypershimmySummary" height="100%">
+                
+                <!-- Configuration Panel -->
+                <Panel
+                    headerText="{i18n>summaryConfigTitle}"
+                    expandable="true"
+                    expanded="{appState>/summaryConfigExpanded}"
+                    class="sapUiSmallMargin">
+                    
+                    <VBox class="sapUiSmallMargin">
+                        
+                        <!-- Summary Type Selection -->
+                        <Label
+                            text="{i18n>summaryTypeLabel}"
+                            labelFor="summaryTypeSelect"
+                            class="sapUiTinyMarginTop"/>
+                        <Select
+                            id="summaryTypeSelect"
+                            selectedKey="{appState>/summaryType}"
+                            change=".onSummaryTypeChange"
+                            width="100%"
+                            class="sapUiTinyMarginBottom">
+                            <items>
+                                <core:Item key="brief" text="{i18n>summaryTypeBrief}"/>
+                                <core:Item key="detailed" text="{i18n>summaryTypeDetailed}"/>
+                                <core:Item key="executive" text="{i18n>summaryTypeExecutive}"/>
+                                <core:Item key="bullet_points" text="{i18n>summaryTypeBulletPoints}"/>
+                                <core:Item key="comparative" text="{i18n>summaryTypeComparative}"/>
+                            </items>
+                        </Select>
+                        
+                        <!-- Summary Type Description -->
+                        <Text
+                            text="{appState>/summaryTypeDescription}"
+                            class="sapUiTinyMarginBottom summaryTypeDescription"/>
+                        
+                        <!-- Max Length Slider -->
+                        <Label
+                            text="{i18n>summaryMaxLengthLabel}"
+                            class="sapUiSmallMarginTop"/>
+                        <Slider
+                            id="maxLengthSlider"
+                            min="100"
+                            max="1000"
+                            step="50"
+                            value="{appState>/summaryMaxLength}"
+                            enableTickmarks="true"
+                            width="100%"
+                            class="sapUiTinyMarginBottom"/>
+                        <Text
+                            text="{= ${appState>/summaryMaxLength} + ' words' }"
+                            class="sapUiTinyMarginBottom"/>
+                        
+                        <!-- Tone Selection -->
+                        <Label
+                            text="{i18n>summaryToneLabel}"
+                            labelFor="toneSelect"
+                            class="sapUiSmallMarginTop"/>
+                        <Select
+                            id="toneSelect"
+                            selectedKey="{appState>/summaryTone}"
+                            width="100%"
+                            class="sapUiTinyMarginBottom">
+                            <items>
+                                <core:Item key="professional" text="{i18n>summaryToneProfessional}"/>
+                                <core:Item key="academic" text="{i18n>summaryToneAcademic}"/>
+                                <core:Item key="casual" text="{i18n>summaryToneCasual}"/>
+                            </items>
+                        </Select>
+                        
+                        <!-- Options -->
+                        <CheckBox
+                            text="{i18n>summaryIncludeCitations}"
+                            selected="{appState>/summaryIncludeCitations}"
+                            class="sapUiTinyMarginTop"/>
+                        <CheckBox
+                            text="{i18n>summaryIncludeKeyPoints}"
+                            selected="{appState>/summaryIncludeKeyPoints}"
+                            class="sapUiTinyMarginTop"/>
+                        
+                        <!-- Focus Areas Input -->
+                        <Label
+                            text="{i18n>summaryFocusAreasLabel}"
+                            labelFor="focusAreasInput"
+                            class="sapUiSmallMarginTop"/>
+                        <Input
+                            id="focusAreasInput"
+                            placeholder="{i18n>summaryFocusAreasPlaceholder}"
+                            value="{appState>/summaryFocusAreas}"
+                            width="100%"
+                            class="sapUiTinyMarginBottom"/>
+                        <Text
+                            text="{i18n>summaryFocusAreasHint}"
+                            class="sapUiTinyMarginBottom summaryHint"/>
+                        
+                        <!-- Generate Button -->
+                        <Button
+                            text="{i18n>summaryGenerateButton}"
+                            type="Emphasized"
+                            icon="sap-icon://create"
+                            press=".onGenerateSummary"
+                            enabled="{= !${appState>/busy} }"
+                            width="100%"
+                            class="sapUiSmallMarginTop"/>
+                    </VBox>
+                </Panel>
+                
+                <!-- Summary Display Area -->
+                <ScrollContainer
+                    height="100%"
+                    width="100%"
+                    vertical="true"
+                    class="sapUiSmallMargin">
+                    
+                    <VBox class="summaryContent">
+                        
+                        <!-- Loading Indicator -->
+                        <VBox
+                            visible="{appState>/busy}"
+                            alignItems="Center"
+                            justifyContent="Center"
+                            class="sapUiLargeMarginTop">
+                            <BusyIndicator size="3rem" class="sapUiMediumMarginBottom"/>
+                            <Title text="{i18n>summaryGeneratingTitle}" class="sapUiTinyMarginBottom"/>
+                            <Text text="{i18n>summaryGeneratingText}"/>
+                        </VBox>
+                        
+                        <!-- Empty State -->
+                        <VBox
+                            visible="{= !${appState>/busy} &amp;&amp; !${appState>/summaryGenerated} }"
+                            alignItems="Center"
+                            justifyContent="Center"
+                            class="sapUiLargeMarginTop">
+                            <core:Icon
+                                src="sap-icon://document-text"
+                                size="4rem"
+                                color="#0070f2"
+                                class="sapUiMediumMarginBottom"/>
+                            <Title text="{i18n>summaryEmptyTitle}" class="sapUiTinyMarginBottom"/>
+                            <Text text="{i18n>summaryEmptyText}"/>
+                        </VBox>
+                        
+                        <!-- Summary Content -->
+                        <VBox
+                            visible="{= !${appState>/busy} &amp;&amp; ${appState>/summaryGenerated} }"
+                            class="sapUiSmallMargin">
+                            
+                            <!-- Summary Header -->
+                            <HBox
+                                justifyContent="SpaceBetween"
+                                alignItems="Center"
+                                class="sapUiSmallMarginBottom">
+                                <VBox>
+                                    <Title
+                                        text="{i18n>summaryResultTitle}"
+                                        level="H2"/>
+                                    <Text
+                                        text="{= 'Type: ' + ${appState>/currentSummary/SummaryType} + ' • ' + ${appState>/currentSummary/WordCount} + ' words' }"
+                                        class="summaryMetadata"/>
+                                </VBox>
+                                <HBox>
+                                    <ObjectStatus
+                                        text="{= 'Confidence: ' + (${appState>/currentSummary/Confidence} * 100).toFixed(0) + '%' }"
+                                        state="{= ${appState>/currentSummary/Confidence} > 0.7 ? 'Success' : ${appState>/currentSummary/Confidence} > 0.5 ? 'Warning' : 'Error' }"
+                                        icon="sap-icon://measurement-document"/>
+                                </HBox>
+                            </HBox>
+                            
+                            <!-- Summary Text -->
+                            <Panel
+                                headerText="{i18n>summarySummaryText}"
+                                class="sapUiSmallMarginBottom">
+                                <VBox class="sapUiSmallMargin">
+                                    <FormattedText
+                                        id="summaryText"
+                                        htmlText="{appState>/formattedSummaryText}"
+                                        class="summaryText"/>
+                                </VBox>
+                            </Panel>
+                            
+                            <!-- Key Points -->
+                            <Panel
+                                headerText="{i18n>summaryKeyPoints}"
+                                visible="{= ${appState>/currentSummary/KeyPoints}.length > 0 }"
+                                class="sapUiSmallMarginBottom">
+                                <VBox class="sapUiSmallMargin">
+                                    <List
+                                        id="keyPointsList"
+                                        noDataText="{i18n>summaryNoKeyPoints}"
+                                        items="{appState>/currentSummary/KeyPoints}">
+                                        <StandardListItem
+                                            title="{appState>Content}"
+                                            description="{= 'Category: ' + ${appState>Category} + ' • Importance: ' + (${appState>Importance} * 100).toFixed(0) + '%' }"
+                                            icon="sap-icon://key"
+                                            iconDensityAware="false"/>
+                                    </List>
+                                </VBox>
+                            </Panel>
+                            
+                            <!-- Sources -->
+                            <Panel
+                                headerText="{i18n>summarySources}"
+                                visible="{= ${appState>/currentSummary/SourceIds}.length > 0 }"
+                                class="sapUiSmallMarginBottom">
+                                <VBox class="sapUiSmallMargin">
+                                    <List
+                                        id="sourcesList"
+                                        items="{appState>/currentSummary/SourceIds}">
+                                        <StandardListItem
+                                            title="{appState>}"
+                                            type="Active"
+                                            icon="sap-icon://document"
+                                            press=".onSourcePress"/>
+                                    </List>
+                                </VBox>
+                            </Panel>
+                            
+                            <!-- Metadata -->
+                            <Panel
+                                headerText="{i18n>summaryMetadata}"
+                                expandable="true"
+                                expanded="false"
+                                class="sapUiSmallMarginBottom">
+                                <VBox class="sapUiSmallMargin">
+                                    <HBox class="sapUiTinyMarginBottom">
+                                        <Label text="Summary ID:" class="summaryMetadataLabel"/>
+                                        <Text text="{appState>/currentSummary/SummaryId}"/>
+                                    </HBox>
+                                    <HBox class="sapUiTinyMarginBottom">
+                                        <Label text="Processing Time:" class="summaryMetadataLabel"/>
+                                        <Text text="{= ${appState>/currentSummary/ProcessingTimeMs} + 'ms' }"/>
+                                    </HBox>
+                                    <HBox class="sapUiTinyMarginBottom">
+                                        <Label text="Generated:" class="summaryMetadataLabel"/>
+                                        <Text text="{appState>/summaryGeneratedTime}"/>
+                                    </HBox>
+                                </VBox>
+                            </Panel>
+                        </VBox>
+                    </VBox>
+                </ScrollContainer>
+            </VBox>
+        </content>
+    </Page>
+    
+</mvc:View>

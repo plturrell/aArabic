@@ -1,0 +1,6 @@
+KEYWORD	def	1:1
+IDENT	foo	1:5
+COMMENT	/-a /-b -/ c -/	1:9
+SYMBOL	:=	1:25
+NUMBER	1	1:28
+EOF		1:29

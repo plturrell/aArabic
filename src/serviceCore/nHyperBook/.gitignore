@@ -1,0 +1,70 @@
+# Zig build artifacts
+zig-cache/
+zig-out/
+
+# Compiled libraries
+*.dylib
+*.so
+*.dll
+*.a
+
+# Mojo build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.mojopkg
+
+# Compiled executables
+hypershimmy
+*.exe
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.local
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Data files (generated at runtime)
+data/
+uploads/
+
+# Library directory (generated)
+lib/*.dylib
+lib/*.so
+lib/*.dll
+
+# Test artifacts
+test-results/
+coverage/
+
+# Documentation build
+docs/_build/
+docs/.doctrees/
+
+# Node modules (if any tooling uses npm)
+node_modules/
+
+# Build output
+build/
+dist/
+
+# Generated files
+*.generated.*

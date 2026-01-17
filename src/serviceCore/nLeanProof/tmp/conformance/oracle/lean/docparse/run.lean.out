@@ -1,0 +1,5 @@
+warning: failed to query latest release, using existing version 'leanprover/lean4:v4.26.0'
+/Users/user/Documents/arabic_folder/vendor/layerIntelligence/lean4/tests/lean/docparse/run.lean:109:42-109:46: error: Invalid field `copy`: The environment does not contain `String.copy`
+  kind
+has type
+  String

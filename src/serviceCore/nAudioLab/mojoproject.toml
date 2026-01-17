@@ -1,0 +1,17 @@
+[project]
+name = "audiolabshimmy"
+version = "0.1.0"
+description = "Dolby-Quality TTS from Scratch in Mojo/Zig"
+authors = ["AudioLab Team"]
+
+[dependencies]
+
+[dev-dependencies]
+
+[[targets]]
+name = "audio"
+path = "mojo/audio"
+
+[[targets]]
+name = "test_mel"
+path = "mojo/test_mel_extraction.mojo"

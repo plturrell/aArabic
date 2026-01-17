@@ -1,0 +1,80 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:u="sap.ui.unified">
+    
+    <Dialog
+        id="fileUploadDialog"
+        title="Upload Document"
+        contentWidth="500px"
+        afterClose=".onFileUploadDialogClose">
+        
+        <content>
+            <VBox class="sapUiSmallMargin">
+                
+                <!-- File type selection -->
+                <Label text="Document Type" required="true"/>
+                <Text text="Supported: PDF, HTML, TXT" class="sapUiTinyMarginBottom"/>
+                
+                <!-- File uploader -->
+                <u:FileUploader
+                    id="fileUploader"
+                    name="file"
+                    uploadUrl="/api/upload"
+                    width="100%"
+                    placeholder="Choose a file..."
+                    fileType="pdf,html,htm,txt"
+                    mimeType="application/pdf,text/html,text/plain"
+                    maximumFileSize="100"
+                    change=".onFileChange"
+                    uploadComplete=".onUploadComplete"
+                    class="sapUiSmallMarginBottom"/>
+                
+                <!-- Title input (optional) -->
+                <Label text="Title (Optional)" class="sapUiTinyMarginTop"/>
+                <Input
+                    id="fileTitleInput"
+                    placeholder="Enter document title..."
+                    width="100%"/>
+                
+                <!-- Upload progress -->
+                <ProgressIndicator
+                    id="uploadProgress"
+                    percentValue="0"
+                    displayValue="Ready to upload"
+                    showValue="true"
+                    state="None"
+                    visible="false"
+                    class="sapUiSmallMarginTop"/>
+                
+                <!-- Status message -->
+                <MessageStrip
+                    id="uploadMessage"
+                    text=""
+                    type="Information"
+                    showIcon="true"
+                    visible="false"
+                    class="sapUiSmallMarginTop"/>
+                    
+            </VBox>
+        </content>
+        
+        <beginButton>
+            <Button
+                id="uploadButton"
+                text="Upload"
+                type="Emphasized"
+                icon="sap-icon://upload"
+                press=".onUploadPress"
+                enabled="false"/>
+        </beginButton>
+        
+        <endButton>
+            <Button
+                text="Cancel"
+                press=".onCancelUpload"/>
+        </endButton>
+        
+    </Dialog>
+    
+</core:FragmentDefinition>

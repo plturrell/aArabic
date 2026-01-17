@@ -7,7 +7,7 @@ This directory contains vendored dependencies and integrations, organized by lay
 - **layerCore**: `apisix`, `gitea`, `keycloak`, `markitdown`
 - **layerData**: `dragonflydb`, `marquez`, `memgraph`, `postgres`, `qdrant`
 - **layerAutomation**: `langflow`
-- **layerIntelligence**: `shimmy-ai`, `lean4`, `hyperbooklm`, `n8n`, `memgraph-ai-toolkit`
+- **layerIntelligence**: `shimmy-ai`, `lean4`, `hyperbooklm`, `n8n`
 - **layerUi**: `open-canvas`
 - **layerModels**: `folderRepos`, `huggingFace`
 
@@ -29,7 +29,6 @@ This directory contains vendored dependencies and integrations, organized by lay
 | Lean4 | Lean/C++ | `vendor/layerIntelligence/lean4/` | ✅ Vendored |
 | HyperbookLM | TypeScript/Next.js | `vendor/layerIntelligence/hyperbooklm/` | ✅ Vendored |
 | n8n | TypeScript/Node | `vendor/layerIntelligence/n8n/` | ✅ Vendored |
-| Memgraph AI Toolkit | Python | `vendor/layerIntelligence/memgraph-ai-toolkit/` | ✅ Vendored |
 | Open Canvas | TypeScript/React | `vendor/layerUi/open-canvas/` | ✅ Vendored |
 
 ## Updating Vendored Projects

@@ -185,30 +185,6 @@ routes:
       proxy-rewrite:
         uri: /
 
-  - id: hyperbooklm
-    uri: /hyperbooklm/*
-    upstream:
-      type: roundrobin
-      nodes:
-        hyperbooklm:3002: 1
-    plugins:
-      openid-connect:
-        <<: *oidc_config
-      proxy-rewrite:
-        regex_uri: ["^/hyperbooklm/(.*)", "/$1"]
-
-  - id: hyperbooklm-root
-    uri: /hyperbooklm
-    upstream:
-      type: roundrobin
-      nodes:
-        hyperbooklm:3002: 1
-    plugins:
-      openid-connect:
-        <<: *oidc_config
-      proxy-rewrite:
-        uri: /
-
   - id: lean4
     uri: /lean4/*
     upstream:

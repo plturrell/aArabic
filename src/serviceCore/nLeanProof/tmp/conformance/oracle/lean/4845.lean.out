@@ -1,0 +1,5 @@
+warning: failed to query latest release, using existing version 'leanprover/lean4:v4.26.0'
+z : Nat
+_H : 0 = z
+H : z = z
+⊢ True

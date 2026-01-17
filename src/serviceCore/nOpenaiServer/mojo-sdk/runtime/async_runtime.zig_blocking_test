@@ -1,0 +1,35 @@
+// ... existing code ...
+
+// ============================================================================
+// Blocking Pool Test
+// ============================================================================
+
+const TestContext = struct {
+    value: Atomic(i32),
+};
+
+fn blockingOp(ctx: ?*anyopaque) void {
+    const context = @as(*TestContext, @ptrCast(@alignCast(ctx)));
+    std.time.sleep(50 * std.time.ns_per_ms);
+    context.value.store(42, .release);
+}
+
+test "blocking pool integration" {
+    const allocator = std.testing.allocator;
+    
+    var executor = try Executor.init(allocator, 2);
+    defer executor.deinit();
+    
+    try executor.run();
+    
+    var ctx = TestContext{ .value = Atomic(i32).init(0) };
+    
+    const id = try executor.spawnBlocking(blockingOp, &ctx);
+    
+    const res = try executor.blockOn(id);
+    // The result of spawnBlocking is void (empty string in our current impl)
+    // We expect the blocking op to have run
+    
+    try std.testing.expect(ctx.value.load(.acquire) == 42);
+    try std.testing.expectEqualStrings("", res);
+}

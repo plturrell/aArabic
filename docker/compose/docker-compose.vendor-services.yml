@@ -73,36 +73,6 @@ services:
       file: docker-compose.yml
       service: langflow
 
-  shimmy:
-    extends:
-      file: docker-compose.yml
-      service: shimmy
-
-  opencanvas:
-    extends:
-      file: docker-compose.yml
-      service: opencanvas
-
-  hyperbooklm:
-    extends:
-      file: docker-compose.yml
-      service: hyperbooklm
-
-  n8n:
-    extends:
-      file: docker-compose.yml
-      service: n8n
-
-  n8n-db:
-    extends:
-      file: docker-compose.yml
-      service: n8n-db
-
-  lean4-runtime:
-    extends:
-      file: docker-compose.yml
-      service: lean4-runtime
-
   markitdown:
     extends:
       file: docker-compose.markitdown.yml

@@ -1,0 +1,46 @@
+Export Options Test
+===================
+
+Supported Export Formats:
+1. HTML (default)
+   - Standalone HTML file
+   - Self-contained (no external dependencies)
+   - Interactive navigation
+   - Print-ready
+
+2. HTML with Notes (future)
+   - Includes speaker notes
+   - Presenter view mode
+   - Additional context
+
+3. PDF (future)
+   - Static document format
+   - Universal compatibility
+   - Print-optimized
+   - Generated from HTML
+
+4. PowerPoint (future)
+   - PPTX format
+   - Editable in MS PowerPoint
+   - Preserves layouts
+   - Enterprise compatibility
+
+Export Options Structure:
+{
+    "format": "html",          // html, pdf, pptx
+    "include_notes": false,    // Include speaker notes
+    "standalone": true,        // Self-contained file
+    "compress": false          // Compress output
+}
+
+Example Exports:
+- data/exports/pres_001.html         // Standard HTML
+- data/exports/pres_001_notes.html   // With notes
+- data/exports/pres_001.pdf          // PDF version
+- data/exports/pres_001.pptx         // PowerPoint
+
+Database Integration:
+- Presentations stored in database
+- Slides tracked individually
+- Version control built-in
+- Export history maintained

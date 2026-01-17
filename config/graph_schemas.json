@@ -1,0 +1,284 @@
+{
+  "version": "1.0",
+  "description": "Graph data product catalog for intelligent query routing",
+  "graphs": {
+    "supply_chain": {
+      "description": "Supply chain management and logistics graph",
+      "database": {
+        "type": "neo4j",
+        "default_url": "bolt://localhost:7687"
+      },
+      "nodes": {
+        "Product": {
+          "description": "Physical or digital products in inventory",
+          "category": "entity",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Unique product identifier (UUID)",
+              "indexed": true,
+              "required": true,
+              "examples": ["PROD-001", "PROD-999"]
+            },
+            "name": {
+              "type": "string",
+              "description": "Product name or title",
+              "indexed": true,
+              "required": true,
+              "examples": ["Widget A", "Component B"]
+            },
+            "sku": {
+              "type": "string",
+              "description": "Stock keeping unit",
+              "indexed": true,
+              "examples": ["SKU-12345"]
+            },
+            "category": {
+              "type": "string",
+              "description": "Product category",
+              "examples": ["Electronics", "Components", "Raw Materials"]
+            },
+            "price": {
+              "type": "float",
+              "description": "Unit price in USD",
+              "constraints": ["MIN 0"]
+            },
+            "stock_quantity": {
+              "type": "integer",
+              "description": "Current stock quantity",
+              "constraints": ["MIN 0"]
+            }
+          },
+          "sample_queries": [
+            "MATCH (p:Product {name: $name}) RETURN p",
+            "MATCH (p:Product) WHERE p.name CONTAINS $keyword RETURN p LIMIT 10",
+            "MATCH (p:Product) WHERE p.stock_quantity < 10 RETURN p.name, p.stock_quantity"
+          ]
+        },
+        "Supplier": {
+          "description": "Supply chain vendors and manufacturers",
+          "category": "entity",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Unique supplier identifier",
+              "indexed": true,
+              "required": true
+            },
+            "name": {
+              "type": "string",
+              "description": "Supplier company name",
+              "indexed": true,
+              "required": true
+            },
+            "status": {
+              "type": "string",
+              "description": "Current supplier status",
+              "indexed": true,
+              "constraints": ["IN ['active', 'delayed', 'blocked', 'inactive']"],
+              "examples": ["active", "delayed"]
+            },
+            "rating": {
+              "type": "float",
+              "description": "Supplier rating (0-5)",
+              "constraints": ["MIN 0", "MAX 5"]
+            },
+            "location": {
+              "type": "string",
+              "description": "Supplier location/country"
+            }
+          },
+          "sample_queries": [
+            "MATCH (s:Supplier {status: 'delayed'}) RETURN s",
+            "MATCH (s:Supplier) WHERE s.rating > 4.0 RETURN s ORDER BY s.rating DESC"
+          ]
+        },
+        "Customer": {
+          "description": "End customers and buyers",
+          "category": "entity",
+          "properties": {
+            "id": {
+              "type": "string",
+              "indexed": true,
+              "required": true
+            },
+            "name": {
+              "type": "string",
+              "indexed": true,
+              "required": true
+            },
+            "email": {
+              "type": "string",
+              "indexed": true
+            },
+            "region": {
+              "type": "string",
+              "description": "Geographic region"
+            }
+          },
+          "sample_queries": [
+            "MATCH (c:Customer {region: $region}) RETURN c",
+            "MATCH (c:Customer) WHERE c.email CONTAINS $domain RETURN c"
+          ]
+        },
+        "Warehouse": {
+          "description": "Storage and distribution centers",
+          "category": "location",
+          "properties": {
+            "id": {"type": "string", "indexed": true, "required": true},
+            "name": {"type": "string", "indexed": true},
+            "location": {"type": "string"},
+            "capacity": {"type": "integer", "description": "Max storage capacity"}
+          }
+        }
+      },
+      "relationships": {
+        "SUPPLIED_BY": {
+          "description": "Products are supplied by suppliers",
+          "from": "Product",
+          "to": "Supplier",
+          "cardinality": "many-to-one",
+          "properties": {
+            "lead_time": {
+              "type": "integer",
+              "description": "Normal lead time in days",
+              "constraints": ["MIN 0"]
+            },
+            "delay": {
+              "type": "integer",
+              "description": "Current delay beyond lead time (days)",
+              "constraints": ["MIN 0"]
+            },
+            "cost": {
+              "type": "float",
+              "description": "Supply cost per unit",
+              "constraints": ["MIN 0"]
+            },
+            "reliability_score": {
+              "type": "float",
+              "description": "Historical reliability (0-1)",
+              "constraints": ["MIN 0", "MAX 1"]
+            }
+          },
+          "sample_queries": [
+            "MATCH (p:Product)-[r:SUPPLIED_BY]->(s:Supplier) WHERE r.delay > 0 RETURN p, s, r.delay",
+            "MATCH (p:Product {id: $product_id})-[r:SUPPLIED_BY]->(s:Supplier) RETURN s ORDER BY r.cost ASC"
+          ]
+        },
+        "ORDERED_BY": {
+          "description": "Products ordered by customers",
+          "from": "Product",
+          "to": "Customer",
+          "cardinality": "many-to-many",
+          "properties": {
+            "quantity": {
+              "type": "integer",
+              "description": "Order quantity",
+              "constraints": ["MIN 1"]
+            },
+            "order_date": {
+              "type": "date",
+              "description": "Order date"
+            },
+            "status": {
+              "type": "string",
+              "description": "Order status",
+              "constraints": ["IN ['pending', 'shipped', 'delivered', 'cancelled']"]
+            }
+          }
+        },
+        "STORED_IN": {
+          "description": "Products stored in warehouses",
+          "from": "Product",
+          "to": "Warehouse",
+          "cardinality": "many-to-many",
+          "properties": {
+            "quantity": {
+              "type": "integer",
+              "description": "Stock quantity at this warehouse",
+              "constraints": ["MIN 0"]
+            },
+            "last_updated": {
+              "type": "date",
+              "description": "Last inventory update"
+            }
+          }
+        },
+        "SHIPS_TO": {
+          "description": "Suppliers ship to warehouses",
+          "from": "Supplier",
+          "to": "Warehouse",
+          "cardinality": "many-to-many",
+          "properties": {
+            "shipping_time": {
+              "type": "integer",
+              "description": "Shipping time in days"
+            }
+          }
+        }
+      },
+      "use_cases": [
+        {
+          "name": "Find delayed suppliers",
+          "query": "Find all suppliers with delays over 5 days",
+          "cypher": "MATCH (p:Product)-[r:SUPPLIED_BY]->(s:Supplier) WHERE r.delay > 5 RETURN s.name, s.status, r.delay ORDER BY r.delay DESC"
+        },
+        {
+          "name": "Low stock alert",
+          "query": "Show products with low stock",
+          "cypher": "MATCH (p:Product) WHERE p.stock_quantity < 10 RETURN p.name, p.stock_quantity ORDER BY p.stock_quantity ASC"
+        },
+        {
+          "name": "Supply chain path",
+          "query": "Find path from supplier to customer",
+          "cypher": "MATCH path = (s:Supplier)-[*]-(c:Customer) WHERE s.id = $supplier_id AND c.id = $customer_id RETURN path"
+        }
+      ]
+    },
+    "knowledge_graph": {
+      "description": "General knowledge graph for semantic search",
+      "database": {
+        "type": "memgraph",
+        "default_url": "bolt://localhost:7688"
+      },
+      "nodes": {
+        "Document": {
+          "description": "Documents and files",
+          "properties": {
+            "id": {"type": "string", "indexed": true, "required": true},
+            "title": {"type": "string", "indexed": true},
+            "content": {"type": "string"},
+            "embedding": {"type": "array", "description": "Vector embedding"}
+          }
+        },
+        "Concept": {
+          "description": "Concepts and entities extracted from documents",
+          "properties": {
+            "id": {"type": "string", "indexed": true, "required": true},
+            "name": {"type": "string", "indexed": true},
+            "type": {"type": "string", "description": "Entity type"}
+          }
+        }
+      },
+      "relationships": {
+        "CONTAINS": {
+          "description": "Document contains concept",
+          "from": "Document",
+          "to": "Concept",
+          "properties": {
+            "relevance": {"type": "float", "constraints": ["MIN 0", "MAX 1"]}
+          }
+        },
+        "RELATED_TO": {
+          "description": "Concepts related to each other",
+          "from": "Concept",
+          "to": "Concept",
+          "bidirectional": true,
+          "properties": {
+            "similarity": {"type": "float"}
+          }
+        }
+      }
+    }
+  }
+}

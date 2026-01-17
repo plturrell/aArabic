@@ -1,0 +1,9 @@
+--- /Users/user/Documents/arabic_folder/vendor/layerIntelligence/lean4/tests/lean/exceptionalTrace.lean.expected.out	2026-01-08 14:10:20
++++ /Users/user/Documents/arabic_folder/src/serviceCore/leanShimmy-mojo/tmp/conformance/oracle/lean/exceptionalTrace.lean.out	2026-01-16 13:41:32
+@@ -1,4 +1,5 @@
+-exceptionalTrace.lean:7:0-7:13: error: maximum recursion depth has been reached
++warning: failed to query latest release, using existing version 'leanprover/lean4:v4.26.0'
++/Users/user/Documents/arabic_folder/vendor/layerIntelligence/lean4/tests/lean/exceptionalTrace.lean:7:0-7:13: error: maximum recursion depth has been reached
+ use `set_option maxRecDepth <num>` to increase limit
+ use `set_option diagnostics true` to get diagnostic information
+ [Elab.step] expected type: <not-available>, term

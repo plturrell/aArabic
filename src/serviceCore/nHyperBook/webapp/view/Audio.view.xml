@@ -1,0 +1,354 @@
+<mvc:View
+    controllerName="hypershimmy.controller.Audio"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:f="sap.f"
+    xmlns:core="sap.ui.core"
+    xmlns:html="http://www.w3.org/1999/xhtml">
+    
+    <Page
+        id="audio"
+        title="{i18n>audioTitle}"
+        showNavButton="true"
+        navButtonPress=".onNavBack">
+        
+        <headerContent>
+            <Button
+                icon="sap-icon://download"
+                tooltip="{i18n>audioDownloadButton}"
+                press=".onDownloadAudio"
+                enabled="{= ${appState>/audioGenerated} }"/>
+            <Button
+                icon="sap-icon://refresh"
+                tooltip="{i18n>audioRefreshButton}"
+                press=".onRefreshAudioList"/>
+        </headerContent>
+        
+        <content>
+            <VBox class="hypershimmyAudio" height="100%">
+                
+                <!-- Configuration Panel -->
+                <Panel
+                    headerText="{i18n>audioConfigTitle}"
+                    expandable="true"
+                    expanded="{appState>/audioConfigExpanded}"
+                    class="sapUiSmallMargin">
+                    
+                    <VBox class="sapUiSmallMargin">
+                        
+                        <!-- Text Input for Audio Generation -->
+                        <Label
+                            text="{i18n>audioTextLabel}"
+                            labelFor="audioTextArea"
+                            class="sapUiTinyMarginTop"
+                            required="true"/>
+                        <TextArea
+                            id="audioTextArea"
+                            placeholder="{i18n>audioTextPlaceholder}"
+                            value="{appState>/audioText}"
+                            rows="5"
+                            width="100%"
+                            class="sapUiTinyMarginBottom"/>
+                        <Text
+                            text="{i18n>audioTextHint}"
+                            class="sapUiTinyMarginBottom audioHint"/>
+                        
+                        <!-- Voice Selection -->
+                        <Label
+                            text="{i18n>audioVoiceLabel}"
+                            labelFor="voiceSelect"
+                            class="sapUiSmallMarginTop"/>
+                        <Select
+                            id="voiceSelect"
+                            selectedKey="{appState>/audioVoice}"
+                            width="100%"
+                            class="sapUiTinyMarginBottom">
+                            <items>
+                                <core:Item key="default" text="{i18n>audioVoiceDefault}"/>
+                                <core:Item key="professional" text="{i18n>audioVoiceProfessional}"/>
+                                <core:Item key="casual" text="{i18n>audioVoiceCasual}"/>
+                                <core:Item key="narrator" text="{i18n>audioVoiceNarrator}"/>
+                            </items>
+                        </Select>
+                        
+                        <!-- Format Selection -->
+                        <Label
+                            text="{i18n>audioFormatLabel}"
+                            labelFor="formatSelect"
+                            class="sapUiSmallMarginTop"/>
+                        <Select
+                            id="formatSelect"
+                            selectedKey="{appState>/audioFormat}"
+                            width="100%"
+                            class="sapUiTinyMarginBottom">
+                            <items>
+                                <core:Item key="mp3" text="MP3 (Recommended)"/>
+                                <core:Item key="wav" text="WAV (High Quality)"/>
+                            </items>
+                        </Select>
+                        
+                        <!-- Audio Quality Info -->
+                        <VBox class="sapUiSmallMarginTop audioQualityInfo">
+                            <Title text="{i18n>audioQualityTitle}" level="H5" class="sapUiTinyMarginBottom"/>
+                            <HBox class="sapUiTinyMarginBottom">
+                                <Label text="Sample Rate:" class="audioInfoLabel"/>
+                                <Text text="48 kHz (Professional)"/>
+                            </HBox>
+                            <HBox class="sapUiTinyMarginBottom">
+                                <Label text="Bit Depth:" class="audioInfoLabel"/>
+                                <Text text="24-bit (Studio Quality)"/>
+                            </HBox>
+                            <HBox class="sapUiTinyMarginBottom">
+                                <Label text="Channels:" class="audioInfoLabel"/>
+                                <Text text="Stereo"/>
+                            </HBox>
+                            <HBox class="sapUiTinyMarginBottom">
+                                <Label text="Provider:" class="audioInfoLabel"/>
+                                <Text text="AudioLabShimmy"/>
+                            </HBox>
+                        </VBox>
+                        
+                        <!-- Generate Button -->
+                        <Button
+                            text="{i18n>audioGenerateButton}"
+                            type="Emphasized"
+                            icon="sap-icon://microphone"
+                            press=".onGenerateAudio"
+                            enabled="{= !${appState>/busy} &amp;&amp; ${appState>/audioText}.length > 0 }"
+                            width="100%"
+                            class="sapUiSmallMarginTop"/>
+                    </VBox>
+                </Panel>
+                
+                <!-- Audio Player & Display Area -->
+                <ScrollContainer
+                    height="100%"
+                    width="100%"
+                    vertical="true"
+                    class="sapUiSmallMargin">
+                    
+                    <VBox class="audioContent">
+                        
+                        <!-- Loading Indicator -->
+                        <VBox
+                            visible="{appState>/busy}"
+                            alignItems="Center"
+                            justifyContent="Center"
+                            class="sapUiLargeMarginTop">
+                            <BusyIndicator size="3rem" class="sapUiMediumMarginBottom"/>
+                            <Title text="{i18n>audioGeneratingTitle}" class="sapUiTinyMarginBottom"/>
+                            <Text text="{i18n>audioGeneratingText}"/>
+                        </VBox>
+                        
+                        <!-- Empty State -->
+                        <VBox
+                            visible="{= !${appState>/busy} &amp;&amp; !${appState>/audioGenerated} }"
+                            alignItems="Center"
+                            justifyContent="Center"
+                            class="sapUiLargeMarginTop">
+                            <core:Icon
+                                src="sap-icon://media-play"
+                                size="4rem"
+                                color="#0070f2"
+                                class="sapUiMediumMarginBottom"/>
+                            <Title text="{i18n>audioEmptyTitle}" class="sapUiTinyMarginBottom"/>
+                            <Text text="{i18n>audioEmptyText}" textAlign="Center"/>
+                            <Text text="{i18n>audioEmptySubtext}" class="sapUiSmallMarginTop" textAlign="Center"/>
+                        </VBox>
+                        
+                        <!-- Audio Player Section -->
+                        <VBox
+                            visible="{= !${appState>/busy} &amp;&amp; ${appState>/audioGenerated} }"
+                            class="sapUiSmallMargin">
+                            
+                            <!-- Audio Header -->
+                            <HBox
+                                justifyContent="SpaceBetween"
+                                alignItems="Center"
+                                class="sapUiSmallMarginBottom">
+                                <VBox>
+                                    <Title
+                                        text="{appState>/currentAudio/Title}"
+                                        level="H2"/>
+                                    <Text
+                                        text="{= 'Duration: ' + ${appState>/currentAudio/DurationSeconds}.toFixed(1) + 's • Format: ' + ${appState>/audioFormat}.toUpperCase() }"
+                                        class="audioMetadata"/>
+                                </VBox>
+                                <HBox>
+                                    <ObjectStatus
+                                        text="{appState>/currentAudio/Status}"
+                                        state="{= ${appState>/currentAudio/Status} === 'completed' ? 'Success' : ${appState>/currentAudio/Status} === 'pending' || ${appState>/currentAudio/Status} === 'pending_integration' ? 'Warning' : 'Error' }"
+                                        icon="sap-icon://status-in-process"/>
+                                </HBox>
+                            </HBox>
+                            
+                            <!-- Audio Player Panel -->
+                            <Panel
+                                headerText="{i18n>audioPlayerTitle}"
+                                class="sapUiSmallMarginBottom">
+                                <VBox class="sapUiSmallMargin audioPlayerContainer">
+                                    
+                                    <!-- HTML5 Audio Player -->
+                                    <html:div id="audioPlayerWrapper" class="audioPlayerWrapper">
+                                        <html:audio
+                                            id="audioPlayer"
+                                            controls="controls"
+                                            preload="metadata"
+                                            class="audioPlayer">
+                                            <html:source
+                                                id="audioSource"
+                                                src="{appState>/audioFileUrl}"
+                                                type="audio/mpeg"/>
+                                            Your browser does not support the audio element.
+                                        </html:audio>
+                                    </html:div>
+                                    
+                                    <!-- Playback Controls -->
+                                    <HBox
+                                        justifyContent="Center"
+                                        alignItems="Center"
+                                        class="sapUiSmallMarginTop">
+                                        <Button
+                                            icon="sap-icon://media-play"
+                                            press=".onPlayPause"
+                                            tooltip="Play/Pause"
+                                            class="sapUiTinyMarginEnd"/>
+                                        <Button
+                                            icon="sap-icon://media-rewind"
+                                            press=".onRewind"
+                                            tooltip="Rewind 10s"
+                                            class="sapUiTinyMarginEnd"/>
+                                        <Button
+                                            icon="sap-icon://media-forward"
+                                            press=".onForward"
+                                            tooltip="Forward 10s"
+                                            class="sapUiTinyMarginEnd"/>
+                                        <Button
+                                            icon="sap-icon://download"
+                                            press=".onDownloadAudio"
+                                            tooltip="Download"
+                                            type="Emphasized"/>
+                                    </HBox>
+                                    
+                                    <!-- Status Message for Stub Integration -->
+                                    <MessageStrip
+                                        text="{appState>/currentAudio/Message}"
+                                        type="Warning"
+                                        showIcon="true"
+                                        visible="{= ${appState>/currentAudio/Status} === 'pending_integration' }"
+                                        class="sapUiSmallMarginTop"/>
+                                </VBox>
+                            </Panel>
+                            
+                            <!-- Audio Metadata -->
+                            <Panel
+                                headerText="{i18n>audioMetadataTitle}"
+                                expandable="true"
+                                expanded="false"
+                                class="sapUiSmallMarginBottom">
+                                <VBox class="sapUiSmallMargin">
+                                    <HBox class="sapUiTinyMarginBottom">
+                                        <Label text="Audio ID:" class="audioMetadataLabel"/>
+                                        <Text text="{appState>/currentAudio/AudioId}"/>
+                                    </HBox>
+                                    <HBox class="sapUiTinyMarginBottom">
+                                        <Label text="Source ID:" class="audioMetadataLabel"/>
+                                        <Text text="{appState>/currentAudio/SourceId}"/>
+                                    </HBox>
+                                    <HBox class="sapUiTinyMarginBottom">
+                                        <Label text="File Size:" class="audioMetadataLabel"/>
+                                        <Text text="{= (${appState>/currentAudio/FileSize} / 1024 / 1024).toFixed(2) + ' MB' }"/>
+                                    </HBox>
+                                    <HBox class="sapUiTinyMarginBottom">
+                                        <Label text="Sample Rate:" class="audioMetadataLabel"/>
+                                        <Text text="{= ${appState>/currentAudio/SampleRate} + ' Hz' }"/>
+                                    </HBox>
+                                    <HBox class="sapUiTinyMarginBottom">
+                                        <Label text="Bit Depth:" class="audioMetadataLabel"/>
+                                        <Text text="{= ${appState>/currentAudio/BitDepth} + '-bit' }"/>
+                                    </HBox>
+                                    <HBox class="sapUiTinyMarginBottom">
+                                        <Label text="Channels:" class="audioMetadataLabel"/>
+                                        <Text text="{= ${appState>/currentAudio/Channels} === 2 ? 'Stereo' : 'Mono' }"/>
+                                    </HBox>
+                                    <HBox class="sapUiTinyMarginBottom">
+                                        <Label text="Voice:" class="audioMetadataLabel"/>
+                                        <Text text="{appState>/currentAudio/Voice}"/>
+                                    </HBox>
+                                    <HBox class="sapUiTinyMarginBottom">
+                                        <Label text="Provider:" class="audioMetadataLabel"/>
+                                        <Text text="{appState>/currentAudio/Provider}"/>
+                                    </HBox>
+                                    <HBox class="sapUiTinyMarginBottom">
+                                        <Label text="Processing Time:" class="audioMetadataLabel"/>
+                                        <Text text="{= ${appState>/currentAudio/ProcessingTimeMs} ? ${appState>/currentAudio/ProcessingTimeMs} + 'ms' : 'N/A' }"/>
+                                    </HBox>
+                                    <HBox class="sapUiTinyMarginBottom">
+                                        <Label text="Generated:" class="audioMetadataLabel"/>
+                                        <Text text="{appState>/audioGeneratedTime}"/>
+                                    </HBox>
+                                </VBox>
+                            </Panel>
+                            
+                            <!-- Audio List Panel -->
+                            <Panel
+                                headerText="{i18n>audioListTitle}"
+                                expandable="true"
+                                expanded="true"
+                                class="sapUiSmallMarginBottom">
+                                <VBox class="sapUiSmallMargin">
+                                    <Table
+                                        id="audioTable"
+                                        items="{appState>/audioList}"
+                                        noDataText="{i18n>audioNoData}"
+                                        mode="SingleSelectMaster"
+                                        selectionChange=".onAudioSelect">
+                                        <columns>
+                                            <Column width="8em">
+                                                <Text text="Status"/>
+                                            </Column>
+                                            <Column width="12em">
+                                                <Text text="Title"/>
+                                            </Column>
+                                            <Column width="8em">
+                                                <Text text="Duration"/>
+                                            </Column>
+                                            <Column width="8em">
+                                                <Text text="Format"/>
+                                            </Column>
+                                            <Column width="10em">
+                                                <Text text="Generated"/>
+                                            </Column>
+                                            <Column width="6em" hAlign="End">
+                                                <Text text="Actions"/>
+                                            </Column>
+                                        </columns>
+                                        <items>
+                                            <ColumnListItem>
+                                                <cells>
+                                                    <ObjectStatus
+                                                        text="{appState>Status}"
+                                                        state="{= ${appState>Status} === 'completed' ? 'Success' : ${appState>Status} === 'pending' || ${appState>Status} === 'pending_integration' ? 'Warning' : 'Error' }"/>
+                                                    <Text text="{appState>Title}"/>
+                                                    <Text text="{= ${appState>DurationSeconds}.toFixed(1) + 's' }"/>
+                                                    <Text text="{= ${appState>FilePath}.split('.').pop().toUpperCase() }"/>
+                                                    <Text text="{appState>generatedTimeFormatted}"/>
+                                                    <Button
+                                                        icon="sap-icon://delete"
+                                                        type="Transparent"
+                                                        press=".onDeleteAudio"
+                                                        tooltip="Delete"/>
+                                                </cells>
+                                            </ColumnListItem>
+                                        </items>
+                                    </Table>
+                                </VBox>
+                            </Panel>
+                        </VBox>
+                    </VBox>
+                </ScrollContainer>
+            </VBox>
+        </content>
+    </Page>
+    
+</mvc:View>

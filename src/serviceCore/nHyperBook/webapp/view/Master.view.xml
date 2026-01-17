@@ -1,0 +1,41 @@
+<mvc:View
+    controllerName="hypershimmy.controller.Master"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc">
+    
+    <Page
+        id="master"
+        title="{i18n>masterTitle}"
+        class="hypershimmyMasterList">
+        
+        <headerContent>
+            <Button
+                icon="sap-icon://add"
+                text="{i18n>addSourceButton}"
+                press=".onAddSource"/>
+            <Button
+                icon="sap-icon://upload"
+                text="Upload File"
+                press=".onUploadFile"
+                type="Emphasized"/>
+        </headerContent>
+        
+        <content>
+            <List
+                id="sourcesList"
+                items="{/Sources}"
+                mode="{device>/listMode}"
+                selectionChange=".onSelectionChange"
+                noDataText="{i18n>noSourcesText}">
+                
+                <StandardListItem
+                    title="{Title}"
+                    description="{SourceType}"
+                    info="{Status}"
+                    type="{device>/listItemType}"/>
+                    
+            </List>
+        </content>
+    </Page>
+    
+</mvc:View>

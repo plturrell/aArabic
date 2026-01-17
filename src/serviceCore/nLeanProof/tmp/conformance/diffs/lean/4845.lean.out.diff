@@ -1,0 +1,7 @@
+--- /Users/user/Documents/arabic_folder/vendor/layerIntelligence/lean4/tests/lean/4845.lean.expected.out	2026-01-08 14:10:20
++++ /Users/user/Documents/arabic_folder/src/serviceCore/leanShimmy-mojo/tmp/conformance/oracle/lean/4845.lean.out	2026-01-16 13:41:32
+@@ -1,3 +1,4 @@
++warning: failed to query latest release, using existing version 'leanprover/lean4:v4.26.0'
+ z : Nat
+ _H : 0 = z
+ H : z = z

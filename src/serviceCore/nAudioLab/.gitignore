@@ -1,0 +1,76 @@
+# AudioLabShimmy - Git Ignore File
+
+# Compiled binaries
+*.o
+*.so
+*.dylib
+*.dll
+*.exe
+zig-cache/
+zig-out/
+.zig-cache/
+
+# Mojo compiled files
+*.mojopkg
+__pycache__/
+*.pyc
+
+# Model checkpoints (large files)
+data/models/fastspeech2/*.mojo
+data/models/hifigan/*.mojo
+data/models/*.ckpt
+data/models/*.pt
+data/models/*.pth
+
+# Preprocessed datasets (large)
+data/datasets/ljspeech_processed/
+data/datasets/*/preprocessed/
+*.npz
+*.npy
+
+# Audio files (generated)
+data/audio/generated/
+test_output/
+*.wav
+*.mp3
+*.flac
+*.ogg
+
+# Training logs
+logs/
+tensorboard/
+wandb/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.swp
+*~
+.DS_Store
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.sublime-*
+
+# Build artifacts
+build/
+dist/
+target/
+
+# Dataset downloads (keep structure, ignore data)
+data/datasets/LJSpeech-1.1/
+data/datasets/*.tar.gz
+data/datasets/*.tar.bz2
+data/datasets/*.zip
+
+# Phoneme dictionary (downloadable)
+data/phonemes/cmudict-*.txt
+
+# Keep directory structure
+!data/models/.gitkeep
+!data/datasets/.gitkeep
+!data/audio/.gitkeep
+!data/phonemes/.gitkeep

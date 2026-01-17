@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<edmx:Edmx xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx" Version="4.0">
+  <edmx:DataServices>
+    <Schema xmlns="http://docs.oasis-open.org/odata/ns/edm" Namespace="HyperShimmy.Research">
+      
+      <!-- ================================================================ -->
+      <!-- Entity Types -->
+      <!-- ================================================================ -->
+      
+      <!-- Source Entity: Represents research sources (URLs, PDFs, files) -->
+      <EntityType Name="Source">
+        <Key>
+          <PropertyRef Name="Id"/>
+        </Key>
+        <Property Name="Id" Type="Edm.Guid" Nullable="false"/>
+        <Property Name="Title" Type="Edm.String" MaxLength="500" Nullable="false"/>
+        <Property Name="SourceType" Type="Edm.String" MaxLength="50" Nullable="false"/>
+        <Property Name="Url" Type="Edm.String" MaxLength="2000"/>
+        <Property Name="Content" Type="Edm.String" MaxLength="1000000"/>
+        <Property Name="Metadata" Type="Edm.String" MaxLength="10000"/>
+        <Property Name="Status" Type="Edm.String" MaxLength="50" Nullable="false"/>
+        <Property Name="CreatedAt" Type="Edm.DateTimeOffset" Nullable="false"/>
+        <Property Name="UpdatedAt" Type="Edm.DateTimeOffset" Nullable="false"/>
+        <NavigationProperty Name="Messages" Type="Collection(HyperShimmy.Research.Message)"/>
+      </EntityType>
+      
+      <!-- Message Entity: Represents chat messages in the research session -->
+      <EntityType Name="Message">
+        <Key>
+          <PropertyRef Name="Id"/>
+        </Key>
+        <Property Name="Id" Type="Edm.Guid" Nullable="false"/>
+        <Property Name="SessionId" Type="Edm.Guid" Nullable="false"/>
+        <Property Name="Role" Type="Edm.String" MaxLength="50" Nullable="false"/>
+        <Property Name="Content" Type="Edm.String" MaxLength="100000" Nullable="false"/>
+        <Property Name="SourceIds" Type="Collection(Edm.Guid)"/>
+        <Property Name="Metadata" Type="Edm.String" MaxLength="10000"/>
+        <Property Name="CreatedAt" Type="Edm.DateTimeOffset" Nullable="false"/>
+        <NavigationProperty Name="Sources" Type="Collection(HyperShimmy.Research.Source)"/>
+      </EntityType>
+      
+      <!-- Summary Entity: Represents generated research summaries -->
+      <EntityType Name="Summary">
+        <Key>
+          <PropertyRef Name="Id"/>
+        </Key>
+        <Property Name="Id" Type="Edm.Guid" Nullable="false"/>
+        <Property Name="SessionId" Type="Edm.Guid" Nullable="false"/>
+        <Property Name="Title" Type="Edm.String" MaxLength="500" Nullable="false"/>
+        <Property Name="Content" Type="Edm.String" MaxLength="1000000" Nullable="false"/>
+        <Property Name="Format" Type="Edm.String" MaxLength="50" Nullable="false"/>
+        <Property Name="SourceIds" Type="Collection(Edm.Guid)"/>
+        <Property Name="Metadata" Type="Edm.String" MaxLength="10000"/>
+        <Property Name="CreatedAt" Type="Edm.DateTimeOffset" Nullable="false"/>
+        <NavigationProperty Name="Sources" Type="Collection(HyperShimmy.Research.Source)"/>
+      </EntityType>
+      
+      <!-- MindmapNode Entity: Represents nodes in the research mindmap -->
+      <EntityType Name="MindmapNode">
+        <Key>
+          <PropertyRef Name="Id"/>
+        </Key>
+        <Property Name="Id" Type="Edm.Guid" Nullable="false"/>
+        <Property Name="SessionId" Type="Edm.Guid" Nullable="false"/>
+        <Property Name="ParentId" Type="Edm.Guid"/>
+        <Property Name="Label" Type="Edm.String" MaxLength="500" Nullable="false"/>
+        <Property Name="Description" Type="Edm.String" MaxLength="5000"/>
+        <Property Name="Position" Type="Edm.String" MaxLength="100"/>
+        <Property Name="SourceIds" Type="Collection(Edm.Guid)"/>
+        <Property Name="Metadata" Type="Edm.String" MaxLength="10000"/>
+        <Property Name="CreatedAt" Type="Edm.DateTimeOffset" Nullable="false"/>
+        <NavigationProperty Name="Parent" Type="HyperShimmy.Research.MindmapNode"/>
+        <NavigationProperty Name="Children" Type="Collection(HyperShimmy.Research.MindmapNode)"/>
+        <NavigationProperty Name="Sources" Type="Collection(HyperShimmy.Research.Source)"/>
+      </EntityType>
+      
+      <!-- ================================================================ -->
+      <!-- Complex Types -->
+      <!-- ================================================================ -->
+      
+      <!-- ChatMessage: Input/output for chat operations -->
+      <ComplexType Name="ChatMessage">
+        <Property Name="Role" Type="Edm.String" MaxLength="50" Nullable="false"/>
+        <Property Name="Content" Type="Edm.String" MaxLength="100000" Nullable="false"/>
+        <Property Name="SourceIds" Type="Collection(Edm.Guid)"/>
+      </ComplexType>
+      
+      <!-- ChatRequest: Request for chat completion -->
+      <ComplexType Name="ChatRequest">
+        <Property Name="SessionId" Type="Edm.Guid" Nullable="false"/>
+        <Property Name="Message" Type="Edm.String" MaxLength="100000" Nullable="false"/>
+        <Property Name="IncludeSources" Type="Edm.Boolean" Nullable="false"/>
+        <Property Name="MaxTokens" Type="Edm.Int32"/>
+        <Property Name="Temperature" Type="Edm.Double"/>
+      </ComplexType>
+      
+      <!-- ChatResponse: Response from chat completion -->
+      <ComplexType Name="ChatResponse">
+        <Property Name="MessageId" Type="Edm.Guid" Nullable="false"/>
+        <Property Name="Content" Type="Edm.String" MaxLength="100000" Nullable="false"/>
+        <Property Name="SourceIds" Type="Collection(Edm.Guid)"/>
+        <Property Name="Metadata" Type="Edm.String" MaxLength="10000"/>
+      </ComplexType>
+      
+      <!-- SummaryRequest: Request for summary generation -->
+      <ComplexType Name="SummaryRequest">
+        <Property Name="SessionId" Type="Edm.Guid" Nullable="false"/>
+        <Property Name="SourceIds" Type="Collection(Edm.Guid)"/>
+        <Property Name="Format" Type="Edm.String" MaxLength="50"/>
+        <Property Name="MaxLength" Type="Edm.Int32"/>
+      </ComplexType>
+      
+      <!-- MindmapRequest: Request for mindmap generation -->
+      <ComplexType Name="MindmapRequest">
+        <Property Name="SessionId" Type="Edm.Guid" Nullable="false"/>
+        <Property Name="SourceIds" Type="Collection(Edm.Guid)"/>
+        <Property Name="MaxNodes" Type="Edm.Int32"/>
+        <Property Name="Depth" Type="Edm.Int32"/>
+      </ComplexType>
+      
+      <!-- AudioRequest: Request for audio generation -->
+      <ComplexType Name="AudioRequest">
+        <Property Name="SessionId" Type="Edm.Guid" Nullable="false"/>
+        <Property Name="SummaryId" Type="Edm.Guid" Nullable="false"/>
+        <Property Name="Voice" Type="Edm.String" MaxLength="50"/>
+        <Property Name="Speed" Type="Edm.Double"/>
+      </ComplexType>
+      
+      <!-- SlideRequest: Request for presentation slide generation -->
+      <ComplexType Name="SlideRequest">
+        <Property Name="SessionId" Type="Edm.Guid" Nullable="false"/>
+        <Property Name="SummaryId" Type="Edm.Guid" Nullable="false"/>
+        <Property Name="Theme" Type="Edm.String" MaxLength="50"/>
+        <Property Name="MaxSlides" Type="Edm.Int32"/>
+      </ComplexType>
+      
+      <!-- ================================================================ -->
+      <!-- Actions -->
+      <!-- ================================================================ -->
+      
+      <!-- Chat Action: Engage in research chat with RAG -->
+      <Action Name="Chat" IsBound="false">
+        <Parameter Name="Request" Type="HyperShimmy.Research.ChatRequest" Nullable="false"/>
+        <ReturnType Type="HyperShimmy.Research.ChatResponse" Nullable="false"/>
+      </Action>
+      
+      <!-- GenerateSummary Action: Generate research summary -->
+      <Action Name="GenerateSummary" IsBound="false">
+        <Parameter Name="Request" Type="HyperShimmy.Research.SummaryRequest" Nullable="false"/>
+        <ReturnType Type="HyperShimmy.Research.Summary" Nullable="false"/>
+      </Action>
+      
+      <!-- GenerateMindmap Action: Generate research mindmap -->
+      <Action Name="GenerateMindmap" IsBound="false">
+        <Parameter Name="Request" Type="HyperShimmy.Research.MindmapRequest" Nullable="false"/>
+        <ReturnType Type="Collection(HyperShimmy.Research.MindmapNode)" Nullable="false"/>
+      </Action>
+      
+      <!-- GenerateAudio Action: Generate audio overview -->
+      <Action Name="GenerateAudio" IsBound="false">
+        <Parameter Name="Request" Type="HyperShimmy.Research.AudioRequest" Nullable="false"/>
+        <ReturnType Type="Edm.String" Nullable="false"/>
+      </Action>
+      
+      <!-- GenerateSlides Action: Generate presentation slides -->
+      <Action Name="GenerateSlides" IsBound="false">
+        <Parameter Name="Request" Type="HyperShimmy.Research.SlideRequest" Nullable="false"/>
+        <ReturnType Type="Edm.String" Nullable="false"/>
+      </Action>
+      
+      <!-- AddSource Action: Add a new research source -->
+      <Action Name="AddSource" IsBound="false">
+        <Parameter Name="SessionId" Type="Edm.Guid" Nullable="false"/>
+        <Parameter Name="SourceType" Type="Edm.String" Nullable="false"/>
+        <Parameter Name="Url" Type="Edm.String"/>
+        <Parameter Name="Content" Type="Edm.String"/>
+        <Parameter Name="Title" Type="Edm.String"/>
+        <ReturnType Type="HyperShimmy.Research.Source" Nullable="false"/>
+      </Action>
+      
+      <!-- ================================================================ -->
+      <!-- Entity Container -->
+      <!-- ================================================================ -->
+      
+      <EntityContainer Name="ResearchService">
+        <EntitySet Name="Sources" EntityType="HyperShimmy.Research.Source">
+          <NavigationPropertyBinding Path="Messages" Target="Messages"/>
+        </EntitySet>
+        
+        <EntitySet Name="Messages" EntityType="HyperShimmy.Research.Message">
+          <NavigationPropertyBinding Path="Sources" Target="Sources"/>
+        </EntitySet>
+        
+        <EntitySet Name="Summaries" EntityType="HyperShimmy.Research.Summary">
+          <NavigationPropertyBinding Path="Sources" Target="Sources"/>
+        </EntitySet>
+        
+        <EntitySet Name="MindmapNodes" EntityType="HyperShimmy.Research.MindmapNode">
+          <NavigationPropertyBinding Path="Parent" Target="MindmapNodes"/>
+          <NavigationPropertyBinding Path="Children" Target="MindmapNodes"/>
+          <NavigationPropertyBinding Path="Sources" Target="Sources"/>
+        </EntitySet>
+        
+        <ActionImport Name="Chat" Action="HyperShimmy.Research.Chat"/>
+        <ActionImport Name="GenerateSummary" Action="HyperShimmy.Research.GenerateSummary"/>
+        <ActionImport Name="GenerateMindmap" Action="HyperShimmy.Research.GenerateMindmap"/>
+        <ActionImport Name="GenerateAudio" Action="HyperShimmy.Research.GenerateAudio"/>
+        <ActionImport Name="GenerateSlides" Action="HyperShimmy.Research.GenerateSlides"/>
+        <ActionImport Name="AddSource" Action="HyperShimmy.Research.AddSource"/>
+      </EntityContainer>
+      
+    </Schema>
+  </edmx:DataServices>
+</edmx:Edmx>

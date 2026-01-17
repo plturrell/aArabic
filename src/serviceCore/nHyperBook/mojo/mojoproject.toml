@@ -1,0 +1,11 @@
+[project]
+name = "hypershimmy-ffi"
+version = "0.1.0"
+description = "HyperShimmy FFI Bridge - Mojo implementation for Zig interoperability"
+
+[dependencies]
+
+[build]
+# Build configuration for creating a shared library
+output_type = "shared"
+output_name = "libhypershimmy_mojo"

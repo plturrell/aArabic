@@ -1,0 +1,450 @@
+<mvc:View
+    controllerName="hypershimmy.controller.Slides"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:f="sap.f"
+    xmlns:core="sap.ui.core"
+    xmlns:html="http://www.w3.org/1999/xhtml">
+    
+    <Page
+        id="slides"
+        title="{i18n>slidesTitle}"
+        showNavButton="true"
+        navButtonPress=".onNavBack">
+        
+        <headerContent>
+            <Button
+                icon="sap-icon://download"
+                tooltip="{i18n>slidesDownloadButton}"
+                press=".onDownloadPresentation"
+                enabled="{= ${appState>/presentationGenerated} }"/>
+            <Button
+                icon="sap-icon://present"
+                tooltip="{i18n>slidesPresentButton}"
+                press=".onOpenPresentation"
+                enabled="{= ${appState>/presentationGenerated} }"
+                type="Emphasized"/>
+            <Button
+                icon="sap-icon://refresh"
+                tooltip="{i18n>slidesRefreshButton}"
+                press=".onRefreshPresentationList"/>
+        </headerContent>
+        
+        <content>
+            <VBox class="hypershimmySlides" height="100%">
+                
+                <!-- Configuration Panel -->
+                <Panel
+                    headerText="{i18n>slidesConfigTitle}"
+                    expandable="true"
+                    expanded="{appState>/slidesConfigExpanded}"
+                    class="sapUiSmallMargin">
+                    
+                    <VBox class="sapUiSmallMargin">
+                        
+                        <!-- Presentation Title -->
+                        <Label
+                            text="{i18n>slidesTitleLabel}"
+                            labelFor="presentationTitle"
+                            class="sapUiTinyMarginTop"
+                            required="false"/>
+                        <Input
+                            id="presentationTitle"
+                            placeholder="{i18n>slidesTitlePlaceholder}"
+                            value="{appState>/presentationTitle}"
+                            width="100%"
+                            class="sapUiTinyMarginBottom"/>
+                        
+                        <!-- Theme Selection -->
+                        <Label
+                            text="{i18n>slidesThemeLabel}"
+                            labelFor="themeSelect"
+                            class="sapUiSmallMarginTop"/>
+                        <Select
+                            id="themeSelect"
+                            selectedKey="{appState>/presentationTheme}"
+                            width="100%"
+                            class="sapUiTinyMarginBottom">
+                            <items>
+                                <core:Item key="professional" text="{i18n>slidesThemeProfessional}"/>
+                                <core:Item key="minimal" text="{i18n>slidesThemeMinimal}"/>
+                                <core:Item key="dark" text="{i18n>slidesThemeDark}"/>
+                                <core:Item key="colorful" text="{i18n>slidesThemeColorful}"/>
+                            </items>
+                        </Select>
+                        
+                        <!-- Target Audience -->
+                        <Label
+                            text="{i18n>slidesAudienceLabel}"
+                            labelFor="audienceSelect"
+                            class="sapUiSmallMarginTop"/>
+                        <Select
+                            id="audienceSelect"
+                            selectedKey="{appState>/presentationAudience}"
+                            width="100%"
+                            class="sapUiTinyMarginBottom">
+                            <items>
+                                <core:Item key="general" text="{i18n>slidesAudienceGeneral}"/>
+                                <core:Item key="technical" text="{i18n>slidesAudienceTechnical}"/>
+                                <core:Item key="executive" text="{i18n>slidesAudienceExecutive}"/>
+                                <core:Item key="academic" text="{i18n>slidesAudienceAcademic}"/>
+                            </items>
+                        </Select>
+                        
+                        <!-- Detail Level -->
+                        <Label
+                            text="{i18n>slidesDetailLabel}"
+                            labelFor="detailSelect"
+                            class="sapUiSmallMarginTop"/>
+                        <Select
+                            id="detailSelect"
+                            selectedKey="{appState>/presentationDetail}"
+                            width="100%"
+                            class="sapUiTinyMarginBottom">
+                            <items>
+                                <core:Item key="low" text="{i18n>slidesDetailLow}"/>
+                                <core:Item key="medium" text="{i18n>slidesDetailMedium}"/>
+                                <core:Item key="high" text="{i18n>slidesDetailHigh}"/>
+                            </items>
+                        </Select>
+                        
+                        <!-- Number of Slides -->
+                        <Label
+                            text="{i18n>slidesNumSlidesLabel}"
+                            labelFor="numSlidesInput"
+                            class="sapUiSmallMarginTop"/>
+                        <StepInput
+                            id="numSlidesInput"
+                            value="{appState>/presentationNumSlides}"
+                            min="3"
+                            max="20"
+                            step="1"
+                            width="100%"
+                            class="sapUiTinyMarginBottom"/>
+                        <Text
+                            text="{i18n>slidesNumSlidesHint}"
+                            class="sapUiTinyMarginBottom slidesHint"/>
+                        
+                        <!-- Presentation Options Info -->
+                        <VBox class="sapUiSmallMarginTop slidesOptionsInfo">
+                            <Title text="{i18n>slidesOptionsTitle}" level="H5" class="sapUiTinyMarginBottom"/>
+                            <HBox class="sapUiTinyMarginBottom">
+                                <Label text="Auto-layout:" class="slidesInfoLabel"/>
+                                <Text text="Intelligent slide type selection"/>
+                            </HBox>
+                            <HBox class="sapUiTinyMarginBottom">
+                                <Label text="Speaker Notes:" class="slidesInfoLabel"/>
+                                <Text text="Included for each slide"/>
+                            </HBox>
+                            <HBox class="sapUiTinyMarginBottom">
+                                <Label text="Export Formats:" class="slidesInfoLabel"/>
+                                <Text text="HTML, PDF (future), PPTX (future)"/>
+                            </HBox>
+                            <HBox class="sapUiTinyMarginBottom">
+                                <Label text="Generator:" class="slidesInfoLabel"/>
+                                <Text text="SlideGeneratorShimmy (Mojo)"/>
+                            </HBox>
+                        </VBox>
+                        
+                        <!-- Generate Button -->
+                        <Button
+                            text="{i18n>slidesGenerateButton}"
+                            type="Emphasized"
+                            icon="sap-icon://presentation"
+                            press=".onGenerateSlides"
+                            enabled="{= !${appState>/busy} }"
+                            width="100%"
+                            class="sapUiSmallMarginTop"/>
+                    </VBox>
+                </Panel>
+                
+                <!-- Presentation Display Area -->
+                <ScrollContainer
+                    height="100%"
+                    width="100%"
+                    vertical="true"
+                    class="sapUiSmallMargin">
+                    
+                    <VBox class="slidesContent">
+                        
+                        <!-- Loading Indicator -->
+                        <VBox
+                            visible="{appState>/busy}"
+                            alignItems="Center"
+                            justifyContent="Center"
+                            class="sapUiLargeMarginTop">
+                            <BusyIndicator size="3rem" class="sapUiMediumMarginBottom"/>
+                            <Title text="{i18n>slidesGeneratingTitle}" class="sapUiTinyMarginBottom"/>
+                            <Text text="{i18n>slidesGeneratingText}"/>
+                        </VBox>
+                        
+                        <!-- Empty State -->
+                        <VBox
+                            visible="{= !${appState>/busy} &amp;&amp; !${appState>/presentationGenerated} }"
+                            alignItems="Center"
+                            justifyContent="Center"
+                            class="sapUiLargeMarginTop">
+                            <core:Icon
+                                src="sap-icon://present"
+                                size="4rem"
+                                color="#0070f2"
+                                class="sapUiMediumMarginBottom"/>
+                            <Title text="{i18n>slidesEmptyTitle}" class="sapUiTinyMarginBottom"/>
+                            <Text text="{i18n>slidesEmptyText}" textAlign="Center"/>
+                            <Text text="{i18n>slidesEmptySubtext}" class="sapUiSmallMarginTop" textAlign="Center"/>
+                        </VBox>
+                        
+                        <!-- Presentation Section -->
+                        <VBox
+                            visible="{= !${appState>/busy} &amp;&amp; ${appState>/presentationGenerated} }"
+                            class="sapUiSmallMargin">
+                            
+                            <!-- Presentation Header -->
+                            <HBox
+                                justifyContent="SpaceBetween"
+                                alignItems="Center"
+                                class="sapUiSmallMarginBottom">
+                                <VBox>
+                                    <Title
+                                        text="{appState>/currentPresentation/Title}"
+                                        level="H2"/>
+                                    <Text
+                                        text="{= ${appState>/currentPresentation/NumSlides} + ' slides • Theme: ' + ${appState>/currentPresentation/Theme} + ' • ' + ${appState>/currentPresentation/TargetAudience} }"
+                                        class="slidesMetadata"/>
+                                </VBox>
+                                <HBox>
+                                    <ObjectStatus
+                                        text="{appState>/currentPresentation/Status}"
+                                        state="{= ${appState>/currentPresentation/Status} === 'completed' ? 'Success' : ${appState>/currentPresentation/Status} === 'pending' ? 'Warning' : 'Error' }"
+                                        icon="sap-icon://status-in-process"/>
+                                </HBox>
+                            </HBox>
+                            
+                            <!-- Quick Actions -->
+                            <Panel
+                                headerText="{i18n>slidesActionsTitle}"
+                                class="sapUiSmallMarginBottom">
+                                <VBox class="sapUiSmallMargin">
+                                    <HBox class="sapUiTinyMarginBottom">
+                                        <Button
+                                            text="{i18n>slidesOpenButton}"
+                                            icon="sap-icon://present"
+                                            press=".onOpenPresentation"
+                                            type="Emphasized"
+                                            class="sapUiTinyMarginEnd"/>
+                                        <Button
+                                            text="{i18n>slidesExportStandardButton}"
+                                            icon="sap-icon://download"
+                                            press=".onExportStandard"
+                                            class="sapUiTinyMarginEnd"/>
+                                        <Button
+                                            text="{i18n>slidesExportNotesButton}"
+                                            icon="sap-icon://document"
+                                            press=".onExportWithNotes"
+                                            class="sapUiTinyMarginEnd"/>
+                                        <Button
+                                            text="{i18n>slidesShareButton}"
+                                            icon="sap-icon://share"
+                                            press=".onSharePresentation"/>
+                                    </HBox>
+                                    <Text
+                                        text="{i18n>slidesActionsHint}"
+                                        class="sapUiTinyMarginTop slidesHint"/>
+                                </VBox>
+                            </Panel>
+                            
+                            <!-- Slide Preview Panel -->
+                            <Panel
+                                headerText="{i18n>slidesPreviewTitle}"
+                                class="sapUiSmallMarginBottom">
+                                <VBox class="sapUiSmallMargin">
+                                    
+                                    <!-- Slide Navigation -->
+                                    <HBox
+                                        justifyContent="SpaceBetween"
+                                        alignItems="Center"
+                                        class="sapUiTinyMarginBottom">
+                                        <Button
+                                            icon="sap-icon://nav-back"
+                                            press=".onPreviousSlide"
+                                            enabled="{= ${appState>/currentSlideIndex} > 0 }"/>
+                                        <Text
+                                            text="{= 'Slide ' + (${appState>/currentSlideIndex} + 1) + ' of ' + ${appState>/currentPresentation/NumSlides} }"
+                                            class="slidesNavigation"/>
+                                        <Button
+                                            icon="sap-icon://navigation-right-arrow"
+                                            press=".onNextSlide"
+                                            enabled="{= ${appState>/currentSlideIndex} &lt; ${appState>/currentPresentation/NumSlides} - 1 }"/>
+                                    </HBox>
+                                    
+                                    <!-- Current Slide Display -->
+                                    <VBox class="slidePreview sapUiSmallMarginTop">
+                                        <Title
+                                            text="{appState>/currentSlide/Title}"
+                                            level="H3"
+                                            class="sapUiTinyMarginBottom"/>
+                                        <Text
+                                            text="{appState>/currentSlide/Subtitle}"
+                                            visible="{= !!${appState>/currentSlide/Subtitle} }"
+                                            class="slideSubtitle sapUiTinyMarginBottom"/>
+                                        <VBox class="slideContent sapUiSmallMarginTop">
+                                            <FormattedText
+                                                htmlText="{appState>/currentSlideContentHtml}"
+                                                class="slideContentText"/>
+                                        </VBox>
+                                        <Text
+                                            text="{= 'Layout: ' + ${appState>/currentSlide/Layout} }"
+                                            class="slideLayout sapUiSmallMarginTop"/>
+                                    </VBox>
+                                    
+                                    <!-- Speaker Notes -->
+                                    <Panel
+                                        headerText="{i18n>slidesNotesTitle}"
+                                        expandable="true"
+                                        expanded="false"
+                                        class="sapUiSmallMarginTop">
+                                        <VBox class="sapUiSmallMargin">
+                                            <Text text="{appState>/currentSlide/Notes}"/>
+                                        </VBox>
+                                    </Panel>
+                                </VBox>
+                            </Panel>
+                            
+                            <!-- Slide Thumbnails -->
+                            <Panel
+                                headerText="{i18n>slidesThumbnailsTitle}"
+                                expandable="true"
+                                expanded="true"
+                                class="sapUiSmallMarginBottom">
+                                <VBox class="sapUiSmallMargin">
+                                    <List
+                                        id="slidesList"
+                                        items="{appState>/currentSlides}"
+                                        mode="SingleSelectMaster"
+                                        selectionChange=".onSlideSelect">
+                                        <StandardListItem
+                                            title="{appState>Title}"
+                                            description="{= 'Slide ' + ${appState>SlideNumber} + ' • ' + ${appState>Layout} }"
+                                            icon="sap-icon://BusinessSuiteInAppSymbols/icon-slide"
+                                            iconInset="false"
+                                            type="Active"/>
+                                    </List>
+                                </VBox>
+                            </Panel>
+                            
+                            <!-- Presentation Metadata -->
+                            <Panel
+                                headerText="{i18n>slidesMetadataTitle}"
+                                expandable="true"
+                                expanded="false"
+                                class="sapUiSmallMarginBottom">
+                                <VBox class="sapUiSmallMargin">
+                                    <HBox class="sapUiTinyMarginBottom">
+                                        <Label text="Presentation ID:" class="slidesMetadataLabel"/>
+                                        <Text text="{appState>/currentPresentation/PresentationId}"/>
+                                    </HBox>
+                                    <HBox class="sapUiTinyMarginBottom">
+                                        <Label text="Source ID:" class="slidesMetadataLabel"/>
+                                        <Text text="{appState>/currentPresentation/SourceId}"/>
+                                    </HBox>
+                                    <HBox class="sapUiTinyMarginBottom">
+                                        <Label text="Author:" class="slidesMetadataLabel"/>
+                                        <Text text="{appState>/currentPresentation/Author}"/>
+                                    </HBox>
+                                    <HBox class="sapUiTinyMarginBottom">
+                                        <Label text="File Size:" class="slidesMetadataLabel"/>
+                                        <Text text="{= (${appState>/currentPresentation/FileSize} / 1024).toFixed(2) + ' KB' }"/>
+                                    </HBox>
+                                    <HBox class="sapUiTinyMarginBottom">
+                                        <Label text="Target Audience:" class="slidesMetadataLabel"/>
+                                        <Text text="{appState>/currentPresentation/TargetAudience}"/>
+                                    </HBox>
+                                    <HBox class="sapUiTinyMarginBottom">
+                                        <Label text="Detail Level:" class="slidesMetadataLabel"/>
+                                        <Text text="{appState>/currentPresentation/DetailLevel}"/>
+                                    </HBox>
+                                    <HBox class="sapUiTinyMarginBottom">
+                                        <Label text="Export Format:" class="slidesMetadataLabel"/>
+                                        <Text text="{appState>/currentPresentation/ExportFormat}"/>
+                                    </HBox>
+                                    <HBox class="sapUiTinyMarginBottom">
+                                        <Label text="Version:" class="slidesMetadataLabel"/>
+                                        <Text text="{appState>/currentPresentation/Version}"/>
+                                    </HBox>
+                                    <HBox class="sapUiTinyMarginBottom">
+                                        <Label text="Processing Time:" class="slidesMetadataLabel"/>
+                                        <Text text="{= ${appState>/currentPresentation/ProcessingTimeMs} ? ${appState>/currentPresentation/ProcessingTimeMs} + 'ms' : 'N/A' }"/>
+                                    </HBox>
+                                    <HBox class="sapUiTinyMarginBottom">
+                                        <Label text="Generated:" class="slidesMetadataLabel"/>
+                                        <Text text="{appState>/presentationGeneratedTime}"/>
+                                    </HBox>
+                                </VBox>
+                            </Panel>
+                            
+                            <!-- Presentation History -->
+                            <Panel
+                                headerText="{i18n>slidesHistoryTitle}"
+                                expandable="true"
+                                expanded="true"
+                                class="sapUiSmallMarginBottom">
+                                <VBox class="sapUiSmallMargin">
+                                    <Table
+                                        id="presentationTable"
+                                        items="{appState>/presentationList}"
+                                        noDataText="{i18n>slidesNoData}"
+                                        mode="SingleSelectMaster"
+                                        selectionChange=".onPresentationSelect">
+                                        <columns>
+                                            <Column width="8em">
+                                                <Text text="Status"/>
+                                            </Column>
+                                            <Column width="15em">
+                                                <Text text="Title"/>
+                                            </Column>
+                                            <Column width="6em">
+                                                <Text text="Slides"/>
+                                            </Column>
+                                            <Column width="10em">
+                                                <Text text="Theme"/>
+                                            </Column>
+                                            <Column width="6em">
+                                                <Text text="Version"/>
+                                            </Column>
+                                            <Column width="10em">
+                                                <Text text="Generated"/>
+                                            </Column>
+                                            <Column width="6em" hAlign="End">
+                                                <Text text="Actions"/>
+                                            </Column>
+                                        </columns>
+                                        <items>
+                                            <ColumnListItem>
+                                                <cells>
+                                                    <ObjectStatus
+                                                        text="{appState>Status}"
+                                                        state="{= ${appState>Status} === 'completed' ? 'Success' : ${appState>Status} === 'pending' ? 'Warning' : 'Error' }"/>
+                                                    <Text text="{appState>Title}"/>
+                                                    <Text text="{appState>NumSlides}"/>
+                                                    <Text text="{appState>Theme}"/>
+                                                    <Text text="{appState>Version}"/>
+                                                    <Text text="{appState>generatedTimeFormatted}"/>
+                                                    <Button
+                                                        icon="sap-icon://delete"
+                                                        type="Transparent"
+                                                        press=".onDeletePresentation"
+                                                        tooltip="Delete"/>
+                                                </cells>
+                                            </ColumnListItem>
+                                        </items>
+                                    </Table>
+                                </VBox>
+                            </Panel>
+                        </VBox>
+                    </VBox>
+                </ScrollContainer>
+            </VBox>
+        </content>
+    </Page>
+    
+</mvc:View>

@@ -1,0 +1,1 @@
+(program (theorem t (ident Nat) (number 0)))

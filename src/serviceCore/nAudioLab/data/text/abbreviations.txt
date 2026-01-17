@@ -1,0 +1,233 @@
+# Common Abbreviations for Text Normalization
+# Format: abbreviation|full_form|context
+
+# Titles
+Dr.|Doctor|title
+Mr.|Mister|title
+Mrs.|Misses|title
+Ms.|Miss|title
+Prof.|Professor|title
+Rev.|Reverend|title
+Hon.|Honorable|title
+Sen.|Senator|title
+Rep.|Representative|title
+Gov.|Governor|title
+Pres.|President|title
+VP.|Vice President|title
+Maj.|Major|military
+Gen.|General|military
+Col.|Colonel|military
+Capt.|Captain|military
+Lt.|Lieutenant|military
+Sgt.|Sergeant|military
+
+# Street Types
+St.|Street|location
+Ave.|Avenue|location
+Blvd.|Boulevard|location
+Rd.|Road|location
+Dr.|Drive|location
+Ln.|Lane|location
+Ct.|Court|location
+Pl.|Place|location
+Ter.|Terrace|location
+Pkwy.|Parkway|location
+Hwy.|Highway|location
+Fwy.|Freeway|location
+
+# Directions
+N.|North|direction
+S.|South|direction
+E.|East|direction
+W.|West|direction
+NE.|Northeast|direction
+NW.|Northwest|direction
+SE.|Southeast|direction
+SW.|Southwest|direction
+
+# Units of Measurement
+ft.|feet|unit
+in.|inches|unit
+yd.|yards|unit
+mi.|miles|unit
+lb.|pounds|unit
+oz.|ounces|unit
+gal.|gallons|unit
+qt.|quarts|unit
+pt.|pints|unit
+tbsp.|tablespoons|unit
+tsp.|teaspoons|unit
+kg.|kilograms|unit
+g.|grams|unit
+mg.|milligrams|unit
+km.|kilometers|unit
+m.|meters|unit
+cm.|centimeters|unit
+mm.|millimeters|unit
+L.|liters|unit
+ml.|milliliters|unit
+mph.|miles per hour|unit
+kph.|kilometers per hour|unit
+rpm.|revolutions per minute|unit
+mpg.|miles per gallon|unit
+
+# Time
+sec.|seconds|time
+min.|minutes|time
+hr.|hours|time
+hrs.|hours|time
+a.m.|A M|time
+p.m.|P M|time
+AM.|A M|time
+PM.|P M|time
+
+# Months
+Jan.|January|month
+Feb.|February|month
+Mar.|March|month
+Apr.|April|month
+Aug.|August|month
+Sept.|September|month
+Sep.|September|month
+Oct.|October|month
+Nov.|November|month
+Dec.|December|month
+
+# Days
+Mon.|Monday|day
+Tue.|Tuesday|day
+Tues.|Tuesday|day
+Wed.|Wednesday|day
+Thu.|Thursday|day
+Thur.|Thursday|day
+Thurs.|Thursday|day
+Fri.|Friday|day
+Sat.|Saturday|day
+Sun.|Sunday|day
+
+# Common Words
+etc.|et cetera|common
+vs.|versus|common
+approx.|approximately|common
+misc.|miscellaneous|common
+dept.|department|common
+est.|established|common
+inc.|incorporated|common
+corp.|corporation|common
+co.|company|common
+Ltd.|Limited|common
+LLC.|Limited Liability Company|common
+assn.|association|common
+bros.|brothers|common
+acct.|account|common
+amt.|amount|common
+apt.|apartment|common
+avg.|average|common
+bldg.|building|common
+ch.|chapter|common
+cont.|continued|common
+ed.|edition|common
+e.g.|for example|common
+esp.|especially|common
+fwd.|forward|common
+govt.|government|common
+i.e.|that is|common
+Jr.|Junior|common
+Sr.|Senior|common
+max.|maximum|common
+min.|minimum|common
+no.|number|common
+pg.|page|common
+pp.|pages|common
+ref.|reference|common
+vol.|volume|common
+vs.|versus|common
+
+# Technology
+app.|application|tech
+admin.|administrator|tech
+config.|configuration|tech
+dev.|development|tech
+exec.|executive|tech
+impl.|implementation|tech
+info.|information|tech
+init.|initialize|tech
+mgr.|manager|tech
+mgmt.|management|tech
+ops.|operations|tech
+pkg.|package|tech
+proc.|procedure|tech
+prog.|program|tech
+sys.|system|tech
+temp.|temperature|tech
+tech.|technology|tech
+util.|utility|tech
+
+# Academic
+Univ.|University|academic
+Inst.|Institute|academic
+Coll.|College|academic
+Sch.|School|academic
+Dept.|Department|academic
+Ph.D.|Doctor of Philosophy|academic
+M.A.|Master of Arts|academic
+M.S.|Master of Science|academic
+B.A.|Bachelor of Arts|academic
+B.S.|Bachelor of Science|academic
+assoc.|associate|academic
+asst.|assistant|academic
+prof.|professor|academic
+
+# Business
+CEO.|Chief Executive Officer|business
+CFO.|Chief Financial Officer|business
+CTO.|Chief Technology Officer|business
+COO.|Chief Operating Officer|business
+VP.|Vice President|business
+SVP.|Senior Vice President|business
+EVP.|Executive Vice President|business
+mgr.|manager|business
+dir.|director|business
+exec.|executive|business
+
+# Medical
+MD.|Doctor of Medicine|medical
+RN.|Registered Nurse|medical
+LPN.|Licensed Practical Nurse|medical
+PA.|Physician Assistant|medical
+NP.|Nurse Practitioner|medical
+EMT.|Emergency Medical Technician|medical
+ICU.|Intensive Care Unit|medical
+ER.|Emergency Room|medical
+OTC.|Over The Counter|medical
+Rx.|Prescription|medical
+
+# Geography
+Mt.|Mount|geography
+Mts.|Mountains|geography
+Is.|Island|geography
+Pk.|Park|geography
+Natl.|National|geography
+Intl.|International|geography
+
+# Organizations
+FBI.|Federal Bureau of Investigation|org
+CIA.|Central Intelligence Agency|org
+NASA.|National Aeronautics and Space Administration|org
+NATO.|North Atlantic Treaty Organization|org
+UN.|United Nations|org
+US.|United States|org
+USA.|United States of America|org
+UK.|United Kingdom|org
+EU.|European Union|org
+
+# Miscellaneous
+cf.|compare|misc
+ca.|circa|misc
+PS.|postscript|misc
+RSVP.|please respond|misc
+TBA.|to be announced|misc
+TBD.|to be determined|misc
+FAQ.|frequently asked questions|misc
+FYI.|for your information|misc
+ASAP.|as soon as possible|misc

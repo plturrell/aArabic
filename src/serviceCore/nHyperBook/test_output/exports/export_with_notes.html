@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Research Overview - With Speaker Notes</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; }
+        .presentation { width: 70vw; height: 100vh; float: left; position: relative; }
+        .notes-panel { width: 30vw; height: 100vh; float: right; background: #f5f5f5; overflow-y: auto; padding: 20px; border-left: 2px solid #ddd; }
+        .slide { width: 100%; height: 100%; display: none; padding: 60px 80px; position: absolute; top: 0; left: 0; }
+        .slide.active { display: flex; flex-direction: column; justify-content: center; }
+        .slide h1 { font-size: 3rem; margin-bottom: 1rem; }
+        .slide h2 { font-size: 2rem; margin-bottom: 2rem; }
+        .slide p { font-size: 1.3rem; line-height: 1.8; }
+        .slide { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .slide h1, .slide h2 { color: white; }
+        .notes-title { font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem; color: #333; }
+        .notes-content { font-size: 1.1rem; line-height: 1.6; color: #555; }
+        .slide-counter { padding: 10px 20px; background: #0070f2; color: white; border-radius: 5px; margin-bottom: 15px; text-align: center; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        <div class="slide active" data-slide="1">
+            <div style="text-align: center;">
+                <h1>AI Research Overview</h1>
+                <p style="margin-top: 3rem;">Research Team</p>
+            </div>
+        </div>
+        <div class="slide" data-slide="2">
+            <h2>Key Concepts</h2>
+            <div style="margin-top: 2rem;"><p>Core machine learning principles and applications in modern research.</p></div>
+        </div>
+    </div>
+    
+    <div class="notes-panel">
+        <div class="slide-counter">Slide <span id="currentSlide">1</span> / 2</div>
+        <div class="notes-title" id="notesTitle">Speaker Notes</div>
+        <div class="notes-content" id="notesContent">
+            <p><strong>Opening slide.</strong> Introduce the presentation topic and set the context for the audience. Welcome everyone and establish rapport.</p>
+            <p style="margin-top: 1rem;"><strong>Key points to mention:</strong></p>
+            <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                <li>Thank the audience for attending</li>
+                <li>Briefly mention what will be covered</li>
+                <li>Set expectations for Q&A at the end</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        const notes = {
+            1: {
+                title: "Opening Slide Notes",
+                content: `<p><strong>Opening slide.</strong> Introduce the presentation topic and set the context for the audience. Welcome everyone and establish rapport.</p>
+                <p style="margin-top: 1rem;"><strong>Key points to mention:</strong></p>
+                <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                    <li>Thank the audience for attending</li>
+                    <li>Briefly mention what will be covered</li>
+                    <li>Set expectations for Q&A at the end</li>
+                </ul>`
+            },
+            2: {
+                title: "Key Concepts Notes",
+                content: `<p><strong>Introduce fundamental concepts.</strong> This slide covers the core principles that underpin the rest of the presentation.</p>
+                <p style="margin-top: 1rem;"><strong>Talking points:</strong></p>
+                <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                    <li>Define machine learning in simple terms</li>
+                    <li>Explain why these concepts matter</li>
+                    <li>Connect to real-world applications</li>
+                    <li>Allow time for questions if needed</li>
+                </ul>`
+            }
+        };
+        
+        let currentSlide = 1;
+        const slides = document.querySelectorAll('.slide');
+        
+        function updateNotes() {
+            const note = notes[currentSlide];
+            if (note) {
+                document.getElementById('notesTitle').textContent = note.title;
+                document.getElementById('notesContent').innerHTML = note.content;
+            }
+            document.getElementById('currentSlide').textContent = currentSlide;
+        }
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' && currentSlide > 1) {
+                currentSlide--;
+                slides.forEach((s, i) => s.classList.toggle('active', i + 1 === currentSlide));
+                updateNotes();
+            } else if (e.key === 'ArrowRight' && currentSlide < slides.length) {
+                currentSlide++;
+                slides.forEach((s, i) => s.classList.toggle('active', i + 1 === currentSlide));
+                updateNotes();
+            }
+        });
+    </script>
+</body>
+</html>

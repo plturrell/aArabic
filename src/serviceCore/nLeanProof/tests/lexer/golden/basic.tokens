@@ -1,0 +1,5 @@
+KEYWORD	def	1:1
+IDENT	foo	1:5
+SYMBOL	:=	1:9
+NUMBER	42	1:12
+EOF		1:14

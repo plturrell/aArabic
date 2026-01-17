@@ -1,0 +1,69 @@
+# Zig build artifacts
+zig-cache/
+zig-out/
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Mojo build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.mojopkg
+.mojo_cache/
+
+# Test artifacts
+tests/fixtures/generated/
+tests/output/
+coverage/
+*.profdata
+*.profraw
+
+# Fuzzing artifacts
+tests/fuzz/corpus/
+tests/fuzz/crashes/
+tests/fuzz/hangs/
+tests/fuzz/*.log
+
+# Documentation build
+docs/_build/
+docs/.doctrees/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Configuration (local overrides)
+.nextract.toml
+config.local.toml
+
+# Benchmarks
+benchmarks/results/
+*.bench
+
+# Build artifacts
+build/
+dist/
+target/
+
+# Dependencies (if any vendored)
+vendor/
+
+# Temporary files
+tmp/
+temp/
+*.tmp

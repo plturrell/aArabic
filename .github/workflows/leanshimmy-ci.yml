@@ -1,0 +1,59 @@
+name: leanshimmy-ci
+
+on:
+  push:
+    paths:
+      - "src/serviceCore/leanShimmy-mojo/**"
+      - ".github/workflows/leanshimmy-ci.yml"
+  pull_request:
+    paths:
+      - "src/serviceCore/leanShimmy-mojo/**"
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: 0.15.2
+      - name: Cache Zig build outputs
+        uses: actions/cache@v4
+        with:
+          path: |
+            src/serviceCore/leanShimmy-mojo/.zig-cache
+            src/serviceCore/leanShimmy-mojo/zig-out/bin/leanshimmy
+          key: ${{ runner.os }}-leanshimmy-bin-${{ hashFiles('src/serviceCore/leanShimmy-mojo/**.zig', 'src/serviceCore/leanShimmy-mojo/build.zig') }}
+          restore-keys: |
+            ${{ runner.os }}-leanshimmy-bin-
+      - name: Cache inference fixture
+        uses: actions/cache@v4
+        with:
+          path: |
+            src/serviceCore/leanShimmy-mojo/zig-out/lib/libinference_fixture.dylib
+            src/serviceCore/leanShimmy-mojo/zig-out/lib/libinference_fixture.so
+          key: ${{ runner.os }}-leanshimmy-fixture-${{ hashFiles('src/serviceCore/leanShimmy-mojo/server/inference_fixture.zig') }}
+      - name: Build inference fixture if missing
+        working-directory: src/serviceCore/leanShimmy-mojo
+        run: |
+          set -euo pipefail
+          mkdir -p zig-out/lib
+          EXT="dylib"
+          if [ "$RUNNER_OS" = "Linux" ]; then EXT="so"; fi
+          TARGET="zig-out/lib/libinference_fixture.${EXT}"
+          if [ ! -f "$TARGET" ]; then
+            zig build-lib -dynamic server/inference_fixture.zig -femit-bin="$TARGET"
+          fi
+      - name: Build leanshimmy
+        working-directory: src/serviceCore/leanShimmy-mojo
+        run: zig build -Doptimize=ReleaseFast
+      - name: Smoke OpenAI API
+        working-directory: src/serviceCore/leanShimmy-mojo
+        run: ./scripts/smoke_openai.sh
+      - name: Quick QPS sanity
+        working-directory: src/serviceCore/leanShimmy-mojo
+        env:
+          LEANSHIMMY_ENGINE_POOL_SIZE: 2
+        run: ./scripts/bench_qps.sh -n 50 -c 4 --min-qps 30 --max-seconds 5 --max-ttft 0.1 --latency-samples 5 --prompt-bytes 8000

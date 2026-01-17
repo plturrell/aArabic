@@ -1,0 +1,12 @@
+<mvc:View
+    controllerName="hypershimmy.controller.App"
+    xmlns="sap.f"
+    xmlns:mvc="sap.ui.core.mvc">
+    
+    <FlexibleColumnLayout
+        id="layout"
+        stateChange=".onStateChanged"
+        backgroundDesign="Solid">
+    </FlexibleColumnLayout>
+    
+</mvc:View>
