@@ -71,20 +71,6 @@
       "dependencies": []
     },
     {
-      "id": "markitdown",
-      "name": "MarkItDown",
-      "layer": "core",
-      "kind": "document-converter",
-      "vendor_path": "vendor/layerCore/markitdown",
-      "src_path": "src/serviceCore/serviceMarkItDownWrapper",
-      "wrapper": true,
-      "upstream_url": "http://markitdown:8005",
-      "health_path": "/health",
-      "version": "0.1.0",
-      "tags": ["markdown", "documents"],
-      "dependencies": []
-    },
-    {
       "id": "memgraph",
       "name": "Memgraph",
       "layer": "data",
@@ -153,20 +139,6 @@
       "version": "14-alpine",
       "tags": ["sql", "postgres"],
       "dependencies": []
-    },
-    {
-      "id": "langflow",
-      "name": "Langflow",
-      "layer": "automation",
-      "kind": "workflow-ui",
-      "vendor_path": "vendor/layerAutomation/langflow",
-      "src_path": "src/serviceAutomation/serviceLangflow",
-      "wrapper": true,
-      "upstream_url": "http://langflow:7860",
-      "health_path": "/health",
-      "version": "latest",
-      "tags": ["workflow", "builder", "memgraph-ai-toolkit"],
-      "dependencies": ["memgraph", "qdrant"]
     },
     {
       "id": "registry-db",

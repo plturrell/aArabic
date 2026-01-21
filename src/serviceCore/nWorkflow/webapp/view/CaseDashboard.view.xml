@@ -1,0 +1,303 @@
+<mvc:View
+    controllerName="serviceCore.nWorkflow.controller.CaseDashboard"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:f="sap.f"
+    xmlns:l="sap.ui.layout">
+    <Page
+        id="caseDashboardPage"
+        title="Case Management"
+        showNavButton="true"
+        navButtonPress=".onNavBack"
+        showFooter="true"
+        backgroundDesign="List"
+        class="sapUiContentPadding">
+
+        <!-- Header Content -->
+        <headerContent>
+            <Button
+                id="createCaseBtn"
+                text="Create Case"
+                icon="sap-icon://add"
+                type="Emphasized"
+                press=".onCreateCasePress"/>
+            <ToolbarSpacer/>
+            <Select
+                id="caseFilterSelect"
+                selectedKey="{caseDashboard>/filter/caseFilter}"
+                change=".onCaseFilterChange">
+                <core:Item key="all" text="All Cases"/>
+                <core:Item key="my" text="My Cases"/>
+                <core:Item key="team" text="Team Cases"/>
+            </Select>
+            <SearchField
+                id="caseSearchField"
+                placeholder="Search cases..."
+                width="16rem"
+                search=".onCaseSearch"
+                liveChange=".onCaseSearchLiveChange"/>
+            <Button
+                id="refreshCasesBtn"
+                icon="sap-icon://refresh"
+                tooltip="Refresh"
+                type="Transparent"
+                press=".onRefreshCases"/>
+        </headerContent>
+
+        <content>
+            <l:VerticalLayout width="100%" class="sapUiResponsiveMargin">
+
+                <!-- Statistics Panel -->
+                <Panel id="statsPanel" headerText="Case Statistics" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+                    <HBox justifyContent="Start" wrap="Wrap">
+                        <GenericTile
+                            id="openCasesTile"
+                            header="Open Cases"
+                            subheader="Awaiting action"
+                            press=".onStatsTilePress"
+                            class="sapUiTinyMarginEnd sapUiTinyMarginBottom">
+                            <TileContent>
+                                <NumericContent
+                                    value="{caseDashboard>/statistics/openCases}"
+                                    icon="sap-icon://inbox"
+                                    valueColor="Neutral"/>
+                            </TileContent>
+                        </GenericTile>
+                        <GenericTile
+                            id="inProgressTile"
+                            header="In Progress"
+                            subheader="Currently working"
+                            press=".onStatsTilePress"
+                            class="sapUiTinyMarginEnd sapUiTinyMarginBottom">
+                            <TileContent>
+                                <NumericContent
+                                    value="{caseDashboard>/statistics/inProgress}"
+                                    icon="sap-icon://process"
+                                    valueColor="Critical"/>
+                            </TileContent>
+                        </GenericTile>
+                        <GenericTile
+                            id="pendingReviewTile"
+                            header="Pending Review"
+                            subheader="Needs approval"
+                            press=".onStatsTilePress"
+                            class="sapUiTinyMarginEnd sapUiTinyMarginBottom">
+                            <TileContent>
+                                <NumericContent
+                                    value="{caseDashboard>/statistics/pendingReview}"
+                                    icon="sap-icon://pending"
+                                    valueColor="Critical"/>
+                            </TileContent>
+                        </GenericTile>
+                        <GenericTile
+                            id="closedThisWeekTile"
+                            header="Closed This Week"
+                            subheader="Completed"
+                            press=".onStatsTilePress"
+                            class="sapUiTinyMarginBottom">
+                            <TileContent>
+                                <NumericContent
+                                    value="{caseDashboard>/statistics/closedThisWeek}"
+                                    icon="sap-icon://complete"
+                                    valueColor="Good"/>
+                            </TileContent>
+                        </GenericTile>
+                    </HBox>
+                </Panel>
+
+                <!-- Case List Panel -->
+                <Panel id="caseListPanel" headerText="Cases" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+                    <headerToolbar>
+                        <Toolbar>
+                            <Title text="Cases" level="H4"/>
+                            <ToolbarSpacer/>
+                            <Label text="Sort by:"/>
+                            <Select id="caseSortSelect" selectedKey="{caseDashboard>/filter/sortBy}" change=".onCaseSortChange">
+                                <core:Item key="created" text="Created Date"/>
+                                <core:Item key="updated" text="Last Updated"/>
+                                <core:Item key="priority" text="Priority"/>
+                                <core:Item key="status" text="Status"/>
+                            </Select>
+                            <ToolbarSeparator/>
+                            <Label text="{caseDashboard>/filteredCaseCount} cases"/>
+                        </Toolbar>
+                    </headerToolbar>
+                    <Table
+                        id="caseTable"
+                        items="{caseDashboard>/cases}"
+                        growing="true"
+                        growingThreshold="20"
+                        mode="SingleSelectMaster"
+                        selectionChange=".onCaseSelectionChange"
+                        noDataText="No cases found">
+                        <columns>
+                            <Column width="20%"><Text text="Case ID / Title"/></Column>
+                            <Column width="12%" hAlign="Center"><Text text="Type"/></Column>
+                            <Column width="12%" hAlign="Center"><Text text="Status"/></Column>
+                            <Column width="10%" hAlign="Center"><Text text="Priority"/></Column>
+                            <Column width="12%" minScreenWidth="Tablet" demandPopin="true"><Text text="Assignee"/></Column>
+                            <Column width="10%" minScreenWidth="Tablet" demandPopin="true"><Text text="Created"/></Column>
+                            <Column width="10%" minScreenWidth="Tablet" demandPopin="true"><Text text="Updated"/></Column>
+                            <Column width="14%" hAlign="Center"><Text text="Actions"/></Column>
+                        </columns>
+                        <items>
+                            <ColumnListItem type="Active" press=".onCasePress">
+                                <cells>
+                                    <ObjectIdentifier title="{caseId}" text="{title}"/>
+                                    <HBox alignItems="Center" justifyContent="Center">
+                                        <core:Icon src="{caseTypeIcon}" class="sapUiTinyMarginEnd"/>
+                                        <Text text="{caseType}"/>
+                                    </HBox>
+                                    <ObjectStatus
+                                        text="{status}"
+                                        state="{= ${status} === 'Open' ? 'Information' : (${status} === 'In Progress' ? 'Warning' : (${status} === 'Pending' ? 'None' : 'Success')) }"
+                                        icon="{= ${status} === 'Open' ? 'sap-icon://open-folder' : (${status} === 'In Progress' ? 'sap-icon://process' : (${status} === 'Pending' ? 'sap-icon://pending' : 'sap-icon://complete')) }"/>
+                                    <ObjectStatus
+                                        text="{priority}"
+                                        state="{= ${priority} === 'High' ? 'Error' : (${priority} === 'Medium' ? 'Warning' : 'Success') }"/>
+                                    <Text text="{assignee}"/>
+                                    <Text text="{createdDate}"/>
+                                    <Text text="{lastUpdated}"/>
+                                    <HBox justifyContent="Center">
+                                        <Button icon="sap-icon://display" tooltip="View" type="Transparent" press=".onViewCase"/>
+                                        <Button icon="sap-icon://edit" tooltip="Edit" type="Transparent" press=".onEditCase"/>
+                                        <Button icon="sap-icon://complete" tooltip="Close" type="Transparent" press=".onCloseCase"/>
+                                    </HBox>
+                                </cells>
+                            </ColumnListItem>
+                        </items>
+                    </Table>
+                </Panel>
+
+                <!-- Case Detail Panel -->
+                <Panel id="caseDetailPanel" headerText="Case Details" expandable="true" expanded="false" class="sapUiSmallMarginBottom"
+                       visible="{= !!${caseDashboard>/selectedCase/caseId} }">
+                    <headerToolbar>
+                        <Toolbar>
+                            <Title text="Case: {caseDashboard>/selectedCase/caseId}" level="H4"/>
+                            <ToolbarSpacer/>
+                            <ObjectStatus
+                                text="{caseDashboard>/selectedCase/status}"
+                                state="{= ${caseDashboard>/selectedCase/status} === 'Open' ? 'Information' : (${caseDashboard>/selectedCase/status} === 'In Progress' ? 'Warning' : 'Success') }"/>
+                            <ToolbarSeparator/>
+                            <Button text="Edit Case" icon="sap-icon://edit" type="Transparent" press=".onEditSelectedCase"/>
+                            <Button text="Close Case" icon="sap-icon://complete" type="Emphasized" press=".onCloseSelectedCase"/>
+                        </Toolbar>
+                    </headerToolbar>
+                    <l:VerticalLayout width="100%">
+                        <!-- Case Header Info -->
+                        <HBox class="sapUiSmallMarginBottom">
+                            <VBox class="sapUiMediumMarginEnd">
+                                <Label text="Title" design="Bold"/>
+                                <Text text="{caseDashboard>/selectedCase/title}"/>
+                            </VBox>
+                            <VBox class="sapUiMediumMarginEnd">
+                                <Label text="Type" design="Bold"/>
+                                <Text text="{caseDashboard>/selectedCase/caseType}"/>
+                            </VBox>
+                            <VBox class="sapUiMediumMarginEnd">
+                                <Label text="Priority" design="Bold"/>
+                                <ObjectStatus text="{caseDashboard>/selectedCase/priority}"
+                                    state="{= ${caseDashboard>/selectedCase/priority} === 'High' ? 'Error' : (${caseDashboard>/selectedCase/priority} === 'Medium' ? 'Warning' : 'Success') }"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Assignee" design="Bold"/>
+                                <Text text="{caseDashboard>/selectedCase/assignee}"/>
+                            </VBox>
+                        </HBox>
+
+                        <!-- Milestone Section -->
+                        <Panel id="milestonePanel" headerText="Milestones" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+                            <VBox class="sapUiSmallMargin">
+                                <Label text="Overall Progress" class="sapUiSmallMarginBottom"/>
+                                <ProgressIndicator
+                                    id="caseProgressIndicator"
+                                    percentValue="{caseDashboard>/selectedCase/milestoneProgress}"
+                                    displayValue="{caseDashboard>/selectedCase/milestoneProgress}%"
+                                    showValue="true"
+                                    state="{= ${caseDashboard>/selectedCase/milestoneProgress} >= 75 ? 'Success' : (${caseDashboard>/selectedCase/milestoneProgress} >= 50 ? 'Warning' : 'None') }"
+                                    class="sapUiSmallMarginBottom"/>
+                                <List id="milestoneList" items="{caseDashboard>/selectedCase/milestones}" noDataText="No milestones defined">
+                                    <StandardListItem
+                                        title="{name}"
+                                        description="{dueDate}"
+                                        icon="{= ${completed} ? 'sap-icon://accept' : 'sap-icon://circle-task' }"
+                                        iconInset="false"
+                                        info="{= ${completed} ? 'Completed' : 'Pending' }"
+                                        infoState="{= ${completed} ? 'Success' : 'None' }"/>
+                                </List>
+                            </VBox>
+                        </Panel>
+
+                        <!-- Related Tasks -->
+                        <Panel id="relatedTasksPanel" headerText="Related Tasks" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+                            <List id="relatedTasksList" items="{caseDashboard>/selectedCase/relatedTasks}" noDataText="No related tasks">
+                                <StandardListItem
+                                    title="{taskName}"
+                                    description="Assigned to: {assignee}"
+                                    icon="sap-icon://task"
+                                    info="{status}"
+                                    infoState="{= ${status} === 'Complete' ? 'Success' : (${status} === 'In Progress' ? 'Warning' : 'None') }"
+                                    type="Navigation"
+                                    press=".onTaskPress"/>
+                            </List>
+                        </Panel>
+
+                        <!-- Documents Section -->
+                        <Panel id="documentsPanel" headerText="Documents" expandable="true" expanded="false" class="sapUiSmallMarginBottom">
+                            <headerToolbar>
+                                <Toolbar>
+                                    <Title text="Documents" level="H5"/>
+                                    <ToolbarSpacer/>
+                                    <Button text="Upload" icon="sap-icon://upload" type="Transparent" press=".onUploadDocument"/>
+                                </Toolbar>
+                            </headerToolbar>
+                            <List id="documentsList" items="{caseDashboard>/selectedCase/documents}" noDataText="No documents attached">
+                                <StandardListItem
+                                    title="{fileName}"
+                                    description="Uploaded: {uploadDate}"
+                                    icon="sap-icon://document"
+                                    info="{fileSize}"
+                                    type="Navigation"
+                                    press=".onDocumentPress"/>
+                            </List>
+                        </Panel>
+
+                        <!-- Activity Timeline -->
+                        <Panel id="activityPanel" headerText="Activity Timeline" expandable="true" expanded="true">
+                            <headerToolbar>
+                                <Toolbar>
+                                    <Title text="Activity Timeline" level="H5"/>
+                                    <ToolbarSpacer/>
+                                    <Button text="Add Note" icon="sap-icon://add" type="Transparent" press=".onAddNote"/>
+                                </Toolbar>
+                            </headerToolbar>
+                            <List id="activityList" items="{caseDashboard>/selectedCase/activities}" noDataText="No activity recorded">
+                                <FeedListItem
+                                    sender="{user}"
+                                    icon="{userAvatar}"
+                                    senderPress=".onUserPress"
+                                    iconPress=".onUserPress"
+                                    text="{description}"
+                                    info="{activityType}"
+                                    timestamp="{timestamp}"/>
+                            </List>
+                        </Panel>
+                    </l:VerticalLayout>
+                </Panel>
+
+            </l:VerticalLayout>
+        </content>
+
+        <footer>
+            <Toolbar>
+                <ToolbarSpacer/>
+                <Label text="Case Management v2.0"/>
+                <ToolbarSeparator/>
+                <Text text="© 2026 n-Suite"/>
+            </Toolbar>
+        </footer>
+    </Page>
+</mvc:View>
+

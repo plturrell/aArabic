@@ -9,4 +9,4 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 cd "$PROJECT_ROOT"
 
-zig build conformance-discover -- --root vendor/layerIntelligence/lean4/tests --suite lean --limit 10
+zig build conformance-discover -- --root tests/lean4 --suite lean --limit 10

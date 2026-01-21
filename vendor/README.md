@@ -4,10 +4,9 @@ This directory contains vendored dependencies and integrations, organized by lay
 
 ## Layered Layout
 
-- **layerCore**: `apisix`, `gitea`, `keycloak`, `markitdown`
+- **layerCore**: `apisix`, `gitea`, `keycloak`
 - **layerData**: `dragonflydb`, `marquez`, `memgraph`, `postgres`, `qdrant`
-- **layerAutomation**: `langflow`
-- **layerIntelligence**: `shimmy-ai`, `lean4`, `hyperbooklm`, `n8n`
+- **layerIntelligence**: `shimmy-ai`, `hyperbooklm`, `n8n`
 - **layerUi**: `open-canvas`
 - **layerModels**: `folderRepos`, `huggingFace`
 
@@ -18,15 +17,12 @@ This directory contains vendored dependencies and integrations, organized by lay
 | APISIX | Lua/OpenResty | `vendor/layerCore/apisix/` | ✅ Vendored |
 | Keycloak | Java | `vendor/layerCore/keycloak/` | ✅ Vendored |
 | Gitea | Go | `vendor/layerCore/gitea/` | ✅ Vendored |
-| MarkItDown | Python | `vendor/layerCore/markitdown/` | ✅ Vendored |
 | Memgraph | C++ | `vendor/layerData/memgraph/` | ✅ Vendored |
 | Qdrant | Rust | `vendor/layerData/qdrant/` | ✅ Vendored |
 | DragonflyDB | C++ | `vendor/layerData/dragonflydb/` | ✅ Vendored |
 | Postgres | C | `vendor/layerData/postgres/` | ✅ Vendored |
 | Marquez | Java | `vendor/layerData/marquez/` | ✅ Vendored |
-| Langflow | Python | `vendor/layerAutomation/langflow/` | ✅ Vendored |
 | Shimmy | Rust | `vendor/layerIntelligence/shimmy-ai/` | ✅ Vendored |
-| Lean4 | Lean/C++ | `vendor/layerIntelligence/lean4/` | ✅ Vendored |
 | HyperbookLM | TypeScript/Next.js | `vendor/layerIntelligence/hyperbooklm/` | ✅ Vendored |
 | n8n | TypeScript/Node | `vendor/layerIntelligence/n8n/` | ✅ Vendored |
 | Open Canvas | TypeScript/React | `vendor/layerUi/open-canvas/` | ✅ Vendored |

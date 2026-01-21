@@ -16,7 +16,6 @@ failed=0
 
 # List of all client directories
 clients=(
-    "langflow-api-client"
     "gitea-api-client"
     "git-api-client"
     "postgres-api-client"
@@ -32,9 +31,8 @@ clients=(
     "hyperbook-api-client"
     "qdrant-api-client"
     "memgraph-api-client"
-    "markitdown-api-client"
     "dragonflydb-api-client"
-    "glean-api-client"
+    "ncode-api-client"
     "lean4-api-client"
 )
 

@@ -68,19 +68,6 @@ services:
       file: docker-compose.yml
       service: marquez-web
 
-  langflow:
-    extends:
-      file: docker-compose.yml
-      service: langflow
-
-  markitdown:
-    extends:
-      file: docker-compose.markitdown.yml
-      service: markitdown
-    ports: []
-    expose:
-      - "8005"
-
   service-registry:
     extends:
       file: docker-compose.yml

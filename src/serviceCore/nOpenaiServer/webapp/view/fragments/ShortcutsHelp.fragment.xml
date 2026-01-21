@@ -1,0 +1,336 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core">
+
+    <Dialog
+        id="shortcutsHelpDialog"
+        title="Keyboard Shortcuts"
+        contentWidth="550px"
+        contentHeight="70%"
+        draggable="true"
+        resizable="true"
+        escapeHandler=".onCloseHelpDialog">
+
+        <content>
+            <ScrollContainer
+                height="100%"
+                width="100%"
+                vertical="true"
+                horizontal="false">
+                <VBox class="sapUiSmallMargin">
+
+                    <!-- Zoom Controls Section -->
+                    <Title text="Zoom Controls" level="H5" class="sapUiSmallMarginBottom"/>
+                    <Table
+                        growing="false"
+                        mode="None"
+                        backgroundDesign="Transparent"
+                        showSeparators="Inner"
+                        class="sapUiTinyMarginBottom">
+                        <columns>
+                            <Column width="45%">
+                                <Text text="Shortcut"/>
+                            </Column>
+                            <Column>
+                                <Text text="Action"/>
+                            </Column>
+                        </columns>
+                        <items>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Ctrl/⌘ + +" inverted="true" state="Information"/>
+                                    <Text text="Zoom in"/>
+                                </cells>
+                            </ColumnListItem>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Ctrl/⌘ + -" inverted="true" state="Information"/>
+                                    <Text text="Zoom out"/>
+                                </cells>
+                            </ColumnListItem>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Ctrl/⌘ + 0" inverted="true" state="Information"/>
+                                    <Text text="Reset zoom to 100%"/>
+                                </cells>
+                            </ColumnListItem>
+                        </items>
+                    </Table>
+
+                    <!-- Selection Section -->
+                    <Title text="Selection" level="H5" class="sapUiSmallMarginTop sapUiSmallMarginBottom"/>
+                    <Table
+                        growing="false"
+                        mode="None"
+                        backgroundDesign="Transparent"
+                        showSeparators="Inner"
+                        class="sapUiTinyMarginBottom">
+                        <columns>
+                            <Column width="45%">
+                                <Text text="Shortcut"/>
+                            </Column>
+                            <Column>
+                                <Text text="Action"/>
+                            </Column>
+                        </columns>
+                        <items>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Ctrl/⌘ + A" inverted="true" state="Success"/>
+                                    <Text text="Select all nodes"/>
+                                </cells>
+                            </ColumnListItem>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Delete / Backspace" inverted="true" state="Success"/>
+                                    <Text text="Delete selected"/>
+                                </cells>
+                            </ColumnListItem>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Ctrl/⌘ + C" inverted="true" state="Success"/>
+                                    <Text text="Copy selected"/>
+                                </cells>
+                            </ColumnListItem>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Ctrl/⌘ + V" inverted="true" state="Success"/>
+                                    <Text text="Paste"/>
+                                </cells>
+                            </ColumnListItem>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Ctrl/⌘ + X" inverted="true" state="Success"/>
+                                    <Text text="Cut selected"/>
+                                </cells>
+                            </ColumnListItem>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Ctrl/⌘ + Z" inverted="true" state="Success"/>
+                                    <Text text="Undo"/>
+                                </cells>
+                            </ColumnListItem>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Ctrl/⌘ + Shift + Z" inverted="true" state="Success"/>
+                                    <Text text="Redo"/>
+                                </cells>
+                            </ColumnListItem>
+                        </items>
+                    </Table>
+
+                    <!-- Workflow Operations Section -->
+                    <Title text="Workflow Operations" level="H5" class="sapUiSmallMarginTop sapUiSmallMarginBottom"/>
+                    <Table
+                        growing="false"
+                        mode="None"
+                        backgroundDesign="Transparent"
+                        showSeparators="Inner"
+                        class="sapUiTinyMarginBottom">
+                        <columns>
+                            <Column width="45%">
+                                <Text text="Shortcut"/>
+                            </Column>
+                            <Column>
+                                <Text text="Action"/>
+                            </Column>
+                        </columns>
+                        <items>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Ctrl/⌘ + S" inverted="true" state="Warning"/>
+                                    <Text text="Save workflow"/>
+                                </cells>
+                            </ColumnListItem>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Ctrl/⌘ + O" inverted="true" state="Warning"/>
+                                    <Text text="Open workflow"/>
+                                </cells>
+                            </ColumnListItem>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Ctrl/⌘ + E" inverted="true" state="Warning"/>
+                                    <Text text="Export workflow"/>
+                                </cells>
+                            </ColumnListItem>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Ctrl/⌘ + Enter" inverted="true" state="Warning"/>
+                                    <Text text="Execute workflow"/>
+                                </cells>
+                            </ColumnListItem>
+                        </items>
+                    </Table>
+
+                    <!-- Canvas Navigation Section -->
+                    <Title text="Canvas Navigation" level="H5" class="sapUiSmallMarginTop sapUiSmallMarginBottom"/>
+                    <Table
+                        growing="false"
+                        mode="None"
+                        backgroundDesign="Transparent"
+                        showSeparators="Inner"
+                        class="sapUiTinyMarginBottom">
+                        <columns>
+                            <Column width="45%">
+                                <Text text="Shortcut"/>
+                            </Column>
+                            <Column>
+                                <Text text="Action"/>
+                            </Column>
+                        </columns>
+                        <items>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Arrow Keys" inverted="true" state="None"/>
+                                    <Text text="Pan canvas"/>
+                                </cells>
+                            </ColumnListItem>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Space + Drag" inverted="true" state="None"/>
+                                    <Text text="Pan mode"/>
+                                </cells>
+                            </ColumnListItem>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Tab" inverted="true" state="None"/>
+                                    <Text text="Focus next node"/>
+                                </cells>
+                            </ColumnListItem>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Shift + Tab" inverted="true" state="None"/>
+                                    <Text text="Focus previous node"/>
+                                </cells>
+                            </ColumnListItem>
+                        </items>
+                    </Table>
+
+                    <!-- Page Navigation Section -->
+                    <Title text="Page Navigation" level="H5" class="sapUiSmallMarginTop sapUiSmallMarginBottom"/>
+                    <Table
+                        growing="false"
+                        mode="None"
+                        backgroundDesign="Transparent"
+                        showSeparators="Inner"
+                        class="sapUiTinyMarginBottom">
+                        <columns>
+                            <Column width="45%">
+                                <Text text="Shortcut"/>
+                            </Column>
+                            <Column>
+                                <Text text="Action"/>
+                            </Column>
+                        </columns>
+                        <items>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Ctrl/⌘ + 1" inverted="true" state="Information"/>
+                                    <Text text="Go to Dashboard"/>
+                                </cells>
+                            </ColumnListItem>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Ctrl/⌘ + 2" inverted="true" state="Information"/>
+                                    <Text text="Go to Agent Orchestration"/>
+                                </cells>
+                            </ColumnListItem>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Ctrl/⌘ + 3" inverted="true" state="Information"/>
+                                    <Text text="Go to Model Router"/>
+                                </cells>
+                            </ColumnListItem>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Ctrl/⌘ + 4" inverted="true" state="Information"/>
+                                    <Text text="Go to A/B Testing"/>
+                                </cells>
+                            </ColumnListItem>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Ctrl/⌘ + 5" inverted="true" state="Information"/>
+                                    <Text text="Go to Settings"/>
+                                </cells>
+                            </ColumnListItem>
+                        </items>
+                    </Table>
+
+                    <!-- General Actions Section -->
+                    <Title text="General Actions" level="H5" class="sapUiSmallMarginTop sapUiSmallMarginBottom"/>
+                    <Table
+                        growing="false"
+                        mode="None"
+                        backgroundDesign="Transparent"
+                        showSeparators="Inner"
+                        class="sapUiTinyMarginBottom">
+                        <columns>
+                            <Column width="45%">
+                                <Text text="Shortcut"/>
+                            </Column>
+                            <Column>
+                                <Text text="Action"/>
+                            </Column>
+                        </columns>
+                        <items>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Ctrl/⌘ + K" inverted="true" state="Success"/>
+                                    <Text text="Open global search"/>
+                                </cells>
+                            </ColumnListItem>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Ctrl/⌘ + N" inverted="true" state="Success"/>
+                                    <Text text="Add new agent"/>
+                                </cells>
+                            </ColumnListItem>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Ctrl/⌘ + W" inverted="true" state="Success"/>
+                                    <Text text="Create new workflow"/>
+                                </cells>
+                            </ColumnListItem>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Ctrl/⌘ + R" inverted="true" state="Success"/>
+                                    <Text text="Refresh current view"/>
+                                </cells>
+                            </ColumnListItem>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Ctrl/⌘ + D" inverted="true" state="Success"/>
+                                    <Text text="Toggle dark mode"/>
+                                </cells>
+                            </ColumnListItem>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="?" inverted="true" state="Success"/>
+                                    <Text text="Show this help dialog"/>
+                                </cells>
+                            </ColumnListItem>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus text="Esc" inverted="true" state="Success"/>
+                                    <Text text="Close dialogs/modals"/>
+                                </cells>
+                            </ColumnListItem>
+                        </items>
+                    </Table>
+
+                </VBox>
+            </ScrollContainer>
+        </content>
+
+        <beginButton>
+            <Button
+                text="Close"
+                type="Emphasized"
+                press=".onCloseHelpDialog"/>
+        </beginButton>
+
+    </Dialog>
+
+</core:FragmentDefinition>
+

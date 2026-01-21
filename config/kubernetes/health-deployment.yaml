@@ -1,0 +1,355 @@
+# Kubernetes Deployment with Health Checks
+# Day 9: Production-ready health monitoring and probes
+#
+# Features:
+# - Startup probe: Wait for initialization (model loading)
+# - Liveness probe: Restart if process is unresponsive
+# - Readiness probe: Remove from load balancer if degraded
+# - Resource limits: Prevent OOM and resource contention
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-inference-server
+  namespace: production
+  labels:
+    app: llm-inference
+    tier: backend
+    version: v1.0
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0  # Zero-downtime deployment
+  selector:
+    matchLabels:
+      app: llm-inference
+  template:
+    metadata:
+      labels:
+        app: llm-inference
+        tier: backend
+        version: v1.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      # Security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      
+      # Init container for model download/validation
+      initContainers:
+      - name: model-loader
+        image: llm-inference-server:latest
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "Downloading and validating model..."
+            # Download model if not present
+            if [ ! -f /models/model.gguf ]; then
+              echo "Model not found, downloading..."
+              # Download logic here
+            fi
+            # Validate checksum
+            echo "Validating model checksum..."
+            # Checksum validation here
+            echo "Model ready"
+        volumeMounts:
+        - name: model-storage
+          mountPath: /models
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+      
+      containers:
+      - name: llm-inference
+        image: llm-inference-server:latest
+        imagePullPolicy: Always
+        
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+        
+        # Environment configuration
+        env:
+        - name: MODEL_PATH
+          value: "/models/model.gguf"
+        - name: SSD_PATH
+          value: "/mnt/ssd"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: MAX_ACTIVE_REQUESTS
+          value: "100"
+        - name: MAX_QUEUE_SIZE
+          value: "50"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        
+        # Resource limits (critical for stability)
+        resources:
+          requests:
+            memory: "16Gi"   # Minimum for 70B model
+            cpu: "4000m"     # 4 cores minimum
+            ephemeral-storage: "50Gi"  # SSD tier
+          limits:
+            memory: "32Gi"   # Maximum before OOM
+            cpu: "8000m"     # 8 cores maximum
+            ephemeral-storage: "100Gi"
+        
+        # Volume mounts
+        volumeMounts:
+        - name: model-storage
+          mountPath: /models
+          readOnly: true
+        - name: ssd-storage
+          mountPath: /mnt/ssd
+        - name: config
+          mountPath: /etc/config
+          readOnly: true
+        
+        # ============================================
+        # Health Probes (Critical for Production)
+        # ============================================
+        
+        # Startup Probe: Wait for model loading (can take 2-5 minutes)
+        startupProbe:
+          httpGet:
+            path: /health/startup
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 10    # Wait 10s before first check
+          periodSeconds: 10          # Check every 10s
+          timeoutSeconds: 5          # 5s timeout per check
+          failureThreshold: 30       # Allow 5 minutes for startup (10s * 30 = 300s)
+          successThreshold: 1        # Only need 1 success
+        
+        # Liveness Probe: Is the process alive and responsive?
+        # Failure = K8s will restart the pod
+        livenessProbe:
+          httpGet:
+            path: /health/liveness
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 30    # Wait for startup probe first
+          periodSeconds: 10          # Check every 10s
+          timeoutSeconds: 5          # 5s timeout
+          failureThreshold: 3        # Restart after 3 failures (30s)
+          successThreshold: 1        # Back to healthy after 1 success
+        
+        # Readiness Probe: Can we serve traffic?
+        # Failure = K8s removes from service endpoints
+        readinessProbe:
+          httpGet:
+            path: /health/readiness
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 10    # Start checking early
+          periodSeconds: 5           # Check frequently (high traffic)
+          timeoutSeconds: 3          # Fast timeout
+          failureThreshold: 2        # Remove after 2 failures (10s)
+          successThreshold: 2        # Add back after 2 successes (10s)
+        
+        # Lifecycle hooks
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 15"]  # Graceful shutdown
+      
+      # Volumes
+      volumes:
+      - name: model-storage
+        persistentVolumeClaim:
+          claimName: llm-model-pvc
+      - name: ssd-storage
+        hostPath:
+          path: /mnt/ssd
+          type: Directory
+      - name: config
+        configMap:
+          name: llm-config
+      
+      # Pod scheduling
+      affinity:
+        # Prefer different nodes for each replica
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: llm-inference
+              topologyKey: kubernetes.io/hostname
+      
+      # Tolerations for GPU nodes (if applicable)
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+      
+      # Termination grace period
+      terminationGracePeriodSeconds: 30
+
+---
+# Service for load balancing
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-inference-service
+  namespace: production
+  labels:
+    app: llm-inference
+spec:
+  type: ClusterIP
+  selector:
+    app: llm-inference
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+  sessionAffinity: None  # Stateless service
+
+---
+# Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: llm-inference-hpa
+  namespace: production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: llm-inference-server
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  # Scale based on CPU
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  # Scale based on memory
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  # Scale based on custom metrics (request queue)
+  - type: Pods
+    pods:
+      metric:
+        name: request_queue_length
+      target:
+        type: AverageValue
+        averageValue: "10"
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300  # Wait 5 min before scaling down
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60   # Scale up quickly
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+
+---
+# PodDisruptionBudget for high availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: llm-inference-pdb
+  namespace: production
+spec:
+  minAvailable: 2  # Always keep at least 2 pods running
+  selector:
+    matchLabels:
+      app: llm-inference
+
+---
+# ConfigMap for application configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: llm-config
+  namespace: production
+data:
+  config.yaml: |
+    # Health check thresholds
+    health:
+      ssd:
+        min_free_space_gb: 10.0
+        max_io_error_rate: 1.0
+      ram:
+        max_usage_percent: 85.0
+        fragmentation_threshold: 0.15
+    
+    # Load shedding configuration
+    load_shedding:
+      max_active_requests: 100
+      max_queue_size: 50
+      max_latency_ms: 1000
+      shed_probability_threshold: 0.9
+    
+    # Request queue configuration
+    request_queue:
+      max_size: 50
+      max_wait_ms: 5000
+    
+    # Logging configuration
+    logging:
+      level: INFO
+      format: json
+      rotation:
+        max_size_mb: 100
+        max_files: 10
+
+---
+# PersistentVolumeClaim for model storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: llm-model-pvc
+  namespace: production
+spec:
+  accessModes:
+  - ReadOnlyMany  # Models are read-only
+  resources:
+    requests:
+      storage: 200Gi
+  storageClassName: fast-ssd

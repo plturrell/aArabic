@@ -137,30 +137,6 @@ routes:
       proxy-rewrite:
         regex_uri: ["^/shimmy/(.*)", "/$1"]
 
-  - id: langflow
-    uri: /langflow/*
-    upstream:
-      type: roundrobin
-      nodes:
-        langflow:7860: 1
-    plugins:
-      openid-connect:
-        <<: *oidc_config
-      proxy-rewrite:
-        regex_uri: ["^/langflow/(.*)", "/$1"]
-
-  - id: langflow-root
-    uri: /langflow
-    upstream:
-      type: roundrobin
-      nodes:
-        langflow:7860: 1
-    plugins:
-      openid-connect:
-        <<: *oidc_config
-      proxy-rewrite:
-        uri: /
-
   - id: canvas
     uri: /canvas/*
     upstream:

@@ -1,0 +1,613 @@
+<mvc:View
+    controllerName="llm.server.dashboard.controller.ModelConfigurator"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:layout="sap.ui.layout"
+    xmlns:form="sap.ui.layout.form"
+    xmlns:core="sap.ui.core"
+    displayBlock="true">
+    
+    <Page
+        id="modelConfiguratorPage"
+        title="{i18n>modelConfigurator}"
+        showNavButton="true"
+        navButtonPress=".onNavBack">
+        
+        <headerContent>
+            <Button
+                icon="sap-icon://save"
+                text="{i18n>saveConfig}"
+                press=".onSaveConfig"
+                type="Emphasized"/>
+            <Button
+                icon="sap-icon://download"
+                text="{i18n>exportConfig}"
+                press=".onExportConfig"/>
+            <Button
+                icon="sap-icon://upload"
+                text="{i18n>importConfig}"
+                press=".onImportConfig"/>
+            <Button
+                icon="sap-icon://refresh"
+                text="{i18n>resetDefaults}"
+                press=".onResetDefaults"
+                type="Transparent"/>
+        </headerContent>
+        
+        <content>
+            <VBox class="sapUiSmallMargin">
+                
+                <!-- Prompt Mode Selection Panel (NEW) -->
+                <Panel
+                    headerText="Prompt Mode"
+                    expandable="true"
+                    expanded="true"
+                    class="sapUiResponsiveMargin">
+                    
+                    <MessageStrip
+                        text="Select a prompt mode to automatically configure resource allocation and model selection for optimal performance."
+                        type="Information"
+                        showIcon="true"
+                        class="sapUiSmallMarginBottom"/>
+                    
+                    <VBox class="sapUiSmallMarginTop">
+                        <Label text="Select Mode:" class="sapUiSmallMarginBottom"/>
+                        <SegmentedButton
+                            id="promptModeSelector"
+                            selectedKey="{config>/selectedPromptMode}"
+                            selectionChange=".onPromptModeChange"
+                            width="100%">
+                            <items>
+                                <SegmentedButtonItem 
+                                    key="Fast" 
+                                    text="Fast" 
+                                    icon="sap-icon://accelerated"/>
+                                <SegmentedButtonItem 
+                                    key="Normal" 
+                                    text="Normal" 
+                                    icon="sap-icon://navigation-right-arrow"/>
+                                <SegmentedButtonItem 
+                                    key="Expert" 
+                                    text="Expert" 
+                                    icon="sap-icon://complete"/>
+                                <SegmentedButtonItem 
+                                    key="Research" 
+                                    text="Research" 
+                                    icon="sap-icon://lab"/>
+                            </items>
+                        </SegmentedButton>
+                        
+                        <!-- Mode Description -->
+                        <VBox class="sapUiSmallMarginTop" visible="{= ${config>/selectedPromptMode} !== ''}">
+                            <Text text="{config>/modeInfo/description}" class="sapUiSmallMarginBottom"/>
+                            <layout:Grid defaultSpan="L3 M6 S12" class="sapUiTinyMarginTop">
+                                <VBox>
+                                    <Label text="Target Latency:" class="sapUiTinyMarginBottom"/>
+                                    <Text text="{config>/modeInfo/expectedLatency} ms" class="sapUiSmallMarginBottom"/>
+                                </VBox>
+                                <VBox>
+                                    <Label text="Expected TPS:" class="sapUiTinyMarginBottom"/>
+                                    <Text text="{config>/modeInfo/expectedTPS} tokens/s" class="sapUiSmallMarginBottom"/>
+                                </VBox>
+                                <VBox>
+                                    <Label text="Resource Split:" class="sapUiTinyMarginBottom"/>
+                                    <Text text="GPU: {config>/modeInfo/gpuPercent}% | RAM: {config>/modeInfo/ramPercent}% | SSD: {config>/modeInfo/ssdPercent}%" class="sapUiSmallMarginBottom"/>
+                                </VBox>
+                                <VBox>
+                                    <Label text="Use Cases:" class="sapUiTinyMarginBottom"/>
+                                    <Text text="{config>/modeInfo/useCases}" class="sapUiSmallMarginBottom"/>
+                                </VBox>
+                            </layout:Grid>
+                        </VBox>
+                    </VBox>
+                </Panel>
+                
+                <!-- Model Selection Panel -->
+                <Panel
+                    headerText="{i18n>modelSelection}"
+                    expandable="true"
+                    expanded="true"
+                    class="sapUiSmallMarginTop">
+                    
+                    <!-- Format Filter -->
+                    <HBox class="sapUiSmallMarginBottom sapUiSmallMarginTop">
+                        <Label text="Filter by Format:" class="sapUiSmallMarginEnd sapUiMediumMarginTop"/>
+                        <SegmentedButton
+                            id="modeFilter"
+                            selectedKey="{config>/selectedMode}"
+                            selectionChange=".onModeFilterChange">
+                            <items>
+                                <SegmentedButtonItem key="both" text="Both" icon="sap-icon://world"/>
+                                <SegmentedButtonItem key="production" text="Production (GGUF)" icon="sap-icon://factory"/>
+                                <SegmentedButtonItem key="training" text="Training (SafeTensors)" icon="sap-icon://learning-assistant"/>
+                            </items>
+                        </SegmentedButton>
+                    </HBox>
+                    
+                    <layout:Grid defaultSpan="L6 M6 S12">
+                        <!-- Model Family Selection -->
+                        <VBox>
+                            <Label text="Model Family" required="true"/>
+                            <Select
+                                id="familySelect"
+                                selectedKey="{config>/selectedFamily}"
+                                change=".onFamilyChange"
+                                items="{config>/modelFamilies}">
+                                <core:Item
+                                    key="{config>family}"
+                                    text="{config>displayName}"
+                                    enabled="{config>enabled}"/>
+                            </Select>
+                        </VBox>
+                        
+                        <!-- Model Variant Selection -->
+                        <VBox>
+                            <Label text="Model Variant" required="true"/>
+                            <Select
+                                id="variantSelect"
+                                selectedKey="{config>/selectedModelId}"
+                                change=".onModelChange"
+                                enabled="{= ${config>/selectedFamily} !== ''}"
+                                items="{config>/availableVariants}">
+                                <core:Item
+                                    key="{config>id}"
+                                    text="{config>variantDisplay}"
+                                    enabled="{config>enabled}"/>
+                            </Select>
+                        </VBox>
+                        
+                        <VBox>
+                            <Label text="{i18n>architecture}"/>
+                            <Text text="{config>/currentModel/architecture}"/>
+                        </VBox>
+                        <VBox>
+                            <Label text="{i18n>quantization}"/>
+                            <Text text="{config>/currentModel/quantization}"/>
+                        </VBox>
+                        <VBox>
+                            <Label text="Format"/>
+                            <ObjectStatus
+                                text="{config>/currentModel/format}"
+                                state="{= ${config>/currentModel/format} === 'gguf' ? 'Success' : 'Information' }"/>
+                        </VBox>
+                        <VBox>
+                            <Label text="Size"/>
+                            <Text text="{= (${config>/currentModel/size_mb} || 0) >= 1024 ? ((${config>/currentModel/size_mb} / 1024).toFixed(1) + ' GB') : ((${config>/currentModel/size_mb} || 0) + ' MB') }"/>
+                        </VBox>
+                    </layout:Grid>
+                    
+                    <!-- Recommended Badge -->
+                    <MessageStrip
+                        text="{config>/modelRecommendation}"
+                        type="Success"
+                        showIcon="true"
+                        visible="{= ${config>/modelRecommendation} !== ''}"
+                        class="sapUiSmallMarginTop"/>
+                </Panel>
+                
+                <!-- Tiering Configuration Panel -->
+                <Panel
+                    headerText="{i18n>tieringConfiguration}"
+                    expandable="true"
+                    expanded="true"
+                    class="sapUiSmallMarginTop">
+                    
+                    <MessageStrip
+                        text="Resource allocation is automatically configured based on selected Prompt Mode. Manual adjustments will override the preset."
+                        type="Information"
+                        showIcon="true"
+                        visible="{= ${config>/selectedPromptMode} !== ''}"
+                        class="sapUiSmallMarginBottom"/>
+                    
+                    <form:SimpleForm
+                        editable="true"
+                        layout="ResponsiveGridLayout"
+                        labelSpanXL="4"
+                        labelSpanL="4"
+                        labelSpanM="12"
+                        labelSpanS="12"
+                        emptySpanXL="0"
+                        emptySpanL="0"
+                        emptySpanM="0"
+                        emptySpanS="0"
+                        columnsXL="2"
+                        columnsL="2"
+                        columnsM="1">
+                        
+                        <form:content>
+                            <!-- GPU Tier -->
+                            <core:Title text="{i18n>gpuTier}"/>
+                            <Label text="{i18n>gpuMemoryLimit}"/>
+                            <Slider
+                                id="gpuMemorySlider"
+                                value="{config>/tiers/gpu/memoryLimitGB}"
+                                min="0"
+                                max="80"
+                                step="1"
+                                width="100%"
+                                enableTickmarks="true"
+                                inputsAsTooltips="true"
+                                liveChange=".onTierParamChange"/>
+                            <Label text="{= ${config>/tiers/gpu/memoryLimitGB} + ' GB'}"/>
+                            
+                            <Label text="{i18n>gpuEnabled}"/>
+                            <Switch
+                                state="{config>/tiers/gpu/enabled}"
+                                change=".onTierParamChange"/>
+                            
+                            <!-- RAM Tier -->
+                            <core:Title text="{i18n>ramTier}"/>
+                            <Label text="{i18n>ramMemoryLimit}"/>
+                            <Slider
+                                id="ramMemorySlider"
+                                value="{config>/tiers/ram/memoryLimitGB}"
+                                min="0"
+                                max="128"
+                                step="1"
+                                width="100%"
+                                enableTickmarks="true"
+                                inputsAsTooltips="true"
+                                liveChange=".onTierParamChange"/>
+                            <Label text="{= ${config>/tiers/ram/memoryLimitGB} + ' GB'}"/>
+                            
+                            <Label text="{i18n>evictionPolicy}"/>
+                            <Select
+                                selectedKey="{config>/tiers/ram/evictionPolicy}"
+                                change=".onTierParamChange">
+                                <core:Item key="lru" text="LRU"/>
+                                <core:Item key="lfu" text="LFU"/>
+                                <core:Item key="adaptive" text="Adaptive"/>
+                            </Select>
+                            
+                            <!-- DragonflyDB Tier -->
+                            <core:Title text="{i18n>dragonflyTier}"/>
+                            <Label text="{i18n>dragonflyMemoryLimit}"/>
+                            <Slider
+                                id="dragonflyMemorySlider"
+                                value="{config>/tiers/dragonfly/memoryLimitGB}"
+                                min="0"
+                                max="64"
+                                step="1"
+                                width="100%"
+                                enableTickmarks="true"
+                                inputsAsTooltips="true"
+                                liveChange=".onTierParamChange"/>
+                            <Label text="{= ${config>/tiers/dragonfly/memoryLimitGB} + ' GB'}"/>
+                            
+                            <Label text="{i18n>dragonflyEnabled}"/>
+                            <Switch
+                                state="{config>/tiers/dragonfly/enabled}"
+                                change=".onTierParamChange"/>
+                            
+                            <!-- PostgreSQL Tier -->
+                            <core:Title text="{i18n>postgresqlTier}"/>
+                            <Label text="{i18n>postgresqlEnabled}"/>
+                            <Switch
+                                state="{config>/tiers/postgresql/enabled}"
+                                change=".onTierParamChange"/>
+                            
+                            <Label text="{i18n>connectionPoolSize}"/>
+                            <StepInput
+                                value="{config>/tiers/postgresql/connectionPoolSize}"
+                                min="1"
+                                max="100"
+                                step="1"
+                                change=".onTierParamChange"/>
+                            
+                            <!-- SSD Tier -->
+                            <core:Title text="{i18n>ssdTier}"/>
+                            <Label text="{i18n>ssdStorageLimit}"/>
+                            <Slider
+                                id="ssdStorageSlider"
+                                value="{config>/tiers/ssd/storageLimitGB}"
+                                min="0"
+                                max="1000"
+                                step="10"
+                                width="100%"
+                                enableTickmarks="true"
+                                inputsAsTooltips="true"
+                                liveChange=".onTierParamChange"/>
+                            <Label text="{= ${config>/tiers/ssd/storageLimitGB} + ' GB'}"/>
+                            
+                            <Label text="{i18n>compressionEnabled}"/>
+                            <Switch
+                                state="{config>/tiers/ssd/compressionEnabled}"
+                                change=".onTierParamChange"/>
+                            
+                            <Label text="{i18n>compressionAlgorithm}"/>
+                            <Select
+                                selectedKey="{config>/tiers/ssd/compressionAlgorithm}"
+                                change=".onTierParamChange"
+                                enabled="{config>/tiers/ssd/compressionEnabled}">
+                                <core:Item key="none" text="None"/>
+                                <core:Item key="fp16" text="FP16 (2x, &lt;0.5% error)"/>
+                                <core:Item key="int8_symmetric" text="INT8 Symmetric (4x, &lt;3% error)"/>
+                                <core:Item key="int8_asymmetric" text="INT8 Asymmetric (4x, &lt;2% error)"/>
+                            </Select>
+                        </form:content>
+                    </form:SimpleForm>
+                </Panel>
+                
+                <!-- Resource Quotas Panel -->
+                <Panel
+                    headerText="{i18n>resourceQuotas}"
+                    expandable="true"
+                    expanded="true"
+                    class="sapUiSmallMarginTop">
+                    
+                    <form:SimpleForm
+                        editable="true"
+                        layout="ResponsiveGridLayout"
+                        labelSpanXL="4"
+                        labelSpanL="4"
+                        labelSpanM="12"
+                        labelSpanS="12"
+                        columnsXL="2"
+                        columnsL="2"
+                        columnsM="1">
+                        
+                        <form:content>
+                            <Label text="{i18n>maxConcurrentRequests}"/>
+                            <StepInput
+                                value="{config>/quotas/maxConcurrentRequests}"
+                                min="1"
+                                max="1000"
+                                step="10"
+                                change=".onQuotaChange"/>
+                            
+                            <Label text="{i18n>maxTokensPerHour}"/>
+                            <StepInput
+                                value="{config>/quotas/maxTokensPerHour}"
+                                min="1000"
+                                max="10000000"
+                                step="10000"
+                                change=".onQuotaChange"/>
+                            
+                            <Label text="{i18n>maxRequestsPerMinute}"/>
+                            <StepInput
+                                value="{config>/quotas/maxRequestsPerMinute}"
+                                min="1"
+                                max="1000"
+                                step="10"
+                                change=".onQuotaChange"/>
+                            
+                            <Label text="{i18n>burstMultiplier}"/>
+                            <Slider
+                                value="{config>/quotas/burstMultiplier}"
+                                min="1"
+                                max="5"
+                                step="0.1"
+                                width="100%"
+                                enableTickmarks="true"
+                                inputsAsTooltips="true"
+                                liveChange=".onQuotaChange"/>
+                            <Label text="{= ${config>/quotas/burstMultiplier}.toFixed(1) + 'x'}"/>
+                        </form:content>
+                    </form:SimpleForm>
+                </Panel>
+                
+                <!-- Cache Sharing Configuration -->
+                <Panel
+                    headerText="{i18n>cacheSharing}"
+                    expandable="true"
+                    expanded="false"
+                    class="sapUiSmallMarginTop">
+                    
+                    <form:SimpleForm
+                        editable="true"
+                        layout="ResponsiveGridLayout"
+                        labelSpanXL="4"
+                        labelSpanL="4"
+                        labelSpanM="12"
+                        labelSpanS="12"
+                        columnsXL="2"
+                        columnsL="2"
+                        columnsM="1">
+                        
+                        <form:content>
+                            <Label text="{i18n>cacheSharingEnabled}"/>
+                            <Switch
+                                state="{config>/cacheSharing/enabled}"
+                                change=".onCacheSharingChange"/>
+                            
+                            <Label text="{i18n>minPrefixLength}"/>
+                            <StepInput
+                                value="{config>/cacheSharing/minPrefixLength}"
+                                min="1"
+                                max="100"
+                                step="1"
+                                change=".onCacheSharingChange"
+                                enabled="{config>/cacheSharing/enabled}"/>
+                            
+                            <Label text="{i18n>maxSharedEntries}"/>
+                            <StepInput
+                                value="{config>/cacheSharing/maxSharedEntries}"
+                                min="100"
+                                max="10000"
+                                step="100"
+                                change=".onCacheSharingChange"
+                                enabled="{config>/cacheSharing/enabled}"/>
+                        </form:content>
+                    </form:SimpleForm>
+                </Panel>
+                
+                <!-- Live Resource Preview -->
+                <Panel
+                    headerText="{i18n>liveResourcePreview}"
+                    expandable="true"
+                    expanded="true"
+                    class="sapUiSmallMarginTop">
+                    
+                    <MessageStrip
+                        text="{config>/validation/message}"
+                        type="{config>/validation/type}"
+                        showIcon="true"
+                        visible="{= ${config>/validation/message} !== ''}"/>
+                    
+                    <layout:Grid defaultSpan="L3 M6 S12" class="sapUiSmallMarginTop">
+                        <GenericTile
+                            header="{i18n>totalMemoryUsage}"
+                            subheader="{i18n>estimated}">
+                            <TileContent>
+                                <NumericContent
+                                    value="{config>/preview/totalMemoryGB}"
+                                    scale="GB"
+                                    valueColor="{= ${config>/preview/totalMemoryGB} > 240 ? 'Error' : ${config>/preview/totalMemoryGB} > 200 ? 'Critical' : 'Good' }"
+                                    icon="sap-icon://database"/>
+                            </TileContent>
+                        </GenericTile>
+                        
+                        <GenericTile
+                            header="{i18n>estimatedCost}"
+                            subheader="{i18n>perMonth}">
+                            <TileContent>
+                                <NumericContent
+                                    value="{config>/preview/estimatedCostPerMonth}"
+                                    scale="$"
+                                    valueColor="Neutral"
+                                    icon="sap-icon://money-bills"/>
+                            </TileContent>
+                        </GenericTile>
+                        
+                        <GenericTile
+                            header="{i18n>expectedThroughput}"
+                            subheader="{i18n>tokensPerSecond}">
+                            <TileContent>
+                                <NumericContent
+                                    value="{config>/preview/expectedThroughput}"
+                                    scale="tok/s"
+                                    valueColor="Good"
+                                    icon="sap-icon://performance"/>
+                            </TileContent>
+                        </GenericTile>
+                        
+                        <GenericTile
+                            header="{i18n>expectedLatency}"
+                            subheader="{i18n>p99}">
+                            <TileContent>
+                                <NumericContent
+                                    value="{config>/preview/expectedLatencyP99}"
+                                    scale="ms"
+                                    valueColor="{= ${config>/preview/expectedLatencyP99} > 200 ? 'Critical' : ${config>/preview/expectedLatencyP99} > 100 ? 'Neutral' : 'Good' }"
+                                    icon="sap-icon://lateness"/>
+                            </TileContent>
+                        </GenericTile>
+                    </layout:Grid>
+                    
+                    <!-- Resource Breakdown Chart -->
+                    <VBox class="sapUiSmallMarginTop">
+                        <Label text="{i18n>memoryBreakdown}"/>
+                        <HBox class="sapUiSmallMarginTop">
+                            <VBox width="20%" class="sapUiTinyMarginEnd">
+                                <Text text="GPU" class="sapUiTinyMarginBottom"/>
+                                <ProgressIndicator
+                                    percentValue="{= (${config>/tiers/gpu/memoryLimitGB} / ${config>/preview/totalMemoryGB}) * 100 }"
+                                    displayValue="{config>/tiers/gpu/memoryLimitGB} GB"
+                                    state="Success"/>
+                            </VBox>
+                            <VBox width="20%" class="sapUiTinyMarginEnd">
+                                <Text text="RAM" class="sapUiTinyMarginBottom"/>
+                                <ProgressIndicator
+                                    percentValue="{= (${config>/tiers/ram/memoryLimitGB} / ${config>/preview/totalMemoryGB}) * 100 }"
+                                    displayValue="{config>/tiers/ram/memoryLimitGB} GB"
+                                    state="Information"/>
+                            </VBox>
+                            <VBox width="20%" class="sapUiTinyMarginEnd">
+                                <Text text="Cache" class="sapUiTinyMarginBottom"/>
+                                <ProgressIndicator
+                                    percentValue="{= (${config>/tiers/dragonfly/memoryLimitGB} / ${config>/preview/totalMemoryGB}) * 100 }"
+                                    displayValue="{config>/tiers/dragonfly/memoryLimitGB} GB"
+                                    state="Warning"/>
+                            </VBox>
+                            <VBox width="20%" class="sapUiTinyMarginEnd">
+                                <Text text="Knowledge Engine" class="sapUiTinyMarginBottom"/>
+                                <ProgressIndicator
+                                    percentValue="5"
+                                    displayValue="~5 GB"
+                                    state="None"/>
+                            </VBox>
+                            <VBox width="20%">
+                                <Text text="Object Store" class="sapUiTinyMarginBottom"/>
+                                <ProgressIndicator
+                                    percentValue="{= (${config>/tiers/ssd/storageLimitGB} / 10 / ${config>/preview/totalMemoryGB}) * 100 }"
+                                    displayValue="{config>/tiers/ssd/storageLimitGB} GB"
+                                    state="Error"/>
+                            </VBox>
+                        </HBox>
+                    </VBox>
+                </Panel>
+                
+                <!-- Advanced Settings -->
+                <Panel
+                    headerText="{i18n>advancedSettings}"
+                    expandable="true"
+                    expanded="false"
+                    class="sapUiSmallMarginTop">
+                    
+                    <form:SimpleForm
+                        editable="true"
+                        layout="ResponsiveGridLayout"
+                        labelSpanXL="4"
+                        labelSpanL="4"
+                        labelSpanM="12"
+                        labelSpanS="12"
+                        columnsXL="2"
+                        columnsL="2"
+                        columnsM="1">
+                        
+                        <form:content>
+                            <Label text="{i18n>simdEnabled}"/>
+                            <Switch
+                                state="{config>/advanced/simdEnabled}"
+                                change=".onAdvancedChange"/>
+                            
+                            <Label text="{i18n>batchProcessing}"/>
+                            <Switch
+                                state="{config>/advanced/batchProcessing}"
+                                change=".onAdvancedChange"/>
+                            
+                            <Label text="{i18n>optimalBatchSize}"/>
+                            <StepInput
+                                value="{config>/advanced/optimalBatchSize}"
+                                min="1"
+                                max="128"
+                                step="1"
+                                change=".onAdvancedChange"
+                                enabled="{config>/advanced/batchProcessing}"/>
+                            
+                            <Label text="{i18n>prefetchingEnabled}"/>
+                            <Switch
+                                state="{config>/advanced/prefetchingEnabled}"
+                                change=".onAdvancedChange"/>
+                            
+                            <Label text="{i18n>prefetchWindowSize}"/>
+                            <StepInput
+                                value="{config>/advanced/prefetchWindowSize}"
+                                min="1"
+                                max="64"
+                                step="1"
+                                change=".onAdvancedChange"
+                                enabled="{config>/advanced/prefetchingEnabled}"/>
+                        </form:content>
+                    </form:SimpleForm>
+                </Panel>
+                
+            </VBox>
+        </content>
+        
+        <footer>
+            <Toolbar>
+                <ToolbarSpacer/>
+                <Button
+                    text="{i18n>cancel}"
+                    press=".onCancel"/>
+                <Button
+                    text="{i18n>applyConfiguration}"
+                    type="Emphasized"
+                    press=".onApplyConfiguration"
+                    enabled="{= ${config>/validation/isValid} === true}"/>
+            </Toolbar>
+        </footer>
+        
+    </Page>
+</mvc:View>

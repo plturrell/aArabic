@@ -1,0 +1,390 @@
+<mvc:View
+    controllerName="llm.server.dashboard.controller.ABTesting"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:layout="sap.ui.layout"
+    xmlns:core="sap.ui.core"
+    xmlns:f="sap.f"
+    displayBlock="true">
+    
+    <Page
+        id="abTestingPage"
+        showNavButton="true"
+        navButtonPress=".onNavBack">
+        
+        <customHeader>
+            <Bar>
+                <contentLeft>
+                    <Breadcrumbs>
+                        <Link text="Home" press=".onBreadcrumbHome"/>
+                        <Link text="Model A/B Testing"/>
+                    </Breadcrumbs>
+                </contentLeft>
+                <contentRight>
+                    <Button
+                        icon="sap-icon://refresh"
+                        text="Reset"
+                        press=".onResetTest"
+                        type="Transparent"/>
+                </contentRight>
+            </Bar>
+        </customHeader>
+        
+        <content>
+            <VBox class="sapUiSmallMargin">
+                
+                <!-- Model Selection Panel -->
+                <Panel headerText="Model Selection" expandable="true" expanded="true" class="sapUiResponsiveMargin">
+                    <content>
+                        <layout:Grid defaultSpan="XL6 L6 M12 S12" class="sapUiSmallMargin">
+                            <!-- Model A Selection -->
+                            <VBox>
+                                <Label text="Model A" design="Bold" class="sapUiSmallMarginBottom"/>
+                                <Select
+                                    id="modelASelect"
+                                    selectedKey="{abtest>/modelA/id}"
+                                    width="100%"
+                                    change=".onModelAChange"
+                                    items="{abtest>/availableModels}">
+                                    <core:Item key="{abtest>id}" text="{= ${abtest>display_name} + ' (' + ${abtest>quantization} + ')' }"/>
+                                </Select>
+                                <ObjectStatus
+                                    text="{abtest>/modelA/display_name}"
+                                    state="Information"
+                                    class="sapUiTinyMarginTop"/>
+                            </VBox>
+                            <!-- Model B Selection -->
+                            <VBox>
+                                <Label text="Model B" design="Bold" class="sapUiSmallMarginBottom"/>
+                                <Select
+                                    id="modelBSelect"
+                                    selectedKey="{abtest>/modelB/id}"
+                                    width="100%"
+                                    change=".onModelBChange"
+                                    items="{abtest>/availableModels}">
+                                    <core:Item key="{abtest>id}" text="{= ${abtest>display_name} + ' (' + ${abtest>quantization} + ')' }"/>
+                                </Select>
+                                <ObjectStatus
+                                    text="{abtest>/modelB/display_name}"
+                                    state="Warning"
+                                    class="sapUiTinyMarginTop"/>
+                            </VBox>
+                        </layout:Grid>
+                    </content>
+                </Panel>
+                
+                <!-- Test Prompt Input -->
+                <Panel headerText="Test Prompt" expandable="true" expanded="true" class="sapUiResponsiveMargin">
+                    <content>
+                        <VBox class="sapUiSmallMargin">
+                            <TextArea
+                                id="testPromptInput"
+                                value="{abtest>/testPrompt}"
+                                rows="4"
+                                width="100%"
+                                placeholder="Enter your test prompt here..."/>
+                            <HBox class="sapUiSmallMarginTop" justifyContent="SpaceBetween">
+                                <HBox>
+                                    <Button
+                                        text="Simple Math"
+                                        press=".onExamplePrompt"
+                                        type="Transparent"
+                                        class="sapUiTinyMarginEnd"/>
+                                    <Button
+                                        text="Code Generation"
+                                        press=".onExamplePrompt"
+                                        type="Transparent"
+                                        class="sapUiTinyMarginEnd"/>
+                                    <Button
+                                        text="Arabic Text"
+                                        press=".onExamplePrompt"
+                                        type="Transparent"
+                                        class="sapUiTinyMarginEnd"/>
+                                    <Button
+                                        text="Reasoning"
+                                        press=".onExamplePrompt"
+                                        type="Transparent"/>
+                                </HBox>
+                                <Button
+                                    id="runTestBtn"
+                                    text="Run A/B Test"
+                                    icon="sap-icon://play"
+                                    press=".onRunABTest"
+                                    type="Emphasized"
+                                    enabled="{= ${abtest>/modelA/id} !== '' &amp;&amp; ${abtest>/modelB/id} !== '' &amp;&amp; ${abtest>/testPrompt} !== '' }"/>
+                            </HBox>
+                        </VBox>
+                    </content>
+                </Panel>
+                
+                <!-- Side-by-Side Response Display -->
+                <Panel headerText="Responses" expandable="true" expanded="true" class="sapUiResponsiveMargin">
+                    <headerToolbar>
+                        <Toolbar>
+                            <Title text="Responses"/>
+                            <ToolbarSpacer/>
+                            <BusyIndicator
+                                visible="{abtest>/isLoading}"
+                                size="Small"/>
+                        </Toolbar>
+                    </headerToolbar>
+                    <content>
+                        <layout:Grid defaultSpan="XL6 L6 M12 S12" class="sapUiSmallMargin">
+                            <!-- Model A Response -->
+                            <VBox>
+                                <HBox justifyContent="SpaceBetween" alignItems="Center">
+                                    <Label text="Model A Response" design="Bold"/>
+                                    <ObjectStatus
+                                        text="{= ${abtest>/responseA/latency_ms} + ' ms' }"
+                                        state="{= ${abtest>/responseA/latency_ms} &lt; ${abtest>/responseB/latency_ms} ? 'Success' : 'Warning' }"
+                                        visible="{= ${abtest>/responseA/latency_ms} > 0 }"/>
+                                </HBox>
+                                <TextArea
+                                    value="{abtest>/responseA/text}"
+                                    rows="8"
+                                    width="100%"
+                                    editable="false"
+                                    class="sapUiTinyMarginTop"/>
+                            </VBox>
+                            <!-- Model B Response -->
+                            <VBox>
+                                <HBox justifyContent="SpaceBetween" alignItems="Center">
+                                    <Label text="Model B Response" design="Bold"/>
+                                    <ObjectStatus
+                                        text="{= ${abtest>/responseB/latency_ms} + ' ms' }"
+                                        state="{= ${abtest>/responseB/latency_ms} &lt; ${abtest>/responseA/latency_ms} ? 'Success' : 'Warning' }"
+                                        visible="{= ${abtest>/responseB/latency_ms} > 0 }"/>
+                                </HBox>
+                                <TextArea
+                                    value="{abtest>/responseB/text}"
+                                    rows="8"
+                                    width="100%"
+                                    editable="false"
+                                    class="sapUiTinyMarginTop"/>
+                            </VBox>
+                        </layout:Grid>
+                    </content>
+                </Panel>
+
+                <!-- Metrics Comparison -->
+                <Panel headerText="Metrics Comparison" expandable="true" expanded="true" class="sapUiResponsiveMargin">
+                    <content>
+                        <Table
+                            id="metricsComparisonTable"
+                            items="{abtest>/metricsComparison}"
+                            class="sapUiSmallMargin">
+                            <columns>
+                                <Column width="25%">
+                                    <Text text="Metric"/>
+                                </Column>
+                                <Column width="25%">
+                                    <Text text="Model A"/>
+                                </Column>
+                                <Column width="25%">
+                                    <Text text="Model B"/>
+                                </Column>
+                                <Column width="25%">
+                                    <Text text="Winner"/>
+                                </Column>
+                            </columns>
+                            <items>
+                                <ColumnListItem>
+                                    <cells>
+                                        <Text text="{abtest>metric}"/>
+                                        <ObjectNumber
+                                            number="{abtest>valueA}"
+                                            unit="{abtest>unit}"
+                                            state="{= ${abtest>winner} === 'A' ? 'Success' : 'None' }"/>
+                                        <ObjectNumber
+                                            number="{abtest>valueB}"
+                                            unit="{abtest>unit}"
+                                            state="{= ${abtest>winner} === 'B' ? 'Success' : 'None' }"/>
+                                        <ObjectStatus
+                                            text="{= ${abtest>winner} === 'A' ? 'Model A' : ${abtest>winner} === 'B' ? 'Model B' : 'Tie' }"
+                                            state="{= ${abtest>winner} === 'A' ? 'Information' : ${abtest>winner} === 'B' ? 'Warning' : 'None' }"
+                                            icon="{= ${abtest>winner} === 'A' || ${abtest>winner} === 'B' ? 'sap-icon://competitor' : 'sap-icon://horizontal-grip' }"/>
+                                    </cells>
+                                </ColumnListItem>
+                            </items>
+                        </Table>
+                    </content>
+                </Panel>
+
+                <!-- Response Quality Rating -->
+                <Panel headerText="Response Quality Rating" expandable="true" expanded="true" class="sapUiResponsiveMargin">
+                    <content>
+                        <layout:Grid defaultSpan="XL6 L6 M12 S12" class="sapUiSmallMargin">
+                            <!-- Model A Rating -->
+                            <VBox alignItems="Center">
+                                <Label text="Model A Quality" design="Bold" class="sapUiSmallMarginBottom"/>
+                                <HBox>
+                                    <Button
+                                        icon="sap-icon://thumb-up"
+                                        text="Good"
+                                        press=".onRateModelA"
+                                        type="{= ${abtest>/ratingA} === 'good' ? 'Accept' : 'Transparent' }"
+                                        class="sapUiTinyMarginEnd"/>
+                                    <Button
+                                        icon="sap-icon://thumb-down"
+                                        text="Poor"
+                                        press=".onRateModelA"
+                                        type="{= ${abtest>/ratingA} === 'poor' ? 'Reject' : 'Transparent' }"/>
+                                </HBox>
+                                <Text text="Current: {abtest>/ratingA}" class="sapUiTinyMarginTop"/>
+                            </VBox>
+                            <!-- Model B Rating -->
+                            <VBox alignItems="Center">
+                                <Label text="Model B Quality" design="Bold" class="sapUiSmallMarginBottom"/>
+                                <HBox>
+                                    <Button
+                                        icon="sap-icon://thumb-up"
+                                        text="Good"
+                                        press=".onRateModelB"
+                                        type="{= ${abtest>/ratingB} === 'good' ? 'Accept' : 'Transparent' }"
+                                        class="sapUiTinyMarginEnd"/>
+                                    <Button
+                                        icon="sap-icon://thumb-down"
+                                        text="Poor"
+                                        press=".onRateModelB"
+                                        type="{= ${abtest>/ratingB} === 'poor' ? 'Reject' : 'Transparent' }"/>
+                                </HBox>
+                                <Text text="Current: {abtest>/ratingB}" class="sapUiTinyMarginTop"/>
+                            </VBox>
+                        </layout:Grid>
+                        <HBox justifyContent="Center" class="sapUiSmallMarginTop">
+                            <Button
+                                text="Save Comparison"
+                                icon="sap-icon://save"
+                                press=".onSaveComparison"
+                                type="Emphasized"
+                                enabled="{= ${abtest>/responseA/text} !== '' &amp;&amp; ${abtest>/responseB/text} !== '' }"/>
+                        </HBox>
+                    </content>
+                </Panel>
+
+                <!-- Aggregate Stats -->
+                <Panel headerText="Aggregate Statistics" expandable="true" expanded="true" class="sapUiResponsiveMargin">
+                    <content>
+                        <layout:Grid defaultSpan="XL3 L3 M6 S12" class="sapUiSmallMargin">
+                            <f:Card class="sapUiSmallMargin">
+                                <f:header>
+                                    <card:Header
+                                        xmlns:card="sap.f.cards"
+                                        title="Total Comparisons"
+                                        subtitle="{abtest>/aggregateStats/totalComparisons}"/>
+                                </f:header>
+                            </f:Card>
+                            <f:Card class="sapUiSmallMargin">
+                                <f:header>
+                                    <card:Header
+                                        xmlns:card="sap.f.cards"
+                                        title="Model A Wins"
+                                        subtitle="{= ${abtest>/aggregateStats/modelAWins} + ' (' + ${abtest>/aggregateStats/modelAWinPercent} + '%)' }"/>
+                                </f:header>
+                            </f:Card>
+                            <f:Card class="sapUiSmallMargin">
+                                <f:header>
+                                    <card:Header
+                                        xmlns:card="sap.f.cards"
+                                        title="Model B Wins"
+                                        subtitle="{= ${abtest>/aggregateStats/modelBWins} + ' (' + ${abtest>/aggregateStats/modelBWinPercent} + '%)' }"/>
+                                </f:header>
+                            </f:Card>
+                            <f:Card class="sapUiSmallMargin">
+                                <f:header>
+                                    <card:Header
+                                        xmlns:card="sap.f.cards"
+                                        title="Ties"
+                                        subtitle="{= ${abtest>/aggregateStats/ties} + ' (' + ${abtest>/aggregateStats/tiePercent} + '%)' }"/>
+                                </f:header>
+                            </f:Card>
+                        </layout:Grid>
+                    </content>
+                </Panel>
+
+                <!-- Comparison History Table -->
+                <Panel headerText="Comparison History" expandable="true" expanded="true" class="sapUiResponsiveMargin">
+                    <headerToolbar>
+                        <Toolbar>
+                            <Title text="Comparison History"/>
+                            <ToolbarSpacer/>
+                            <SearchField
+                                width="300px"
+                                placeholder="Search comparisons..."
+                                search=".onSearchHistory"/>
+                            <Button
+                                icon="sap-icon://refresh"
+                                press=".onRefreshHistory"
+                                tooltip="Refresh History"/>
+                            <Button
+                                icon="sap-icon://download"
+                                press=".onExportHistory"
+                                tooltip="Export to CSV"/>
+                        </Toolbar>
+                    </headerToolbar>
+                    <content>
+                        <Table
+                            id="comparisonHistoryTable"
+                            items="{abtest>/comparisonHistory}"
+                            growing="true"
+                            growingThreshold="10"
+                            mode="SingleSelectMaster"
+                            selectionChange=".onHistorySelect">
+                            <columns>
+                                <Column width="15%">
+                                    <Text text="Timestamp"/>
+                                </Column>
+                                <Column width="20%">
+                                    <Text text="Model A"/>
+                                </Column>
+                                <Column width="20%">
+                                    <Text text="Model B"/>
+                                </Column>
+                                <Column width="25%">
+                                    <Text text="Prompt Preview"/>
+                                </Column>
+                                <Column width="10%">
+                                    <Text text="Winner"/>
+                                </Column>
+                                <Column width="10%">
+                                    <Text text="Actions"/>
+                                </Column>
+                            </columns>
+                            <items>
+                                <ColumnListItem>
+                                    <cells>
+                                        <Text text="{path: 'abtest>timestamp', formatter: '.formatTimestamp'}"/>
+                                        <VBox>
+                                            <Text text="{abtest>modelA/display_name}"/>
+                                            <ObjectStatus
+                                                text="{abtest>modelA/latency_ms} ms"
+                                                state="{= ${abtest>winner} === 'A' ? 'Success' : 'None' }"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Text text="{abtest>modelB/display_name}"/>
+                                            <ObjectStatus
+                                                text="{abtest>modelB/latency_ms} ms"
+                                                state="{= ${abtest>winner} === 'B' ? 'Success' : 'None' }"/>
+                                        </VBox>
+                                        <Text text="{= ${abtest>prompt}.substring(0, 50) + '...' }" wrapping="true"/>
+                                        <ObjectStatus
+                                            text="{= ${abtest>winner} === 'A' ? 'Model A' : ${abtest>winner} === 'B' ? 'Model B' : 'Tie' }"
+                                            state="{= ${abtest>winner} === 'A' ? 'Information' : ${abtest>winner} === 'B' ? 'Warning' : 'None' }"
+                                            icon="{= ${abtest>winner} !== 'tie' ? 'sap-icon://competitor' : 'sap-icon://horizontal-grip' }"/>
+                                        <Button
+                                            icon="sap-icon://detail-view"
+                                            press=".onViewComparisonDetails"
+                                            tooltip="View Details"
+                                            type="Transparent"/>
+                                    </cells>
+                                </ColumnListItem>
+                            </items>
+                        </Table>
+                    </content>
+                </Panel>
+
+            </VBox>
+        </content>
+    </Page>
+
+</mvc:View>

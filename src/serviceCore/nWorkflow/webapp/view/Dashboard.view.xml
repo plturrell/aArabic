@@ -1,0 +1,268 @@
+<mvc:View
+    controllerName="serviceCore.nWorkflow.controller.Dashboard"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:f="sap.f"
+    xmlns:l="sap.ui.layout">
+    <Page
+        id="dashboardPage"
+        title="{i18n>appTitle}"
+        showNavButton="true"
+        navButtonPress=".onNavToLaunchpad"
+        showFooter="true"
+        backgroundDesign="List"
+        class="sapUiContentPadding">
+
+        <!-- Header Content with Status and Actions -->
+        <headerContent>
+            <!-- Connection Status -->
+            <ObjectStatus
+                text="{= ${dashboard>/serverOnline} ? ${i18n>connected} : ${i18n>disconnected} }"
+                state="{= ${dashboard>/serverOnline} ? 'Success' : 'Error' }"
+                icon="sap-icon://connected"/>
+            <ToolbarSpacer/>
+            <SearchField
+                id="headerSearchField"
+                placeholder="{i18n>searchPlaceholder}"
+                width="16rem"
+                search=".onSearch"
+                liveChange=".onSearchLiveChange"/>
+            <ToolbarSeparator/>
+            <Button
+                id="refreshBtn"
+                icon="sap-icon://refresh"
+                tooltip="{i18n>refresh}"
+                type="Transparent"
+                press=".onRefreshPress"/>
+            <Button
+                id="settingsButton"
+                icon="sap-icon://action-settings"
+                tooltip="{i18n>settings}"
+                type="Emphasized"
+                press=".onSettingsPress"/>
+            <MenuButton
+                id="userMenuButton"
+                icon="sap-icon://person-placeholder"
+                tooltip="{i18n>userMenu}"
+                type="Transparent">
+                <menu>
+                    <Menu>
+                        <MenuItem text="{i18n>profile}" icon="sap-icon://customer" press=".onProfilePress"/>
+                        <MenuItem text="{i18n>logout}" icon="sap-icon://log" press=".onLogoutPress"/>
+                    </Menu>
+                </menu>
+            </MenuButton>
+        </headerContent>
+
+        <content>
+            <l:VerticalLayout width="100%" class="sapUiResponsiveMargin">
+
+                <!-- Statistics Section -->
+                <Panel headerText="{i18n>statisticsTitle}" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+                    <HBox justifyContent="Start" wrap="Wrap">
+                        <GenericTile
+                            id="totalWorkflowsTile"
+                            header="{i18n>totalWorkflows}"
+                            subheader="{/statistics/totalWorkflowsSubheader}"
+                            press=".onStatisticsTilePress"
+                            class="sapUiTinyMarginEnd sapUiTinyMarginBottom tileHover">
+                            <TileContent>
+                                <NumericContent
+                                    value="{/statistics/totalWorkflows}"
+                                    icon="sap-icon://workflow"
+                                    valueColor="Neutral"/>
+                            </TileContent>
+                        </GenericTile>
+
+                        <GenericTile
+                            id="activeWorkflowsTile"
+                            header="{i18n>activeWorkflows}"
+                            subheader="{/statistics/activeWorkflowsSubheader}"
+                            press=".onStatisticsTilePress"
+                            class="sapUiTinyMarginEnd sapUiTinyMarginBottom tileHover">
+                            <TileContent>
+                                <NumericContent
+                                    value="{/statistics/activeWorkflows}"
+                                    icon="sap-icon://status-positive"
+                                    valueColor="Good"/>
+                            </TileContent>
+                        </GenericTile>
+
+                        <GenericTile
+                            id="executionsTodayTile"
+                            header="{i18n>executionsToday}"
+                            subheader="{/statistics/executionsTodaySubheader}"
+                            press=".onExecutionsTilePress"
+                            class="sapUiTinyMarginEnd sapUiTinyMarginBottom tileHover">
+                            <TileContent>
+                                <NumericContent
+                                    value="{/statistics/executionsToday}"
+                                    icon="sap-icon://process"
+                                    valueColor="Neutral"/>
+                            </TileContent>
+                        </GenericTile>
+
+                        <GenericTile
+                            id="successRateTile"
+                            header="{i18n>successRate}"
+                            subheader="{/statistics/successRateSubheader}"
+                            press=".onStatisticsTilePress"
+                            class="sapUiTinyMarginBottom tileHover">
+                            <TileContent>
+                                <NumericContent
+                                    value="{/statistics/successRate}"
+                                    scale="%"
+                                    icon="sap-icon://accept"
+                                    valueColor="{/statistics/successRateColor}"/>
+                            </TileContent>
+                        </GenericTile>
+                    </HBox>
+                </Panel>
+
+                <!-- Quick Actions Section -->
+                <Panel headerText="{i18n>quickActions}" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+                    <headerToolbar>
+                        <Toolbar>
+                            <Title text="{i18n>quickActions}" level="H4"/>
+                            <ToolbarSpacer/>
+                            <Button
+                                id="createWorkflowButton"
+                                text="{i18n>createWorkflow}"
+                                icon="sap-icon://add"
+                                type="Emphasized"
+                                press=".onCreateWorkflowPress"/>
+                            <Button
+                                id="importWorkflowButton"
+                                text="{i18n>importWorkflow}"
+                                icon="sap-icon://upload"
+                                type="Transparent"
+                                press=".onImportWorkflowPress"/>
+                            <Button
+                                id="viewExecutionsButton"
+                                text="{i18n>viewExecutions}"
+                                icon="sap-icon://history"
+                                type="Transparent"
+                                press=".onViewExecutionsPress"/>
+                        </Toolbar>
+                    </headerToolbar>
+                </Panel>
+
+                <!-- Workflow List Section -->
+                <Panel headerText="{i18n>allWorkflows}" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+                    <headerToolbar>
+                        <Toolbar>
+                            <Title text="{i18n>allWorkflows}" level="H4"/>
+                            <ToolbarSpacer/>
+                            <SearchField
+                                id="workflowSearchField"
+                                placeholder="{i18n>searchPlaceholder}"
+                                width="14rem"
+                                search=".onSearch"
+                                liveChange=".onSearchLiveChange"/>
+                            <ToolbarSeparator/>
+                            <Label text="{i18n>filterByStatus}"/>
+                            <Select
+                                id="statusFilterSelect"
+                                selectedKey="{/filters/status}"
+                                change=".onStatusFilterChange">
+                                <core:Item key="all" text="{i18n>all}"/>
+                                <core:Item key="active" text="{i18n>active}"/>
+                                <core:Item key="draft" text="{i18n>draft}"/>
+                                <core:Item key="inactive" text="{i18n>inactive}"/>
+                            </Select>
+                            <ToolbarSeparator/>
+                            <Label text="{i18n>sortBy}"/>
+                            <Select
+                                id="sortBySelect"
+                                selectedKey="{/filters/sortBy}"
+                                change=".onSortChange">
+                                <core:Item key="name" text="{i18n>sortByName}"/>
+                                <core:Item key="lastModified" text="{i18n>sortByDate}"/>
+                                <core:Item key="status" text="{i18n>sortByStatus}"/>
+                            </Select>
+                            <ToolbarSeparator/>
+                            <Label text="{/filteredWorkflowCount} {i18n>allWorkflows}"/>
+                        </Toolbar>
+                    </headerToolbar>
+
+                    <!-- Workflow List Table -->
+                    <Table
+                        id="workflowTable"
+                        items="{/filteredWorkflows}"
+                        growing="true"
+                        growingThreshold="20"
+                        mode="SingleSelectMaster"
+                        selectionChange=".onWorkflowSelectionChange"
+                        noDataText="{i18n>noWorkflows}"
+                        class="sapUiSmallMarginBottom">
+                    <columns>
+                        <Column width="30%">
+                            <Text text="{i18n>workflowName}"/>
+                        </Column>
+                        <Column width="30%" minScreenWidth="Tablet" demandPopin="true">
+                            <Text text="{i18n>workflowDescription}"/>
+                        </Column>
+                        <Column width="12%" hAlign="Center">
+                            <Text text="{i18n>workflowStatus}"/>
+                        </Column>
+                        <Column width="15%" minScreenWidth="Tablet" demandPopin="true">
+                            <Text text="{i18n>lastModified}"/>
+                        </Column>
+                        <Column width="13%" hAlign="Center">
+                            <Text text="{i18n>actions}"/>
+                        </Column>
+                    </columns>
+                    <items>
+                        <ColumnListItem type="Active" press=".onWorkflowPress">
+                            <cells>
+                                <HBox alignItems="Center">
+                                    <core:Icon src="sap-icon://workflow" class="sapUiSmallMarginEnd"/>
+                                    <VBox>
+                                        <Text text="{name}" class="sapMTextBold"/>
+                                        <Text text="ID: {id}" class="sapUiTinyMarginTop"/>
+                                    </VBox>
+                                </HBox>
+                                <Text text="{description}"/>
+                                <ObjectStatus
+                                    text="{status}"
+                                    state="{= ${status} === 'active' ? 'Success' : (${status} === 'draft' ? 'Warning' : 'None') }"
+                                    icon="{= ${status} === 'active' ? 'sap-icon://status-positive' : (${status} === 'draft' ? 'sap-icon://status-in-process' : 'sap-icon://status-inactive') }"/>
+                                <Text text="{lastModified}"/>
+                                <HBox justifyContent="Center">
+                                    <Button
+                                        icon="sap-icon://edit"
+                                        tooltip="{i18n>edit}"
+                                        type="Transparent"
+                                        press=".onEditWorkflow"/>
+                                    <Button
+                                        icon="sap-icon://play"
+                                        tooltip="{i18n>run}"
+                                        type="Transparent"
+                                        press=".onRunWorkflow"/>
+                                    <Button
+                                        icon="sap-icon://delete"
+                                        tooltip="{i18n>delete}"
+                                        type="Transparent"
+                                        press=".onDeleteWorkflow"/>
+                                </HBox>
+                            </cells>
+                        </ColumnListItem>
+                    </items>
+                    </Table>
+                </Panel>
+
+            </l:VerticalLayout>
+        </content>
+
+        <footer>
+            <Toolbar>
+                <ToolbarSpacer/>
+                <Label text="{i18n>appVersion}: 2.0.0"/>
+                <ToolbarSeparator/>
+                <Text text="© 2026 n-Suite"/>
+            </Toolbar>
+        </footer>
+    </Page>
+</mvc:View>
+

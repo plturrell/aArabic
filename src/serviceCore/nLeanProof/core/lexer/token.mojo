@@ -30,11 +30,33 @@ struct SourceSpan(Copyable, Movable, ImplicitlyCopyable):
     var length: Int
 
 
-@fieldwise_init
-struct Token(Copyable, Movable):
+struct Token(Copyable, Movable, ImplicitlyCopyable):
     var kind: TokenKind
     var lexeme: String
     var span: SourceSpan
+
+    fn __init__(out self, kind: TokenKind, lexeme: String, span: SourceSpan):
+        self.kind = kind
+        self.lexeme = lexeme
+        self.span = span
+
+    fn __copyinit__(out self, other: Token):
+        self.kind = other.kind
+        self.lexeme = other.lexeme
+        self.span = other.span
+
+    @property
+    fn line(self) -> Int:
+        return self.span.line
+
+    @property
+    fn column(self) -> Int:
+        return self.span.column
+
+    @property
+    fn value(self) -> String:
+        return self.lexeme
+
 
 
 fn token_kind_name(kind: TokenKind) -> String:

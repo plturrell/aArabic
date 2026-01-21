@@ -1,0 +1,390 @@
+<mvc:View
+	controllerName="llm.server.dashboard.controller.ModelVersions"
+	xmlns="sap.m"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns:layout="sap.ui.layout"
+	xmlns:core="sap.ui.core"
+	xmlns:f="sap.f"
+	xmlns:card="sap.f.cards"
+	xmlns:table="sap.ui.table"
+	height="100%">
+
+	<Page id="modelVersionsPage" showHeader="true">
+		<customHeader>
+			<Bar>
+				<contentLeft>
+					<Title text="Model Version Management" level="H2"/>
+				</contentLeft>
+				<contentMiddle>
+					<HBox alignItems="Center">
+						<Label text="Filter by Status:" class="sapUiTinyMarginEnd"/>
+						<Select
+							id="statusFilter"
+							selectedKey="{versions>/selectedStatus}"
+							change=".onStatusFilterChange"
+							width="180px">
+							<core:Item key="ALL" text="All Statuses"/>
+							<core:Item key="DRAFT" text="Draft"/>
+							<core:Item key="STAGING" text="Staging"/>
+							<core:Item key="PRODUCTION" text="Production"/>
+							<core:Item key="ARCHIVED" text="Archived"/>
+						</Select>
+					</HBox>
+				</contentMiddle>
+				<contentRight>
+					<Button
+						icon="sap-icon://add"
+						text="Create New Version"
+						type="Emphasized"
+						press=".onCreateNewVersion"/>
+					<Button
+						icon="sap-icon://refresh"
+						text="Refresh"
+						press=".onRefresh"/>
+				</contentRight>
+			</Bar>
+		</customHeader>
+
+		<content>
+			<layout:VerticalLayout width="100%" class="sapUiSmallMargin">
+
+				<!-- Model Versions TreeTable -->
+				<Panel 
+					headerText="Model Version Hierarchy" 
+					expandable="true" 
+					expanded="true"
+					class="sapUiResponsiveMargin">
+					<content>
+						<table:TreeTable
+							id="modelVersionsTreeTable"
+							rows="{path: 'versions>/modelHierarchy', parameters: {arrayNames: ['children']}}"
+							selectionMode="MultiToggle"
+							enableSelectAll="false"
+							visibleRowCount="12"
+							rowSelectionChange=".onVersionSelectionChange"
+							class="sapUiSmallMargin">
+							<table:extension>
+								<OverflowToolbar>
+									<ToolbarSpacer/>
+									<SearchField
+										width="300px"
+										placeholder="Search models and versions..."
+										search=".onSearchVersions"/>
+									<Button
+										icon="sap-icon://expand-all"
+										tooltip="Expand All"
+										press=".onExpandAll"/>
+									<Button
+										icon="sap-icon://collapse-all"
+										tooltip="Collapse All"
+										press=".onCollapseAll"/>
+								</OverflowToolbar>
+							</table:extension>
+							<table:columns>
+								<!-- Model/Version Column (Hierarchical) -->
+								<table:Column width="22%">
+									<Label text="Model / Version"/>
+									<table:template>
+										<HBox alignItems="Center">
+											<core:Icon
+												src="{= ${versions>level} === 1 ? 'sap-icon://machine' : ${versions>level} === 2 ? 'sap-icon://folder' : 'sap-icon://document' }"
+												class="sapUiTinyMarginEnd"/>
+											<Text text="{versions>name}"/>
+										</HBox>
+									</table:template>
+								</table:Column>
+								<!-- Status Column -->
+								<table:Column width="12%">
+									<Label text="Status"/>
+									<table:template>
+										<ObjectStatus
+											text="{versions>status}"
+											state="{= ${versions>status} === 'PRODUCTION' ? 'Success' : ${versions>status} === 'STAGING' ? 'Warning' : ${versions>status} === 'DRAFT' ? 'Information' : 'None' }"
+											icon="{= ${versions>status} === 'PRODUCTION' ? 'sap-icon://accept' : ${versions>status} === 'STAGING' ? 'sap-icon://pending' : ${versions>status} === 'DRAFT' ? 'sap-icon://edit' : 'sap-icon://history' }"/>
+									</table:template>
+								</table:Column>
+								<!-- Accuracy Column -->
+								<table:Column width="10%">
+									<Label text="Accuracy"/>
+									<table:template>
+										<ObjectNumber
+											number="{versions>accuracy}"
+											unit="%"
+											state="{= ${versions>accuracy} >= 90 ? 'Success' : ${versions>accuracy} >= 80 ? 'Warning' : 'Error' }"/>
+									</table:template>
+								</table:Column>
+								<!-- Latency P50 Column -->
+								<table:Column width="10%">
+									<Label text="Latency P50"/>
+									<table:template>
+										<ObjectNumber
+											number="{versions>latencyP50}"
+											unit="ms"
+											state="{= ${versions>latencyP50} &lt;= 50 ? 'Success' : ${versions>latencyP50} &lt;= 100 ? 'Warning' : 'Error' }"/>
+									</table:template>
+								</table:Column>
+								<!-- Latency P95 Column -->
+								<table:Column width="10%">
+									<Label text="Latency P95"/>
+									<table:template>
+										<ObjectNumber
+											number="{versions>latencyP95}"
+											unit="ms"
+											state="{= ${versions>latencyP95} &lt;= 100 ? 'Success' : ${versions>latencyP95} &lt;= 200 ? 'Warning' : 'Error' }"/>
+									</table:template>
+								</table:Column>
+								<!-- Traffic % Column -->
+								<table:Column width="10%">
+									<Label text="Traffic %"/>
+									<table:template>
+										<ProgressIndicator
+											percentValue="{versions>trafficPercent}"
+											displayValue="{versions>trafficPercent}%"
+											state="{= ${versions>trafficPercent} > 0 ? 'Success' : 'None' }"
+											showValue="true"/>
+									</table:template>
+								</table:Column>
+								<!-- Created Date Column -->
+								<table:Column width="12%">
+									<Label text="Created"/>
+									<table:template>
+										<Text text="{versions>createdAt}"/>
+									</table:template>
+								</table:Column>
+								<!-- Actions Column -->
+								<table:Column width="14%">
+									<Label text="Actions"/>
+									<table:template>
+										<HBox>
+											<Button
+												icon="sap-icon://arrow-top"
+												tooltip="Promote"
+												type="Accept"
+												press=".onPromote"
+												visible="{= ${versions>status} !== 'PRODUCTION' &amp;&amp; ${versions>status} !== 'ARCHIVED' &amp;&amp; ${versions>level} === 3 }"
+												class="sapUiTinyMarginEnd"/>
+											<Button
+												icon="sap-icon://undo"
+												tooltip="Rollback"
+												type="Reject"
+												press=".onRollback"
+												visible="{= ${versions>status} === 'PRODUCTION' &amp;&amp; ${versions>level} === 3 }"
+												class="sapUiTinyMarginEnd"/>
+											<Button
+												icon="sap-icon://inventory"
+												tooltip="Archive"
+												press=".onArchive"
+												visible="{= ${versions>status} !== 'ARCHIVED' &amp;&amp; ${versions>level} === 3 }"/>
+										</HBox>
+									</table:template>
+								</table:Column>
+							</table:columns>
+						</table:TreeTable>
+					</content>
+				</Panel>
+
+				<!-- Version Comparison and Details Panel -->
+				<Panel
+					headerText="Version Details &amp; Comparison"
+					expandable="true"
+					expanded="true"
+					class="sapUiResponsiveMargin">
+					<content>
+						<IconTabBar
+							id="versionDetailsTabBar"
+							expanded="true"
+							class="sapUiSmallMargin">
+
+							<!-- Version Comparison Tab -->
+							<items>
+								<IconTabFilter
+									icon="sap-icon://compare"
+									text="Version Comparison"
+									key="comparison">
+									<content>
+										<VBox class="sapUiSmallMargin">
+											<MessageStrip
+												text="Select two or more versions from the tree table above to compare metrics side-by-side."
+												type="Information"
+												showIcon="true"
+												visible="{= !${versions>/comparisonEnabled} }"
+												class="sapUiSmallMarginBottom"/>
+
+											<layout:Grid
+												defaultSpan="L6 M12 S12"
+												class="sapUiSmallMargin"
+												visible="{versions>/comparisonEnabled}">
+
+												<!-- Version A -->
+												<f:Card class="sapUiSmallMargin">
+													<f:header>
+														<card:Header
+															title="{versions>/comparisonVersionA/name}"
+															subtitle="{versions>/comparisonVersionA/status}"/>
+													</f:header>
+													<f:content>
+														<VBox class="sapUiSmallMargin">
+															<layout:Grid defaultSpan="L6 M6 S12">
+																<VBox>
+																	<Label text="Accuracy" class="sapUiTinyMarginBottom"/>
+																	<ObjectNumber
+																		number="{versions>/comparisonVersionA/accuracy}"
+																		unit="%"
+																		emphasized="true"
+																		state="Success"/>
+																</VBox>
+																<VBox>
+																	<Label text="Latency P50" class="sapUiTinyMarginBottom"/>
+																	<ObjectNumber
+																		number="{versions>/comparisonVersionA/latencyP50}"
+																		unit="ms"
+																		emphasized="true"/>
+																</VBox>
+																<VBox>
+																	<Label text="Latency P95" class="sapUiTinyMarginBottom"/>
+																	<ObjectNumber
+																		number="{versions>/comparisonVersionA/latencyP95}"
+																		unit="ms"
+																		emphasized="true"/>
+																</VBox>
+																<VBox>
+																	<Label text="Traffic" class="sapUiTinyMarginBottom"/>
+																	<ObjectNumber
+																		number="{versions>/comparisonVersionA/trafficPercent}"
+																		unit="%"
+																		emphasized="true"/>
+																</VBox>
+															</layout:Grid>
+														</VBox>
+													</f:content>
+												</f:Card>
+
+												<!-- Version B -->
+												<f:Card class="sapUiSmallMargin">
+													<f:header>
+														<card:Header
+															title="{versions>/comparisonVersionB/name}"
+															subtitle="{versions>/comparisonVersionB/status}"/>
+													</f:header>
+													<f:content>
+														<VBox class="sapUiSmallMargin">
+															<layout:Grid defaultSpan="L6 M6 S12">
+																<VBox>
+																	<Label text="Accuracy" class="sapUiTinyMarginBottom"/>
+																	<ObjectNumber
+																		number="{versions>/comparisonVersionB/accuracy}"
+																		unit="%"
+																		emphasized="true"
+																		state="Success"/>
+																</VBox>
+																<VBox>
+																	<Label text="Latency P50" class="sapUiTinyMarginBottom"/>
+																	<ObjectNumber
+																		number="{versions>/comparisonVersionB/latencyP50}"
+																		unit="ms"
+																		emphasized="true"/>
+																</VBox>
+																<VBox>
+																	<Label text="Latency P95" class="sapUiTinyMarginBottom"/>
+																	<ObjectNumber
+																		number="{versions>/comparisonVersionB/latencyP95}"
+																		unit="ms"
+																		emphasized="true"/>
+																</VBox>
+																<VBox>
+																	<Label text="Traffic" class="sapUiTinyMarginBottom"/>
+																	<ObjectNumber
+																		number="{versions>/comparisonVersionB/trafficPercent}"
+																		unit="%"
+																		emphasized="true"/>
+																</VBox>
+															</layout:Grid>
+														</VBox>
+													</f:content>
+												</f:Card>
+											</layout:Grid>
+										</VBox>
+									</content>
+								</IconTabFilter>
+
+								<!-- Deployment History Tab -->
+								<IconTabFilter
+									icon="sap-icon://history"
+									text="Deployment History"
+									key="history">
+									<content>
+										<Table
+											id="deploymentHistoryTable"
+											items="{versions>/deploymentHistory}"
+											noDataText="No deployment history available"
+											class="sapUiSmallMargin">
+											<columns>
+												<Column width="20%"><Text text="Version"/></Column>
+												<Column width="15%"><Text text="Action"/></Column>
+												<Column width="15%"><Text text="From Status"/></Column>
+												<Column width="15%"><Text text="To Status"/></Column>
+												<Column width="20%"><Text text="Deployed By"/></Column>
+												<Column width="15%"><Text text="Timestamp"/></Column>
+											</columns>
+											<items>
+												<ColumnListItem>
+													<cells>
+														<Text text="{versions>versionName}"/>
+														<ObjectStatus
+															text="{versions>action}"
+															state="{= ${versions>action} === 'PROMOTE' ? 'Success' : ${versions>action} === 'ROLLBACK' ? 'Warning' : 'None' }"/>
+														<Text text="{versions>fromStatus}"/>
+														<Text text="{versions>toStatus}"/>
+														<Text text="{versions>deployedBy}"/>
+														<Text text="{versions>timestamp}"/>
+													</cells>
+												</ColumnListItem>
+											</items>
+										</Table>
+									</content>
+								</IconTabFilter>
+
+								<!-- Audit Log Tab -->
+								<IconTabFilter
+									icon="sap-icon://activity-items"
+									text="Audit Log"
+									key="audit">
+									<content>
+										<VBox class="sapUiSmallMargin">
+											<OverflowToolbar class="sapUiSmallMarginBottom">
+												<Label text="Recent Activity"/>
+												<ToolbarSpacer/>
+												<DateRangeSelection
+													id="auditDateRange"
+													change=".onAuditDateRangeChange"
+													placeholder="Filter by date range"/>
+												<Button
+													icon="sap-icon://download"
+													text="Export Log"
+													press=".onExportAuditLog"/>
+											</OverflowToolbar>
+											<List
+												id="auditLogList"
+												items="{versions>/auditLog}"
+												noDataText="No audit entries found">
+												<items>
+													<StandardListItem
+														title="{versions>action}"
+														description="{= ${versions>user} + ' - ' + ${versions>timestamp} }"
+														info="{versions>versionName}"
+														infoState="{= ${versions>actionType} === 'CREATE' ? 'Success' : ${versions>actionType} === 'DELETE' ? 'Error' : 'Information' }"
+														icon="{= ${versions>actionType} === 'CREATE' ? 'sap-icon://add' : ${versions>actionType} === 'UPDATE' ? 'sap-icon://edit' : ${versions>actionType} === 'DELETE' ? 'sap-icon://delete' : 'sap-icon://action' }"/>
+												</items>
+											</List>
+										</VBox>
+									</content>
+								</IconTabFilter>
+							</items>
+						</IconTabBar>
+					</content>
+				</Panel>
+
+			</layout:VerticalLayout>
+		</content>
+	</Page>
+</mvc:View>

@@ -76,7 +76,6 @@ build_client "gitea-api-client"
 build_client "keycloak-api-client"
 build_client "n8n-api-client"
 build_client "langflow-api-client"
-build_client "markitdown-api-client"
 
 echo "=========================================="
 echo "Build Summary"

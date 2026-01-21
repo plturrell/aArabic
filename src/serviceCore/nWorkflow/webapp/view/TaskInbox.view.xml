@@ -1,0 +1,299 @@
+<mvc:View
+    controllerName="serviceCore.nWorkflow.controller.TaskInbox"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:f="sap.f"
+    xmlns:l="sap.ui.layout">
+    <Page
+        id="taskInboxPage"
+        title="{i18n>myTasks}"
+        showNavButton="true"
+        navButtonPress=".onNavBack"
+        showFooter="true"
+        backgroundDesign="List"
+        class="sapUiContentPadding">
+
+        <!-- Header Content -->
+        <headerContent>
+            <SegmentedButton
+                id="taskFilterSegmentedBtn"
+                selectedKey="{taskInbox>/selectedFilter}"
+                selectionChange=".onFilterChange">
+                <items>
+                    <SegmentedButtonItem key="all" text="{i18n>all}" icon="sap-icon://list"/>
+                    <SegmentedButtonItem key="pending" text="{i18n>pending}" icon="sap-icon://pending"/>
+                    <SegmentedButtonItem key="inProgress" text="{i18n>inProgress}" icon="sap-icon://process"/>
+                    <SegmentedButtonItem key="completed" text="{i18n>completed}" icon="sap-icon://complete"/>
+                </items>
+            </SegmentedButton>
+            <ToolbarSpacer/>
+            <SearchField
+                id="taskSearchField"
+                placeholder="{i18n>searchTasks}"
+                width="16rem"
+                search=".onTaskSearch"
+                liveChange=".onTaskSearchLiveChange"/>
+            <ToolbarSeparator/>
+            <Button
+                id="refreshTasksBtn"
+                icon="sap-icon://refresh"
+                tooltip="{i18n>refresh}"
+                type="Transparent"
+                press=".onRefreshTasks"/>
+        </headerContent>
+
+        <content>
+            <l:VerticalLayout width="100%" class="sapUiResponsiveMargin">
+
+                <!-- Statistics Panel -->
+                <Panel headerText="{i18n>taskStatistics}" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+                    <HBox justifyContent="Start" wrap="Wrap">
+                        <GenericTile
+                            id="pendingTasksTile"
+                            header="{i18n>pendingTasks}"
+                            subheader="{i18n>awaitingAction}"
+                            press=".onPendingTilePress"
+                            class="sapUiTinyMarginEnd sapUiTinyMarginBottom tileHover">
+                            <TileContent>
+                                <NumericContent
+                                    value="{taskInbox>/statistics/pendingCount}"
+                                    icon="sap-icon://pending"
+                                    valueColor="Critical"/>
+                            </TileContent>
+                        </GenericTile>
+                        <GenericTile
+                            id="inProgressTasksTile"
+                            header="{i18n>inProgressTasks}"
+                            subheader="{i18n>currentlyWorking}"
+                            press=".onInProgressTilePress"
+                            class="sapUiTinyMarginEnd sapUiTinyMarginBottom tileHover">
+                            <TileContent>
+                                <NumericContent
+                                    value="{taskInbox>/statistics/inProgressCount}"
+                                    icon="sap-icon://process"
+                                    valueColor="Neutral"/>
+                            </TileContent>
+                        </GenericTile>
+                        <GenericTile
+                            id="completedTodayTile"
+                            header="{i18n>completedToday}"
+                            subheader="{i18n>finishedTasks}"
+                            press=".onCompletedTilePress"
+                            class="sapUiTinyMarginEnd sapUiTinyMarginBottom tileHover">
+                            <TileContent>
+                                <NumericContent
+                                    value="{taskInbox>/statistics/completedTodayCount}"
+                                    icon="sap-icon://complete"
+                                    valueColor="Good"/>
+                            </TileContent>
+                        </GenericTile>
+                        <GenericTile
+                            id="overdueTasksTile"
+                            header="{i18n>overdueTasks}"
+                            subheader="{i18n>requiresAttention}"
+                            press=".onOverdueTilePress"
+                            class="sapUiTinyMarginBottom tileHover">
+                            <TileContent>
+                                <NumericContent
+                                    value="{taskInbox>/statistics/overdueCount}"
+                                    icon="sap-icon://alert"
+                                    valueColor="Error"/>
+                            </TileContent>
+                        </GenericTile>
+                    </HBox>
+                </Panel>
+
+                <!-- Main Content: Task List and Detail Splitter -->
+                <l:Splitter orientation="Horizontal" height="600px">
+                    <l:contentAreas>
+                        <!-- Task List Panel -->
+                        <Panel headerText="{i18n>taskList}" class="sapUiSmallMarginEnd">
+                            <headerToolbar>
+                                <Toolbar>
+                                    <Title text="{i18n>taskList}" level="H4"/>
+                                    <ToolbarSpacer/>
+                                    <Label text="{taskInbox>/filteredTaskCount} {i18n>tasks}"/>
+                                </Toolbar>
+                            </headerToolbar>
+                            <Table
+                                id="taskListTable"
+                                items="{taskInbox>/filteredTasks}"
+                                growing="true"
+                                growingThreshold="15"
+                                mode="SingleSelectMaster"
+                                selectionChange=".onTaskSelectionChange"
+                                noDataText="{i18n>noTasks}">
+                                <columns>
+                                    <Column width="35%">
+                                        <Text text="{i18n>taskName}"/>
+                                    </Column>
+                                    <Column width="20%" minScreenWidth="Tablet" demandPopin="true">
+                                        <Text text="{i18n>processName}"/>
+                                    </Column>
+                                    <Column width="15%" hAlign="Center">
+                                        <Text text="{i18n>priority}"/>
+                                    </Column>
+                                    <Column width="15%" minScreenWidth="Tablet" demandPopin="true">
+                                        <Text text="{i18n>dueDate}"/>
+                                    </Column>
+                                    <Column width="15%" hAlign="Center">
+                                        <Text text="{i18n>actions}"/>
+                                    </Column>
+                                </columns>
+                                <items>
+                                    <ColumnListItem type="Active" press=".onTaskPress">
+                                        <cells>
+                                            <HBox alignItems="Center">
+                                                <core:Icon
+                                                    src="{= ${taskInbox>taskType} === 'approval' ? 'sap-icon://accept' : (${taskInbox>taskType} === 'review' ? 'sap-icon://inspection' : 'sap-icon://task')}"
+                                                    class="sapUiSmallMarginEnd"/>
+                                                <VBox>
+                                                    <Text text="{taskInbox>taskName}" class="sapMTextBold"/>
+                                                    <Text text="{i18n>assignedBy}: {taskInbox>assignedBy}" class="sapUiTinyMarginTop sapMTextSmall"/>
+                                                </VBox>
+                                            </HBox>
+                                            <Text text="{taskInbox>processName}"/>
+                                            <ObjectStatus
+                                                text="{taskInbox>priority}"
+                                                state="{= ${taskInbox>priority} === 'High' ? 'Error' : (${taskInbox>priority} === 'Medium' ? 'Warning' : 'Success')}"
+                                                icon="{= ${taskInbox>priority} === 'High' ? 'sap-icon://warning' : (${taskInbox>priority} === 'Medium' ? 'sap-icon://hint' : 'sap-icon://status-positive')}"/>
+                                            <Text text="{taskInbox>dueDate}"/>
+                                            <HBox justifyContent="Center">
+                                                <Button icon="sap-icon://accept" tooltip="{i18n>claim}" type="Transparent" press=".onClaimTask"/>
+                                                <Button icon="sap-icon://complete" tooltip="{i18n>complete}" type="Transparent" press=".onCompleteTask"/>
+                                                <Button icon="sap-icon://person-placeholder" tooltip="{i18n>delegate}" type="Transparent" press=".onDelegateTask"/>
+                                            </HBox>
+                                        </cells>
+                                    </ColumnListItem>
+                                </items>
+                            </Table>
+                        </Panel>
+
+                        <!-- Task Detail Panel -->
+                        <Panel headerText="{i18n>taskDetails}" visible="{taskInbox>/taskDetailVisible}">
+                            <headerToolbar>
+                                <Toolbar>
+                                    <Title text="{i18n>taskDetails}" level="H4"/>
+                                    <ToolbarSpacer/>
+                                    <Button
+                                        icon="sap-icon://decline"
+                                        tooltip="{i18n>close}"
+                                        type="Transparent"
+                                        press=".onCloseTaskDetail"/>
+                                </Toolbar>
+                            </headerToolbar>
+                            <l:VerticalLayout width="100%" class="sapUiSmallMargin">
+                                <!-- Task Information Form -->
+                                <l:form.SimpleForm
+                                    editable="false"
+                                    layout="ResponsiveGridLayout"
+                                    labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="12"
+                                    emptySpanXL="0" emptySpanL="0" emptySpanM="0" emptySpanS="0"
+                                    columnsXL="1" columnsL="1" columnsM="1">
+                                    <core:Title text="{i18n>taskInformation}"/>
+                                    <Label text="{i18n>taskName}"/>
+                                    <Text text="{taskInbox>/selectedTask/taskName}"/>
+                                    <Label text="{i18n>processName}"/>
+                                    <Text text="{taskInbox>/selectedTask/processName}"/>
+                                    <Label text="{i18n>status}"/>
+                                    <ObjectStatus
+                                        text="{taskInbox>/selectedTask/status}"
+                                        state="{= ${taskInbox>/selectedTask/status} === 'Completed' ? 'Success' : (${taskInbox>/selectedTask/status} === 'In Progress' ? 'Warning' : 'None')}"/>
+                                    <Label text="{i18n>priority}"/>
+                                    <ObjectStatus
+                                        text="{taskInbox>/selectedTask/priority}"
+                                        state="{= ${taskInbox>/selectedTask/priority} === 'High' ? 'Error' : (${taskInbox>/selectedTask/priority} === 'Medium' ? 'Warning' : 'Success')}"/>
+                                    <Label text="{i18n>dueDate}"/>
+                                    <Text text="{taskInbox>/selectedTask/dueDate}"/>
+                                    <Label text="{i18n>assignedBy}"/>
+                                    <Text text="{taskInbox>/selectedTask/assignedBy}"/>
+                                    <Label text="{i18n>createdDate}"/>
+                                    <Text text="{taskInbox>/selectedTask/createdDate}"/>
+                                </l:form.SimpleForm>
+
+                                <!-- Dynamic Form Fields Placeholder -->
+                                <Panel headerText="{i18n>taskFormFields}" class="sapUiSmallMarginTop">
+                                    <VBox id="dynamicFormFieldsContainer" class="sapUiSmallMargin">
+                                        <Text text="{i18n>formFieldsLoadedDynamically}" class="sapUiSmallMarginBottom"/>
+                                    </VBox>
+                                </Panel>
+
+                                <!-- Action Buttons -->
+                                <Panel headerText="{i18n>taskActions}" class="sapUiSmallMarginTop">
+                                    <HBox justifyContent="Center" class="sapUiSmallMargin">
+                                        <Button
+                                            id="approveBtn"
+                                            text="{i18n>approve}"
+                                            icon="sap-icon://accept"
+                                            type="Accept"
+                                            press=".onApproveTask"
+                                            class="sapUiSmallMarginEnd"/>
+                                        <Button
+                                            id="rejectBtn"
+                                            text="{i18n>reject}"
+                                            icon="sap-icon://decline"
+                                            type="Reject"
+                                            press=".onRejectTask"
+                                            class="sapUiSmallMarginEnd"/>
+                                        <Button
+                                            id="requestInfoBtn"
+                                            text="{i18n>requestInfo}"
+                                            icon="sap-icon://question-mark"
+                                            type="Transparent"
+                                            press=".onRequestInfo"/>
+                                    </HBox>
+                                </Panel>
+
+                                <!-- Comments Section -->
+                                <Panel headerText="{i18n>comments}" class="sapUiSmallMarginTop">
+                                    <FeedInput
+                                        id="commentInput"
+                                        post=".onPostComment"
+                                        placeholder="{i18n>addComment}"/>
+                                    <List
+                                        id="commentsList"
+                                        items="{taskInbox>/selectedTask/comments}"
+                                        noDataText="{i18n>noComments}">
+                                        <FeedListItem
+                                            sender="{taskInbox>author}"
+                                            text="{taskInbox>text}"
+                                            timestamp="{taskInbox>timestamp}"
+                                            icon="sap-icon://person-placeholder"/>
+                                    </List>
+                                </Panel>
+                            </l:VerticalLayout>
+                        </Panel>
+                    </l:contentAreas>
+                </l:Splitter>
+
+            </l:VerticalLayout>
+        </content>
+
+        <!-- Footer with Pagination -->
+        <footer>
+            <Toolbar>
+                <Button
+                    id="prevPageBtn"
+                    icon="sap-icon://navigation-left-arrow"
+                    tooltip="{i18n>previousPage}"
+                    type="Transparent"
+                    press=".onPreviousPage"
+                    enabled="{= ${taskInbox>/currentPage} > 1}"/>
+                <Label text="{i18n>page} {taskInbox>/currentPage} {i18n>of} {taskInbox>/totalPages}"/>
+                <Button
+                    id="nextPageBtn"
+                    icon="sap-icon://navigation-right-arrow"
+                    tooltip="{i18n>nextPage}"
+                    type="Transparent"
+                    press=".onNextPage"
+                    enabled="{= ${taskInbox>/currentPage} < ${taskInbox>/totalPages}}"/>
+                <ToolbarSpacer/>
+                <Label text="{i18n>appVersion}: 2.0.0"/>
+                <ToolbarSeparator/>
+                <Text text="© 2026 n-Suite"/>
+            </Toolbar>
+        </footer>
+    </Page>
+</mvc:View>
+

@@ -1,4 +1,0 @@
-warning: failed to query latest release, using existing version 'leanprover/lean4:v4.26.0'
-/Users/user/Documents/arabic_folder/vendor/layerIntelligence/lean4/tests/lean/unknownId.lean:3:7-3:10: error(lean.unknownIdentifier): Unknown identifier `bla✝`
-/Users/user/Documents/arabic_folder/vendor/layerIntelligence/lean4/tests/lean/unknownId.lean:6:2-6:5: error(lean.unknownIdentifier): Unknown identifier `bla✝`
-/Users/user/Documents/arabic_folder/vendor/layerIntelligence/lean4/tests/lean/unknownId.lean:11:6-11:9: error(lean.unknownIdentifier): Unknown identifier `bla✝`

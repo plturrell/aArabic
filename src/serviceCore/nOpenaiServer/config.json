@@ -1,0 +1,119 @@
+{
+    "available_models": [
+        {
+            "id": "lfm2.5-1.2b-q4",
+            "name": "LFM 2.5 1.2B (Q4_0)",
+            "path": "LFM2.5-1.2B-Instruct-GGUF/LFM2.5-1.2B-Instruct-Q4_0.gguf",
+            "architecture": "lfm2",
+            "format": "gguf",
+            "size_mb": 664,
+            "quantization": "Q4_0",
+            "description": "LFM 2.5 1.2B quantized to Q4_0",
+            "status": "ready"
+        },
+        {
+            "id": "lfm2.5-1.2b-q4km",
+            "name": "LFM 2.5 1.2B (Q4_K_M)",
+            "path": "LFM2.5-1.2B-Instruct-GGUF/LFM2.5-1.2B-Instruct-Q4_K_M.gguf",
+            "architecture": "lfm2",
+            "format": "gguf",
+            "size_mb": 697,
+            "quantization": "Q4_K_M",
+            "description": "LFM 2.5 1.2B quantized to Q4_K_M",
+            "status": "ready"
+        },
+        {
+            "id": "lfm2.5-1.2b-f16",
+            "name": "LFM 2.5 1.2B (F16)",
+            "path": "LFM2.5-1.2B-Instruct-GGUF/LFM2.5-1.2B-Instruct-F16.gguf",
+            "architecture": "lfm2",
+            "format": "gguf",
+            "size_mb": 2200,
+            "quantization": "F16",
+            "description": "LFM 2.5 1.2B unquantized F16",
+            "status": "ready",
+            "tier_config": {
+                "max_ram_mb": 3000,
+                "kv_cache_ram_mb": 512
+            }
+        },
+        {
+            "id": "hymt-1.5-7b-q4km",
+            "name": "HY-MT 1.5 7B (Q4_K_M)",
+            "path": "HY-MT1.5-7B/HY-MT1.5-7B-Q4_K_M.gguf",
+            "architecture": "llama",
+            "format": "gguf",
+            "size_mb": 4200,
+            "quantization": "Q4_K_M",
+            "description": "HY-MT 1.5 7B translation model quantized to Q4_K_M",
+            "status": "ready",
+            "tier_config": {
+                "max_ram_mb": 6000,
+                "kv_cache_ram_mb": 1024
+            }
+        },
+        {
+            "id": "hymt-1.5-7b-q6k",
+            "name": "HY-MT 1.5 7B (Q6_K)",
+            "path": "HY-MT1.5-7B/HY-MT1.5-7B-Q6_K.gguf",
+            "architecture": "llama",
+            "format": "gguf",
+            "size_mb": 5800,
+            "quantization": "Q6_K",
+            "description": "HY-MT 1.5 7B translation model quantized to Q6_K",
+            "status": "ready",
+            "tier_config": {
+                "max_ram_mb": 8000,
+                "kv_cache_ram_mb": 1536
+            }
+        },
+        {
+            "id": "hymt-1.5-7b-q8",
+            "name": "HY-MT 1.5 7B (Q8_0)",
+            "path": "HY-MT1.5-7B/HY-MT1.5-7B-Q8_0.gguf",
+            "architecture": "llama",
+            "format": "gguf",
+            "size_mb": 7400,
+            "quantization": "Q8_0",
+            "description": "HY-MT 1.5 7B translation model quantized to Q8_0",
+            "status": "ready",
+            "tier_config": {
+                "max_ram_mb": 10000,
+                "kv_cache_ram_mb": 2048
+            }
+        },
+        {
+            "id": "deepseek-coder-33b",
+            "name": "DeepSeek Coder 33B (Q4_K_M)",
+            "path": "deepseek-coder-33b-instruct-q4_k_m/deepseek-coder-33b-instruct-q4_k_m.gguf",
+            "architecture": "llama",
+            "format": "gguf",
+            "size_mb": 19000,
+            "quantization": "Q4_K_M",
+            "description": "DeepSeek Coder 33B quantized to Q4_K_M - large model",
+            "status": "available",
+            "tier_config": {
+                "max_ram_mb": 24000,
+                "kv_cache_ram_mb": 4096,
+                "max_ssd_mb": 8192
+            }
+        },
+        {
+            "id": "llama-3.3-70b",
+            "name": "Llama 3.3 70B (Q4_K_M)",
+            "path": "Llama-3.3-70B-Instruct-Q4_K_M.gguf/Llama-3.3-70B-Instruct-Q4_K_M.gguf",
+            "architecture": "llama",
+            "format": "gguf",
+            "size_mb": 40000,
+            "quantization": "Q4_K_M",
+            "description": "Llama 3.3 70B quantized to Q4_K_M - very large model",
+            "status": "available",
+            "tier_config": {
+                "max_ram_mb": 48000,
+                "kv_cache_ram_mb": 8192,
+                "max_ssd_mb": 16384,
+                "enable_distributed": true
+            }
+        }
+    ]
+}

@@ -13,9 +13,9 @@
 
 This plan details the complete implementation of **nExtract**, a production-ready document extraction engine built entirely in Zig and Mojo with **zero external dependencies**. This project will:
 
-1. **Replace** `/vendor/layerCore/docling` - Complete document parsing and layout analysis
-2. **Replace** `/vendor/layerCore/markitdown` - Document-to-Markdown conversion with full feature parity
-3. **Replace** `/vendor/layerCore/langextract` - LLM-powered structured extraction with source grounding
+1. **Replace** the legacy Docling vendor package - Complete document parsing and layout analysis
+2. **Replace** the legacy MarkItDown vendor service - Document-to-Markdown conversion with full feature parity
+3. **Replace** the legacy LangExtract vendor service - LLM-powered structured extraction with source grounding
 4. **Leverage** `/src/serviceCore/nOpenaiServer` - Local LLM inference engine (already implemented!)
 
 ### Key Objectives
@@ -6388,7 +6388,7 @@ docker push dockerhub/nextract:1.0.0
 ## DAY 153: Backup & Archive
 
 **Goals:**
-1. Create archive of vendor/layerCore/docling
+1. Create archive of the retired Docling vendor package
 2. Store in safe location
 3. Document differences
 4. Create migration playbook
@@ -6398,7 +6398,7 @@ docker push dockerhub/nextract:1.0.0
 **Backup Process:**
 ```bash
 # Create archive
-tar -czf docling_backup_$(date +%Y%m%d).tar.gz vendor/layerCore/docling
+tar -czf docling_backup_$(date +%Y%m%d).tar.gz /path/to/docling
 
 # Store in multiple locations
 # 1. External drive
@@ -6423,7 +6423,7 @@ tar -czf docling_backup_$(date +%Y%m%d).tar.gz vendor/layerCore/docling
 ## DAY 154: Delete Original
 
 **Goals:**
-1. Remove vendor/layerCore/docling
+1. Remove the Docling vendor package
 2. Update all references
 3. Update documentation
 4. Update configuration files
@@ -6433,11 +6433,11 @@ tar -czf docling_backup_$(date +%Y%m%d).tar.gz vendor/layerCore/docling
 **Deletion Process:**
 ```bash
 # Remove Docling
-rm -rf vendor/layerCore/docling
+rm -rf /path/to/docling
 
 # Commit removal
 git add -A
-git commit -m "Remove vendor/layerCore/docling (replaced by nExtract)"
+git commit -m "Remove legacy Docling vendor package (replaced by nExtract)"
 git push
 ```
 

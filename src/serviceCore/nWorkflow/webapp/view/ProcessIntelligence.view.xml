@@ -1,0 +1,271 @@
+<mvc:View controllerName="serviceCore.nWorkflow.controller.ProcessIntelligence"
+    xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" xmlns:core="sap.ui.core"
+    xmlns:l="sap.ui.layout" xmlns:viz="sap.viz.ui5.controls" xmlns:vizData="sap.viz.ui5.data">
+    <Page id="processIntelligencePage" title="Process Intelligence" showNavButton="true"
+        navButtonPress=".onNavBack" showFooter="true" backgroundDesign="List" class="sapUiContentPadding">
+        <!-- Header with Filters -->
+        <headerContent>
+            <Label text="Date Range:" class="sapUiSmallMarginEnd"/>
+            <DateRangeSelection id="dateRangeSelector" change=".onDateRangeChange" placeholder="Select date range"/>
+            <ToolbarSpacer width="1rem"/>
+            <Label text="Process:" class="sapUiSmallMarginEnd"/>
+            <Select id="processFilter" selectedKey="{processIntelligence>/selectedProcess}" change=".onProcessFilterChange">
+                <core:Item key="all" text="All Processes"/>
+                <core:Item key="approval" text="Approval Workflow"/>
+                <core:Item key="order" text="Order Processing"/>
+                <core:Item key="onboarding" text="Employee Onboarding"/>
+            </Select>
+            <ToolbarSpacer/>
+            <Button id="exportBtn" icon="sap-icon://excel-attachment" text="Export" type="Transparent" press=".onExportPress"/>
+            <Button id="refreshBtn" icon="sap-icon://refresh" tooltip="Refresh Data" type="Transparent" press=".onRefreshPress"/>
+        </headerContent>
+        <content>
+            <l:VerticalLayout width="100%" class="sapUiResponsiveMargin">
+                <!-- KPI Summary Panel -->
+                <Panel headerText="KPI Summary" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+                    <HBox justifyContent="Start" wrap="Wrap">
+                        <GenericTile id="totalExecutionsTile" header="Total Executions" subheader="{processIntelligence>/kpi/executionsPeriod}"
+                            press=".onKPITilePress" class="sapUiTinyMarginEnd sapUiTinyMarginBottom">
+                            <TileContent>
+                                <NumericContent value="{processIntelligence>/kpi/totalExecutions}" icon="sap-icon://process" valueColor="Neutral"/>
+                            </TileContent>
+                        </GenericTile>
+                        <GenericTile id="avgCycleTimeTile" header="Average Cycle Time" subheader="{processIntelligence>/kpi/cycleTimeUnit}"
+                            press=".onKPITilePress" class="sapUiTinyMarginEnd sapUiTinyMarginBottom">
+                            <TileContent>
+                                <NumericContent value="{processIntelligence>/kpi/avgCycleTime}" scale="{processIntelligence>/kpi/cycleTimeScale}"
+                                    icon="sap-icon://time-entry-request" valueColor="Neutral"/>
+                            </TileContent>
+                        </GenericTile>
+                        <GenericTile id="successRateTile" header="Success Rate" subheader="Completion percentage"
+                            press=".onKPITilePress" class="sapUiTinyMarginEnd sapUiTinyMarginBottom">
+                            <TileContent>
+                                <NumericContent value="{processIntelligence>/kpi/successRate}" scale="%" icon="sap-icon://accept"
+                                    valueColor="{processIntelligence>/kpi/successRateColor}"/>
+                            </TileContent>
+                        </GenericTile>
+                        <GenericTile id="bottleneckCountTile" header="Bottleneck Count" subheader="Critical activities"
+                            press=".onBottleneckTilePress" class="sapUiTinyMarginBottom">
+                            <TileContent>
+                                <NumericContent value="{processIntelligence>/kpi/bottleneckCount}" icon="sap-icon://alert"
+                                    valueColor="{processIntelligence>/kpi/bottleneckColor}"/>
+                            </TileContent>
+                        </GenericTile>
+                    </HBox>
+                </Panel>
+
+                <!-- Process Mining Section -->
+                <Panel headerText="Process Mining" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+                    <headerToolbar>
+                        <Toolbar>
+                            <Title text="Process Mining" level="H4"/>
+                            <ToolbarSpacer/>
+                            <Button id="zoomInBtn" icon="sap-icon://zoom-in" type="Transparent" press=".onZoomIn"/>
+                            <Button id="zoomOutBtn" icon="sap-icon://zoom-out" type="Transparent" press=".onZoomOut"/>
+                            <Button id="fitToScreenBtn" icon="sap-icon://full-screen" type="Transparent" press=".onFitToScreen"/>
+                        </Toolbar>
+                    </headerToolbar>
+                    <l:Grid defaultSpan="L6 M12 S12">
+                        <l:VerticalLayout width="100%">
+                            <Panel headerText="Process Flow Diagram" class="sapUiTinyMarginBottom">
+                                <core:HTML id="processFlowContainer"
+                                    content="&lt;div id='bpmnCanvas' style='height:300px;width:100%;border:1px solid #ccc;background:#fafafa;display:flex;align-items:center;justify-content:center;'&gt;&lt;span style='color:#666;'&gt;Process flow visualization (BPMN.js placeholder)&lt;/span&gt;&lt;/div&gt;"/>
+                            </Panel>
+                        </l:VerticalLayout>
+                        <l:VerticalLayout width="100%">
+                            <Panel headerText="Variant Analysis" class="sapUiTinyMarginBottom">
+                                <Table id="variantTable" items="{processIntelligence>/variants}" growing="true" growingThreshold="5">
+                                    <columns>
+                                        <Column width="25%"><Text text="Variant"/></Column>
+                                        <Column width="35%"><Text text="Path"/></Column>
+                                        <Column width="20%" hAlign="End"><Text text="Frequency"/></Column>
+                                        <Column width="20%" hAlign="End"><Text text="Avg Time"/></Column>
+                                    </columns>
+                                    <items>
+                                        <ColumnListItem>
+                                            <cells>
+                                                <Text text="{processIntelligence>variantId}"/>
+                                                <Text text="{processIntelligence>path}"/>
+                                                <ObjectNumber number="{processIntelligence>frequency}" unit="%"/>
+                                                <ObjectNumber number="{processIntelligence>avgTime}" unit="{processIntelligence>timeUnit}"/>
+                                            </cells>
+                                        </ColumnListItem>
+                                    </items>
+                                </Table>
+                            </Panel>
+                        </l:VerticalLayout>
+                    </l:Grid>
+                    <!-- Conformance Checking Results -->
+                    <Panel headerText="Conformance Checking" class="sapUiTinyMarginTop">
+                        <HBox justifyContent="SpaceBetween" alignItems="Center" class="sapUiSmallMargin">
+                            <VBox>
+                                <Label text="Model Fitness Score" class="sapUiTinyMarginBottom"/>
+                                <ProgressIndicator percentValue="{processIntelligence>/conformance/fitnessScore}"
+                                    displayValue="{processIntelligence>/conformance/fitnessDisplay}" showValue="true"
+                                    state="{processIntelligence>/conformance/fitnessState}" width="200px"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Precision Score" class="sapUiTinyMarginBottom"/>
+                                <ProgressIndicator percentValue="{processIntelligence>/conformance/precisionScore}"
+                                    displayValue="{processIntelligence>/conformance/precisionDisplay}" showValue="true"
+                                    state="{processIntelligence>/conformance/precisionState}" width="200px"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Deviations Detected" class="sapUiTinyMarginBottom"/>
+                                <ObjectNumber number="{processIntelligence>/conformance/deviations}" state="{processIntelligence>/conformance/deviationState}"/>
+                            </VBox>
+                        </HBox>
+                    </Panel>
+                </Panel>
+
+                <!-- Bottleneck Analysis Panel -->
+                <Panel headerText="Bottleneck Analysis" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+                    <headerToolbar>
+                        <Toolbar>
+                            <Title text="Bottleneck Analysis" level="H4"/>
+                            <ToolbarSpacer/>
+                            <Label text="Sort by:"/>
+                            <Select id="bottleneckSortSelect" selectedKey="{processIntelligence>/bottleneckSort}" change=".onBottleneckSortChange">
+                                <core:Item key="severity" text="Severity"/>
+                                <core:Item key="duration" text="Duration"/>
+                                <core:Item key="frequency" text="Frequency"/>
+                            </Select>
+                        </Toolbar>
+                    </headerToolbar>
+                    <Table id="bottleneckTable" items="{processIntelligence>/bottlenecks}" growing="true" growingThreshold="10">
+                        <columns>
+                            <Column width="25%"><Text text="Activity Name"/></Column>
+                            <Column width="18%" hAlign="End"><Text text="Avg Duration"/></Column>
+                            <Column width="15%" hAlign="End"><Text text="Frequency"/></Column>
+                            <Column width="22%"><Text text="Bottleneck Score"/></Column>
+                            <Column width="20%" hAlign="Center"><Text text="Severity"/></Column>
+                        </columns>
+                        <items>
+                            <ColumnListItem>
+                                <cells>
+                                    <HBox alignItems="Center">
+                                        <core:Icon src="{= ${processIntelligence>severity} === 'High' ? 'sap-icon://alert' : 'sap-icon://hint'}"
+                                            color="{= ${processIntelligence>severity} === 'High' ? '#bb0000' : '#e78c07'}" class="sapUiSmallMarginEnd"/>
+                                        <Text text="{processIntelligence>activityName}"/>
+                                    </HBox>
+                                    <ObjectNumber number="{processIntelligence>avgDuration}" unit="{processIntelligence>durationUnit}"/>
+                                    <ObjectNumber number="{processIntelligence>frequency}"/>
+                                    <ProgressIndicator percentValue="{processIntelligence>bottleneckScore}"
+                                        displayValue="{processIntelligence>bottleneckScoreDisplay}" showValue="true" state="{processIntelligence>bottleneckState}"/>
+                                    <ObjectStatus text="{processIntelligence>severity}"
+                                        state="{= ${processIntelligence>severity} === 'High' ? 'Error' : (${processIntelligence>severity} === 'Medium' ? 'Warning' : 'Success')}"/>
+                                </cells>
+                            </ColumnListItem>
+                        </items>
+                    </Table>
+                </Panel>
+
+                <!-- KPI Dashboard with Charts -->
+                <Panel headerText="KPI Dashboard" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+                    <l:Grid defaultSpan="L4 M6 S12">
+                        <l:VerticalLayout width="100%">
+                            <viz:VizFrame id="executionsChart" vizType="line" height="280px" width="100%" uiConfig="{applicationSet:'fiori'}">
+                                <viz:dataset>
+                                    <vizData:FlattenedDataset data="{processIntelligence>/executionsTimeSeries}">
+                                        <vizData:dimensions>
+                                            <vizData:DimensionDefinition name="Date" value="{processIntelligence>date}"/>
+                                        </vizData:dimensions>
+                                        <vizData:measures>
+                                            <vizData:MeasureDefinition name="Executions" value="{processIntelligence>count}"/>
+                                        </vizData:measures>
+                                    </vizData:FlattenedDataset>
+                                </viz:dataset>
+                                <viz:feeds>
+                                    <viz:FeedItem type="Dimension" uid="categoryAxis" values="Date"/>
+                                    <viz:FeedItem type="Measure" uid="valueAxis" values="Executions"/>
+                                </viz:feeds>
+                            </viz:VizFrame>
+                        </l:VerticalLayout>
+                        <l:VerticalLayout width="100%">
+                            <viz:VizFrame id="successFailureChart" vizType="pie" height="280px" width="100%" uiConfig="{applicationSet:'fiori'}">
+                                <viz:dataset>
+                                    <vizData:FlattenedDataset data="{processIntelligence>/successFailureData}">
+                                        <vizData:dimensions>
+                                            <vizData:DimensionDefinition name="Status" value="{processIntelligence>status}"/>
+                                        </vizData:dimensions>
+                                        <vizData:measures>
+                                            <vizData:MeasureDefinition name="Count" value="{processIntelligence>count}"/>
+                                        </vizData:measures>
+                                    </vizData:FlattenedDataset>
+                                </viz:dataset>
+                                <viz:feeds>
+                                    <viz:FeedItem type="Dimension" uid="color" values="Status"/>
+                                    <viz:FeedItem type="Measure" uid="size" values="Count"/>
+                                </viz:feeds>
+                            </viz:VizFrame>
+                        </l:VerticalLayout>
+                        <l:VerticalLayout width="100%">
+                            <viz:VizFrame id="cycleTimeChart" vizType="area" height="280px" width="100%" uiConfig="{applicationSet:'fiori'}">
+                                <viz:dataset>
+                                    <vizData:FlattenedDataset data="{processIntelligence>/cycleTimeTrend}">
+                                        <vizData:dimensions>
+                                            <vizData:DimensionDefinition name="Date" value="{processIntelligence>date}"/>
+                                        </vizData:dimensions>
+                                        <vizData:measures>
+                                            <vizData:MeasureDefinition name="Cycle Time" value="{processIntelligence>cycleTime}"/>
+                                        </vizData:measures>
+                                    </vizData:FlattenedDataset>
+                                </viz:dataset>
+                                <viz:feeds>
+                                    <viz:FeedItem type="Dimension" uid="categoryAxis" values="Date"/>
+                                    <viz:FeedItem type="Measure" uid="valueAxis" values="Cycle Time"/>
+                                </viz:feeds>
+                            </viz:VizFrame>
+                        </l:VerticalLayout>
+                    </l:Grid>
+                </Panel>
+
+                <!-- Activity Performance Table -->
+                <Panel headerText="Activity Performance" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+                    <headerToolbar>
+                        <Toolbar>
+                            <Title text="Activity Performance" level="H4"/>
+                            <ToolbarSpacer/>
+                            <SearchField id="activitySearchField" placeholder="Search activities..." width="14rem" search=".onActivitySearch"/>
+                        </Toolbar>
+                    </headerToolbar>
+                    <Table id="activityPerformanceTable" items="{processIntelligence>/activityPerformance}" growing="true" growingThreshold="15">
+                        <columns>
+                            <Column width="22%"><Text text="Activity Name"/></Column>
+                            <Column width="13%" hAlign="End"><Text text="Min Duration"/></Column>
+                            <Column width="13%" hAlign="End"><Text text="Max Duration"/></Column>
+                            <Column width="13%" hAlign="End"><Text text="Avg Duration"/></Column>
+                            <Column width="15%" hAlign="End"><Text text="Execution Count"/></Column>
+                            <Column width="24%"><Text text="Resource Utilization"/></Column>
+                        </columns>
+                        <items>
+                            <ColumnListItem type="Active" press=".onActivityPress">
+                                <cells>
+                                    <HBox alignItems="Center">
+                                        <core:Icon src="sap-icon://activity-items" class="sapUiSmallMarginEnd"/>
+                                        <Text text="{processIntelligence>activityName}"/>
+                                    </HBox>
+                                    <ObjectNumber number="{processIntelligence>minDuration}" unit="{processIntelligence>durationUnit}"/>
+                                    <ObjectNumber number="{processIntelligence>maxDuration}" unit="{processIntelligence>durationUnit}"/>
+                                    <ObjectNumber number="{processIntelligence>avgDuration}" unit="{processIntelligence>durationUnit}" emphasized="true"/>
+                                    <ObjectNumber number="{processIntelligence>executionCount}"/>
+                                    <ProgressIndicator percentValue="{processIntelligence>resourceUtilization}"
+                                        displayValue="{processIntelligence>resourceUtilizationDisplay}" showValue="true"
+                                        state="{= ${processIntelligence>resourceUtilization} > 90 ? 'Error' : (${processIntelligence>resourceUtilization} > 70 ? 'Warning' : 'Success')}"/>
+                                </cells>
+                            </ColumnListItem>
+                        </items>
+                    </Table>
+                </Panel>
+            </l:VerticalLayout>
+        </content>
+        <footer>
+            <Toolbar>
+                <ToolbarSpacer/>
+                <Label text="Last Updated: {processIntelligence>/lastUpdated}"/>
+                <ToolbarSeparator/>
+                <Text text="© 2026 n-Suite Process Intelligence"/>
+            </Toolbar>
+        </footer>
+    </Page>
+</mvc:View>

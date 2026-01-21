@@ -1,0 +1,432 @@
+<core:FragmentDefinition
+	xmlns="sap.m"
+	xmlns:core="sap.ui.core"
+	xmlns:l="sap.ui.layout"
+	xmlns:f="sap.ui.layout.form">
+	
+	<Dialog
+		id="settingsDialog"
+		title="Settings"
+		contentWidth="600px"
+		draggable="true"
+		resizable="true"
+		afterClose=".onSettingsDialogClose">
+		
+		<content>
+			<IconTabBar id="settingsTabBar" expanded="true" class="sapUiSmallMargin">
+				
+				<!-- General Settings Tab -->
+				<items>
+					<IconTabFilter
+						icon="sap-icon://general-leave-request"
+						text="General"
+						key="general">
+						<content>
+							<VBox class="sapUiSmallMargin">
+								
+								<f:SimpleForm
+									editable="true"
+									layout="ResponsiveGridLayout"
+									labelSpanXL="4"
+									labelSpanL="4"
+									labelSpanM="4"
+									emptySpanXL="0"
+									emptySpanL="0"
+									emptySpanM="0">
+									<f:content>
+										<!-- Theme Selection -->
+										<Label text="Theme"/>
+										<Select
+											id="themeSelect"
+											selectedKey="{settings>/theme}"
+											change=".onThemeChange"
+											width="250px">
+											<core:Item key="sap_horizon" text="SAP Horizon (Light)"/>
+											<core:Item key="sap_horizon_dark" text="SAP Horizon Dark"/>
+											<core:Item key="sap_fiori_3" text="SAP Fiori 3 (Light)"/>
+											<core:Item key="sap_fiori_3_dark" text="SAP Fiori 3 Dark"/>
+											<core:Item key="sap_belize" text="SAP Belize (Blue)"/>
+											<core:Item key="sap_belize_hcb" text="High Contrast Black"/>
+											<core:Item key="sap_belize_hcw" text="High Contrast White"/>
+										</Select>
+										
+										<!-- Language -->
+										<Label text="Language"/>
+										<Select
+											id="languageSelect"
+											selectedKey="{settings>/language}"
+											change=".onLanguageChange"
+											width="250px">
+											<core:Item key="en" text="English"/>
+											<core:Item key="ar" text="Arabic (العربية)"/>
+											<core:Item key="es" text="Spanish (Español)"/>
+											<core:Item key="fr" text="French (Français)"/>
+											<core:Item key="de" text="German (Deutsch)"/>
+											<core:Item key="zh" text="Chinese (中文)"/>
+										</Select>
+										
+										<!-- Date Format -->
+										<Label text="Date Format"/>
+										<Select
+											id="dateFormatSelect"
+											selectedKey="{settings>/dateFormat}"
+											change=".onDateFormatChange"
+											width="250px">
+											<core:Item key="MM/DD/YYYY" text="MM/DD/YYYY (US)"/>
+											<core:Item key="DD/MM/YYYY" text="DD/MM/YYYY (EU)"/>
+											<core:Item key="YYYY-MM-DD" text="YYYY-MM-DD (ISO)"/>
+											<core:Item key="DD.MM.YYYY" text="DD.MM.YYYY (DE)"/>
+										</Select>
+										
+										<!-- Time Format -->
+										<Label text="Time Format"/>
+										<Select
+											id="timeFormatSelect"
+											selectedKey="{settings>/timeFormat}"
+											change=".onTimeFormatChange"
+											width="250px">
+											<core:Item key="12h" text="12-hour (AM/PM)"/>
+											<core:Item key="24h" text="24-hour"/>
+										</Select>
+									</f:content>
+								</f:SimpleForm>
+								
+							</VBox>
+						</content>
+					</IconTabFilter>
+					
+					<!-- API Configuration Tab -->
+					<IconTabFilter
+						icon="sap-icon://chain-link"
+						text="API"
+						key="api">
+						<content>
+							<VBox class="sapUiSmallMargin">
+								
+								<MessageStrip
+									text="Configure API endpoint URLs and authentication settings."
+									type="Information"
+									showIcon="true"
+									class="sapUiSmallMarginBottom"/>
+								
+								<f:SimpleForm
+									editable="true"
+									layout="ResponsiveGridLayout"
+									labelSpanXL="4"
+									labelSpanL="4"
+									labelSpanM="4"
+									emptySpanXL="0"
+									emptySpanL="0"
+									emptySpanM="0">
+									<f:content>
+										<!-- API Base URL -->
+										<Label text="API Base URL"/>
+										<Input
+											id="apiBaseUrlInput"
+											value="{settings>/apiBaseUrl}"
+											width="100%"
+											placeholder="http://localhost:8080"
+											change=".onApiSettingChange"/>
+										
+										<!-- WebSocket URL -->
+										<Label text="WebSocket URL"/>
+										<Input
+											id="websocketUrlInput"
+											value="{settings>/websocketUrl}"
+											width="100%"
+											placeholder="ws://localhost:8080/ws"
+											change=".onApiSettingChange"/>
+										
+										<!-- API Key -->
+										<Label text="API Key"/>
+										<Input
+											id="apiKeyInput"
+											value="{settings>/apiKey}"
+											type="Password"
+											width="100%"
+											placeholder="Enter API key (optional)"
+											change=".onApiSettingChange"/>
+										
+										<!-- Request Timeout -->
+										<Label text="Request Timeout"/>
+										<Slider
+											id="timeoutSlider"
+											value="{settings>/requestTimeout}"
+											min="5"
+											max="120"
+											step="5"
+											enableTickmarks="true"
+											width="80%"
+											liveChange=".onApiSettingChange"/>
+										<Text text="{= ${settings>/requestTimeout} + ' seconds' }"/>
+										
+										<!-- Enable API Caching -->
+										<Label text="Enable API Caching"/>
+										<CheckBox
+											selected="{settings>/enableApiCache}"
+											select=".onApiSettingChange"/>
+									</f:content>
+								</f:SimpleForm>
+								
+								<Button
+									text="Test Connection"
+									icon="sap-icon://monitor-payments"
+									press=".onTestApiConnection"
+									type="Emphasized"
+									class="sapUiSmallMarginTop"/>
+								
+							</VBox>
+						</content>
+					</IconTabFilter>
+					
+					<!-- Dashboard Settings Tab -->
+					<IconTabFilter
+						icon="sap-icon://business-objects-experience"
+						text="Dashboard"
+						key="dashboard">
+						<content>
+							<VBox class="sapUiSmallMargin">
+								
+								<f:SimpleForm
+									editable="true"
+									layout="ResponsiveGridLayout"
+									labelSpanXL="4"
+									labelSpanL="4"
+									labelSpanM="4"
+									emptySpanXL="0"
+									emptySpanL="0"
+									emptySpanM="0">
+									<f:content>
+										<!-- Auto-Refresh -->
+										<Label text="Auto-Refresh Metrics"/>
+										<CheckBox
+											selected="{settings>/autoRefresh}"
+											select=".onDashboardSettingChange"
+											text="Enable"/>
+										
+										<!-- Refresh Interval -->
+										<Label text="Refresh Interval"/>
+										<Slider
+											id="refreshIntervalSlider"
+											value="{settings>/refreshInterval}"
+											min="5"
+											max="60"
+											step="5"
+											enableTickmarks="true"
+											width="80%"
+											enabled="{settings>/autoRefresh}"
+											liveChange=".onDashboardSettingChange"/>
+										<Text text="{= ${settings>/refreshInterval} + ' seconds' }"/>
+										
+										<!-- Show Advanced Metrics -->
+										<Label text="Show Advanced Metrics"/>
+										<CheckBox
+											selected="{settings>/showAdvancedMetrics}"
+											select=".onDashboardSettingChange"
+											text="Display P99, cache details, etc."/>
+										
+										<!-- Chart Animation -->
+										<Label text="Enable Chart Animations"/>
+										<CheckBox
+											selected="{settings>/enableChartAnimation}"
+											select=".onDashboardSettingChange"/>
+										
+										<!-- Compact Mode -->
+										<Label text="Compact Mode"/>
+										<CheckBox
+											selected="{settings>/compactMode}"
+											select=".onDashboardSettingChange"
+											text="Reduce spacing and padding"/>
+										
+										<!-- Default Chart Range -->
+										<Label text="Default Chart Range"/>
+										<Select
+											selectedKey="{settings>/defaultChartRange}"
+											change=".onDashboardSettingChange"
+											width="200px">
+											<core:Item key="1h" text="Last 1 Hour"/>
+											<core:Item key="6h" text="Last 6 Hours"/>
+											<core:Item key="24h" text="Last 24 Hours"/>
+											<core:Item key="7d" text="Last 7 Days"/>
+											<core:Item key="30d" text="Last 30 Days"/>
+										</Select>
+									</f:content>
+								</f:SimpleForm>
+								
+							</VBox>
+						</content>
+					</IconTabFilter>
+					
+					<!-- Notifications Settings Tab -->
+					<IconTabFilter
+						icon="sap-icon://bell"
+						text="Notifications"
+						key="notifications">
+						<content>
+							<VBox class="sapUiSmallMargin">
+								
+								<f:SimpleForm
+									editable="true"
+									layout="ResponsiveGridLayout"
+									labelSpanXL="4"
+									labelSpanL="4"
+									labelSpanM="4"
+									emptySpanXL="0"
+									emptySpanL="0"
+									emptySpanM="0">
+									<f:content>
+										<!-- Enable Desktop Notifications -->
+										<Label text="Desktop Notifications"/>
+										<CheckBox
+											selected="{settings>/enableDesktopNotifications}"
+											select=".onNotificationSettingChange"
+											text="Enable browser notifications"/>
+										
+										<!-- Enable Sound -->
+										<Label text="Notification Sound"/>
+										<CheckBox
+											selected="{settings>/enableNotificationSound}"
+											select=".onNotificationSettingChange"
+											text="Play sound for new notifications"/>
+										
+										<!-- Notification Types -->
+										<Label text="Show Notification Types"/>
+										<VBox>
+											<CheckBox
+												text="System Alerts"
+												selected="{settings>/notificationTypes/system}"
+												select=".onNotificationSettingChange"/>
+											<CheckBox
+												text="Model Updates"
+												selected="{settings>/notificationTypes/model}"
+												select=".onNotificationSettingChange"/>
+											<CheckBox
+												text="Training Jobs"
+												selected="{settings>/notificationTypes/training}"
+												select=".onNotificationSettingChange"/>
+											<CheckBox
+												text="Performance Warnings"
+												selected="{settings>/notificationTypes/performance}"
+												select=".onNotificationSettingChange"/>
+										</VBox>
+										
+										<!-- Auto-Dismiss -->
+										<Label text="Auto-Dismiss After"/>
+										<Select
+											selectedKey="{settings>/autoDismissTimeout}"
+											change=".onNotificationSettingChange"
+											width="200px">
+											<core:Item key="0" text="Never"/>
+											<core:Item key="5" text="5 seconds"/>
+											<core:Item key="10" text="10 seconds"/>
+											<core:Item key="30" text="30 seconds"/>
+											<core:Item key="60" text="1 minute"/>
+										</Select>
+									</f:content>
+								</f:SimpleForm>
+								
+								<Button
+									text="Request Notification Permission"
+									icon="sap-icon://permission"
+									press=".onRequestNotificationPermission"
+									visible="{= ${settings>/notificationPermission} !== 'granted' }"
+									class="sapUiSmallMarginTop"/>
+								
+							</VBox>
+						</content>
+					</IconTabFilter>
+					
+					<!-- Privacy & Data Tab -->
+					<IconTabFilter
+						icon="sap-icon://shield"
+						text="Privacy"
+						key="privacy">
+						<content>
+							<VBox class="sapUiSmallMargin">
+								
+								<MessageStrip
+									text="Control what data is stored locally and sent to the server."
+									type="Information"
+									showIcon="true"
+									class="sapUiSmallMarginBottom"/>
+								
+								<f:SimpleForm
+									editable="true"
+									layout="ResponsiveGridLayout"
+									labelSpanXL="4"
+									labelSpanL="4"
+									labelSpanM="4"
+									emptySpanXL="0"
+									emptySpanL="0"
+									emptySpanM="0">
+									<f:content>
+										<!-- Save Prompt History -->
+										<Label text="Save Prompt History"/>
+										<CheckBox
+											selected="{settings>/savePromptHistory}"
+											select=".onPrivacySettingChange"
+											text="Store prompts and responses"/>
+										
+										<!-- Analytics -->
+										<Label text="Usage Analytics"/>
+										<CheckBox
+											selected="{settings>/enableAnalytics}"
+											select=".onPrivacySettingChange"
+											text="Send anonymous usage data"/>
+										
+										<!-- Error Reporting -->
+										<Label text="Error Reporting"/>
+										<CheckBox
+											selected="{settings>/enableErrorReporting}"
+											select=".onPrivacySettingChange"
+											text="Send error reports for debugging"/>
+									</f:content>
+								</f:SimpleForm>
+								
+								<VBox class="sapUiSmallMarginTop">
+									<Label text="Data Management" design="Bold" class="sapUiSmallMarginBottom"/>
+									<Button
+										text="Clear Local Storage"
+										icon="sap-icon://delete"
+										press=".onClearLocalStorage"
+										type="Reject"
+										class="sapUiTinyMarginBottom"/>
+									<Button
+										text="Export My Data"
+										icon="sap-icon://download"
+										press=".onExportUserData"/>
+									<Text
+										text="Current storage usage: {settings>/storageUsage} KB"
+										class="sapUiTinyMarginTop"/>
+								</VBox>
+								
+							</VBox>
+						</content>
+					</IconTabFilter>
+					
+				</items>
+			</IconTabBar>
+		</content>
+		
+		<beginButton>
+			<Button
+				text="Reset All"
+				icon="sap-icon://undo"
+				press=".onResetAllSettings"
+				type="Reject"/>
+		</beginButton>
+		
+		<endButton>
+			<Button
+				text="Save"
+				type="Emphasized"
+				icon="sap-icon://save"
+				press=".onSaveSettings"/>
+			<Button
+				text="Cancel"
+				press=".onCloseSettings"/>
+		</endButton>
+		
+	</Dialog>
+	
+</core:FragmentDefinition>

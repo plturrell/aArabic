@@ -1,0 +1,260 @@
+<mvc:View
+    controllerName="nLeanProof.webapp.controller.App"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:l="sap.ui.layout"
+    xmlns:code="sap.ui.codeeditor"
+    xmlns:f="sap.f"
+    displayBlock="true">
+
+    <Shell id="shell">
+        <App id="app">
+            <Page id="mainPage" title="{i18n>appTitle}" titleLevel="H1" showFooter="true" busy="{main>/busy}" busyIndicatorDelay="0" class="sapUiContentPadding" backgroundDesign="List">
+                <headerContent>
+                    <!-- Connection Status -->
+                    <ObjectStatus
+                        text="{= ${config>/serverConnected} ? ${i18n>connected} : ${i18n>disconnected} }"
+                        state="{= ${config>/serverConnected} ? 'Success' : 'Error' }"
+                        icon="{= ${config>/serverConnected} ? 'sap-icon://connected' : 'sap-icon://disconnected' }"/>
+                    <ToolbarSpacer/>
+                    <!-- File Operations -->
+                    <Button icon="sap-icon://document" press=".onNewFile" tooltip="{i18n>newFileTooltip}" type="Transparent"/>
+                    <Button icon="sap-icon://open-folder" press=".onOpenFile" tooltip="{i18n>openFileTooltip}" type="Transparent"/>
+                    <Button icon="sap-icon://save" press=".onSaveFile" tooltip="{i18n>saveFileTooltip}" type="Transparent"/>
+                    <ToolbarSeparator/>
+                    <Button icon="sap-icon://home" press=".onPressHome" tooltip="{i18n>backToLaunchpad}" type="Transparent"/>
+                    <Button icon="sap-icon://action-settings" press=".onSettingsPress" tooltip="{i18n>settingsTooltip}" type="Emphasized"/>
+                </headerContent>
+                <content>
+                    <l:VerticalLayout width="100%" class="sapUiResponsiveMargin">
+
+                        <!-- Statistics Tiles Section -->
+                        <HBox justifyContent="Start" wrap="Wrap" class="sapUiSmallMarginBottom">
+                            <GenericTile
+                                header="{i18n>fileStatus}"
+                                subheader="{main>/fileName}"
+                                press=".onNewFile"
+                                class="sapUiTinyMarginEnd sapUiTinyMarginBottom tileHover">
+                                <TileContent>
+                                    <NumericContent
+                                        value="{main>/lineCount}"
+                                        scale="{i18n>lines}"
+                                        icon="sap-icon://document-text"
+                                        valueColor="Neutral"/>
+                                </TileContent>
+                            </GenericTile>
+
+                            <GenericTile
+                                header="{i18n>compilerStatus}"
+                                subheader="{= ${main>/outputStatus} === 'success' ? ${i18n>noErrors} : (${main>/outputStatus} === 'error' ? ${i18n>hasErrors} : ${i18n>ready}) }"
+                                press=".onCheckCode"
+                                class="sapUiTinyMarginEnd sapUiTinyMarginBottom tileHover">
+                                <TileContent>
+                                    <NumericContent
+                                        value="{main>/errorCount}"
+                                        scale="{i18n>errors}"
+                                        icon="sap-icon://validate"
+                                        valueColor="{= ${main>/errorCount} === 0 ? 'Good' : 'Error' }"/>
+                                </TileContent>
+                            </GenericTile>
+
+                            <GenericTile
+                                header="{i18n>aiAssistant}"
+                                subheader="{= ${chat>/isStreaming} ? ${i18n>streaming} : ${i18n>ready} }"
+                                press=".onFocusChat"
+                                class="sapUiTinyMarginEnd sapUiTinyMarginBottom tileHover">
+                                <TileContent>
+                                    <NumericContent
+                                        value="{chat>/messageCount}"
+                                        scale="{i18n>messages}"
+                                        icon="sap-icon://da-2"
+                                        valueColor="Neutral"/>
+                                </TileContent>
+                            </GenericTile>
+                        </HBox>
+
+                        <!-- Main Content Grid -->
+                        <l:Grid defaultSpan="L8 M12 S12" hSpacing="1" vSpacing="1">
+
+                            <!-- Code Editor Panel -->
+                            <Panel headerText="{i18n>editorTitle}" expandable="true" expanded="true" class="sapUiResponsiveMargin">
+                                <headerToolbar>
+                                    <Toolbar>
+                                        <Title text="{i18n>editorTitle}" level="H4"/>
+                                        <Label text="- {main>/fileName}" class="sapUiTinyMarginBegin"/>
+                                        <ToolbarSpacer/>
+                                        <Button
+                                            text="{i18n>checkBtn}"
+                                            press=".onCheckCode"
+                                            type="Emphasized"
+                                            icon="sap-icon://validate"
+                                            tooltip="{i18n>checkBtnTooltip}"
+                                            enabled="{= !${main>/busy} }"/>
+                                        <Button
+                                            text="{i18n>runBtn}"
+                                            press=".onRunCode"
+                                            type="Accept"
+                                            icon="sap-icon://play"
+                                            tooltip="{i18n>runBtnTooltip}"
+                                            enabled="{= !${main>/busy} }"/>
+                                        <Button
+                                            text="{i18n>elaborateBtn}"
+                                            press=".onElaborateCode"
+                                            icon="sap-icon://process"
+                                            tooltip="{i18n>elaborateBtnTooltip}"
+                                            enabled="{= !${main>/busy} }"/>
+                                    </Toolbar>
+                                </headerToolbar>
+                                <content>
+                                    <code:CodeEditor
+                                        id="codeEditor"
+                                        value="{main>/code}"
+                                        type="lean4"
+                                        height="350px"
+                                        width="100%"
+                                        syntaxHints="true"
+                                        lineNumbers="true"
+                                        colorTheme="{main>/editorTheme}"/>
+                                </content>
+                            </Panel>
+
+                            <!-- Output Panel -->
+                            <Panel headerText="{i18n>outputTitle}" expandable="true" expanded="true" class="sapUiResponsiveMargin">
+                                <headerToolbar>
+                                    <Toolbar>
+                                        <Title text="{i18n>outputTitle}" level="H4"/>
+                                        <ToolbarSpacer/>
+                                        <ObjectStatus
+                                            text="{main>/lastOperation}"
+                                            state="{= ${main>/outputStatus} === 'success' ? 'Success' : (${main>/outputStatus} === 'error' ? 'Error' : 'Information') }"
+                                            visible="{= !!${main>/lastOperation} }"/>
+                                        <Button
+                                            icon="sap-icon://copy"
+                                            press=".onCopyOutput"
+                                            tooltip="{i18n>copyOutputTooltip}"
+                                            type="Transparent"
+                                            enabled="{= !!${main>/output} }"/>
+                                        <Button
+                                            icon="sap-icon://delete"
+                                            press=".onClearOutput"
+                                            tooltip="{i18n>clearOutputTooltip}"
+                                            type="Transparent"/>
+                                    </Toolbar>
+                                </headerToolbar>
+                                <content>
+                                    <ScrollContainer height="180px" vertical="true" horizontal="true">
+                                        <core:HTML content="{main>/outputHtml}" class="outputContent leanOutput"/>
+                                    </ScrollContainer>
+                                </content>
+                            </Panel>
+
+                        </l:Grid>
+
+                        <!-- AI Assistant Panel (Right Side) -->
+                        <l:Grid defaultSpan="L4 M12 S12" hSpacing="1" vSpacing="1">
+                            <Panel headerText="{i18n>aiTitle}" expandable="true" expanded="true" class="sapUiResponsiveMargin hypershimmyChat">
+                                <headerToolbar>
+                                    <Toolbar>
+                                        <core:Icon src="sap-icon://da-2" class="sapUiTinyMarginEnd"/>
+                                        <Title text="{i18n>aiTitle}" level="H4"/>
+                                        <ToolbarSpacer/>
+                                        <ObjectStatus
+                                            text="{i18n>streaming}"
+                                            state="Information"
+                                            visible="{chat>/isStreaming}"/>
+                                        <Button
+                                            icon="sap-icon://stop"
+                                            press=".onStopStreaming"
+                                            tooltip="{i18n>stopStreamingTooltip}"
+                                            visible="{chat>/isStreaming}"
+                                            type="Reject"/>
+                                        <Button
+                                            icon="sap-icon://delete"
+                                            press=".onClearChat"
+                                            tooltip="{i18n>clearChatTooltip}"
+                                            type="Transparent"
+                                            enabled="{= !${chat>/busy} }"/>
+                                    </Toolbar>
+                                </headerToolbar>
+                                <content>
+                                    <!-- Chat Messages List -->
+                                    <List
+                                        id="chatList"
+                                        items="{chat>/messages}"
+                                        noDataText="{i18n>noChatData}"
+                                        growing="true"
+                                        growingThreshold="20"
+                                        growingScrollToLoad="true"
+                                        showSeparators="None"
+                                        class="hypershimmyChatMessages"
+                                        updateFinished=".onChatUpdateFinished">
+                                        <CustomListItem>
+                                            <VBox class="{= ${chat>role} === 'user' ? 'chatMessageUser' : 'chatMessageAssistant' }">
+                                                <HBox alignItems="Start">
+                                                    <core:Icon
+                                                        src="{= ${chat>role} === 'user' ? 'sap-icon://person-placeholder' : 'sap-icon://da-2' }"
+                                                        size="1rem"
+                                                        class="sapUiTinyMarginEnd"
+                                                        visible="{= ${chat>role} !== 'user' }"/>
+                                                    <VBox class="chatMessageContent" width="100%">
+                                                        <core:HTML content="{chat>contentHtml}"/>
+                                                    </VBox>
+                                                </HBox>
+                                                <Text text="{chat>timestamp}" class="chatMessageTimestamp"/>
+                                            </VBox>
+                                        </CustomListItem>
+                                    </List>
+
+                                    <!-- Typing Indicator -->
+                                    <HBox visible="{chat>/busy}" class="sapUiSmallMargin" alignItems="Center">
+                                        <BusyIndicator size="S"/>
+                                        <Text text="{i18n>aiThinking}" class="sapUiTinyMarginBegin"/>
+                                    </HBox>
+
+                                    <!-- Chat Input Area -->
+                                    <VBox class="sapUiSmallMargin hypershimmyChatInput">
+                                        <TextArea
+                                            id="chatInput"
+                                            value="{chat>/newMessage}"
+                                            placeholder="{i18n>chatPlaceholder}"
+                                            rows="3"
+                                            width="100%"
+                                            growing="true"
+                                            growingMaxLines="6"
+                                            submit=".onSendMessage"
+                                            enabled="{= !${chat>/busy} }"/>
+                                        <HBox justifyContent="SpaceBetween" class="sapUiTinyMarginTop" width="100%">
+                                            <CheckBox
+                                                text="{i18n>streamResponse}"
+                                                selected="{chat>/streamEnabled}"
+                                                enabled="{= !${chat>/busy} }"/>
+                                            <Button
+                                                text="{i18n>sendBtn}"
+                                                press=".onSendMessage"
+                                                type="Emphasized"
+                                                icon="sap-icon://paper-plane"
+                                                enabled="{= !${chat>/busy} &amp;&amp; !!${chat>/newMessage} }"/>
+                                        </HBox>
+                                    </VBox>
+                                </content>
+                            </Panel>
+                        </l:Grid>
+
+                    </l:VerticalLayout>
+                </content>
+            <footer>
+                <Toolbar>
+                    <ToolbarSpacer/>
+                    <Label text="{i18n>serverStatus}:"/>
+                    <ObjectStatus
+                        text="{= ${config>/serverConnected} ? 'Connected' : 'Disconnected' }"
+                        state="{= ${config>/serverConnected} ? 'Success' : 'Error' }"/>
+                    <ToolbarSeparator/>
+                    <Label text="{i18n>version}: 1.0.0"/>
+                </Toolbar>
+            </footer>
+        </Page>
+    </App>
+    </Shell>
+</mvc:View>

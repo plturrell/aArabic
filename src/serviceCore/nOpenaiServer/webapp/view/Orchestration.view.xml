@@ -1,0 +1,278 @@
+<mvc:View
+	controllerName="llm.server.dashboard.controller.Orchestration"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns="sap.m"
+	xmlns:l="sap.ui.layout"
+	xmlns:f="sap.f"
+	xmlns:core="sap.ui.core"
+	xmlns:table="sap.ui.table"
+	displayBlock="true">
+	
+	<Page
+		id="orchestrationPage"
+		title="Agent Orchestration"
+		showNavButton="false"
+		showHeader="true">
+		
+		<headerContent>
+			<Button
+				icon="sap-icon://refresh"
+				text="Refresh"
+				press="onRefreshGraphs" />
+			<Button
+				icon="sap-icon://add"
+				text="Add Agent"
+				press="onAddAgent" />
+			<Button
+				icon="sap-icon://create"
+				text="Create Workflow"
+				press="onCreateWorkflow" />
+			<Button
+				icon="sap-icon://download"
+				text="Export"
+				press="onExportTopology" />
+		</headerContent>
+		
+		<content>
+			<!-- Modern Visualizations (NetworkGraph + ProcessFlow) -->
+			<IconTabBar id="mainTabBar" class="sapUiResponsiveContentPadding">
+				<items>
+					<!-- Tab 1: Network Graph (Agent Topology) -->
+					<IconTabFilter
+						icon="sap-icon://overview-chart"
+						text="Agent Topology"
+						key="topology">
+						<VBox height="100%">
+							<!-- Toolbar -->
+							<Toolbar>
+								<Title text="Network Graph - Real-Time Agent Topology" level="H2" />
+								<ToolbarSpacer />
+								<Button
+									icon="sap-icon://refresh"
+									text="Refresh Topology"
+									type="Transparent"
+									press="onRefreshGraphs" />
+							</Toolbar>
+
+							<!-- Statistics Cards -->
+							<l:HorizontalLayout class="sapUiSmallMarginBottom">
+								<l:content>
+									<GenericTile
+										header="Total Agents"
+										class="sapUiTinyMarginEnd"
+										frameType="OneByHalf">
+										<TileContent>
+											<NumericContent
+												value="{/stats/totalAgents}"
+												icon="sap-icon://group"
+												valueColor="Neutral" />
+										</TileContent>
+									</GenericTile>
+									<GenericTile
+										header="Active Agents"
+										class="sapUiTinyMarginEnd"
+										frameType="OneByHalf">
+										<TileContent>
+											<NumericContent
+												value="{/stats/activeAgents}"
+												icon="sap-icon://accept"
+												valueColor="Good" />
+										</TileContent>
+									</GenericTile>
+									<GenericTile
+										header="Avg Latency"
+										class="sapUiTinyMarginEnd"
+										frameType="OneByHalf">
+										<TileContent>
+											<NumericContent
+												value="{/stats/avgNetworkLatency}"
+												scale="ms"
+												icon="sap-icon://latency"
+												valueColor="Critical" />
+										</TileContent>
+									</GenericTile>
+									<GenericTile
+										header="Total Requests"
+										frameType="OneByHalf">
+										<TileContent>
+											<NumericContent
+												value="{/stats/totalRequests}"
+												icon="sap-icon://request"
+												valueColor="Neutral" />
+										</TileContent>
+									</GenericTile>
+								</l:content>
+							</l:HorizontalLayout>
+
+							<!-- Network Graph Container -->
+							<core:HTML content="&lt;div id='networkGraphContainer' style='width:100%; min-height:600px; height:calc(100vh - 350px); border:1px solid #d9d9d9; border-radius:4px; background:#fff;'&gt;&lt;/div&gt;" />
+						</VBox>
+					</IconTabFilter>
+					
+					<!-- Tab 2: Process Flow (Workflow Execution) -->
+					<IconTabFilter
+						icon="sap-icon://process"
+						text="Workflow Execution"
+						key="workflow">
+						<VBox height="100%">
+							<!-- Toolbar -->
+							<Toolbar>
+								<Title text="Process Flow - Workflow Execution" level="H2" />
+								<ToolbarSpacer />
+								<Button text="Execute" icon="sap-icon://play" type="Emphasized" press="onExecuteWorkflow" />
+							</Toolbar>
+							
+							<!-- Process Flow Container -->
+							<core:HTML content="&lt;div id='processFlowContainer' style='width:100%; height:600px; border:1px solid #d9d9d9; border-radius:4px; background:#fff;'&gt;&lt;/div&gt;" />
+						</VBox>
+					</IconTabFilter>
+					
+					<!-- Tab 3: Legacy View (keeping existing UI) -->
+					<IconTabFilter
+						icon="sap-icon://list"
+						text="Agent Cards"
+						key="cards">
+						<l:Splitter height="100%">
+							<l:contentAreas>
+								<l:VerticalLayout width="100%">
+									<l:content>
+										<Toolbar>
+											<Title text="Agent Topology" level="H2" />
+											<ToolbarSpacer />
+											<Label text="Total Agents:" />
+											<ObjectNumber number="{/stats/totalAgents}" emphasized="false" />
+											<Label text="Active:" />
+											<ObjectNumber
+												number="{/stats/activeAgents}"
+												state="Success"
+												emphasized="false" />
+										</Toolbar>
+										
+										<!-- Agent Cards Grid -->
+										<ScrollContainer height="calc(100vh - 300px)" vertical="true">
+											<l:Grid
+												defaultSpan="L4 M6 S12"
+												hSpacing="1"
+												vSpacing="1"
+												containerQuery="true">
+												<l:content>
+													<List items="{/graph/nodes}">
+														<CustomListItem>
+															<GenericTile
+																header="{name}"
+																subheader="{description}"
+																state="{status}"
+																press="onAgentPress"
+																class="sapUiSmallMargin">
+																<TileContent>
+																	<NumericContent
+																		value="{total_requests}"
+																		scale="K"
+																		valueColor="Good"
+																		icon="{icon}"
+																		withMargin="false" />
+																</TileContent>
+															</GenericTile>
+														</CustomListItem>
+													</List>
+												</l:content>
+											</l:Grid>
+										</ScrollContainer>
+							
+										<!-- Agent Statistics Panel -->
+										<Panel headerText="Network Statistics" expandable="true" expanded="true">
+											<l:HorizontalLayout>
+												<l:content>
+													<VBox class="sapUiSmallMargin">
+														<Label text="Requests/sec" />
+														<ObjectNumber
+															number="{/stats/requestsPerSecond}"
+															unit="req/s"
+															emphasized="true" />
+													</VBox>
+													<VBox class="sapUiSmallMargin">
+														<Label text="Avg Network Latency" />
+														<ObjectNumber
+															number="{/stats/avgNetworkLatency}"
+															unit="ms"
+															state="Warning"
+															emphasized="true" />
+													</VBox>
+													<VBox class="sapUiSmallMargin">
+														<Label text="Total Workflows" />
+														<ObjectNumber
+															number="{/stats/totalWorkflows}"
+															emphasized="true" />
+													</VBox>
+												</l:content>
+											</l:HorizontalLayout>
+										</Panel>
+									</l:content>
+								</l:VerticalLayout>
+								
+								<!-- Right: Agent Details & Workflow Execution -->
+								<l:VerticalLayout width="100%">
+									<l:content>
+										<!-- Selected Agent Details -->
+										<Panel
+											headerText="Agent Details"
+											visible="{/selectedAgent/visible}"
+											expandable="true"
+											expanded="true">
+											<l:Grid defaultSpan="L6 M12 S12">
+												<l:content>
+													<VBox class="sapUiSmallMargin">
+														<Label text="Agent ID" />
+														<Text text="{/selectedAgent/id}" />
+													</VBox>
+													<VBox class="sapUiSmallMargin">
+														<Label text="Type" />
+														<Text text="{/selectedAgent/type}" />
+													</VBox>
+													<VBox class="sapUiSmallMargin">
+														<Label text="Model" />
+														<Text text="{/selectedAgent/model}" />
+													</VBox>
+													<VBox class="sapUiSmallMargin">
+														<Label text="Status" />
+														<ObjectStatus
+															text="{/selectedAgent/statusText}"
+															state="{/selectedAgent/state}" />
+													</VBox>
+												</l:content>
+											</l:Grid>
+										</Panel>
+										
+										<!-- Workflow Execution -->
+										<Panel
+											headerText="Execute Workflow"
+											expandable="true"
+											expanded="true">
+											<l:VerticalLayout>
+												<l:content>
+													<Label text="Select Workflow" class="sapUiSmallMarginTop" />
+													<Select
+														id="workflowSelector"
+														items="{/workflows}">
+														<core:Item key="{id}" text="{name}" />
+													</Select>
+													
+													<Button
+														text="Execute Workflow"
+														icon="sap-icon://play"
+														type="Emphasized"
+														press="onExecuteWorkflow"
+														class="sapUiSmallMarginTop" />
+												</l:content>
+											</l:VerticalLayout>
+										</Panel>
+									</l:content>
+								</l:VerticalLayout>
+							</l:contentAreas>
+						</l:Splitter>
+					</IconTabFilter>
+				</items>
+			</IconTabBar>
+		</content>
+	</Page>
+</mvc:View>

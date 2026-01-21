@@ -1,0 +1,238 @@
+<mvc:View
+    controllerName="serviceCore.nWorkflow.controller.ARISViewer"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:l="sap.ui.layout"
+    xmlns:f="sap.ui.layout.form"
+    xmlns:u="sap.ui.unified">
+    <Page
+        id="arisViewerPage"
+        title="{i18n>arisProcessView}"
+        showNavButton="true"
+        navButtonPress=".onNavBack"
+        showFooter="true"
+        backgroundDesign="Solid">
+
+        <!-- Header Toolbar -->
+        <customHeader>
+            <OverflowToolbar>
+                <Button
+                    id="navBackBtn"
+                    icon="sap-icon://nav-back"
+                    tooltip="{i18n>back}"
+                    type="Transparent"
+                    press=".onNavBack"/>
+                <Title text="{i18n>arisProcessView}" level="H4"/>
+                <ToolbarSpacer/>
+                <!-- Import/Export Controls -->
+                <u:FileUploader
+                    id="amlFileUploader"
+                    name="amlFile"
+                    uploadOnChange="false"
+                    fileType="aml,xml"
+                    buttonText="{i18n>importAml}"
+                    icon="sap-icon://upload"
+                    buttonOnly="true"
+                    style="Transparent"
+                    change=".onImportAML"/>
+                <Button
+                    id="exportBtn"
+                    text="{i18n>export}"
+                    icon="sap-icon://download"
+                    type="Transparent"
+                    press=".onExport"/>
+                <ToolbarSeparator/>
+                <!-- View Toggle -->
+                <SegmentedButton
+                    id="viewTypeToggle"
+                    selectedKey="{arisViewer>/viewType}"
+                    selectionChange=".onViewTypeChange">
+                    <items>
+                        <SegmentedButtonItem key="EPC" text="{i18n>epcView}" icon="sap-icon://workflow-tasks"/>
+                        <SegmentedButtonItem key="ValueChain" text="{i18n>valueChainView}" icon="sap-icon://chain-link"/>
+                        <SegmentedButtonItem key="OrgChart" text="{i18n>orgChartView}" icon="sap-icon://org-chart"/>
+                    </items>
+                </SegmentedButton>
+                <ToolbarSeparator/>
+                <!-- Zoom Controls -->
+                <Button id="zoomOutBtn" icon="sap-icon://zoom-out" tooltip="{i18n>zoomOut}" type="Transparent" press=".onZoomOut"/>
+                <Button id="zoomInBtn" icon="sap-icon://zoom-in" tooltip="{i18n>zoomIn}" type="Transparent" press=".onZoomIn"/>
+                <Button id="fitToScreenBtn" icon="sap-icon://fit-to-size" tooltip="{i18n>fitToScreen}" type="Transparent" press=".onFitToScreen"/>
+                <ToolbarSeparator/>
+                <ToggleButton
+                    id="togglePropertiesBtn"
+                    icon="sap-icon://sidebar-right"
+                    tooltip="{i18n>togglePropertiesPanel}"
+                    pressed="{arisViewer>/propertiesPanelVisible}"
+                    press=".onTogglePropertiesPanel"/>
+            </OverflowToolbar>
+        </customHeader>
+
+        <content>
+            <l:VerticalLayout width="100%" height="100%">
+                <!-- Swim Lane Controls Toolbar -->
+                <Toolbar id="swimLaneToolbar" class="sapUiTinyMarginBottom">
+                    <Button id="addLaneBtn" icon="sap-icon://add" text="{i18n>addLane}" type="Transparent" press=".onAddLane"/>
+                    <ToolbarSeparator/>
+                    <Label text="{i18n>lanes}:"/>
+                    <Select
+                        id="laneSelect"
+                        items="{arisViewer>/swimLanes}"
+                        selectedKey="{arisViewer>/selectedLaneKey}"
+                        change=".onLaneSelected">
+                        <core:Item key="{key}" text="{name}"/>
+                    </Select>
+                    <Button id="moveLaneUpBtn" icon="sap-icon://arrow-top" tooltip="{i18n>moveLaneUp}" type="Transparent" press=".onMoveLaneUp"/>
+                    <Button id="moveLaneDownBtn" icon="sap-icon://arrow-bottom" tooltip="{i18n>moveLaneDown}" type="Transparent" press=".onMoveLaneDown"/>
+                    <Button id="editLaneBtn" icon="sap-icon://edit" tooltip="{i18n>editLane}" type="Transparent" press=".onEditLane"/>
+                    <Button id="deleteLaneBtn" icon="sap-icon://delete" tooltip="{i18n>deleteLane}" type="Transparent" press=".onDeleteLane"/>
+                    <ToolbarSpacer/>
+                    <Label text="{i18n>participant}:"/>
+                    <Text text="{arisViewer>/selectedLane/participant}"/>
+                </Toolbar>
+
+                <!-- Main Splitter: Canvas + Properties Panel -->
+                <l:Splitter id="mainSplitter" orientation="Horizontal" height="calc(100vh - 280px)">
+                    <l:contentAreas>
+                        <!-- Left: ARIS EPC Canvas -->
+                        <Panel id="canvasPanel" headerText="{i18n>epcDiagram}" expandable="false" height="100%" class="sapUiNoContentPadding">
+                            <l:layoutData>
+                                <l:SplitterLayoutData size="75%"/>
+                            </l:layoutData>
+                            <core:HTML
+                                id="arisCanvasContainer"
+                                content="&lt;div id='aris-canvas' style='width:100%;height:100%;position:relative;overflow:auto;'&gt;&lt;div id='aris-swimlanes' style='position:absolute;top:0;left:0;width:100%;height:100%;'&gt;&lt;/div&gt;&lt;div id='aris-elements' style='position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;'&gt;&lt;/div&gt;&lt;/div&gt;"
+                                afterRendering=".onCanvasRendered"/>
+                        </Panel>
+
+                        <!-- Right: Properties Panel -->
+                        <Panel id="propertiesPanel" headerText="{i18n>properties}" expandable="false" height="100%" visible="{arisViewer>/propertiesPanelVisible}">
+                            <l:layoutData>
+                                <l:SplitterLayoutData size="25%"/>
+                            </l:layoutData>
+                            <IconTabBar id="propertiesTabBar" stretchContentHeight="true" class="sapUiNoContentPadding">
+                                <items>
+                                    <!-- Element Details Tab -->
+                                    <IconTabFilter text="{i18n>elementDetails}" icon="sap-icon://detail-view" key="details">
+                                        <f:SimpleForm id="elementDetailsForm" editable="true" layout="ResponsiveGridLayout" labelSpanL="12" labelSpanM="12" columnsL="1" columnsM="1">
+                                            <f:content>
+                                                <core:Title text="{i18n>basicProperties}"/>
+                                                <Label text="{i18n>elementId}"/>
+                                                <Input id="elementIdInput" value="{arisViewer>/selectedElement/id}" editable="false"/>
+                                                <Label text="{i18n>elementName}"/>
+                                                <Input id="elementNameInput" value="{arisViewer>/selectedElement/name}" change=".onElementPropertyChange"/>
+                                                <Label text="{i18n>elementType}"/>
+                                                <Input id="elementTypeInput" value="{arisViewer>/selectedElement/type}" editable="false"/>
+                                                <Label text="{i18n>description}"/>
+                                                <TextArea id="elementDescInput" value="{arisViewer>/selectedElement/description}" rows="3" width="100%" change=".onElementPropertyChange"/>
+                                            </f:content>
+                                        </f:SimpleForm>
+                                    </IconTabFilter>
+                                    <!-- Organization Unit Tab -->
+                                    <IconTabFilter text="{i18n>orgUnit}" icon="sap-icon://org-chart" key="orgUnit">
+                                        <f:SimpleForm id="orgUnitForm" editable="true" layout="ResponsiveGridLayout" labelSpanL="12" labelSpanM="12" columnsL="1" columnsM="1">
+                                            <f:content>
+                                                <core:Title text="{i18n>organizationInfo}"/>
+                                                <Label text="{i18n>unitName}"/>
+                                                <Input id="orgUnitNameInput" value="{arisViewer>/selectedElement/orgUnit/name}"/>
+                                                <Label text="{i18n>responsible}"/>
+                                                <Input id="orgResponsibleInput" value="{arisViewer>/selectedElement/orgUnit/responsible}"/>
+                                                <Label text="{i18n>role}"/>
+                                                <Input id="orgRoleInput" value="{arisViewer>/selectedElement/orgUnit/role}"/>
+                                            </f:content>
+                                        </f:SimpleForm>
+                                    </IconTabFilter>
+                                    <!-- Connected Processes Tab -->
+                                    <IconTabFilter text="{i18n>connectedProcesses}" icon="sap-icon://connected" key="connected">
+                                        <List id="connectedProcessesList" items="{arisViewer>/selectedElement/connectedProcesses}" noDataText="{i18n>noConnectedProcesses}">
+                                            <StandardListItem title="{name}" description="{type}" icon="sap-icon://process" type="Active" press=".onConnectedProcessPress"/>
+                                        </List>
+                                    </IconTabFilter>
+                                </items>
+                            </IconTabBar>
+                        </Panel>
+                    </l:contentAreas>
+                </l:Splitter>
+
+                <!-- Legend Panel (Collapsible) - EPC Notation -->
+                <Panel id="legendPanel" headerText="{i18n>epcNotationLegend}" expandable="true" expanded="false" class="sapUiTinyMarginTop">
+                    <HBox justifyContent="SpaceAround" wrap="Wrap" class="sapUiSmallMargin">
+                        <VBox alignItems="Center" class="sapUiSmallMarginEnd">
+                            <core:Icon src="sap-icon://rhombus-milestone" color="#4CAF50" size="1.5rem"/>
+                            <Text text="{i18n>event}" class="sapUiTinyMarginTop"/>
+                            <Text text="{i18n>eventDesc}" class="sapUiTinyFont"/>
+                        </VBox>
+                        <VBox alignItems="Center" class="sapUiSmallMarginEnd">
+                            <core:Icon src="sap-icon://activity-2" color="#4CAF50" size="1.5rem"/>
+                            <Text text="{i18n>function}" class="sapUiTinyMarginTop"/>
+                            <Text text="{i18n>functionDesc}" class="sapUiTinyFont"/>
+                        </VBox>
+                        <VBox alignItems="Center" class="sapUiSmallMarginEnd">
+                            <core:Icon src="sap-icon://circle-task" color="#FF9800" size="1.5rem"/>
+                            <Text text="XOR" class="sapUiTinyMarginTop"/>
+                            <Text text="{i18n>xorDesc}" class="sapUiTinyFont"/>
+                        </VBox>
+                        <VBox alignItems="Center" class="sapUiSmallMarginEnd">
+                            <core:Icon src="sap-icon://add" color="#FF9800" size="1.5rem"/>
+                            <Text text="AND" class="sapUiTinyMarginTop"/>
+                            <Text text="{i18n>andDesc}" class="sapUiTinyFont"/>
+                        </VBox>
+                        <VBox alignItems="Center" class="sapUiSmallMarginEnd">
+                            <core:Icon src="sap-icon://validate" color="#FF9800" size="1.5rem"/>
+                            <Text text="OR" class="sapUiTinyMarginTop"/>
+                            <Text text="{i18n>orDesc}" class="sapUiTinyFont"/>
+                        </VBox>
+                        <VBox alignItems="Center" class="sapUiSmallMarginEnd">
+                            <core:Icon src="sap-icon://customer" color="#FFC107" size="1.5rem"/>
+                            <Text text="{i18n>orgUnit}" class="sapUiTinyMarginTop"/>
+                            <Text text="{i18n>orgUnitDesc}" class="sapUiTinyFont"/>
+                        </VBox>
+                        <VBox alignItems="Center">
+                            <core:Icon src="sap-icon://document" color="#9E9E9E" size="1.5rem"/>
+                            <Text text="{i18n>infoObject}" class="sapUiTinyMarginTop"/>
+                            <Text text="{i18n>infoObjectDesc}" class="sapUiTinyFont"/>
+                        </VBox>
+                    </HBox>
+                </Panel>
+
+                <!-- Navigation Panel - Process Hierarchy Tree -->
+                <Panel id="navigationPanel" headerText="{i18n>processNavigation}" expandable="true" expanded="false" class="sapUiTinyMarginTop">
+                    <headerToolbar>
+                        <Toolbar>
+                            <Title text="{i18n>processHierarchy}" level="H5"/>
+                            <ToolbarSpacer/>
+                            <SearchField id="processSearchField" placeholder="{i18n>searchProcesses}" search=".onSearchProcesses" width="200px"/>
+                            <Button id="expandAllBtn" icon="sap-icon://expand-all" tooltip="{i18n>expandAll}" type="Transparent" press=".onExpandAll"/>
+                            <Button id="collapseAllBtn" icon="sap-icon://collapse-all" tooltip="{i18n>collapseAll}" type="Transparent" press=".onCollapseAll"/>
+                        </Toolbar>
+                    </headerToolbar>
+                    <Tree
+                        id="processHierarchyTree"
+                        items="{path: 'arisViewer>/processHierarchy', templateShareable: false}"
+                        selectionChange=".onProcessTreeSelect">
+                        <StandardTreeItem title="{arisViewer>name}" icon="{arisViewer>icon}" type="Active"/>
+                    </Tree>
+                </Panel>
+            </l:VerticalLayout>
+        </content>
+
+        <!-- Footer: Status Bar -->
+        <footer>
+            <Toolbar>
+                <core:Icon src="{= ${arisViewer>/selectedElement/id} ? 'sap-icon://detail-view' : 'sap-icon://hint' }" class="sapUiSmallMarginEnd"/>
+                <Text id="statusText" text="{= ${arisViewer>/selectedElement/id} ? ${i18n>selected} + ': ' + ${arisViewer>/selectedElement/name} + ' (' + ${arisViewer>/selectedElement/type} + ')' : ${i18n>noElementSelected} }"/>
+                <ToolbarSpacer/>
+                <ToolbarSeparator/>
+                <Label text="{i18n>swimLanes}:" class="sapUiSmallMarginEnd"/>
+                <ObjectNumber number="{arisViewer>/swimLaneCount}" unit="{i18n>lanes}"/>
+                <ToolbarSeparator/>
+                <core:Icon src="sap-icon://zoom-in" class="sapUiSmallMarginEnd"/>
+                <Text text="{i18n>zoom}: {arisViewer>/zoomLevel}%"/>
+                <ToolbarSeparator/>
+                <ObjectStatus text="{arisViewer>/viewType}" state="Information"/>
+            </Toolbar>
+        </footer>
+    </Page>
+</mvc:View>
+

@@ -1,0 +1,23 @@
+# Sample SCIP Index File for Testing
+#
+# This is a placeholder file. SCIP (Sourcegraph Code Intelligence Protocol) files
+# are binary protobuf-encoded files that cannot be easily hand-created.
+#
+# To generate a real SCIP file for testing:
+#
+# 1. Install scip-cli or a language indexer:
+#    - For TypeScript: npm install -g @sourcegraph/scip-typescript
+#    - For Python: pip install scip-python
+#    - For Go: go install github.com/sourcegraph/scip-go@latest
+#
+# 2. Index a sample project:
+#    scip-typescript index --output sample.scip
+#
+# 3. Or use the scip CLI tool:
+#    scip snapshot sample.scip
+#
+# For now, this file serves as a stub that the test server accepts.
+# The actual SCIP parsing happens in scip_reader.zig.
+#
+# TODO: Generate a proper binary SCIP file from a sample codebase
+

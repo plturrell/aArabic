@@ -1,0 +1,26 @@
+version: "1.0"
+name: "Simple Document Processing"
+description: "A simple workflow in YAML format"
+metadata:
+  author: "nWorkflow Team"
+  created: "2026-01-18"
+  tags: ["document", "processing", "yaml"]
+nodes:
+  - id: "receive"
+    type: "trigger"
+    name: "Receive Document"
+    config: {"source": "api"}
+  - id: "validate"
+    type: "action"
+    name: "Validate"
+    config: {"rules": ["format_check"]}
+  - id: "store"
+    type: "action"  
+    name: "Store"
+    config: {"storage": "s3"}
+edges:
+  - from: "receive"
+    to: "validate"
+  - from: "validate"
+    to: "store"
+error_handlers: []

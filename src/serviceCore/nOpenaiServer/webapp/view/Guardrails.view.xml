@@ -1,0 +1,386 @@
+<mvc:View
+	controllerName="llm.server.dashboard.controller.Guardrails"
+	xmlns="sap.m"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns:layout="sap.ui.layout"
+	xmlns:core="sap.ui.core"
+	xmlns:f="sap.f"
+	xmlns:card="sap.f.cards"
+	height="100%">
+
+	<Page id="guardrailsPage" title="Guardrails & Safety">
+		<content>
+			<layout:VerticalLayout width="100%" class="sapUiSmallMargin">
+
+				<!-- Real-Time Safety Metrics -->
+				<Panel headerText="Real-Time Safety Metrics" expandable="true" expanded="true" class="sapUiResponsiveMargin">
+					<content>
+						<layout:Grid defaultSpan="L3 M6 S12" class="sapUiSmallMargin">
+							
+							<!-- Card 1: Validation Rate -->
+							<f:Card class="sapUiSmallMargin">
+								<f:header>
+									<card:Header
+										title="Validation Success"
+										subtitle="Overall Pass Rate"/>
+								</f:header>
+								<f:content>
+									<VBox class="sapUiSmallMargin">
+										<ObjectNumber 
+											number="{= Math.round((1 - ${guardrails>/violation_rate}) * 100) }" 
+											unit="%"
+											emphasized="true"
+											state="{= ${guardrails>/violation_rate} < 0.05 ? 'Success' : 'Warning' }"
+											class="sapUiLargeMarginBottom"/>
+										<ProgressIndicator
+											percentValue="{= (1 - ${guardrails>/violation_rate}) * 100 }"
+											displayValue="Success Rate"
+											state="{= ${guardrails>/violation_rate} < 0.05 ? 'Success' : 'Warning' }"/>
+										<HBox justifyContent="SpaceBetween" class="sapUiSmallMarginTop">
+											<Label text="{= 'Total: ' + ${guardrails>/total_validations} }"/>
+											<ObjectStatus 
+												text="{= ${guardrails>/violation_rate} < 0.05 ? 'Healthy' : 'Review Needed' }"
+												state="{= ${guardrails>/violation_rate} < 0.05 ? 'Success' : 'Warning' }"/>
+										</HBox>
+									</VBox>
+								</f:content>
+							</f:Card>
+
+							<!-- Card 2: Violation Breakdown -->
+							<f:Card class="sapUiSmallMargin">
+								<f:header>
+									<card:Header
+										title="Violations"
+										subtitle="By Type"/>
+								</f:header>
+								<f:content>
+									<VBox class="sapUiSmallMargin">
+										<ObjectNumber 
+											number="{guardrails>/violations}" 
+											emphasized="true"
+											state="Error"
+											class="sapUiLargeMarginBottom"/>
+										
+										<VBox>
+											<HBox justifyContent="SpaceBetween" class="sapUiTinyMarginBottom">
+												<Label text="Toxicity:"/>
+												<ObjectNumber number="{guardrails>/violations_by_type/toxicity}" state="Error"/>
+											</HBox>
+											<HBox justifyContent="SpaceBetween" class="sapUiTinyMarginBottom">
+												<Label text="PII Detected:"/>
+												<ObjectNumber number="{guardrails>/violations_by_type/pii_detected}" state="Warning"/>
+											</HBox>
+											<HBox justifyContent="SpaceBetween" class="sapUiTinyMarginBottom">
+												<Label text="Jailbreak:"/>
+												<ObjectNumber number="{guardrails>/violations_by_type/jailbreak_attempt}" state="Error"/>
+											</HBox>
+											<HBox justifyContent="SpaceBetween">
+												<Label text="Size Limit:"/>
+												<ObjectNumber number="{guardrails>/violations_by_type/size_limit}" state="Information"/>
+											</HBox>
+										</VBox>
+									</VBox>
+								</f:content>
+							</f:Card>
+
+							<!-- Card 3: Response Time -->
+							<f:Card class="sapUiSmallMargin">
+								<f:header>
+									<card:Header
+										title="Validation Latency"
+										subtitle="Performance Impact"/>
+								</f:header>
+								<f:content>
+									<VBox class="sapUiSmallMargin">
+										<ObjectNumber 
+											number="3.2" 
+											unit="ms"
+											emphasized="true"
+											state="Success"
+											class="sapUiLargeMarginBottom"/>
+										<ProgressIndicator
+											percentValue="64"
+											displayValue="Target: <5ms"
+											state="Success"/>
+										<HBox justifyContent="SpaceBetween" class="sapUiSmallMarginTop">
+											<Label text="Min: 1.2ms"/>
+											<Label text="Max: 8.5ms"/>
+										</HBox>
+										<Text text="Low overhead · SIMD accelerated" class="sapUiTinyMarginTop"/>
+									</VBox>
+								</f:content>
+							</f:Card>
+
+							<!-- Card 4: Throughput -->
+							<f:Card class="sapUiSmallMargin">
+								<f:header>
+									<card:Header
+										title="Throughput"
+										subtitle="Validations per Second"/>
+								</f:header>
+								<f:content>
+									<VBox class="sapUiSmallMargin">
+										<ObjectNumber 
+											number="8450" 
+											unit="val/s"
+											emphasized="true"
+											state="Success"
+											class="sapUiLargeMarginBottom"/>
+										<ProgressIndicator
+											percentValue="84"
+											displayValue="Capacity"
+											state="Success"/>
+										<Text text="Target: 10K val/s" class="sapUiSmallMarginTop"/>
+									</VBox>
+								</f:content>
+							</f:Card>
+
+						</layout:Grid>
+					</content>
+				</Panel>
+
+				<!-- Policy Configuration -->
+				<Panel headerText="Policy Configuration" expandable="true" expanded="true" class="sapUiResponsiveMargin">
+					<content>
+						<layout:Grid defaultSpan="L6 M6 S12" class="sapUiSmallMargin">
+							
+							<!-- Input Validation Policies -->
+							<VBox class="sapUiSmallMargin">
+								<Title text="Input Validation" level="H3" class="sapUiSmallMarginBottom"/>
+								
+								<HBox alignItems="Center" justifyContent="SpaceBetween" class="sapUiTinyMarginBottom">
+									<Label text="Max Tokens:"/>
+									<HBox>
+										<Input value="{guardrails>/config/max_tokens}" width="100px"/>
+										<Button icon="sap-icon://save" type="Emphasized" press=".onUpdatePolicy"/>
+									</HBox>
+								</HBox>
+								
+								<HBox alignItems="Center" justifyContent="SpaceBetween" class="sapUiTinyMarginBottom">
+									<Label text="PII Detection:"/>
+									<Switch state="{guardrails>/config/pii_detection}" change=".onTogglePolicy"/>
+								</HBox>
+								
+								<HBox alignItems="Center" justifyContent="SpaceBetween" class="sapUiTinyMarginBottom">
+									<Label text="Jailbreak Detection:"/>
+									<Switch state="{guardrails>/config/jailbreak_enabled}" change=".onTogglePolicy"/>
+								</HBox>
+								
+								<HBox alignItems="Center" justifyContent="SpaceBetween">
+									<Label text="Mask PII:"/>
+									<Switch state="{guardrails>/config/mask_pii}" change=".onTogglePolicy"/>
+								</HBox>
+							</VBox>
+							
+							<!-- Output Validation Policies -->
+							<VBox class="sapUiSmallMargin">
+								<Title text="Output Validation" level="H3" class="sapUiSmallMarginBottom"/>
+								
+								<HBox alignItems="Center" justifyContent="SpaceBetween" class="sapUiTinyMarginBottom">
+									<Label text="Toxicity Threshold:"/>
+									<HBox>
+										<Slider 
+											value="{guardrails>/config/toxicity_threshold}" 
+											min="0" 
+											max="1" 
+											step="0.1" 
+											width="150px"
+											change=".onThresholdChange"/>
+										<Label text="{= ${guardrails>/config/toxicity_threshold}.toFixed(1) }" class="sapUiTinyMarginBegin"/>
+									</HBox>
+								</HBox>
+								
+								<HBox alignItems="Center" justifyContent="SpaceBetween" class="sapUiTinyMarginBottom">
+									<Label text="Sexual Content:"/>
+									<HBox>
+										<Slider 
+											value="{guardrails>/config/sexual_threshold}" 
+											min="0" 
+											max="1" 
+											step="0.1" 
+											width="150px"
+											change=".onThresholdChange"/>
+										<Label text="{= ${guardrails>/config/sexual_threshold}.toFixed(1) }" class="sapUiTinyMarginBegin"/>
+									</HBox>
+								</HBox>
+								
+								<HBox alignItems="Center" justifyContent="SpaceBetween">
+									<Label text="Violence:"/>
+									<HBox>
+										<Slider 
+											value="{guardrails>/config/violence_threshold}" 
+											min="0" 
+											max="1" 
+											step="0.1" 
+											width="150px"
+											change=".onThresholdChange"/>
+										<Label text="{= ${guardrails>/config/violence_threshold}.toFixed(1) }" class="sapUiTinyMarginBegin"/>
+									</HBox>
+								</HBox>
+							</VBox>
+
+						</layout:Grid>
+					</content>
+				</Panel>
+
+				<!-- Recent Violations Log -->
+				<Panel headerText="Recent Violations" expandable="true" expanded="true" class="sapUiResponsiveMargin">
+					<content>
+						<Table
+							id="violationsTable"
+							items="{guardrails>/recent_violations}"
+							mode="None"
+							noDataText="No violations detected"
+							growing="true"
+							growingThreshold="20"
+							class="sapUiSmallMarginTop">
+							<columns>
+								<Column width="20%"><Text text="Timestamp"/></Column>
+								<Column width="15%"><Text text="Type"/></Column>
+								<Column width="10%"><Text text="Score"/></Column>
+								<Column width="35%"><Text text="Content Preview"/></Column>
+								<Column width="10%"><Text text="Action"/></Column>
+								<Column width="10%"><Text text="Details"/></Column>
+							</columns>
+							<items>
+								<ColumnListItem>
+									<cells>
+										<Text text="{guardrails>timestamp}"/>
+										<ObjectStatus
+											text="{guardrails>type}"
+											state="{= ${guardrails>type} === 'toxicity' ? 'Error' : 'Warning' }"/>
+										<ObjectNumber
+											number="{guardrails>score}"
+											state="{= ${guardrails>score} > 0.8 ? 'Error' : 'Warning' }"/>
+										<Text text="{guardrails>preview}" maxLines="2"/>
+										<ObjectStatus
+											text="{guardrails>action}"
+											state="{= ${guardrails>action} === 'blocked' ? 'Error' : 'Success' }"/>
+										<Button 
+											icon="sap-icon://show" 
+											type="Transparent" 
+											press=".onShowViolationDetails"/>
+									</cells>
+								</ColumnListItem>
+							</items>
+						</Table>
+					</content>
+				</Panel>
+
+				<!-- Test Validation Tool -->
+				<Panel headerText="Test Validation" expandable="true" expanded="false" class="sapUiResponsiveMargin">
+					<content>
+						<VBox class="sapUiSmallMargin">
+							<Label text="Test your guardrails configuration:" class="sapUiSmallMarginBottom"/>
+							
+							<HBox class="sapUiSmallMarginBottom">
+								<VBox width="80%" class="sapUiSmallMarginEnd">
+									<Label text="Content to Validate:" class="sapUiTinyMarginBottom"/>
+									<TextArea
+										id="testContent"
+										value="{guardrails>/test_content}"
+										placeholder="Enter text to test against guardrails..."
+										rows="4"
+										width="100%"/>
+								</VBox>
+								<VBox width="20%">
+									<SegmentedButton selectedKey="{guardrails>/test_type}" class="sapUiSmallMarginBottom">
+										<items>
+											<SegmentedButtonItem key="input" text="Input"/>
+											<SegmentedButtonItem key="output" text="Output"/>
+										</items>
+									</SegmentedButton>
+									<Button
+										text="Validate"
+										type="Emphasized"
+										icon="sap-icon://validate"
+										press=".onTestValidation"
+										width="100%"/>
+								</VBox>
+							</HBox>
+							
+							<!-- Test Result -->
+							<Panel 
+								headerText="Validation Result" 
+								visible="{= ${guardrails>/test_result/tested} === true}"
+								class="sapUiSmallMarginTop">
+								<content>
+									<VBox class="sapUiSmallMargin">
+										<HBox alignItems="Center" class="sapUiSmallMarginBottom">
+											<ObjectStatus
+												text="{= ${guardrails>/test_result/passed} ? 'PASSED' : 'BLOCKED' }"
+												state="{= ${guardrails>/test_result/passed} ? 'Success' : 'Error' }"
+												icon="{= ${guardrails>/test_result/passed} ? 'sap-icon://accept' : 'sap-icon://decline' }"
+												class="sapUiSmallMarginEnd"/>
+											<Text text="{guardrails>/test_result/reason}"/>
+										</HBox>
+										
+										<HBox justifyContent="SpaceBetween" visible="{= ${guardrails>/test_result/score} > 0}">
+											<Label text="Detection Score:"/>
+											<ObjectNumber
+												number="{= (${guardrails>/test_result/score} * 100).toFixed(1) }"
+												unit="%"
+												state="{= ${guardrails>/test_result/score} > 0.7 ? 'Error' : 'Warning' }"/>
+										</HBox>
+										
+										<TextArea
+											value="{guardrails>/test_result/masked_content}"
+											visible="{= ${guardrails>/test_result/masked_content} !== '' }"
+											rows="3"
+											editable="false"
+											class="sapUiSmallMarginTop"/>
+									</VBox>
+								</content>
+							</Panel>
+						</VBox>
+					</content>
+				</Panel>
+
+				<!-- Blocked Patterns Management -->
+				<Panel headerText="Blocked Patterns" expandable="true" expanded="false" class="sapUiResponsiveMargin">
+					<content>
+						<VBox class="sapUiSmallMargin">
+							<HBox alignItems="End" class="sapUiSmallMarginBottom">
+								<VBox width="70%" class="sapUiSmallMarginEnd">
+									<Label text="Add New Pattern:" class="sapUiTinyMarginBottom"/>
+									<Input
+										id="newPattern"
+										placeholder="Enter regex pattern or text to block..."
+										width="100%"/>
+								</VBox>
+								<VBox width="30%">
+									<Button
+										text="Add Pattern"
+										icon="sap-icon://add"
+										type="Emphasized"
+										press=".onAddBlockedPattern"
+										width="150px"/>
+								</VBox>
+							</HBox>
+							
+							<Table
+								items="{guardrails>/blocked_patterns}"
+								mode="Delete"
+								delete=".onDeletePattern"
+								noDataText="No blocked patterns configured">
+								<columns>
+									<Column width="80%"><Text text="Pattern"/></Column>
+									<Column width="20%"><Text text="Matches"/></Column>
+								</columns>
+								<items>
+									<ColumnListItem>
+										<cells>
+											<Text text="{guardrails>pattern}"/>
+											<ObjectNumber number="{guardrails>match_count}"/>
+										</cells>
+									</ColumnListItem>
+								</items>
+							</Table>
+						</VBox>
+					</content>
+				</Panel>
+
+			</layout:VerticalLayout>
+		</content>
+	</Page>
+</mvc:View>

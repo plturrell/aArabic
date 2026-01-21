@@ -1,10 +1,136 @@
 # Mojo Recursive LLM Implementation
 # Extracted from Python RLM research (alexzhang13/rlm)
 # Pure Mojo implementation for zero-dependency recursive inference
+# Day 44: Enhanced with mHC (modified Homological Continuity) constraints
 
 from collections import List, Dict
 from memory import UnsafePointer
 from python import Python, PythonObject
+from time import now
+
+# ============================================================================
+# mHC Configuration for Recursive LLM (Day 44)
+# ============================================================================
+
+@value
+struct MHCRecursionConfig:
+    """mHC configuration specifically for recursive LLM operations.
+
+    Applies depth-based constraints where deeper recursion levels
+    get stricter stability requirements to prevent divergence.
+    """
+    var enabled: Bool
+    var mhc_recursion_threshold: Float32      # Base stability threshold
+    var base_sinkhorn_iterations: Int          # Base Sinkhorn-Knopp iterations
+    var stability_threshold: Float32           # Amplification stability range
+    var manifold_beta: Float32                 # Maximum activation bound
+    var depth_strictness_factor: Float32       # How much stricter per depth level
+    var log_stability_metrics: Bool
+    var abort_on_instability: Bool
+
+    fn __init__(out self):
+        self.enabled = True
+        self.mhc_recursion_threshold = Float32(0.15)  # Recursion-specific threshold
+        self.base_sinkhorn_iterations = 10
+        self.stability_threshold = Float32(1e-4)
+        self.manifold_beta = Float32(10.0)
+        self.depth_strictness_factor = Float32(1.5)   # 50% stricter per depth
+        self.log_stability_metrics = False
+        self.abort_on_instability = False
+
+    fn get_threshold_for_depth(self, depth: Int) -> Float32:
+        """Get stricter threshold for deeper recursion levels.
+
+        Deeper levels have tighter stability bounds to prevent
+        cascading instabilities from propagating upward.
+        """
+        var strictness = Float32(1.0)
+        for _ in range(depth):
+            strictness *= self.depth_strictness_factor
+        return self.mhc_recursion_threshold / strictness
+
+    fn get_iterations_for_depth(self, depth: Int) -> Int:
+        """Get more iterations for deeper levels (more convergence needed)."""
+        return self.base_sinkhorn_iterations + (depth * 5)
+
+
+@value
+struct RecursionStabilityMetrics:
+    """Stability metrics tracking across recursion levels."""
+    var depth: Int
+    var query_id: Int
+    var stability_score: Float32
+    var amplification_factor: Float32
+    var is_stable: Bool
+    var convergence_iterations: Int
+    var timestamp: Float64
+
+    fn __init__(out self, depth: Int, query_id: Int):
+        self.depth = depth
+        self.query_id = query_id
+        self.stability_score = Float32(1.0)
+        self.amplification_factor = Float32(1.0)
+        self.is_stable = True
+        self.convergence_iterations = 0
+        self.timestamp = now()
+
+    @staticmethod
+    fn calculate_stability(amplification: Float32) -> Bool:
+        """Check if amplification factor is within stable range [0.9, 1.1]."""
+        return amplification >= Float32(0.9) and amplification <= Float32(1.1)
+
+
+struct RecursionStabilityTracker:
+    """Tracks mHC stability across all recursion levels.
+
+    Aggregates metrics to detect systematic instabilities
+    that might indicate problematic recursion patterns.
+    """
+    var metrics: List[RecursionStabilityMetrics]
+    var total_queries: Int
+    var stable_queries: Int
+    var max_depth_reached: Int
+    var depth_stability_rates: Dict[Int, Float32]
+
+    fn __init__(out self):
+        self.metrics = List[RecursionStabilityMetrics]()
+        self.total_queries = 0
+        self.stable_queries = 0
+        self.max_depth_reached = 0
+        self.depth_stability_rates = Dict[Int, Float32]()
+
+    fn record(inout self, metric: RecursionStabilityMetrics):
+        """Record a stability metric from a recursion level."""
+        self.metrics.append(metric)
+        self.total_queries += 1
+        if metric.is_stable:
+            self.stable_queries += 1
+        if metric.depth > self.max_depth_reached:
+            self.max_depth_reached = metric.depth
+        self._update_depth_rate(metric.depth, metric.is_stable)
+
+    fn _update_depth_rate(inout self, depth: Int, is_stable: Bool):
+        """Update stability rate for a specific depth."""
+        # Simple running average (could use exponential moving average)
+        var current_rate = self.depth_stability_rates.get(depth, Float32(1.0))
+        var new_sample = Float32(1.0) if is_stable else Float32(0.0)
+        var updated_rate = (current_rate + new_sample) / Float32(2.0)
+        self.depth_stability_rates[depth] = updated_rate
+
+    fn get_overall_stability_rate(self) -> Float32:
+        """Get overall stability rate across all levels."""
+        if self.total_queries == 0:
+            return Float32(1.0)
+        return Float32(self.stable_queries) / Float32(self.total_queries)
+
+    fn get_depth_stability_rate(self, depth: Int) -> Float32:
+        """Get stability rate for a specific depth."""
+        return self.depth_stability_rates.get(depth, Float32(1.0))
+
+    fn is_recursion_stable(self) -> Bool:
+        """Check if overall recursion is stable (>90% stable queries)."""
+        return self.get_overall_stability_rate() >= Float32(0.9)
+
 
 # ============================================================================
 # Core Types
@@ -136,16 +262,22 @@ struct RecursiveLLM:
     """
     Mojo implementation of Recursive Language Model pattern.
     Enables LLMs to decompose tasks and make recursive sub-calls.
+
+    Day 44: Enhanced with mHC (modified Homological Continuity) constraints
+    for stability tracking across recursion levels.
     """
     var max_depth: Int
     var max_iterations: Int
     var current_depth: Int
     var verbose: Bool
-    
+    var mhc_config: MHCRecursionConfig
+    var stability_tracker: RecursionStabilityTracker
+    var query_counter: Int
+
     fn __init__(inout self, max_depth: Int = 1, max_iterations: Int = 30, verbose: Bool = True):
         """
         Initialize Recursive LLM
-        
+
         Args:
             max_depth: Maximum recursion depth (0 = no recursion, 1 = one level, etc.)
             max_iterations: Maximum iterations per completion call
@@ -155,6 +287,31 @@ struct RecursiveLLM:
         self.max_iterations = max_iterations
         self.current_depth = 0
         self.verbose = verbose
+        self.mhc_config = MHCRecursionConfig()
+        self.stability_tracker = RecursionStabilityTracker()
+        self.query_counter = 0
+
+    fn __init__(inout self, max_depth: Int, max_iterations: Int,
+                verbose: Bool, mhc_config: MHCRecursionConfig):
+        """Initialize with custom mHC configuration."""
+        self.max_depth = max_depth
+        self.max_iterations = max_iterations
+        self.current_depth = 0
+        self.verbose = verbose
+        self.mhc_config = mhc_config
+        self.stability_tracker = RecursionStabilityTracker()
+        self.query_counter = 0
+
+    fn configure_mhc(inout self, enabled: Bool = True,
+                     threshold: Float32 = 0.15,
+                     strictness_factor: Float32 = 1.5):
+        """Configure mHC parameters for recursion."""
+        self.mhc_config.enabled = enabled
+        self.mhc_config.mhc_recursion_threshold = threshold
+        self.mhc_config.depth_strictness_factor = strictness_factor
+        if self.verbose:
+            print("⚙️ mHC configured: enabled=", enabled,
+                  "threshold=", threshold, "strictness=", strictness_factor)
     
     fn completion(inout self, prompt: String, depth: Int = 0) -> RLMCompletion:
         """
@@ -237,21 +394,34 @@ struct RecursiveLLM:
                 if self._contains_llm_query(code_block.code):
                     if self.verbose:
                         print("  🔄 Contains llm_query() - will recurse!")
-                    
+
                     # Extract query and make recursive call
                     var queries = self._extract_llm_queries(code_block.code)
-                    
+
                     for query_idx in range(len(queries)):
                         var query = queries[query_idx]
                         if self.verbose:
                             print("\n  ↳ Recursive call:", query[:50], "...")
-                        
-                        # RECURSIVE CALL!
+
+                        # Day 44: Apply mHC constraints before recursion
+                        var mhc_allowed = self._check_mhc_recursion_constraints(depth + 1)
+                        if not mhc_allowed and self.mhc_config.abort_on_instability:
+                            if self.verbose:
+                                print("  ⚠️ mHC: Recursion blocked at depth", depth + 1)
+                            execution_results.append("[mHC: Recursion depth limit reached]")
+                            continue
+
+                        # RECURSIVE CALL with mHC tracking!
+                        self.query_counter += 1
+                        var query_id = self.query_counter
                         var sub_result = self.completion(query, depth + 1)
                         recursive_calls += 1
-                        
+
+                        # Day 44: Record stability metrics for this recursion
+                        self._record_recursion_stability(depth + 1, query_id, sub_result)
+
                         execution_results.append(sub_result.response)
-                        
+
                         if self.verbose:
                             print("  ↳ Result:", sub_result.response[:100], "...")
                 else:
@@ -418,11 +588,118 @@ struct RecursiveLLM:
             "system",
             "Please provide a final answer based on the conversation so far."
         )
-        
+
         var history_copy = message_history
         history_copy.append(fallback_message)
-        
+
         return self._call_llm(history_copy)
+
+    # ========================================================================
+    # mHC Integration Methods (Day 44)
+    # ========================================================================
+
+    fn _check_mhc_recursion_constraints(self, target_depth: Int) -> Bool:
+        """Check if recursion to target depth is allowed by mHC constraints.
+
+        Uses depth-based thresholds where deeper levels are stricter.
+        Returns True if recursion is allowed, False if blocked.
+        """
+        if not self.mhc_config.enabled:
+            return True  # mHC disabled, allow all recursion
+
+        # Get depth-specific threshold (stricter at deeper levels)
+        var threshold = self.mhc_config.get_threshold_for_depth(target_depth)
+
+        # Check stability rate at current depth
+        var current_stability = self.stability_tracker.get_depth_stability_rate(
+            target_depth - 1
+        )
+
+        # Allow if current level is stable enough
+        var is_allowed = current_stability >= Float32(1.0) - threshold
+
+        if self.verbose and self.mhc_config.log_stability_metrics:
+            print("  📊 mHC check: depth=", target_depth,
+                  "threshold=", threshold,
+                  "stability=", current_stability,
+                  "allowed=", is_allowed)
+
+        return is_allowed
+
+    fn _record_recursion_stability(inout self, depth: Int, query_id: Int,
+                                   result: RLMCompletion):
+        """Record stability metrics for a recursive call.
+
+        Computes stability based on result characteristics and
+        tracks metrics for depth-based analysis.
+        """
+        if not self.mhc_config.enabled:
+            return
+
+        # Create metrics for this recursion
+        var metrics = RecursionStabilityMetrics(depth, query_id)
+
+        # Compute stability score based on result
+        # Higher score = more stable (response quality indicators)
+        var stability_score = self._compute_recursion_stability_score(result)
+        metrics.stability_score = stability_score
+
+        # Compute effective amplification factor
+        # Based on iterations used vs expected (depth-scaled)
+        var expected_iterations = Float32(self.mhc_config.get_iterations_for_depth(depth))
+        var actual_iterations = Float32(result.iterations_used)
+        var amplification = actual_iterations / expected_iterations if expected_iterations > 0 else Float32(1.0)
+        metrics.amplification_factor = amplification
+        metrics.convergence_iterations = result.iterations_used
+
+        # Determine overall stability
+        metrics.is_stable = RecursionStabilityMetrics.calculate_stability(amplification)
+
+        # Record in tracker
+        self.stability_tracker.record(metrics)
+
+        if self.verbose and self.mhc_config.log_stability_metrics:
+            print("  📊 mHC recorded: depth=", depth,
+                  "query_id=", query_id,
+                  "amplification=", amplification,
+                  "stable=", metrics.is_stable)
+
+    fn _compute_recursion_stability_score(self, result: RLMCompletion) -> Float32:
+        """Compute stability score for a recursion result.
+
+        Score is based on:
+        - Response length (normalized)
+        - Iterations used vs max
+        - Recursive calls made (complexity indicator)
+        """
+        # Normalize response length (0-1 scale, cap at 1000 chars)
+        var response_len = Float32(len(result.response))
+        var length_score = min(response_len / Float32(1000.0), Float32(1.0))
+
+        # Iteration efficiency (fewer iterations = more stable)
+        var iter_ratio = Float32(result.iterations_used) / Float32(self.max_iterations)
+        var iter_score = Float32(1.0) - min(iter_ratio, Float32(1.0))
+
+        # Recursive complexity (fewer nested calls = more stable)
+        var recursion_penalty = Float32(result.recursive_calls) * Float32(0.1)
+        var recursion_score = max(Float32(1.0) - recursion_penalty, Float32(0.0))
+
+        # Weighted combination
+        return (length_score * Float32(0.3) +
+                iter_score * Float32(0.4) +
+                recursion_score * Float32(0.3))
+
+    fn get_mhc_stability_report(self) -> String:
+        """Get a summary report of mHC stability across all recursion levels."""
+        var report = "=== mHC Recursion Stability Report ===\n"
+        report += "Total queries: " + str(self.stability_tracker.total_queries) + "\n"
+        report += "Stable queries: " + str(self.stability_tracker.stable_queries) + "\n"
+        report += "Overall stability: " + str(
+            self.stability_tracker.get_overall_stability_rate() * Float32(100.0)
+        ) + "%\n"
+        report += "Max depth reached: " + str(self.stability_tracker.max_depth_reached) + "\n"
+        report += "Recursion stable: " + str(self.stability_tracker.is_recursion_stable()) + "\n"
+        return report
 
 
 # ============================================================================
@@ -432,6 +709,36 @@ struct RecursiveLLM:
 fn create_recursive_llm(max_depth: Int, max_iterations: Int) -> RecursiveLLM:
     """Factory function for creating RecursiveLLM instances"""
     return RecursiveLLM(max_depth, max_iterations)
+
+
+fn create_recursive_llm_with_mhc(
+    max_depth: Int,
+    max_iterations: Int,
+    mhc_threshold: Float32 = 0.15,
+    mhc_strictness: Float32 = 1.5,
+    verbose: Bool = True
+) -> RecursiveLLM:
+    """Factory function for creating RecursiveLLM with mHC constraints.
+
+    Day 44: Creates instance with mHC stability tracking enabled.
+
+    Args:
+        max_depth: Maximum recursion depth
+        max_iterations: Maximum iterations per level
+        mhc_threshold: Base mHC recursion threshold (default: 0.15)
+        mhc_strictness: How much stricter per depth level (default: 1.5x)
+        verbose: Print debug information
+
+    Returns:
+        RecursiveLLM instance with mHC enabled
+    """
+    var mhc_config = MHCRecursionConfig()
+    mhc_config.enabled = True
+    mhc_config.mhc_recursion_threshold = mhc_threshold
+    mhc_config.depth_strictness_factor = mhc_strictness
+    mhc_config.log_stability_metrics = verbose
+
+    return RecursiveLLM(max_depth, max_iterations, verbose, mhc_config)
 
 
 fn recursive_completion(
@@ -446,3 +753,38 @@ fn recursive_completion(
     """
     var rlm = RecursiveLLM(max_depth, max_iterations, verbose)
     return rlm.completion(prompt, 0)
+
+
+fn recursive_completion_with_mhc(
+    prompt: String,
+    max_depth: Int = 1,
+    max_iterations: Int = 30,
+    mhc_threshold: Float32 = 0.15,
+    verbose: Bool = True
+) -> RLMCompletion:
+    """
+    Day 44: Recursive completion with mHC stability tracking.
+
+    Applies depth-based constraints where deeper recursion levels
+    have stricter stability requirements.
+
+    Args:
+        prompt: User query to solve recursively
+        max_depth: Maximum recursion depth
+        max_iterations: Maximum iterations per level
+        mhc_threshold: Base stability threshold
+        verbose: Print debug information
+
+    Returns:
+        RLMCompletion with final answer and mHC stability metadata
+    """
+    var rlm = create_recursive_llm_with_mhc(
+        max_depth, max_iterations, mhc_threshold, Float32(1.5), verbose
+    )
+    var result = rlm.completion(prompt, 0)
+
+    # Log stability report if verbose
+    if verbose:
+        print(rlm.get_mhc_stability_report())
+
+    return result

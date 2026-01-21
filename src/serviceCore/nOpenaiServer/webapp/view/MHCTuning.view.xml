@@ -1,0 +1,360 @@
+<mvc:View
+	controllerName="llm.server.dashboard.controller.MHCTuning"
+	xmlns="sap.m"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns:layout="sap.ui.layout"
+	xmlns:core="sap.ui.core"
+	xmlns:f="sap.f"
+	xmlns:card="sap.f.cards"
+	height="100%">
+	<Page id="mhcTuning" showHeader="true">
+		<customHeader>
+			<Bar>
+				<contentLeft>
+					<Breadcrumbs>
+						<Link text="Home" press=".onBreadcrumbHome"/>
+						<Link text="mHC Fine-Tuning"/>
+					</Breadcrumbs>
+				</contentLeft>
+				<contentRight>
+					<Switch
+						state="{mhc>/enabled}"
+						change=".onToggleMHC"
+						customTextOn="Enabled"
+						customTextOff="Disabled"/>
+				</contentRight>
+			</Bar>
+		</customHeader>
+		<content>
+			<layout:VerticalLayout width="100%" class="sapUiSmallMargin">
+
+				<!-- Header Section -->
+				<VBox class="sapUiSmallMargin">
+					<Title text="mHC Fine-Tuning Configuration" level="H2"/>
+					<Text text="Configure manifold hypercomplex (mHC) fine-tuning parameters for geometric stability and enhanced model performance."/>
+					<MessageStrip
+						text="mHC applies Sinkhorn-Knopp normalization and manifold constraints to stabilize attention patterns and improve inference quality."
+						type="Information"
+						showIcon="true"
+						class="sapUiSmallMarginTop"/>
+				</VBox>
+
+				<!-- Wizard for Configuration -->
+				<Wizard
+					id="mhcWizard"
+					complete=".onWizardComplete"
+					class="sapUiResponsiveMargin"
+					showNextButton="true"
+					enableBranching="false">
+
+					<!-- Step 1: Model Selection -->
+					<WizardStep
+						id="modelSelectionStep"
+						title="Model Selection"
+						icon="sap-icon://machine"
+						validated="{= !!${mhc>/selectedModel} }"
+						activate=".onModelSelectionStepActivate">
+						<VBox class="sapUiSmallMargin">
+							<Title text="Select Target Model" level="H3" class="sapUiSmallMarginBottom"/>
+							<Text text="Choose the model you want to apply mHC fine-tuning to." class="sapUiSmallMarginBottom"/>
+							<HBox alignItems="Center" class="sapUiMediumMarginTop">
+								<Label text="Target Model:" class="sapUiSmallMarginEnd"/>
+								<Select
+									id="modelSelector"
+									selectedKey="{mhc>/selectedModel}"
+									change=".onModelChange"
+									width="400px"
+									items="{mhc>/availableModels}">
+									<core:Item key="{mhc>id}" text="{mhc>id}"/>
+								</Select>
+							</HBox>
+							<MessageStrip
+								text="The selected model will be fine-tuned with mHC constraints for improved stability."
+								type="Information"
+								showIcon="true"
+								class="sapUiMediumMarginTop"/>
+						</VBox>
+					</WizardStep>
+
+					<!-- Step 2: Training Mode & Data -->
+					<WizardStep
+						id="trainingDataStep"
+						title="Training Data"
+						icon="sap-icon://documents"
+						activate=".onTrainingDataStepActivate">
+						<VBox class="sapUiSmallMargin">
+							<Title text="Training Configuration" level="H3" class="sapUiSmallMarginBottom"/>
+
+							<!-- Training Mode Selection -->
+							<Panel headerText="Training Mode" class="sapUiSmallMarginBottom">
+								<content>
+									<RadioButtonGroup id="trainingModeGroup" selectedIndex="{mhc>/trainingMode}" select=".onTrainingModeChange">
+										<RadioButton text="Inference-Only mHC (No training data required)" />
+										<RadioButton text="Fine-Tune with Training Data" />
+									</RadioButtonGroup>
+									<MessageStrip
+										text="Inference-only mode applies mHC constraints at runtime without modifying model weights."
+										type="Information"
+										showIcon="true"
+										class="sapUiSmallMarginTop"/>
+								</content>
+							</Panel>
+
+							<!-- Dataset Selection (visible when training mode selected) -->
+							<Panel headerText="Training Dataset" visible="{= ${mhc>/trainingMode} === 1 }">
+								<content>
+									<VBox>
+										<Label text="Select Dataset from HuggingFace" class="sapUiTinyMarginBottom"/>
+										<Select
+											id="datasetSelector"
+											selectedKey="{mhc>/selectedDataset}"
+											change=".onDatasetChange"
+											width="500px"
+											items="{mhc>/availableDatasets}">
+											<core:Item key="{mhc>id}" text="{mhc>name} ({mhc>size} samples)"/>
+										</Select>
+										<Text text="{mhc>/selectedDatasetDescription}" class="sapUiTinyMarginTop sapUiTinyMarginBottom"/>
+										<Link
+											text="{mhc>/selectedDatasetUrl}"
+											href="{mhc>/selectedDatasetUrl}"
+											target="_blank"
+											visible="{= ${mhc>/selectedDatasetUrl} !== '' }"/>
+									</VBox>
+									<VBox class="sapUiMediumMarginTop">
+										<Label text="Training Algorithm" class="sapUiTinyMarginBottom"/>
+										<Select
+											id="algorithmSelector"
+											selectedKey="{mhc>/selectedAlgorithm}"
+											change=".onAlgorithmChange"
+											width="500px"
+											items="{mhc>/availableAlgorithms}">
+											<core:Item key="{mhc>id}" text="{mhc>name}"/>
+										</Select>
+										<Text text="{mhc>/selectedAlgorithmDescription}" class="sapUiTinyMarginTop"/>
+									</VBox>
+								</content>
+							</Panel>
+						</VBox>
+					</WizardStep>
+
+					<!-- Step 3: mHC Configuration -->
+					<WizardStep
+						id="mhcConfigStep"
+						title="mHC Configuration"
+						icon="sap-icon://settings"
+						activate=".onMHCConfigStepActivate">
+						<VBox class="sapUiSmallMargin">
+							<Title text="Core mHC Parameters" level="H3" class="sapUiSmallMarginBottom"/>
+							<Text text="Configure the core manifold hypercomplex parameters for fine-tuning." class="sapUiSmallMarginBottom"/>
+							<layout:Grid defaultSpan="L6 M12 S12" class="sapUiMediumMarginTop">
+								<VBox>
+									<Label text="Sinkhorn Iterations (5-50)" class="sapUiTinyMarginBottom"/>
+									<Slider
+										value="{mhc>/config/sinkhorn_iterations}"
+										min="5"
+										max="50"
+										step="1"
+										enableTickmarks="true"
+										width="100%"/>
+									<Text text="{mhc>/config/sinkhorn_iterations} iterations"/>
+								</VBox>
+								<VBox>
+									<Label text="Manifold Beta (Max Activation Bound)" class="sapUiTinyMarginBottom"/>
+									<Slider
+										value="{mhc>/config/manifold_beta}"
+										min="1"
+										max="50"
+										step="0.5"
+										width="100%"/>
+									<Text text="{mhc>/config/manifold_beta}"/>
+								</VBox>
+								<VBox>
+									<Label text="Stability Threshold" class="sapUiTinyMarginBottom"/>
+									<Input
+										value="{mhc>/config/stability_threshold}"
+										type="Number"
+										width="200px"/>
+								</VBox>
+								<VBox>
+									<Label text="Manifold Epsilon" class="sapUiTinyMarginBottom"/>
+									<Input
+										value="{mhc>/config/manifold_epsilon}"
+										type="Number"
+										width="200px"/>
+								</VBox>
+								<VBox>
+									<CheckBox
+										text="Early Stopping"
+										selected="{mhc>/config/early_stopping}"
+										class="sapUiSmallMarginTop"/>
+								</VBox>
+								<VBox>
+									<CheckBox
+										text="Log Stability Metrics"
+										selected="{mhc>/config/log_stability_metrics}"
+										class="sapUiSmallMarginTop"/>
+								</VBox>
+							</layout:Grid>
+						</VBox>
+					</WizardStep>
+
+					<!-- Step 4: Geometric Extensions -->
+					<WizardStep
+						id="geometricConfigStep"
+						title="Geometric Extensions"
+						icon="sap-icon://dimension"
+						optional="true"
+						activate=".onGeometricConfigStepActivate">
+						<VBox class="sapUiSmallMargin">
+							<Title text="Geometric Extensions (Optional)" level="H3" class="sapUiSmallMarginBottom"/>
+							<Text text="Configure optional geometric manifold parameters for advanced fine-tuning." class="sapUiSmallMarginBottom"/>
+							<layout:Grid defaultSpan="L4 M6 S12" class="sapUiMediumMarginTop">
+								<VBox>
+									<Label text="Manifold Type" class="sapUiTinyMarginBottom"/>
+									<Select selectedKey="{mhc>/geometricConfig/manifold_type}" width="200px">
+										<core:Item key="euclidean" text="Euclidean"/>
+										<core:Item key="hyperbolic" text="Hyperbolic"/>
+										<core:Item key="spherical" text="Spherical"/>
+										<core:Item key="product" text="Product Manifold"/>
+									</Select>
+								</VBox>
+								<VBox>
+									<Label text="Hyperbolic Curvature" class="sapUiTinyMarginBottom"/>
+									<Input
+										value="{mhc>/geometricConfig/hyperbolic_curvature}"
+										type="Number"
+										width="150px"/>
+								</VBox>
+								<VBox>
+									<CheckBox
+										text="Use Poincaré Ball Model"
+										selected="{mhc>/geometricConfig/use_poincare}"
+										class="sapUiSmallMarginTop"/>
+								</VBox>
+							</layout:Grid>
+							<MessageStrip
+								text="These settings are optional and can be skipped if you want to use default geometric configuration."
+								type="Warning"
+								showIcon="true"
+								class="sapUiMediumMarginTop"/>
+						</VBox>
+					</WizardStep>
+
+					<!-- Step 5: Review & Start -->
+					<WizardStep
+						id="reviewStep"
+						title="Review &amp; Start"
+						icon="sap-icon://accept"
+						activate=".onReviewStepActivate">
+						<VBox class="sapUiSmallMargin">
+							<Title text="Review Configuration" level="H3" class="sapUiSmallMarginBottom"/>
+							<Text text="Review your mHC fine-tuning configuration before starting the training." class="sapUiSmallMarginBottom"/>
+
+							<!-- Model Summary -->
+							<Panel headerText="Selected Model" class="sapUiSmallMarginTop">
+								<content>
+									<ObjectStatus
+										title="Model"
+										text="{mhc>/selectedModel}"
+										state="Information"
+										icon="sap-icon://machine"/>
+								</content>
+							</Panel>
+
+							<!-- mHC Config Summary -->
+							<Panel headerText="mHC Parameters" class="sapUiSmallMarginTop">
+								<content>
+									<layout:Grid defaultSpan="L6 M6 S12">
+										<ObjectStatus title="Sinkhorn Iterations" text="{mhc>/config/sinkhorn_iterations}"/>
+										<ObjectStatus title="Manifold Beta" text="{mhc>/config/manifold_beta}"/>
+										<ObjectStatus title="Stability Threshold" text="{mhc>/config/stability_threshold}"/>
+										<ObjectStatus title="Manifold Epsilon" text="{mhc>/config/manifold_epsilon}"/>
+										<ObjectStatus title="Early Stopping" text="{= ${mhc>/config/early_stopping} ? 'Yes' : 'No' }"/>
+										<ObjectStatus title="Log Stability Metrics" text="{= ${mhc>/config/log_stability_metrics} ? 'Yes' : 'No' }"/>
+									</layout:Grid>
+								</content>
+							</Panel>
+
+							<!-- Geometric Config Summary -->
+							<Panel headerText="Geometric Configuration" class="sapUiSmallMarginTop">
+								<content>
+									<layout:Grid defaultSpan="L4 M6 S12">
+										<ObjectStatus title="Manifold Type" text="{mhc>/geometricConfig/manifold_type}"/>
+										<ObjectStatus title="Hyperbolic Curvature" text="{mhc>/geometricConfig/hyperbolic_curvature}"/>
+										<ObjectStatus title="Use Poincaré" text="{= ${mhc>/geometricConfig/use_poincare} ? 'Yes' : 'No' }"/>
+									</layout:Grid>
+								</content>
+							</Panel>
+
+							<!-- Actions -->
+							<HBox justifyContent="End" class="sapUiMediumMarginTop">
+								<Button
+									text="Save Configuration"
+									type="Emphasized"
+									icon="sap-icon://save"
+									press=".onSaveConfig"
+									class="sapUiSmallMarginEnd"/>
+								<Button
+									text="Start Training"
+									type="Accept"
+									icon="sap-icon://begin"
+									press=".onStartTraining"
+									enabled="{= !${mhc>/isTraining} }"/>
+							</HBox>
+						</VBox>
+					</WizardStep>
+
+				</Wizard>
+
+				<!-- Training Progress -->
+				<Panel
+					headerText="Training Progress"
+					visible="{mhc>/isTraining}"
+					expandable="false"
+					class="sapUiResponsiveMargin">
+					<content>
+						<VBox class="sapUiSmallMargin">
+							<ProgressIndicator
+								percentValue="{mhc>/trainingProgress}"
+								displayValue="{= ${mhc>/trainingProgress} + '%' }"
+								state="Information"
+								showValue="true"/>
+							<Button
+								text="Cancel Training"
+								type="Reject"
+								icon="sap-icon://stop"
+								press=".onCancelTraining"
+								class="sapUiSmallMarginTop"/>
+						</VBox>
+					</content>
+				</Panel>
+
+				<!-- Training Jobs History -->
+				<Panel headerText="Training Jobs" expandable="true" expanded="false" class="sapUiResponsiveMargin">
+					<headerToolbar>
+						<Toolbar>
+							<Title text="Training Jobs"/>
+							<ToolbarSpacer/>
+							<Button icon="sap-icon://refresh" press=".onRefreshJobs"/>
+						</Toolbar>
+					</headerToolbar>
+					<content>
+						<List
+							items="{mhc>/jobs}"
+							noDataText="No training jobs found"
+							mode="SingleSelectMaster"
+							selectionChange=".onJobSelect">
+							<StandardListItem
+								title="{mhc>job_id}"
+								description="{= 'Model: ' + ${mhc>model_id} + ' | Status: ' + ${mhc>status} }"
+								info="{mhc>status}"
+								infoState="{= ${mhc>status} === 'completed' ? 'Success' : (${mhc>status} === 'failed' ? 'Error' : 'Information') }"
+								type="Active"/>
+						</List>
+					</content>
+				</Panel>
+
+			</layout:VerticalLayout>
+		</content>
+	</Page>
+</mvc:View>

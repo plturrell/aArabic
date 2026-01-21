@@ -4,14 +4,37 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const server_exe = b.addExecutable(.{
-        .name = "leanshimmy",
+    // Lean4 FFI Bridge library (links to Mojo compiler)
+    const bridge_lib = b.addLibrary(.{
+        .linkage = .dynamic,
+        .name = "lean4_bridge",
         .root_module = b.createModule(.{
-            .root_source_file = b.path("server/main.zig"),
+            .root_source_file = b.path("bridge/lean4_bridge.zig"),
             .target = target,
             .optimize = optimize,
         }),
     });
+    b.installArtifact(bridge_lib);
+
+    // Main server executable
+    const server_module = b.createModule(.{
+        .root_source_file = b.path("server/main.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    // Add bridge module to server
+    server_module.addImport("lean4_bridge", b.createModule(.{
+        .root_source_file = b.path("bridge/lean4_bridge.zig"),
+        .target = target,
+        .optimize = optimize,
+    }));
+
+    const server_exe = b.addExecutable(.{
+        .name = "leanshimmy",
+        .root_module = server_module,
+    });
+    // Link stub C implementation to satisfy extern symbols when Mojo lib is missing
+    server_exe.addCSourceFile(.{ .file = b.path("bridge/stub.c") });
 
     b.installArtifact(server_exe);
 
@@ -111,6 +134,44 @@ pub fn build(b: *std.Build) void {
 
     const summary_step = b.step("conformance-summary", "Generate Lean4 conformance summary");
     summary_step.dependOn(&run_summary.step);
+
+    const elaboration_exe = b.addExecutable(.{
+        .name = "lean4-elaboration",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("tests/conformance/elaboration.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    b.installArtifact(elaboration_exe);
+
+    const run_elaboration = b.addRunArtifact(elaboration_exe);
+    run_elaboration.step.dependOn(b.getInstallStep());
+    if (b.args) |args| {
+        run_elaboration.addArgs(args);
+    }
+
+    const elaboration_step = b.step("conformance-elaboration", "Run Lean4 elaboration conformance tests");
+    elaboration_step.dependOn(&run_elaboration.step);
+
+    const integration_exe = b.addExecutable(.{
+        .name = "api-test",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("tests/integration/api_test.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    b.installArtifact(integration_exe);
+
+    const run_integration = b.addRunArtifact(integration_exe);
+    run_integration.step.dependOn(b.getInstallStep());
+    if (b.args) |args| {
+        run_integration.addArgs(args);
+    }
+
+    const integration_step = b.step("integration-test", "Run API integration tests");
+    integration_step.dependOn(&run_integration.step);
 
     const server_tests = b.addTest(.{
         .root_module = b.createModule(.{

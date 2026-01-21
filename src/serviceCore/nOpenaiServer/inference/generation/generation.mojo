@@ -4,11 +4,11 @@ Orchestrates tokenization, inference, sampling, and caching for text generation
 """
 
 from collections import List
+from time import now
 from inference.tokenization.tokenizer import BPETokenizer, SentencePieceTokenizer
 # KV cache now handled by Zig engine
 # from core.kv_cache import KVCache
 from inference.generation.sampling import SamplingConfig, sample_token
-from python import Python
 
 # ============================================================================
 # Generation Configuration
@@ -109,9 +109,8 @@ struct TextGenerator:
         print(f"  Max new tokens: {config.max_tokens}")
         print(f"  Temperature: {config.temperature}")
         print()
-        
-        var py = Python.import_module("time")
-        var start_time = py.time()
+
+        var start_time = now()
         
         # Initialize output tokens with prompt
         var output_tokens = List[Int]()
@@ -176,8 +175,8 @@ struct TextGenerator:
             if stopped_by == "stop_token":
                 break
         
-        var end_time = py.time()
-        var time_ms = (end_time - start_time) * 1000.0
+        var end_time = now()
+        var time_ms = Float64(end_time - start_time) / 1_000_000.0  # nanoseconds to milliseconds
         
         print()
         print(f"✅ Generation complete!")

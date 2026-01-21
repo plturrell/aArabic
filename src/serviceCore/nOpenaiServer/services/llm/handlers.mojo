@@ -16,6 +16,9 @@ from services.llm.chat import handle_chat_request
 from services.llm.completion import handle_completion_request
 from services.llm.time_utils import unix_timestamp
 
+# Import inference bridge for health check
+from inference.bridge.inference_api import InferenceEngine, create_inference_engine
+
 # ============================================================================
 # Helper Functions for C String Handling
 # ============================================================================
@@ -168,10 +171,20 @@ fn handle_root() -> UnsafePointer[UInt8, MutExternalOrigin]:
     return create_response(response)
 
 fn handle_health() -> UnsafePointer[UInt8, MutExternalOrigin]:
-    """Handle /health - Health check."""
+    """Handle /health - Health check with real inference status."""
     var model_loaded = False
     var model_info = ""
-    
+
+    # Check actual inference engine status
+    try:
+        var engine = create_inference_engine()
+        engine.load_library()
+        model_loaded = engine.is_model_loaded()
+        if model_loaded:
+            model_info = engine.get_info()
+    except:
+        model_loaded = False
+
     var response = String("{")
     response += json_string("status") + String(":") + json_string("healthy") + String(",")
     response += json_string("engine") + String(":") + json_string("Zig+Mojo") + String(",")
@@ -180,7 +193,7 @@ fn handle_health() -> UnsafePointer[UInt8, MutExternalOrigin]:
     if model_info != "":
         response += String(",") + json_string("model_info") + String(":") + json_string(model_info)
     response += String("}")
-    
+
     return create_response(response)
 
 fn handle_list_models() -> UnsafePointer[UInt8, MutExternalOrigin]:

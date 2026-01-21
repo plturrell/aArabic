@@ -1,0 +1,100 @@
+<core:FragmentDefinition
+	xmlns="sap.m"
+	xmlns:core="sap.ui.core">
+	
+	<Popover
+		id="notificationsPopover"
+		title="Notifications"
+		placement="Bottom"
+		contentWidth="400px"
+		afterClose=".onNotificationsPopoverClose">
+		
+		<headerContent>
+			<Button
+				icon="sap-icon://refresh"
+				tooltip="Refresh Notifications"
+				press=".onRefreshNotifications"
+				type="Transparent"/>
+			<Button
+				icon="sap-icon://accept"
+				tooltip="Mark All as Read"
+				press=".onMarkAllRead"
+				type="Transparent"/>
+			<Button
+				icon="sap-icon://delete"
+				tooltip="Clear All"
+				press=".onClearAllNotifications"
+				type="Transparent"/>
+		</headerContent>
+		
+		<content>
+			<List
+				id="notificationsList"
+				items="{notifications>/items}"
+				noDataText="No notifications"
+				mode="Delete"
+				delete=".onDeleteNotification">
+				<CustomListItem type="Active" press=".onNotificationPress">
+					<VBox class="sapUiSmallMargin">
+						<HBox justifyContent="SpaceBetween" alignItems="Center">
+							<HBox alignItems="Center">
+								<core:Icon
+									src="{= ${notifications>type} === 'error' ? 'sap-icon://error' : ${notifications>type} === 'warning' ? 'sap-icon://warning' : 'sap-icon://information' }"
+									color="{= ${notifications>type} === 'error' ? '#BB0000' : ${notifications>type} === 'warning' ? '#E9730C' : '#0070F2' }"
+									class="sapUiTinyMarginEnd"/>
+								<ObjectStatus
+									text="{notifications>category}"
+									state="{= ${notifications>type} === 'error' ? 'Error' : ${notifications>type} === 'warning' ? 'Warning' : 'Information' }"/>
+							</HBox>
+							<Text
+								text="{notifications>timestamp}"
+								class="sapUiSmallMarginBegin"/>
+						</HBox>
+						
+						<Text
+							text="{notifications>title}"
+							class="sapUiTinyMarginTop"
+							wrapping="true"/>
+						
+						<Text
+							text="{notifications>message}"
+							class="sapUiTinyMarginTop"
+							wrapping="true"/>
+						
+						<HBox class="sapUiTinyMarginTop" visible="{= !!${notifications>action} }">
+							<Link
+								text="{notifications>actionText}"
+								press=".onNotificationAction"
+								emphasized="true"/>
+						</HBox>
+						
+						<HBox class="sapUiTinyMarginTop" justifyContent="End">
+							<Button
+								text="Mark as Read"
+								type="Transparent"
+								press=".onMarkAsRead"
+								visible="{= !${notifications>read} }"/>
+						</HBox>
+					</VBox>
+				</CustomListItem>
+			</List>
+			
+			<!-- Load More Button -->
+			<Button
+				text="Load More Notifications"
+				width="100%"
+				press=".onLoadMoreNotifications"
+				visible="{notifications>/hasMore}"
+				class="sapUiSmallMarginTop"/>
+		</content>
+		
+		<footer>
+			<Toolbar>
+				<ToolbarSpacer/>
+				<Text text="{= ${notifications>/unreadCount} + ' unread' }"/>
+			</Toolbar>
+		</footer>
+		
+	</Popover>
+	
+</core:FragmentDefinition>

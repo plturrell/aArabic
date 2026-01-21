@@ -1,0 +1,43 @@
+/* Sidebar and Content Area Styles */
+#mainContainer {
+    height: 100%;
+    display: flex;
+}
+
+.sidebar {
+    background-color: #f7f7f7;
+    border-right: 1px solid #e5e5e5;
+    transition: width 0.3s ease, margin-left 0.3s ease;
+    overflow: hidden;
+    height: 100%;
+    flex-shrink: 0;
+}
+
+.sidebar.collapsed {
+    width: 0 !important;
+    margin-left: -250px;
+    min-width: 0 !important;
+}
+
+.contentArea {
+    flex: 1;
+    transition: margin-left 0.3s ease;
+    overflow: auto;
+    height: 100%;
+}
+
+/* Smooth transition for all layouts */
+#sidebar,
+#contentArea {
+    transition: all 0.3s ease;
+}
+
+/* Ensure NavContainer fills height */
+#navContainer {
+    height: 100%;
+}
+
+/* Remove padding from main page */
+.sapUiNoContentPadding .sapMPageEnableScrolling > section {
+    padding: 0;
+}

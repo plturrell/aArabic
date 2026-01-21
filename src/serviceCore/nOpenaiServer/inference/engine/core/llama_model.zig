@@ -162,21 +162,22 @@ pub const LlamaModel = struct {
         );
         errdefer allocator.free(rope_freqs);
 
-        // Initialize KV caches for each layer
+        // Initialize per-layer KV caches
+        // Each cache stores only 1 layer's worth of data (not n_layers!)
+        // This allows independent memory management per layer
         var kv_caches = try allocator.alloc(kv_cache.KVCache, config.n_layers);
         errdefer allocator.free(kv_caches);
 
         for (0..config.n_layers) |i| {
             kv_caches[i] = try kv_cache.KVCache.init(
                 allocator,
-                config.n_layers,
+                1,  // Single layer per cache - NOT n_layers!
                 config.n_kv_heads,
                 config.head_dim,
                 config.max_seq_len,
             );
             errdefer {
                 for (0..i) |j| kv_caches[j].deinit();
-                allocator.free(kv_caches);
             }
         }
 
@@ -257,7 +258,7 @@ pub const LlamaModel = struct {
                 hidden,
                 self.weights.layer_weights[layer_idx],
                 &self.kv_caches[layer_idx],
-                @intCast(layer_idx),
+                0,  // Each per-layer cache only has 1 layer at index 0
                 position,
                 layer_config,
                 self.rope_freqs,
@@ -353,7 +354,7 @@ pub const LlamaModel = struct {
                 hidden,
                 self.weights.layer_weights[layer_idx],
                 &self.kv_caches[layer_idx],
-                @intCast(layer_idx),
+                0,  // Each per-layer cache only has 1 layer at index 0
                 position,
                 layer_config,
                 self.rope_freqs,
@@ -698,6 +699,7 @@ pub fn test_llama_model(allocator: std.mem.Allocator) !void {
         .tensors = &[_]gguf.TensorInfo{},
         .vocab_tokens = &[_][]u8{},
         .vocab_scores = &[_]f32{},
+        .tensor_data_offset = 0,
     };
 
     const tok = try tokenizer.Tokenizer.loadFromModel(allocator, &dummy_model);

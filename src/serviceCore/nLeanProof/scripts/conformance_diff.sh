@@ -7,7 +7,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 REPO_ROOT="$(cd "$PROJECT_ROOT/../../.." && pwd)"
-TESTS_ROOT="$REPO_ROOT/vendor/layerIntelligence/lean4/tests"
+TESTS_ROOT="$PROJECT_ROOT/tests/lean4"
 
 ORACLE_DIR="$PROJECT_ROOT/tmp/conformance/oracle"
 DIFF_DIR="$PROJECT_ROOT/tmp/conformance/diffs"

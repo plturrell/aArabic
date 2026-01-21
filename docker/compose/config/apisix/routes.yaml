@@ -47,19 +47,6 @@ routes:
       nodes:
         shimmy:3001: 1
 
-  - id: langflow-ui
-    name: langflow
-    uri: /langflow/*
-    plugins:
-      proxy-rewrite:
-        regex_uri:
-          - "^/langflow/(.*)"
-          - "/$1"
-    upstream:
-      type: roundrobin
-      nodes:
-        langflow:7860: 1
-
   - id: qdrant-vector
     name: qdrant
     uri: /qdrant/*

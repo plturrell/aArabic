@@ -30,7 +30,7 @@ fn printUsage() void {
     _ = out.write(
         "Usage: lean4-baseline [--root PATH] [--suite NAME] [--sample N] [--output PATH] [--absolute]\n" ++
         "Defaults:\n" ++
-        "  --root   vendor/layerIntelligence/lean4/tests\n" ++
+        "  --root   tests/lean4\n" ++
         "  --suite  lean\n" ++
         "  --sample 20\n"
     ) catch {};
@@ -38,7 +38,7 @@ fn printUsage() void {
 
 fn parseArgs(args: []const [:0]u8) !Options {
     var options = Options{
-        .root = "vendor/layerIntelligence/lean4/tests",
+        .root = "tests/lean4",
         .suite = "lean",
         .sample = 20,
         .output = null,

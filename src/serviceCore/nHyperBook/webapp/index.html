@@ -1,74 +1,32 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HyperShimmy - Research Assistant</title>
-    
-    <!-- SAPUI5 Bootstrap -->
+    <title>nHyperBook Studio</title>
     <script
         id="sap-ui-bootstrap"
-        src="https://sdk.openui5.org/resources/sap-ui-core.js"
+        src="https://openui5.hana.ondemand.com/resources/sap-ui-core.js"
         data-sap-ui-theme="sap_horizon"
-        data-sap-ui-libs="sap.m,sap.f,sap.ui.layout"
         data-sap-ui-resourceroots='{
             "hypershimmy": "./"
         }'
-        data-sap-ui-oninit="module:hypershimmy/index"
         data-sap-ui-compatVersion="edge"
         data-sap-ui-async="true"
         data-sap-ui-frameOptions="trusted">
     </script>
-    
-    <style>
-        html, body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-        }
-        
-        #content {
-            height: 100%;
-        }
-        
-        /* Loading spinner */
-        .loading-container {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            font-family: '72', Arial, sans-serif;
-        }
-        
-        .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #e5e5e5;
-            border-top: 4px solid #0070f2;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .loading-text {
-            margin-top: 20px;
-            color: #0070f2;
-            font-size: 16px;
-        }
-    </style>
+    <script>
+        sap.ui.getCore().attachInit(function () {
+            new sap.ui.core.ComponentContainer({
+                name: "hypershimmy",
+                settings : {
+                    id : "hypershimmy"
+                },
+                async: true
+            }).placeAt("content");
+        });
+    </script>
 </head>
-<body class="sapUiBody">
-    <div id="content">
-        <!-- Loading indicator -->
-        <div class="loading-container">
-            <div class="loading-spinner"></div>
-            <div class="loading-text">Loading HyperShimmy...</div>
-        </div>
-    </div>
+<body class="sapUiBody" id="content">
 </body>
 </html>

@@ -20,7 +20,6 @@ services=(
     "core"
     "qdrant"
     "embedding"
-    "markitdown"
 )
 
 for service in "${services[@]}"; do
@@ -44,17 +43,14 @@ docker-compose \
     -f "$COMPOSE_DIR/docker-compose.core.yml" \
     -f "$COMPOSE_DIR/docker-compose.qdrant.yml" \
     -f "$COMPOSE_DIR/docker-compose.embedding.yml" \
-    -f "$COMPOSE_DIR/docker-compose.markitdown.yml" \
     ps
 
 echo ""
 echo "🔗 Service URLs:"
-echo "  MarkItDown:  http://localhost:8005"
 echo "  Local LLM:   http://localhost:8006"
 echo "  Embedding:   http://localhost:8007"
 echo "  Qdrant:      http://localhost:6333"
 echo "  Memgraph:    bolt://localhost:7687"
 echo "  Keycloak:    http://localhost:8080"
-echo "  n8n:         http://localhost:5678"
 echo ""
 echo "💡 To stop all services: ./scripts/docker-down.sh"

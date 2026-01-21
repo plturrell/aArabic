@@ -1,0 +1,280 @@
+# Prometheus Alert Rules for LLM Server Error Handling
+# Day 8: Production alerting for circuit breakers, errors, and degradation
+#
+# These rules trigger alerts for:
+# - Circuit breaker state changes
+# - High error rates
+# - Resource exhaustion
+# - Degradation mode changes
+# - SSD failures
+
+groups:
+  - name: error_handling_alerts
+    interval: 30s
+    rules:
+      # Circuit Breaker Alerts
+      
+      - alert: CircuitBreakerOpen
+        expr: circuit_breaker_state{state="open"} == 1
+        for: 1m
+        labels:
+          severity: critical
+          component: circuit_breaker
+        annotations:
+          summary: "Circuit breaker open for {{ $labels.resource }}"
+          description: "Circuit breaker for {{ $labels.resource }} has been open for 1 minute. Service is degraded."
+          runbook: "Check logs for failure patterns. Investigate resource {{ $labels.resource }} health."
+      
+      - alert: CircuitBreakerHalfOpen
+        expr: circuit_breaker_state{state="half_open"} == 1
+        for: 5m
+        labels:
+          severity: warning
+          component: circuit_breaker
+        annotations:
+          summary: "Circuit breaker testing recovery for {{ $labels.resource }}"
+          description: "Circuit breaker for {{ $labels.resource }} is in half-open state for 5 minutes. Service may be unstable."
+      
+      - alert: HighCircuitBreakerFailureRate
+        expr: rate(circuit_breaker_failures_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          component: circuit_breaker
+        annotations:
+          summary: "High failure rate for {{ $labels.resource }}"
+          description: "Resource {{ $labels.resource }} is experiencing {{ $value }} failures/sec over 5 minutes."
+      
+      # Error Rate Alerts
+      
+      - alert: HighErrorRate
+        expr: rate(error_total[5m]) > 50
+        for: 2m
+        labels:
+          severity: warning
+          component: error_handling
+        annotations:
+          summary: "High overall error rate detected"
+          description: "System error rate is {{ $value }} errors/sec over 5 minutes."
+          runbook: "Check error_metrics for breakdown by category. Review recent deployments."
+      
+      - alert: CriticalErrorRate
+        expr: rate(error_total[5m]) > 100
+        for: 1m
+        labels:
+          severity: critical
+          component: error_handling
+        annotations:
+          summary: "CRITICAL: Very high error rate"
+          description: "System error rate is {{ $value }} errors/sec. Service may be down."
+          runbook: "IMMEDIATE ACTION REQUIRED. Check all services. Consider rollback."
+      
+      - alert: HighResourceErrorRate
+        expr: rate(error_resource_total[5m]) > 5
+        for: 2m
+        labels:
+          severity: critical
+          component: error_handling
+        annotations:
+          summary: "High resource exhaustion error rate"
+          description: "Resource errors (OOM, disk full) at {{ $value }}/sec. System capacity exceeded."
+          runbook: "Check disk space and memory usage. Scale up or free resources immediately."
+      
+      # Degradation Mode Alerts
+      
+      - alert: ServiceDegraded
+        expr: degradation_mode{mode!="normal"} == 1
+        for: 2m
+        labels:
+          severity: warning
+          component: degradation
+        annotations:
+          summary: "Service in degraded mode: {{ $labels.mode }}"
+          description: "System operating in {{ $labels.mode }} degradation mode for 2 minutes."
+          runbook: "Check reason for degradation. {{ $labels.mode }} indicates specific subsystem failure."
+      
+      - alert: EmergencyDegradation
+        expr: degradation_mode{mode="emergency"} == 1
+        for: 30s
+        labels:
+          severity: critical
+          component: degradation
+        annotations:
+          summary: "EMERGENCY: System in emergency degradation mode"
+          description: "System in emergency mode. Multiple subsystems failing. Minimal functionality only."
+          runbook: "IMMEDIATE ACTION. Check all systems. Prepare for potential service interruption."
+      
+      - alert: SSDDegradationActive
+        expr: degradation_mode{mode="ssd_degraded"} == 1
+        for: 5m
+        labels:
+          severity: warning
+          component: ssd
+        annotations:
+          summary: "SSD tier degraded - RAM-only mode active"
+          description: "SSD tier failing. System operating in RAM-only mode for 5 minutes."
+          runbook: "Check SSD health, disk space, I/O errors. Performance will be degraded."
+      
+      - alert: MemoryPressureMode
+        expr: degradation_mode{mode="memory_pressure"} == 1
+        for: 3m
+        labels:
+          severity: warning
+          component: memory
+        annotations:
+          summary: "System under memory pressure"
+          description: "Aggressive eviction mode active due to memory pressure for 3 minutes."
+          runbook: "Check memory usage. Consider scaling up or reducing load."
+      
+      # Retry Exhaustion Alerts
+      
+      - alert: HighRetryExhaustionRate
+        expr: rate(retry_exhausted_total[5m]) > 1
+        for: 2m
+        labels:
+          severity: warning
+          component: retry
+        annotations:
+          summary: "High retry exhaustion rate"
+          description: "{{ $value }} operations/sec exhausting all retries. Downstream issues likely."
+          runbook: "Check downstream service health. Review retry configuration."
+      
+      # SSD-Specific Alerts
+      
+      - alert: SSDHighIOErrorRate
+        expr: rate(error_io_total{component="ssd"}[5m]) > 10
+        for: 1m
+        labels:
+          severity: critical
+          component: ssd
+        annotations:
+          summary: "High SSD I/O error rate"
+          description: "SSD experiencing {{ $value }} I/O errors/sec. Hardware failure likely."
+          runbook: "URGENT: Check SSD health with smartctl. Prepare for SSD replacement."
+      
+      - alert: SSDTimeoutRate
+        expr: rate(error_timeout_total{component="ssd"}[5m]) > 5
+        for: 2m
+        labels:
+          severity: warning
+          component: ssd
+        annotations:
+          summary: "High SSD timeout rate"
+          description: "SSD operations timing out at {{ $value }}/sec. Disk may be failing."
+          runbook: "Check SSD performance metrics. May need disk replacement."
+      
+      # Error Budget Alerts (SLO-based)
+      
+      - alert: ErrorBudgetExceeded
+        expr: |
+          (
+            sum(rate(error_total[1h])) / 
+            sum(rate(requests_total[1h]))
+          ) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          component: slo
+        annotations:
+          summary: "Error budget exceeded (>1% error rate)"
+          description: "Error rate {{ $value | humanizePercentage }} exceeds 1% SLO over 1 hour."
+          runbook: "Review error patterns. May need incident declaration if sustained."
+      
+      - alert: ErrorBudgetCritical
+        expr: |
+          (
+            sum(rate(error_total[1h])) / 
+            sum(rate(requests_total[1h]))
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          component: slo
+        annotations:
+          summary: "CRITICAL: Error rate exceeds 5%"
+          description: "Error rate {{ $value | humanizePercentage }} severely exceeds SLO."
+          runbook: "INCIDENT: Declare incident. Investigate immediately. Consider rollback."
+      
+      # Recovery Monitoring
+      
+      - alert: CircuitBreakerFlapping
+        expr: changes(circuit_breaker_state[10m]) > 5
+        for: 1m
+        labels:
+          severity: warning
+          component: circuit_breaker
+        annotations:
+          summary: "Circuit breaker flapping for {{ $labels.resource }}"
+          description: "Circuit breaker changed state {{ $value }} times in 10 minutes. Unstable."
+          runbook: "Service is unstable. Check for intermittent failures. May need manual intervention."
+      
+      - alert: PersistentErrors
+        expr: error_permanent_total > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: error_handling
+        annotations:
+          summary: "Persistent permanent errors detected"
+          description: "{{ $value }} permanent errors detected. Configuration or code issue likely."
+          runbook: "Permanent errors don't resolve automatically. Check for config issues or bugs."
+
+  # Health Check Alerts
+  - name: health_alerts
+    interval: 30s
+    rules:
+      - alert: ServiceUnhealthy
+        expr: up{job="llm-server"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: health
+        annotations:
+          summary: "LLM Server is down"
+          description: "{{ $labels.instance }} has been down for 1 minute."
+          runbook: "CRITICAL: Check service logs. Restart if necessary."
+      
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            process_resident_memory_bytes{job="llm-server"} / 
+            node_memory_MemTotal_bytes
+          ) > 0.90
+        for: 2m
+        labels:
+          severity: critical
+          component: memory
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage at {{ $value | humanizePercentage }}. OOM risk."
+          runbook: "Check for memory leaks. Consider restart or scaling."
+      
+      - alert: DiskSpaceLow
+        expr: |
+          (
+            node_filesystem_avail_bytes{mountpoint="/ssd"} / 
+            node_filesystem_size_bytes{mountpoint="/ssd"}
+          ) < 0.10
+        for: 5m
+        labels:
+          severity: warning
+          component: disk
+        annotations:
+          summary: "SSD disk space below 10%"
+          description: "Only {{ $value | humanizePercentage }} disk space remaining on SSD."
+          runbook: "Free up disk space or add capacity. SSD tier will degrade soon."
+      
+      - alert: DiskSpaceCritical
+        expr: |
+          (
+            node_filesystem_avail_bytes{mountpoint="/ssd"} / 
+            node_filesystem_size_bytes{mountpoint="/ssd"}
+          ) < 0.05
+        for: 1m
+        labels:
+          severity: critical
+          component: disk
+        annotations:
+          summary: "CRITICAL: SSD disk space below 5%"
+          description: "Only {{ $value | humanizePercentage }} disk space remaining. Service degradation imminent."
+          runbook: "URGENT: Free disk space immediately. Service may enter degradation mode."

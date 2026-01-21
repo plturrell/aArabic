@@ -65,6 +65,7 @@ fn test_lfm2_smoke(allocator: std.mem.Allocator) !void {
         .tensors = &[_]gguf.TensorInfo{},
         .vocab_tokens = &[_][]u8{},
         .vocab_scores = &[_]f32{},
+        .tensor_data_offset = 0,
     };
     const tok = try tokenizer.Tokenizer.loadFromModel(allocator, &dummy_model);
 

@@ -373,18 +373,57 @@ pub const DragonflyClient = struct {
     pub fn expire(self: *DragonflyClient, key: []const u8, seconds: u32) !bool {
         const conn = try self.getConnection();
         defer self.returnConnection(conn) catch {};
-        
+
         var seconds_buf: [20]u8 = undefined;
         const seconds_str = try std.fmt.bufPrint(&seconds_buf, "{d}", .{seconds});
-        
+
         const args = [_][]const u8{ "EXPIRE", key, seconds_str };
         try conn.sendCommand(&args);
-        
+
         var response = try conn.readResponse();
         defer response.deinit(self.allocator);
-        
+
         return switch (response) {
             .Integer => |result| result == 1,
+            .Error => error.RedisError,
+            else => error.UnexpectedResponse,
+        };
+    }
+
+    /// INCR key - Increment integer value and return new value
+    pub fn incr(self: *DragonflyClient, key: []const u8) !i64 {
+        const conn = try self.getConnection();
+        defer self.returnConnection(conn) catch {};
+
+        const args = [_][]const u8{ "INCR", key };
+        try conn.sendCommand(&args);
+
+        var response = try conn.readResponse();
+        defer response.deinit(self.allocator);
+
+        return switch (response) {
+            .Integer => |val| val,
+            .Error => error.RedisError,
+            else => error.UnexpectedResponse,
+        };
+    }
+
+    /// INCRBY key increment - Increment integer value by increment and return new value
+    pub fn incrBy(self: *DragonflyClient, key: []const u8, increment: i64) !i64 {
+        const conn = try self.getConnection();
+        defer self.returnConnection(conn) catch {};
+
+        var incr_buf: [20]u8 = undefined;
+        const incr_str = try std.fmt.bufPrint(&incr_buf, "{d}", .{increment});
+
+        const args = [_][]const u8{ "INCRBY", key, incr_str };
+        try conn.sendCommand(&args);
+
+        var response = try conn.readResponse();
+        defer response.deinit(self.allocator);
+
+        return switch (response) {
+            .Integer => |val| val,
             .Error => error.RedisError,
             else => error.UnexpectedResponse,
         };

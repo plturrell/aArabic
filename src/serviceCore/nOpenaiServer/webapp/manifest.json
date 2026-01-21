@@ -1,0 +1,240 @@
+{
+  "_version": "1.59.0",
+  "sap.app": {
+    "id": "llm.server.dashboard",
+    "type": "application",
+    "i18n": "i18n/i18n.properties",
+    "applicationVersion": {
+      "version": "1.0.0"
+    },
+    "title": "{{appTitle}}",
+    "description": "{{appDescription}}",
+    "dataSources": {
+      "metricsWebSocket": {
+        "uri": "ws://localhost:8080/ws",
+        "type": "WebSocket"
+      },
+      "modelsAPI": {
+        "uri": "/api/v1/models",
+        "type": "JSON"
+      },
+      "trainingWebSocket": {
+        "uri": "ws://localhost:11434/ws/training",
+        "type": "WebSocket"
+      },
+      "hanaAPI": {
+        "uri": "http://localhost:11434/api/v1/hana",
+        "type": "JSON"
+      }
+    }
+  },
+  "sap.ui": {
+    "technology": "UI5",
+    "icons": {
+      "icon": "",
+      "favIcon": "",
+      "phone": "",
+      "phone@2": "",
+      "tablet": "",
+      "tablet@2": ""
+    },
+    "deviceTypes": {
+      "desktop": true,
+      "tablet": true,
+      "phone": true
+    }
+  },
+  "sap.ui5": {
+    "flexEnabled": true,
+		"dependencies": {
+			"minUI5Version": "1.120.0",
+			"libs": {
+				"sap.m": {},
+				"sap.ui.core": {},
+				"sap.ui.layout": {},
+				"sap.tnt": {},
+				"sap.f": {},
+				"sap.ui.table": {},
+				"sap.suite.ui.microchart": {}
+			}
+		},
+    "contentDensities": {
+      "compact": true,
+      "cozy": true
+    },
+    "models": {
+      "i18n": {
+        "type": "sap.ui.model.resource.ResourceModel",
+        "settings": {
+          "bundleName": "llm.server.dashboard.i18n.i18n"
+        }
+      },
+      "metrics": {
+        "type": "sap.ui.model.json.JSONModel",
+        "settings": {
+          "defaultBindingMode": "OneWay"
+        }
+      }
+    },
+    "resources": {
+      "css": [
+        {
+          "uri": "css/style.css"
+        }
+      ]
+    },
+    "routing": {
+      "config": {
+        "routerClass": "sap.m.routing.Router",
+        "viewType": "XML",
+        "async": true,
+        "viewPath": "llm.server.dashboard.view"
+      },
+      "routes": [
+        {
+          "name": "main",
+          "pattern": ":?query:",
+          "target": [
+            "TargetMain"
+          ]
+        },
+        {
+          "name": "modelConfigurator",
+          "pattern": "configurator/{modelId}",
+          "target": [
+            "TargetModelConfigurator"
+          ]
+        },
+        {
+          "name": "promptTesting",
+          "pattern": "prompts",
+          "target": [
+            "TargetPromptTesting"
+          ]
+        },
+        {
+          "name": "mhcTuning",
+          "pattern": "mhc",
+          "target": [
+            "TargetMHCTuning"
+          ]
+        },
+        {
+          "name": "orchestration",
+          "pattern": "agents",
+          "target": [
+            "TargetOrchestration"
+          ]
+        },
+        {
+          "name": "modelVersions",
+          "pattern": "versions",
+          "target": [
+            "TargetModelVersions"
+          ]
+        },
+        {
+          "name": "modelRouter",
+          "pattern": "router",
+          "target": [
+            "TargetModelRouter"
+          ]
+        },
+        {
+          "name": "abTesting",
+          "pattern": "abtesting",
+          "target": [
+            "TargetABTesting"
+          ]
+        },
+        {
+          "name": "settings",
+          "pattern": "settings",
+          "target": [
+            "TargetSettings"
+          ]
+        }
+      ],
+      "targets": {
+        "TargetMain": {
+          "viewType": "XML",
+          "viewId": "Main",
+          "viewName": "Main",
+          "viewLevel": 1,
+          "controlAggregation": "pages",
+          "controlId": "appContainer"
+        },
+        "TargetModelConfigurator": {
+          "viewType": "XML",
+          "viewId": "ModelConfigurator",
+          "viewName": "ModelConfigurator",
+          "viewLevel": 1,
+          "controlAggregation": "pages",
+          "controlId": "appContainer"
+        },
+        "TargetPromptTesting": {
+          "viewType": "XML",
+          "viewId": "PromptTesting",
+          "viewName": "PromptTesting",
+          "viewLevel": 1,
+          "controlAggregation": "pages",
+          "controlId": "appContainer"
+        },
+        "TargetMHCTuning": {
+          "viewType": "XML",
+          "viewId": "MHCTuning",
+          "viewName": "MHCTuning",
+          "viewLevel": 1,
+          "controlAggregation": "pages",
+          "controlId": "appContainer"
+        },
+        "TargetOrchestration": {
+          "viewType": "XML",
+          "viewId": "Orchestration",
+          "viewName": "Orchestration",
+          "viewLevel": 1,
+          "controlAggregation": "pages",
+          "controlId": "appContainer"
+        },
+        "TargetModelVersions": {
+          "viewType": "XML",
+          "viewId": "ModelVersions",
+          "viewName": "ModelVersions",
+          "viewLevel": 1,
+          "controlAggregation": "pages",
+          "controlId": "appContainer"
+        },
+        "TargetModelRouter": {
+          "viewType": "XML",
+          "viewId": "ModelRouter",
+          "viewName": "ModelRouter",
+          "viewLevel": 1,
+          "controlAggregation": "pages",
+          "controlId": "appContainer"
+        },
+        "TargetABTesting": {
+          "viewType": "XML",
+          "viewId": "ABTesting",
+          "viewName": "ABTesting",
+          "viewLevel": 1,
+          "controlAggregation": "pages",
+          "controlId": "appContainer"
+        },
+        "TargetSettings": {
+          "viewType": "XML",
+          "viewId": "Settings",
+          "viewName": "Settings",
+          "viewLevel": 1,
+          "controlAggregation": "pages",
+          "controlId": "appContainer"
+        }
+      }
+    },
+    "rootView": {
+      "viewName": "llm.server.dashboard.view.App",
+      "type": "XML",
+      "async": true,
+      "id": "App"
+    }
+  }
+}

@@ -1,0 +1,172 @@
+# nCode - Code Intelligence Platform
+# Docker Compose Configuration for Development and Production
+#
+# Services:
+# - ncode: HTTP API server for code intelligence
+# - qdrant: Vector database for semantic code search
+# - memgraph: Graph database for code relationships
+# - marquez: Lineage tracking and data governance
+#
+# Usage:
+#   docker-compose up -d              # Start all services
+#   docker-compose down               # Stop all services
+#   docker-compose logs -f ncode      # View nCode logs
+#   docker-compose ps                 # Check service status
+
+version: '3.8'
+
+services:
+  # nCode HTTP Server - Code Intelligence API
+  ncode:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ncode-server
+    image: ncode:latest
+    ports:
+      - "${NCODE_PORT:-18003}:18003"
+    environment:
+      - NCODE_PORT=18003
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - MEMGRAPH_HOST=memgraph
+      - MEMGRAPH_PORT=7687
+      - MARQUEZ_URL=http://marquez:5000
+    volumes:
+      # Mount local directories for development
+      - ./indexes:/app/indexes:ro
+      - ./logs:/app/logs
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      memgraph:
+        condition: service_started
+      marquez:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:18003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - ncode-network
+
+  # Qdrant - Vector Database for Semantic Search
+  qdrant:
+    image: qdrant/qdrant:v1.7.4
+    container_name: ncode-qdrant
+    ports:
+      - "${QDRANT_HTTP_PORT:-6333}:6333"
+      - "${QDRANT_GRPC_PORT:-6334}:6334"
+    environment:
+      - QDRANT__SERVICE__HTTP_PORT=6333
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    volumes:
+      - qdrant-data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - ncode-network
+
+  # Memgraph - Graph Database for Code Relationships
+  memgraph:
+    image: memgraph/memgraph-platform:2.14.1
+    container_name: ncode-memgraph
+    ports:
+      - "${MEMGRAPH_BOLT_PORT:-7687}:7687"
+      - "${MEMGRAPH_WEB_PORT:-3000}:3000"
+    environment:
+      - MEMGRAPH="--log-level=WARNING"
+    volumes:
+      - memgraph-data:/var/lib/memgraph
+      - memgraph-log:/var/log/memgraph
+    entrypoint: ["/usr/lib/memgraph/memgraph", "--log-level=WARNING", "--also-log-to-stderr"]
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "7687"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - ncode-network
+
+  # Marquez - Data Lineage and Metadata Management
+  marquez:
+    image: marquezproject/marquez:0.42.0
+    container_name: ncode-marquez
+    ports:
+      - "${MARQUEZ_PORT:-5000}:5000"
+      - "${MARQUEZ_WEB_PORT:-3001}:3001"
+    environment:
+      - MARQUEZ_PORT=5000
+      - MARQUEZ_ADMIN_PORT=8081
+      - POSTGRES_HOST=marquez-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=marquez
+      - POSTGRES_USER=marquez
+      - POSTGRES_PASSWORD=${MARQUEZ_DB_PASSWORD:-marquez}
+    depends_on:
+      marquez-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/v1/namespaces"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+    restart: unless-stopped
+    networks:
+      - ncode-network
+
+  # PostgreSQL - Database for Marquez
+  marquez-db:
+    image: postgres:15-alpine
+    container_name: ncode-marquez-db
+    ports:
+      - "${MARQUEZ_DB_PORT:-5432}:5432"
+    environment:
+      - POSTGRES_DB=marquez
+      - POSTGRES_USER=marquez
+      - POSTGRES_PASSWORD=${MARQUEZ_DB_PASSWORD:-marquez}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - marquez-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marquez"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - ncode-network
+
+# Persistent Volumes
+volumes:
+  qdrant-data:
+    driver: local
+    name: ncode-qdrant-data
+  memgraph-data:
+    driver: local
+    name: ncode-memgraph-data
+  memgraph-log:
+    driver: local
+    name: ncode-memgraph-log
+  marquez-db-data:
+    driver: local
+    name: ncode-marquez-db-data
+
+# Network Configuration
+networks:
+  ncode-network:
+    driver: bridge
+    name: ncode-network

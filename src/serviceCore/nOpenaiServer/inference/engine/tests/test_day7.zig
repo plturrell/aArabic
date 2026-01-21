@@ -183,6 +183,7 @@ fn test_batch_with_model(allocator: std.mem.Allocator) !void {
         .vocab_tokens = try allocator.alloc([]u8, 0),
         .vocab_scores = try allocator.alloc(f32, 0),
         .tensors = try allocator.alloc(gguf.TensorInfo, 0),
+        .tensor_data_offset = 0,
     };
     defer dummy_model.deinit();
 

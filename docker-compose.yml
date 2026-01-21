@@ -13,7 +13,6 @@ version: '3.8'
 #   -f docker/compose/docker-compose.core.yml \
 #   -f docker/compose/docker-compose.qdrant.yml \
 #   -f docker/compose/docker-compose.embedding.yml \
-#   -f docker/compose/docker-compose.markitdown.yml \
 #   up -d
 
 networks:

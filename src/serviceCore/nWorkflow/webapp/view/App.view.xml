@@ -1,0 +1,10 @@
+<mvc:View
+    controllerName="serviceCore.nWorkflow.controller.App"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    displayBlock="true">
+    <Shell id="shell">
+        <App id="app" busy="{appView>/busy}" busyIndicatorDelay="{appView>/delay}"/>
+    </Shell>
+</mvc:View>
+

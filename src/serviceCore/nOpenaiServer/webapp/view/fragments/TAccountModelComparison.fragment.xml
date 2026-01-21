@@ -1,0 +1,452 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:layout="sap.ui.layout"
+    xmlns:f="sap.f"
+    xmlns:card="sap.f.cards">
+
+    <VBox id="tAccountModelComparison" class="sapUiResponsiveMargin">
+        
+        <!-- Header Bar -->
+        <OverflowToolbar class="sapUiSmallMarginBottom">
+            <Title text="Compare Model Versions" level="H3"/>
+            <ToolbarSpacer/>
+            <Button
+                icon="sap-icon://decline"
+                type="Transparent"
+                tooltip="Close Comparison"
+                press=".onCloseModelComparison"/>
+        </OverflowToolbar>
+
+        <!-- Main T-Account Layout: Two Equal Columns -->
+        <HBox justifyContent="SpaceBetween" width="100%">
+            
+            <!-- LEFT SIDE: Version A -->
+            <VBox width="48%" class="sapUiSmallMarginEnd">
+                
+                <!-- Version A Header -->
+                <Panel class="sapUiTinyMarginBottom">
+                    <headerToolbar>
+                        <OverflowToolbar>
+                            <Title text="{modelComparison>/versionA/modelName} {modelComparison>/versionA/version}" level="H4"/>
+                            <ToolbarSpacer/>
+                            <ObjectStatus
+                                text="{modelComparison>/versionA/status}"
+                                state="{= ${modelComparison>/versionA/status} === 'PRODUCTION' ? 'Success' : 
+                                        (${modelComparison>/versionA/status} === 'STAGING' ? 'Warning' : 
+                                        (${modelComparison>/versionA/status} === 'DRAFT' ? 'Information' : 'None')) }"
+                                icon="{= ${modelComparison>/versionA/status} === 'PRODUCTION' ? 'sap-icon://accept' : 
+                                       (${modelComparison>/versionA/status} === 'STAGING' ? 'sap-icon://pending' : 
+                                       (${modelComparison>/versionA/status} === 'ARCHIVED' ? 'sap-icon://folder' : 'sap-icon://edit')) }"
+                                inverted="true"/>
+                        </OverflowToolbar>
+                    </headerToolbar>
+                    <content>
+                        <!-- Version Metadata -->
+                        <layout:Grid defaultSpan="L6 M6 S12" class="sapUiTinyMarginBottom">
+                            <VBox>
+                                <Label text="Created" design="Bold"/>
+                                <Text text="{modelComparison>/versionA/createdDate}"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Promoted By" design="Bold"/>
+                                <Text text="{modelComparison>/versionA/promotedBy}"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Training Experiment ID" design="Bold"/>
+                                <Link text="{modelComparison>/versionA/trainingExperimentId}" press=".onNavigateToExperiment"/>
+                            </VBox>
+                        </layout:Grid>
+                    </content>
+                </Panel>
+
+                <!-- Training Metrics Panel - Version A -->
+                <Panel headerText="Training Metrics" expandable="true" expanded="true" class="sapUiTinyMarginBottom">
+                    <content>
+                        <layout:Grid defaultSpan="L6 M6 S12">
+                            <VBox>
+                                <Label text="Final Loss"/>
+                                <ObjectNumber
+                                    number="{modelComparison>/versionA/trainingMetrics/finalLoss}"
+                                    emphasized="true"
+                                    state="{= ${modelComparison>/deltas/finalLoss/winner} === 'A' ? 'Success' : 
+                                            (${modelComparison>/deltas/finalLoss/winner} === 'B' ? 'Error' : 'None') }"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Accuracy"/>
+                                <ObjectNumber
+                                    number="{modelComparison>/versionA/trainingMetrics/accuracy}"
+                                    unit="%"
+                                    emphasized="true"
+                                    state="{= ${modelComparison>/deltas/accuracy/winner} === 'A' ? 'Success' : 
+                                            (${modelComparison>/deltas/accuracy/winner} === 'B' ? 'Error' : 'None') }"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Training Time"/>
+                                <Text text="{modelComparison>/versionA/trainingMetrics/trainingTime}"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Epochs Completed"/>
+                                <ObjectNumber
+                                    number="{modelComparison>/versionA/trainingMetrics/epochsCompleted}"
+                                    emphasized="true"/>
+                            </VBox>
+                        </layout:Grid>
+                    </content>
+                </Panel>
+
+                <!-- Inference Metrics Panel - Version A -->
+                <Panel headerText="Inference Metrics" expandable="true" expanded="true" class="sapUiTinyMarginBottom">
+                    <content>
+                        <layout:Grid defaultSpan="L6 M6 S12">
+                            <VBox>
+                                <Label text="Latency P50"/>
+                                <ObjectNumber
+                                    number="{modelComparison>/versionA/inferenceMetrics/latencyP50}"
+                                    unit="ms"
+                                    emphasized="true"
+                                    state="{= ${modelComparison>/deltas/latencyP50/winner} === 'A' ? 'Success' : 
+                                            (${modelComparison>/deltas/latencyP50/winner} === 'B' ? 'Error' : 'None') }"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Latency P95"/>
+                                <ObjectNumber
+                                    number="{modelComparison>/versionA/inferenceMetrics/latencyP95}"
+                                    unit="ms"
+                                    emphasized="true"
+                                    state="{= ${modelComparison>/deltas/latencyP95/winner} === 'A' ? 'Success' : 
+                                            (${modelComparison>/deltas/latencyP95/winner} === 'B' ? 'Error' : 'None') }"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Throughput"/>
+                                <ObjectNumber
+                                    number="{modelComparison>/versionA/inferenceMetrics/throughput}"
+                                    unit="TPS"
+                                    emphasized="true"
+                                    state="{= ${modelComparison>/deltas/throughput/winner} === 'A' ? 'Success' : 
+                                            (${modelComparison>/deltas/throughput/winner} === 'B' ? 'Error' : 'None') }"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Error Rate"/>
+                                <ObjectNumber
+                                    number="{modelComparison>/versionA/inferenceMetrics/errorRate}"
+                                    unit="%"
+                                    emphasized="true"
+                                    state="{= ${modelComparison>/deltas/errorRate/winner} === 'A' ? 'Success' : 
+                                            (${modelComparison>/deltas/errorRate/winner} === 'B' ? 'Error' : 'None') }"/>
+                            </VBox>
+                        </layout:Grid>
+                    </content>
+                </Panel>
+
+                <!-- A/B Testing Panel - Version A -->
+                <Panel headerText="A/B Testing" expandable="true" expanded="true">
+                    <content>
+                        <layout:Grid defaultSpan="L4 M6 S12">
+                            <VBox>
+                                <Label text="Current Traffic"/>
+                                <ObjectNumber
+                                    number="{modelComparison>/versionA/abTesting/trafficPercent}"
+                                    unit="%"
+                                    emphasized="true"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Total Requests"/>
+                                <ObjectNumber
+                                    number="{modelComparison>/versionA/abTesting/totalRequests}"
+                                    emphasized="true"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Success Rate"/>
+                                <ObjectNumber
+                                    number="{modelComparison>/versionA/abTesting/successRate}"
+                                    unit="%"
+                                    emphasized="true"
+                                    state="{= ${modelComparison>/deltas/successRate/winner} === 'A' ? 'Success' : 
+                                            (${modelComparison>/deltas/successRate/winner} === 'B' ? 'Error' : 'None') }"/>
+                            </VBox>
+                        </layout:Grid>
+                    </content>
+                </Panel>
+            </VBox>
+
+            <!-- CENTER: Comparison Indicators -->
+            <VBox width="4%" alignItems="Center" justifyContent="Center">
+                <!-- Delta indicators between versions -->
+                <VBox alignItems="Center" class="sapUiSmallMarginTop">
+                    <core:Icon
+                        src="{= ${modelComparison>/deltas/overall/winner} === 'A' ? 'sap-icon://arrow-left' :
+                              (${modelComparison>/deltas/overall/winner} === 'B' ? 'sap-icon://arrow-right' : 'sap-icon://less') }"
+                        size="1.5rem"
+                        color="{= ${modelComparison>/deltas/overall/winner} ? '#107e3e' : '#666' }"
+                        class="sapUiSmallMarginBottom"/>
+                    <Text text="VS" class="sapUiTinyMarginBottom"/>
+                </VBox>
+
+                <!-- Training Metrics Deltas -->
+                <VBox alignItems="Center" class="sapUiMediumMarginTop">
+                    <core:Icon
+                        src="{= ${modelComparison>/deltas/finalLoss/winner} === 'A' ? 'sap-icon://arrow-left' :
+                              (${modelComparison>/deltas/finalLoss/winner} === 'B' ? 'sap-icon://arrow-right' : 'sap-icon://less') }"
+                        color="{= ${modelComparison>/deltas/finalLoss/winner} ? '#107e3e' : '#e9730c' }"
+                        size="1rem"/>
+                    <Text text="{modelComparison>/deltas/finalLoss/display}" class="sapUiTinyMarginTop"/>
+                </VBox>
+
+                <!-- Latency Delta -->
+                <VBox alignItems="Center" class="sapUiMediumMarginTop">
+                    <core:Icon
+                        src="{= ${modelComparison>/deltas/latencyP50/winner} === 'A' ? 'sap-icon://arrow-left' :
+                              (${modelComparison>/deltas/latencyP50/winner} === 'B' ? 'sap-icon://arrow-right' : 'sap-icon://less') }"
+                        color="{= ${modelComparison>/deltas/latencyP50/winner} ? '#107e3e' : '#e9730c' }"
+                        size="1rem"/>
+                    <Text text="{modelComparison>/deltas/latencyP50/display}" class="sapUiTinyMarginTop"/>
+                </VBox>
+
+                <!-- Accuracy Delta -->
+                <VBox alignItems="Center" class="sapUiMediumMarginTop">
+                    <core:Icon
+                        src="{= ${modelComparison>/deltas/accuracy/winner} === 'A' ? 'sap-icon://arrow-left' :
+                              (${modelComparison>/deltas/accuracy/winner} === 'B' ? 'sap-icon://arrow-right' : 'sap-icon://less') }"
+                        color="{= ${modelComparison>/deltas/accuracy/winner} ? '#107e3e' : '#e9730c' }"
+                        size="1rem"/>
+                    <Text text="{modelComparison>/deltas/accuracy/display}" class="sapUiTinyMarginTop"/>
+                </VBox>
+            </VBox>
+
+            <!-- RIGHT SIDE: Version B -->
+            <VBox width="48%" class="sapUiSmallMarginBegin">
+
+                <!-- Version B Header -->
+                <Panel class="sapUiTinyMarginBottom">
+                    <headerToolbar>
+                        <OverflowToolbar>
+                            <Title text="{modelComparison>/versionB/modelName} {modelComparison>/versionB/version}" level="H4"/>
+                            <ToolbarSpacer/>
+                            <ObjectStatus
+                                text="{modelComparison>/versionB/status}"
+                                state="{= ${modelComparison>/versionB/status} === 'PRODUCTION' ? 'Success' :
+                                        (${modelComparison>/versionB/status} === 'STAGING' ? 'Warning' :
+                                        (${modelComparison>/versionB/status} === 'DRAFT' ? 'Information' : 'None')) }"
+                                icon="{= ${modelComparison>/versionB/status} === 'PRODUCTION' ? 'sap-icon://accept' :
+                                       (${modelComparison>/versionB/status} === 'STAGING' ? 'sap-icon://pending' :
+                                       (${modelComparison>/versionB/status} === 'ARCHIVED' ? 'sap-icon://folder' : 'sap-icon://edit')) }"
+                                inverted="true"/>
+                        </OverflowToolbar>
+                    </headerToolbar>
+                    <content>
+                        <!-- Version Metadata -->
+                        <layout:Grid defaultSpan="L6 M6 S12" class="sapUiTinyMarginBottom">
+                            <VBox>
+                                <Label text="Created" design="Bold"/>
+                                <Text text="{modelComparison>/versionB/createdDate}"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Promoted By" design="Bold"/>
+                                <Text text="{modelComparison>/versionB/promotedBy}"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Training Experiment ID" design="Bold"/>
+                                <Link text="{modelComparison>/versionB/trainingExperimentId}" press=".onNavigateToExperiment"/>
+                            </VBox>
+                        </layout:Grid>
+                    </content>
+                </Panel>
+
+                <!-- Training Metrics Panel - Version B -->
+                <Panel headerText="Training Metrics" expandable="true" expanded="true" class="sapUiTinyMarginBottom">
+                    <content>
+                        <layout:Grid defaultSpan="L6 M6 S12">
+                            <VBox>
+                                <Label text="Final Loss"/>
+                                <ObjectNumber
+                                    number="{modelComparison>/versionB/trainingMetrics/finalLoss}"
+                                    emphasized="true"
+                                    state="{= ${modelComparison>/deltas/finalLoss/winner} === 'B' ? 'Success' :
+                                            (${modelComparison>/deltas/finalLoss/winner} === 'A' ? 'Error' : 'None') }"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Accuracy"/>
+                                <ObjectNumber
+                                    number="{modelComparison>/versionB/trainingMetrics/accuracy}"
+                                    unit="%"
+                                    emphasized="true"
+                                    state="{= ${modelComparison>/deltas/accuracy/winner} === 'B' ? 'Success' :
+                                            (${modelComparison>/deltas/accuracy/winner} === 'A' ? 'Error' : 'None') }"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Training Time"/>
+                                <Text text="{modelComparison>/versionB/trainingMetrics/trainingTime}"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Epochs Completed"/>
+                                <ObjectNumber
+                                    number="{modelComparison>/versionB/trainingMetrics/epochsCompleted}"
+                                    emphasized="true"/>
+                            </VBox>
+                        </layout:Grid>
+                    </content>
+                </Panel>
+
+                <!-- Inference Metrics Panel - Version B -->
+                <Panel headerText="Inference Metrics" expandable="true" expanded="true" class="sapUiTinyMarginBottom">
+                    <content>
+                        <layout:Grid defaultSpan="L6 M6 S12">
+                            <VBox>
+                                <Label text="Latency P50"/>
+                                <ObjectNumber
+                                    number="{modelComparison>/versionB/inferenceMetrics/latencyP50}"
+                                    unit="ms"
+                                    emphasized="true"
+                                    state="{= ${modelComparison>/deltas/latencyP50/winner} === 'B' ? 'Success' :
+                                            (${modelComparison>/deltas/latencyP50/winner} === 'A' ? 'Error' : 'None') }"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Latency P95"/>
+                                <ObjectNumber
+                                    number="{modelComparison>/versionB/inferenceMetrics/latencyP95}"
+                                    unit="ms"
+                                    emphasized="true"
+                                    state="{= ${modelComparison>/deltas/latencyP95/winner} === 'B' ? 'Success' :
+                                            (${modelComparison>/deltas/latencyP95/winner} === 'A' ? 'Error' : 'None') }"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Throughput"/>
+                                <ObjectNumber
+                                    number="{modelComparison>/versionB/inferenceMetrics/throughput}"
+                                    unit="TPS"
+                                    emphasized="true"
+                                    state="{= ${modelComparison>/deltas/throughput/winner} === 'B' ? 'Success' :
+                                            (${modelComparison>/deltas/throughput/winner} === 'A' ? 'Error' : 'None') }"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Error Rate"/>
+                                <ObjectNumber
+                                    number="{modelComparison>/versionB/inferenceMetrics/errorRate}"
+                                    unit="%"
+                                    emphasized="true"
+                                    state="{= ${modelComparison>/deltas/errorRate/winner} === 'B' ? 'Success' :
+                                            (${modelComparison>/deltas/errorRate/winner} === 'A' ? 'Error' : 'None') }"/>
+                            </VBox>
+                        </layout:Grid>
+                    </content>
+                </Panel>
+
+                <!-- A/B Testing Panel - Version B -->
+                <Panel headerText="A/B Testing" expandable="true" expanded="true">
+                    <content>
+                        <layout:Grid defaultSpan="L4 M6 S12">
+                            <VBox>
+                                <Label text="Current Traffic"/>
+                                <ObjectNumber
+                                    number="{modelComparison>/versionB/abTesting/trafficPercent}"
+                                    unit="%"
+                                    emphasized="true"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Total Requests"/>
+                                <ObjectNumber
+                                    number="{modelComparison>/versionB/abTesting/totalRequests}"
+                                    emphasized="true"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Success Rate"/>
+                                <ObjectNumber
+                                    number="{modelComparison>/versionB/abTesting/successRate}"
+                                    unit="%"
+                                    emphasized="true"
+                                    state="{= ${modelComparison>/deltas/successRate/winner} === 'B' ? 'Success' :
+                                            (${modelComparison>/deltas/successRate/winner} === 'A' ? 'Error' : 'None') }"/>
+                            </VBox>
+                        </layout:Grid>
+                    </content>
+                </Panel>
+            </VBox>
+
+        </HBox>
+
+        <!-- Bottom Summary Panel -->
+        <Panel
+            headerText="Comparison Summary"
+            expandable="false"
+            class="sapUiSmallMarginTop">
+            <content>
+                <!-- Overall Recommendation -->
+                <HBox justifyContent="SpaceBetween" alignItems="Center" class="sapUiSmallMarginBottom">
+                    <VBox>
+                        <HBox alignItems="Center">
+                            <core:Icon
+                                src="{= ${modelComparison>/deltas/overall/winner} ? 'sap-icon://competitor' : 'sap-icon://compare' }"
+                                size="1.5rem"
+                                color="{= ${modelComparison>/deltas/overall/winner} ? '#107e3e' : '#666' }"
+                                class="sapUiSmallMarginEnd"/>
+                            <Title text="Recommendation" level="H5"/>
+                        </HBox>
+                        <Text
+                            text="{modelComparison>/deltas/overall/recommendation}"
+                            class="sapUiTinyMarginTop"/>
+                    </VBox>
+                    <ObjectStatus
+                        text="{= ${modelComparison>/deltas/overall/winner} === 'A' ? 'Version A is Better' :
+                              (${modelComparison>/deltas/overall/winner} === 'B' ? 'Version B is Better' : 'No Clear Winner') }"
+                        state="{= ${modelComparison>/deltas/overall/winner} ? 'Success' : 'Warning' }"
+                        icon="{= ${modelComparison>/deltas/overall/winner} ? 'sap-icon://thumb-up' : 'sap-icon://hint' }"
+                        inverted="true"/>
+                </HBox>
+
+                <!-- Metrics Comparison Summary -->
+                <HBox justifyContent="SpaceAround" class="sapUiSmallMarginBottom">
+                    <VBox alignItems="Center">
+                        <Label text="Metrics Won by A" design="Bold"/>
+                        <ObjectNumber
+                            number="{modelComparison>/deltas/summary/metricsWonByA}"
+                            state="Success"
+                            emphasized="true"/>
+                    </VBox>
+                    <VBox alignItems="Center">
+                        <Label text="Metrics Tied" design="Bold"/>
+                        <ObjectNumber
+                            number="{modelComparison>/deltas/summary/metricsTied}"
+                            state="Warning"
+                            emphasized="true"/>
+                    </VBox>
+                    <VBox alignItems="Center">
+                        <Label text="Metrics Won by B" design="Bold"/>
+                        <ObjectNumber
+                            number="{modelComparison>/deltas/summary/metricsWonByB}"
+                            state="Success"
+                            emphasized="true"/>
+                    </VBox>
+                </HBox>
+
+                <!-- Action Buttons -->
+                <OverflowToolbar class="sapUiSmallMarginTop">
+                    <ToolbarSpacer/>
+                    <Button
+                        text="Promote Winner"
+                        icon="sap-icon://accept"
+                        type="Accept"
+                        enabled="{= !!${modelComparison>/deltas/overall/winner} }"
+                        press=".onPromoteWinnerVersion"/>
+                    <Button
+                        text="Set Up A/B Test"
+                        icon="sap-icon://chart-table-view"
+                        type="Emphasized"
+                        press=".onSetupABTest"/>
+                    <Button
+                        text="Rollback"
+                        icon="sap-icon://undo"
+                        type="Reject"
+                        press=".onRollbackVersion"/>
+                    <Button
+                        text="Export Report"
+                        icon="sap-icon://excel-attachment"
+                        type="Transparent"
+                        press=".onExportComparisonReport"/>
+                </OverflowToolbar>
+            </content>
+        </Panel>
+
+    </VBox>
+
+</core:FragmentDefinition>

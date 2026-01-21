@@ -7,63 +7,91 @@ zig-out/
 *.dylib
 *.dll
 *.exe
+*.pdb
 
 # Mojo build artifacts
 __pycache__/
-*.pyc
-*.pyo
-*.mojopkg
-.mojo_cache/
+*.mojocache
+*.mojo.o
+.mojo/
+mojo_cache/
 
-# Test artifacts
-tests/fixtures/generated/
-tests/output/
-coverage/
-*.profdata
-*.profraw
-
-# Fuzzing artifacts
-tests/fuzz/corpus/
-tests/fuzz/crashes/
-tests/fuzz/hangs/
-tests/fuzz/*.log
-
-# Documentation build
-docs/_build/
-docs/.doctrees/
-
-# IDE
+# IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-
-# OS
 .DS_Store
-Thumbs.db
 
-# Logs
-*.log
-logs/
+# Test artifacts
+test-results/
+coverage/
+*.profdata
+*.gcda
+*.gcno
 
-# Configuration (local overrides)
-.nextract.toml
-config.local.toml
+# Fuzzing artifacts
+fuzz/corpus/
+fuzz/crashes/
+fuzz/artifacts/
 
-# Benchmarks
-benchmarks/results/
+# Benchmark results
+benchmark-results/
 *.bench
+
+# Documentation generated files
+docs/zig/
+docs/api/generated/
+
+# Temporary files
+*.tmp
+*.log
+*.bak
 
 # Build artifacts
 build/
 dist/
 target/
 
-# Dependencies (if any vendored)
+# Package manager
+.zig-cache/
 vendor/
 
-# Temporary files
-tmp/
-temp/
-*.tmp
+# Local configuration
+.env.local
+config.local.toml
+
+# Editor backup files
+*.orig
+*.rej
+
+# macOS
+.AppleDouble
+.LSOverride
+Icon
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# Python (for Mojo compatibility)
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Project-specific
+data/test/
+data/samples/
+models/*.onnx
+models/*.bin
+*.model

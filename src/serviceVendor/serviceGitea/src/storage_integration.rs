@@ -31,7 +31,6 @@ pub struct ArtifactMetadata {
     pub rust_code: ArtifactInfo,
     pub lean4_proofs: ArtifactInfo,
     pub scip_spec: ArtifactInfo,
-    pub langflow_workflow: ArtifactInfo,
     pub n8n_workflow: ArtifactInfo,
 }
 
@@ -137,7 +136,6 @@ impl StorageIntegration {
                 rust_code: Self::artifact_info(&artifacts.rust_code, "src/lib.rs"),
                 lean4_proofs: Self::artifact_info(&artifacts.lean4_proofs, "proofs/feature.lean"),
                 scip_spec: Self::artifact_info(&artifacts.scip_spec, "specs/scip.json"),
-                langflow_workflow: Self::artifact_info(&artifacts.langflow_workflow, "workflows/langflow.json"),
                 n8n_workflow: Self::artifact_info(&artifacts.n8n_workflow, "workflows/n8n.json"),
             },
             lineage: DataLineage {
@@ -163,7 +161,6 @@ impl StorageIntegration {
                     "rust_code".to_string(),
                     "lean4_proofs".to_string(),
                     "scip_spec".to_string(),
-                    "langflow_workflow".to_string(),
                 ],
             },
         };

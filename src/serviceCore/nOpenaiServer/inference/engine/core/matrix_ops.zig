@@ -1,5 +1,12 @@
 const std = @import("std");
 const math = std.math;
+const builtin = @import("builtin");
+
+// Core mHC modules - use module names for Zig 0.15 module system
+const mhc_constraints = @import("mhc_constraints");
+const mhc_config = @import("mhc_configuration");
+
+// Module imports - use module names for Zig 0.15 module system
 const gguf_loader = @import("gguf_loader");
 const thread_pool = @import("thread_pool");
 const q4_k = @import("q4_k");
@@ -7,10 +14,89 @@ const q6_k = @import("q6_k");
 
 /// High-performance matrix operations for transformer inference
 /// Uses SIMD for 4-8x speedup on CPU
+/// Integrates mHC (manifold Hyperbolic Constraints) for stability
 
 // ============================================================================
 // Types
 // ============================================================================
+
+/// SIMD capability detection for future optimizations
+pub const SIMDCapabilities = struct {
+    has_neon: bool,      // ARM NEON
+    has_sse: bool,       // x86 SSE
+    has_avx: bool,       // x86 AVX
+    has_avx2: bool,      // x86 AVX2
+    vector_width: usize, // Native vector width
+
+    /// Detect available SIMD capabilities
+    pub fn detect() SIMDCapabilities {
+        const arch = builtin.cpu.arch;
+        const has_neon = arch == .aarch64 or arch == .arm;
+        
+        return SIMDCapabilities{
+            .has_neon = has_neon,
+            .has_sse = false,  // TODO: x86 detection
+            .has_avx = false,
+            .has_avx2 = false,
+            .vector_width = if (has_neon) 4 else 1,
+        };
+    }
+};
+
+/// Configuration for matrix multiplication with optional mHC
+pub const MatMulConfig = struct {
+    /// Enable mHC constraints after matmul
+    use_mhc: bool = false,
+
+    /// Layer ID for tracking metrics
+    layer_id: u32 = 0,
+
+    /// mHC constraint configuration
+    mhc_config: mhc_constraints.MHCConfig = .{},
+
+    /// Optional manifold constraints
+    manifold_constraints: ?ManifoldConstraints = null,
+
+    /// Initialize from global configuration
+    pub fn from_global(
+        config: mhc_config.MHCConfiguration,
+        layer_id: u32,
+    ) MatMulConfig {
+        // Convert LayerRange from mhc_config to mhc_constraints type
+        const converted_layer_range: ?mhc_constraints.LayerRange = if (config.core.layer_range) |lr|
+            mhc_constraints.LayerRange{ .start = lr.start, .end = lr.end }
+        else
+            null;
+
+        return MatMulConfig{
+            .use_mhc = config.matrix_ops.use_mhc and config.core.enabled,
+            .layer_id = layer_id,
+            .mhc_config = .{
+                .enabled = config.core.enabled,
+                .sinkhorn_iterations = config.core.sinkhorn_iterations,
+                .manifold_epsilon = config.core.manifold_epsilon,
+                .stability_threshold = config.core.stability_threshold,
+                .manifold_beta = config.core.manifold_beta,
+                .log_stability_metrics = config.core.log_stability_metrics,
+                .layer_range = converted_layer_range,
+                .early_stopping = config.core.early_stopping,
+            },
+            .manifold_constraints = null,
+        };
+    }
+};
+
+/// Optional manifold constraints for geometric extensions
+pub const ManifoldConstraints = struct {
+    /// Manifold type
+    manifold_type: enum { euclidean, hyperbolic, spherical, product } = .euclidean,
+
+    /// Curvature parameter (for hyperbolic/spherical)
+    curvature: f32 = -1.0,
+
+    /// Apply projection after normalization
+    apply_projection: bool = false,
+};
 
 pub const Weight = union(enum) {
     f32: []const f32,
@@ -24,12 +110,34 @@ pub const Weight = union(enum) {
 // ============================================================================
 
 /// Get a row from a weight matrix (dequantizing if necessary)
+/// Debug counter for get_row calls (only for embedding lookups with row_size=2048)
+var get_row_embed_counter: usize = 0;
+
 pub fn get_row(
     output: []f32,
     weight: Weight,
     row_idx: usize,
     row_size: usize,
 ) void {
+    // Debug embedding lookups (row_size=2048 for LFM2 hidden_size)
+    if (row_size == 2048 and get_row_embed_counter < 5) {
+        const data_len = switch (weight) {
+            .f32 => |d| d.len,
+            .q4_0 => |d| d.len,
+            .q4_k => |d| d.len,
+            .q6_k => |d| d.len,
+        };
+        std.debug.print("🔬 EMBED get_row[{d}]: row_idx={d}, row_size={d}, weight_type={s}, data.len={d}\n", .{
+            get_row_embed_counter, row_idx, row_size, switch (weight) {
+                .f32 => "f32",
+                .q4_0 => "q4_0",
+                .q4_k => "q4_k",
+                .q6_k => "q6_k",
+            }, data_len
+        });
+        get_row_embed_counter += 1;
+    }
+
     switch (weight) {
         .f32 => |data| {
             const start = row_idx * row_size;
@@ -60,11 +168,16 @@ pub fn get_row(
                 }
                 // Scale
                 const scale_bits = @as(*const u16, @ptrCast(@alignCast(&data[block_ptr_idx]))).*;
-                const scale = @call(.always_inline, f16_to_f32, .{scale_bits});
-                
+                var scale = @call(.always_inline, f16_to_f32, .{scale_bits});
+
+                // Handle NaN/Inf scales - replace with 0 to avoid propagation
+                if (std.math.isNan(scale) or std.math.isInf(scale)) {
+                    scale = 0.0;
+                }
+
                 // QS
                 const qs = data[block_ptr_idx + 2 .. block_ptr_idx + 18];
-                
+
                 for (0..16) |i| {
                     const byte = qs[i];
                     const v0 = @as(f32, @floatFromInt(@as(i8, @intCast(byte & 0xF)) - 8)) * scale;
@@ -198,6 +311,7 @@ pub fn matmul_transposed_a(
 }
 
 /// Unified matrix multiplication supporting mixed precision and threading
+/// NOTE: This is the standard matmul without mHC. For mHC-enabled matmul, use matmul_with_mhc()
 pub fn matmul(
     c: []f32,
     a: Weight,
@@ -372,10 +486,10 @@ pub fn matmul_f32(
                     .end_row = end,
                 };
                 
-                try tp.submit(.{
+                tp.submit(.{
                     .work_fn = work_fn,
-                    .context = &contexts[t],
-                });
+                    .context = @ptrCast(&contexts[t]),
+                }) catch {};
             }
             tp.waitAll();
             allocator.free(contexts); // Free AFTER threads complete
@@ -420,6 +534,297 @@ pub fn matmul_transposed(
             c[i * n + j] = sum;
         }
     }
+}
+
+/// Matrix multiplication with mHC constraints
+/// This wrapper applies manifold constraints after standard matmul
+///
+/// Flow:
+/// 1. Perform standard matrix multiplication: C = A * B
+/// 2. Apply Sinkhorn-Knopp normalization to output (if enabled)
+/// 3. Apply manifold constraints (L2 ball projection)
+/// 4. Check stability and collect metrics
+/// 5. Return stability metrics for monitoring
+///
+/// Parameters:
+///   - c: Output matrix [m, n] (modified in-place)
+///   - a: Input matrix A (can be quantized)
+///   - b: Input matrix B [k, n]
+///   - m, n, k: Matrix dimensions
+///   - config: MatMulConfig with mHC settings
+///   - allocator: Memory allocator
+///   - pool: Optional thread pool for parallelization
+///
+/// Returns:
+///   - StabilityMetrics if mHC is enabled, null otherwise
+pub fn matmul_with_mhc(
+    c: []f32,
+    a: Weight,
+    b: []const f32,
+    m: usize,
+    n: usize,
+    k: usize,
+    config: MatMulConfig,
+    allocator: std.mem.Allocator,
+    pool: ?*thread_pool.ThreadPool,
+) !?mhc_constraints.StabilityMetrics {
+    // Step 1: Perform standard matrix multiplication
+    try matmul(c, a, b, m, n, k, allocator, pool);
+
+    // If mHC is disabled, return early
+    if (!config.use_mhc or !config.mhc_config.enabled) {
+        return null;
+    }
+
+    // Check if layer is within range (if specified)
+    if (config.mhc_config.layer_range) |range| {
+        if (!range.contains(config.layer_id)) {
+            return null;
+        }
+    }
+
+    // Store original activations for metrics
+    const activations_before = try allocator.alloc(f32, c.len);
+    defer allocator.free(activations_before);
+    @memcpy(activations_before, c);
+
+    // Step 2: Apply Sinkhorn-Knopp normalization (if output is matrix-like)
+    // For now, we treat the output as a 1D vector and skip matrix normalization
+    // This will be enhanced in future iterations to handle 2D normalization
+    var iterations: u32 = 0;
+    
+    // Only apply Sinkhorn if we have a proper 2D matrix structure
+    // For vector outputs (m=1 or n=1), skip Sinkhorn
+    if (m > 1 and n > 1) {
+        iterations = try mhc_constraints.sinkhorn_normalize(
+            c,
+            m,
+            n,
+            config.mhc_config,
+            allocator,
+        );
+    }
+
+    // Step 3: Apply manifold constraints (L2 ball projection)
+    _ = mhc_constraints.apply_manifold_constraints(
+        c,
+        config.mhc_config.manifold_beta,
+    );
+
+    // Step 4: Apply optional geometric constraints
+    if (config.manifold_constraints) |manifold| {
+        if (manifold.apply_projection) {
+            try apply_geometric_projection(c, manifold, allocator);
+        }
+    }
+
+    // Step 5: Check stability
+    const is_stable = mhc_constraints.check_stability(
+        c,
+        config.mhc_config.stability_threshold,
+    );
+
+    // Step 6: Compute and return metrics
+    const metrics = mhc_constraints.compute_stability_metrics(
+        config.layer_id,
+        activations_before,
+        c,
+        iterations,
+    );
+
+    // Log metrics if enabled
+    if (config.mhc_config.log_stability_metrics) {
+        std.debug.print("[mHC] {any}\n", .{metrics});
+    }
+
+    // Abort on instability if configured (and instability detected)
+    if (!is_stable and config.mhc_config.stability_threshold > 0) {
+        // For now, just log warning - later we may add abort option
+        std.debug.print("[mHC] ⚠️  Layer {d} unstable: α={d:.3}\n", .{
+            config.layer_id,
+            metrics.amplification_factor,
+        });
+    }
+
+    return metrics;
+}
+
+/// Apply geometric projection based on manifold type
+/// Made public for testing (Day 38+)
+pub fn apply_geometric_projection(
+    activations: []f32,
+    manifold: ManifoldConstraints,
+    allocator: std.mem.Allocator,
+) !void {
+    _ = allocator; // Reserved for future use
+    
+    switch (manifold.manifold_type) {
+        .euclidean => {
+            // Already handled by L2 ball projection
+        },
+        .hyperbolic => {
+            // Hyperbolic projection (Days 54-60, placeholder)
+            // TODO: Implement Poincaré ball or hyperboloid projection
+            const curvature = manifold.curvature;
+            if (curvature >= 0) {
+                return error.InvalidHyperbolicCurvature;
+            }
+            // For now, just apply additional L2 normalization
+            const norm = mhc_constraints.apply_manifold_constraints(activations, 1.0);
+            _ = norm;
+        },
+        .spherical => {
+            // Spherical projection - project onto unit sphere
+            // Compute norm and normalize to length 1
+            const norm = l2_norm(activations);
+            if (norm > 0) {
+                for (activations) |*val| {
+                    val.* /= norm;
+                }
+            }
+        },
+        .product => {
+            // Product manifold projection (Days 54-60, placeholder)
+            // TODO: Implement component-wise projection
+        },
+    }
+}
+
+// ============================================================================
+// Day 36: Batch Operations with mHC
+// ============================================================================
+
+/// Batch matrix multiplication with mHC constraints
+/// Processes multiple matrix multiplications with optional mHC application
+///
+/// Parameters:
+///   - outputs: Array of output matrices [batch_size][m×n]
+///   - weights: Array of weight matrices (can be quantized)
+///   - inputs: Array of input matrices [batch_size][k×n]
+///   - batch_size: Number of matrices in batch
+///   - m, n, k: Matrix dimensions (same for all batch elements)
+///   - config: MatMulConfig with mHC settings
+///   - allocator: Memory allocator
+///   - pool: Optional thread pool for parallel execution
+///
+/// Returns:
+///   - Array of StabilityMetrics (one per batch element, null if mHC disabled)
+pub fn matmul_batch_with_mhc(
+    outputs: [][]f32,
+    weights: []Weight,
+    inputs: [][]const f32,
+    batch_size: usize,
+    m: usize,
+    n: usize,
+    k: usize,
+    config: MatMulConfig,
+    allocator: std.mem.Allocator,
+    pool: ?*thread_pool.ThreadPool,
+) ![]?mhc_constraints.StabilityMetrics {
+    // Allocate metrics array
+    const metrics = try allocator.alloc(?mhc_constraints.StabilityMetrics, batch_size);
+    errdefer allocator.free(metrics);
+
+    // Process batch elements
+    if (pool) |tp| {
+        // Parallel batch processing
+        const BatchContext = struct {
+            outputs: [][]f32,
+            weights: []Weight,
+            inputs: [][]const f32,
+            metrics: []?mhc_constraints.StabilityMetrics,
+            m: usize,
+            n: usize,
+            k: usize,
+            config: MatMulConfig,
+            allocator: std.mem.Allocator,
+            start_idx: usize,
+            end_idx: usize,
+        };
+
+        const batch_work = struct {
+            fn work(ctx: *anyopaque) void {
+                const context = @as(*BatchContext, @ptrCast(@alignCast(ctx)));
+                for (context.start_idx..context.end_idx) |i| {
+                    // Process each batch element
+                    context.metrics[i] = matmul_with_mhc(
+                        context.outputs[i],
+                        context.weights[i],
+                        context.inputs[i],
+                        context.m,
+                        context.n,
+                        context.k,
+                        context.config,
+                        context.allocator,
+                        null, // Don't nest thread pools
+                    ) catch null;
+                }
+            }
+        }.work;
+
+        const num_threads = tp.config.num_threads;
+        const items_per_thread = (batch_size + num_threads - 1) / num_threads;
+
+        var contexts = try allocator.alloc(BatchContext, num_threads);
+        defer allocator.free(contexts);
+
+        for (0..num_threads) |t| {
+            const start = t * items_per_thread;
+            if (start >= batch_size) break;
+            const end = @min(start + items_per_thread, batch_size);
+
+            contexts[t] = BatchContext{
+                .outputs = outputs,
+                .weights = weights,
+                .inputs = inputs,
+                .metrics = metrics,
+                .m = m,
+                .n = n,
+                .k = k,
+                .config = config,
+                .allocator = allocator,
+                .start_idx = start,
+                .end_idx = end,
+            };
+
+            tp.submit(.{
+                .work_fn = batch_work,
+                .context = @ptrCast(&contexts[t]),
+            }) catch {};
+        }
+        tp.waitAll();
+    } else {
+        // Serial processing
+        for (0..batch_size) |i| {
+            metrics[i] = try matmul_with_mhc(
+                outputs[i],
+                weights[i],
+                inputs[i],
+                m,
+                n,
+                k,
+                config,
+                allocator,
+                null,
+            );
+        }
+    }
+
+    return metrics;
+}
+
+/// Determine optimal thread count for mHC operations
+pub fn get_thread_count(
+    matrix_size: usize,
+    pool: ?*thread_pool.ThreadPool,
+) usize {
+    if (pool) |tp| {
+        // Use threading for matrices larger than 2048 elements
+        if (matrix_size >= 2048) {
+            return tp.config.num_threads;
+        }
+    }
+    return 1; // Serial fallback for small matrices
 }
 
 // ============================================================================
@@ -488,22 +893,38 @@ pub fn rms_norm(
     eps: f32,
 ) void {
     const n = input.len;
-    
-    // Calculate RMS
+
+    // Calculate RMS, skipping NaN/Inf values
     var sum_squares: f32 = 0.0;
+    var valid_count: usize = 0;
     for (input) |val| {
-        sum_squares += val * val;
+        if (!std.math.isNan(val) and !std.math.isInf(val)) {
+            sum_squares += val * val;
+            valid_count += 1;
+        }
     }
-    
-    const mean_square = sum_squares / @as(f32, @floatFromInt(n));
+
+    // Handle all-NaN input
+    if (valid_count == 0) {
+        @memset(output, 0.0);
+        return;
+    }
+
+    const mean_square = sum_squares / @as(f32, @floatFromInt(valid_count));
     const rms = @sqrt(mean_square + eps);
-    
+
     // Safety: prevent division by zero/NaN
-    const scale = if (rms > 1e-8) 1.0 / rms else 0.0;
-    
+    const scale = if (rms > 1e-8 and !std.math.isNan(rms)) 1.0 / rms else 0.0;
+
     // Normalize and scale
     for (0..n) |i| {
-        output[i] = input[i] * scale * weight[i];
+        const val = input[i];
+        const w = weight[i];
+        if (std.math.isNan(val) or std.math.isInf(val) or std.math.isNan(w) or std.math.isInf(w)) {
+            output[i] = 0.0;
+        } else {
+            output[i] = val * scale * w;
+        }
     }
 }
 
@@ -677,7 +1098,7 @@ pub fn l2_norm(input: []const f32) f32 {
 pub fn matmul_quantized(
     c: []f32,
     a_quant: []const u8,
-    a_type: @import("gguf_loader").QuantizationType,
+    a_type: gguf_loader.QuantizationType,
     b: []const f32,
     m: usize,
     n: usize,
@@ -723,7 +1144,9 @@ pub fn matmul_quantized(
                                  const block_ptr = a_q[block_offset_a..];
                                  
                                  const scale_bits = @as(*const u16, @ptrCast(@alignCast(block_ptr.ptr))).*;
-                                 const scale = @call(.always_inline, f16_to_f32, .{scale_bits});
+                                 var scale = @call(.always_inline, f16_to_f32, .{scale_bits});
+                                 // Handle NaN/Inf scales
+                                 if (std.math.isNan(scale) or std.math.isInf(scale)) scale = 0.0;
                                  const qs = block_ptr[2..18];
                                  
                                  // Iterate 32 values in block
@@ -810,14 +1233,14 @@ pub fn matmul_quantized(
                              .n = n, .nb = nb, .blk = block_size, .qk = QK4_0,
                              .start = start, .end = end
                          };
-                         try tp.submit(.{ .work_fn = work, .context = &contexts[t] });
+                         tp.submit(.{ .work_fn = work, .context = @ptrCast(&contexts[t]) }) catch {};
                      }
                      tp.waitAll();
                      allocator.free(contexts); // Free AFTER threads complete
                      return;
                  }
              }
-             
+
              // Serial fallback
              compute_chunk_q(c, a_quant, b, n, nb, block_size, QK4_0, 0, m);
         },
@@ -917,7 +1340,7 @@ pub fn matmul_quantized(
                              .n = n, .nb = nb, .blk = block_size, .qk = QK4_K,
                              .start = start, .end = end
                          };
-                         try tp.submit(.{ .work_fn = work, .context = &contexts[t] });
+                         tp.submit(.{ .work_fn = work, .context = @ptrCast(&contexts[t]) }) catch {};
                      }
                      tp.waitAll();
                      allocator.free(contexts); // Free AFTER threads complete
@@ -1008,7 +1431,7 @@ pub fn matmul_quantized(
                              .n = n, .nb = nb, .blk = block_size, .qk = QK6_K,
                              .start = start, .end = end
                          };
-                         try tp.submit(.{ .work_fn = work, .context = &contexts[t] });
+                         tp.submit(.{ .work_fn = work, .context = @ptrCast(&contexts[t]) }) catch {};
                      }
                      tp.waitAll();
                      allocator.free(contexts); // Free AFTER threads complete

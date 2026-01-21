@@ -1,0 +1,1291 @@
+openapi: 3.0.3
+info:
+  title: nWorkflow API
+  version: 1.0.0
+  description: |
+    Enterprise workflow automation API for designing, executing, and monitoring
+    automated workflows. Supports visual workflow design with configurable nodes
+    and real-time execution tracking.
+  contact:
+    name: API Support
+  license:
+    name: Proprietary
+
+servers:
+  - url: http://localhost:8090/api/v1
+    description: Local development server
+
+security:
+  - bearerAuth: []
+  - oauth2: []
+
+tags:
+  - name: health
+    description: Service health and readiness endpoints
+  - name: workflows
+    description: Workflow management operations
+  - name: executions
+    description: Workflow execution operations
+  - name: nodes
+    description: Node type registry operations
+
+paths:
+  /health:
+    get:
+      tags:
+        - health
+      summary: Get service health status
+      description: Returns the current health status of the nWorkflow service
+      operationId: getHealth
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+              example:
+                status: healthy
+                version: 1.0.0
+                uptime: 3600
+                checks:
+                  database: healthy
+                  messageQueue: healthy
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+
+  /workflows:
+    get:
+      tags:
+        - workflows
+      summary: List workflows
+      description: Returns a paginated list of workflows with optional filtering
+      operationId: listWorkflows
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - name: name
+          in: query
+          description: Filter by workflow name (partial match)
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter by workflow status
+          schema:
+            type: string
+            enum: [active, inactive, archived]
+        - name: sortBy
+          in: query
+          description: Sort field
+          schema:
+            type: string
+            enum: [name, createdAt, updatedAt]
+            default: createdAt
+        - name: sortOrder
+          in: query
+          description: Sort order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: List of workflows
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedWorkflows'
+              example:
+                items:
+                  - id: wf-123e4567-e89b
+                    name: Order Processing
+                    description: Automated order fulfillment workflow
+                    version: 3
+                    status: active
+                    createdAt: '2024-01-15T10:30:00Z'
+                    updatedAt: '2024-01-20T14:45:00Z'
+                total: 42
+                page: 1
+                pageSize: 20
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      tags:
+        - workflows
+      summary: Create workflow
+      description: Creates a new workflow with the provided definition
+      operationId: createWorkflow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWorkflowRequest'
+            example:
+              name: Order Processing
+              description: Automated order fulfillment workflow
+              definition:
+                nodes:
+                  - id: node-1
+                    type: trigger-http
+                    name: HTTP Trigger
+                    config:
+                      method: POST
+                      path: /orders
+                    position:
+                      x: 100
+                      y: 100
+                  - id: node-2
+                    type: transform-map
+                    name: Transform Order
+                    config:
+                      mapping:
+                        orderId: "$.body.id"
+                    position:
+                      x: 300
+                      y: 100
+                connections:
+                  - sourceId: node-1
+                    targetId: node-2
+                    sourcePort: output
+                    targetPort: input
+      responses:
+        '201':
+          description: Workflow created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /workflows/{id}:
+    parameters:
+      - $ref: '#/components/parameters/WorkflowIdParam'
+
+    get:
+      tags:
+        - workflows
+      summary: Get workflow by ID
+      description: Returns a single workflow with its full definition
+      operationId: getWorkflow
+      responses:
+        '200':
+          description: Workflow details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+              example:
+                id: wf-123e4567-e89b
+                name: Order Processing
+                description: Automated order fulfillment workflow
+                version: 3
+                status: active
+                definition:
+                  nodes:
+                    - id: node-1
+                      type: trigger-http
+                      name: HTTP Trigger
+                      config:
+                        method: POST
+                        path: /orders
+                      position:
+                        x: 100
+                        y: 100
+                  connections: []
+                createdAt: '2024-01-15T10:30:00Z'
+                updatedAt: '2024-01-20T14:45:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    put:
+      tags:
+        - workflows
+      summary: Update workflow
+      description: Updates an existing workflow, creating a new version
+      operationId: updateWorkflow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWorkflowRequest'
+            example:
+              name: Order Processing v2
+              description: Updated order fulfillment workflow
+              definition:
+                nodes:
+                  - id: node-1
+                    type: trigger-http
+                    name: HTTP Trigger
+                    config:
+                      method: POST
+                      path: /orders
+                    position:
+                      x: 100
+                      y: 100
+                connections: []
+      responses:
+        '200':
+          description: Workflow updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      tags:
+        - workflows
+      summary: Delete workflow
+      description: Deletes a workflow (soft delete, workflow is archived)
+      operationId: deleteWorkflow
+      responses:
+        '204':
+          description: Workflow deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /workflows/{id}/execute:
+    parameters:
+      - $ref: '#/components/parameters/WorkflowIdParam'
+
+    post:
+      tags:
+        - workflows
+        - executions
+      summary: Execute workflow
+      description: Starts a new execution of the specified workflow with provided input
+      operationId: executeWorkflow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteWorkflowRequest'
+            example:
+              input:
+                orderId: ORD-12345
+                customerId: CUST-789
+                items:
+                  - sku: PROD-001
+                    quantity: 2
+              options:
+                async: true
+                timeout: 300
+      responses:
+        '201':
+          description: Execution started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Execution'
+              example:
+                id: exec-abc123
+                workflowId: wf-123e4567-e89b
+                workflowVersion: 3
+                status: running
+                input:
+                  orderId: ORD-12345
+                startedAt: '2024-01-21T09:00:00Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /workflows/{id}/versions:
+    parameters:
+      - $ref: '#/components/parameters/WorkflowIdParam'
+
+    get:
+      tags:
+        - workflows
+      summary: List workflow versions
+      description: Returns all versions of a workflow
+      operationId: listWorkflowVersions
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+      responses:
+        '200':
+          description: List of workflow versions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedWorkflowVersions'
+              example:
+                items:
+                  - version: 3
+                    createdAt: '2024-01-20T14:45:00Z'
+                    createdBy: user@example.com
+                    changeNote: Added validation step
+                  - version: 2
+                    createdAt: '2024-01-18T11:20:00Z'
+                    createdBy: user@example.com
+                    changeNote: Fixed mapping configuration
+                  - version: 1
+                    createdAt: '2024-01-15T10:30:00Z'
+                    createdBy: user@example.com
+                    changeNote: Initial version
+                total: 3
+                page: 1
+                pageSize: 20
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /executions:
+    get:
+      tags:
+        - executions
+      summary: List executions
+      description: Returns a paginated list of workflow executions with optional filtering
+      operationId: listExecutions
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - name: workflowId
+          in: query
+          description: Filter by workflow ID
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter by execution status
+          schema:
+            type: string
+            enum: [pending, running, completed, failed, cancelled]
+        - name: startedAfter
+          in: query
+          description: Filter executions started after this timestamp
+          schema:
+            type: string
+            format: date-time
+        - name: startedBefore
+          in: query
+          description: Filter executions started before this timestamp
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: List of executions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedExecutions'
+              example:
+                items:
+                  - id: exec-abc123
+                    workflowId: wf-123e4567-e89b
+                    workflowName: Order Processing
+                    workflowVersion: 3
+                    status: completed
+                    startedAt: '2024-01-21T09:00:00Z'
+                    completedAt: '2024-01-21T09:00:15Z'
+                    durationMs: 15000
+                  - id: exec-def456
+                    workflowId: wf-123e4567-e89b
+                    workflowName: Order Processing
+                    workflowVersion: 3
+                    status: running
+                    startedAt: '2024-01-21T09:05:00Z'
+                total: 150
+                page: 1
+                pageSize: 20
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /executions/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ExecutionIdParam'
+
+    get:
+      tags:
+        - executions
+      summary: Get execution details
+      description: Returns detailed information about a specific execution
+      operationId: getExecution
+      responses:
+        '200':
+          description: Execution details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionDetails'
+              example:
+                id: exec-abc123
+                workflowId: wf-123e4567-e89b
+                workflowName: Order Processing
+                workflowVersion: 3
+                status: completed
+                input:
+                  orderId: ORD-12345
+                  customerId: CUST-789
+                output:
+                  success: true
+                  processedOrderId: ORD-12345
+                  trackingNumber: TRK-999888
+                startedAt: '2024-01-21T09:00:00Z'
+                completedAt: '2024-01-21T09:00:15Z'
+                durationMs: 15000
+                nodeExecutions:
+                  - nodeId: node-1
+                    nodeName: HTTP Trigger
+                    status: completed
+                    startedAt: '2024-01-21T09:00:00Z'
+                    completedAt: '2024-01-21T09:00:01Z'
+                    durationMs: 1000
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      tags:
+        - executions
+      summary: Cancel execution
+      description: Cancels a running execution
+      operationId: cancelExecution
+      responses:
+        '200':
+          description: Execution cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Execution'
+              example:
+                id: exec-abc123
+                workflowId: wf-123e4567-e89b
+                status: cancelled
+                cancelledAt: '2024-01-21T09:05:30Z'
+        '400':
+          description: Execution cannot be cancelled (already completed or failed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /executions/{id}/logs:
+    parameters:
+      - $ref: '#/components/parameters/ExecutionIdParam'
+
+    get:
+      tags:
+        - executions
+      summary: Get execution logs
+      description: Returns step-by-step logs for an execution
+      operationId: getExecutionLogs
+      parameters:
+        - name: nodeId
+          in: query
+          description: Filter logs by node ID
+          schema:
+            type: string
+        - name: level
+          in: query
+          description: Filter by log level
+          schema:
+            type: string
+            enum: [debug, info, warn, error]
+      responses:
+        '200':
+          description: Execution logs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionLogs'
+              example:
+                executionId: exec-abc123
+                logs:
+                  - id: log-001
+                    nodeId: node-1
+                    nodeName: HTTP Trigger
+                    status: completed
+                    input:
+                      method: POST
+                      body:
+                        orderId: ORD-12345
+                    output:
+                      orderId: ORD-12345
+                    durationMs: 1000
+                    timestamp: '2024-01-21T09:00:00Z'
+                  - id: log-002
+                    nodeId: node-2
+                    nodeName: Transform Order
+                    status: completed
+                    input:
+                      orderId: ORD-12345
+                    output:
+                      transformedOrder:
+                        id: ORD-12345
+                    durationMs: 500
+                    timestamp: '2024-01-21T09:00:01Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /node-types:
+    get:
+      tags:
+        - nodes
+      summary: List available node types
+      description: Returns all available node types that can be used in workflows
+      operationId: listNodeTypes
+      parameters:
+        - name: category
+          in: query
+          description: Filter by node category
+          schema:
+            type: string
+            enum: [trigger, action, condition, transform, integration]
+      responses:
+        '200':
+          description: List of node types
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NodeType'
+              example:
+                - type: trigger-http
+                  name: HTTP Trigger
+                  description: Triggers workflow on HTTP request
+                  category: trigger
+                  inputs: []
+                  outputs:
+                    - name: output
+                      type: object
+                      description: HTTP request data
+                - type: trigger-schedule
+                  name: Schedule Trigger
+                  description: Triggers workflow on a schedule
+                  category: trigger
+                  inputs: []
+                  outputs:
+                    - name: output
+                      type: object
+                - type: action-http
+                  name: HTTP Request
+                  description: Makes an HTTP request
+                  category: action
+                  inputs:
+                    - name: input
+                      type: object
+                  outputs:
+                    - name: output
+                      type: object
+                - type: transform-map
+                  name: Data Mapper
+                  description: Maps and transforms data
+                  category: transform
+                  inputs:
+                    - name: input
+                      type: object
+                  outputs:
+                    - name: output
+                      type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /node-types/{type}:
+    parameters:
+      - name: type
+        in: path
+        required: true
+        description: Node type identifier
+        schema:
+          type: string
+        example: trigger-http
+
+    get:
+      tags:
+        - nodes
+      summary: Get node type schema
+      description: Returns detailed schema information for a specific node type
+      operationId: getNodeType
+      responses:
+        '200':
+          description: Node type details with configuration schema
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeTypeDetails'
+              example:
+                type: trigger-http
+                name: HTTP Trigger
+                description: Triggers workflow execution when an HTTP request is received
+                category: trigger
+                inputs: []
+                outputs:
+                  - name: output
+                    type: object
+                    description: HTTP request data including method, headers, and body
+                configSchema:
+                  type: object
+                  required:
+                    - method
+                    - path
+                  properties:
+                    method:
+                      type: string
+                      enum: [GET, POST, PUT, DELETE, PATCH]
+                      description: HTTP method to listen for
+                    path:
+                      type: string
+                      description: URL path to listen on
+                      pattern: "^/.*"
+                    authentication:
+                      type: string
+                      enum: [none, bearer, apiKey]
+                      default: none
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from Keycloak
+
+    oauth2:
+      type: oauth2
+      description: OAuth2 authentication with Keycloak
+      flows:
+        authorizationCode:
+          authorizationUrl: http://localhost:8080/realms/nworkflow/protocol/openid-connect/auth
+          tokenUrl: http://localhost:8080/realms/nworkflow/protocol/openid-connect/token
+          scopes:
+            workflows:read: Read access to workflows
+            workflows:write: Write access to workflows
+            executions:read: Read access to executions
+            executions:write: Write access to executions
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      description: Page number (1-based)
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    PageSizeParam:
+      name: pageSize
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+    WorkflowIdParam:
+      name: id
+      in: path
+      required: true
+      description: Workflow unique identifier
+      schema:
+        type: string
+      example: wf-123e4567-e89b
+
+    ExecutionIdParam:
+      name: id
+      in: path
+      required: true
+      description: Execution unique identifier
+      schema:
+        type: string
+      example: exec-abc123
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters or body
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: VALIDATION_ERROR
+            message: Invalid request body
+            details:
+              - field: name
+                message: Name is required
+              - field: definition.nodes
+                message: At least one node is required
+
+    Unauthorized:
+      description: Authentication required or token invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: UNAUTHORIZED
+            message: Invalid or expired authentication token
+
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: FORBIDDEN
+            message: You do not have permission to perform this action
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: NOT_FOUND
+            message: Resource not found
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: INTERNAL_ERROR
+            message: An unexpected error occurred
+
+  schemas:
+    HealthStatus:
+      type: object
+      required:
+        - status
+        - version
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        version:
+          type: string
+        uptime:
+          type: integer
+          description: Service uptime in seconds
+        checks:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [healthy, unhealthy]
+
+    Workflow:
+      type: object
+      required:
+        - id
+        - name
+        - version
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          description: Unique workflow identifier
+        name:
+          type: string
+          description: Workflow name
+        description:
+          type: string
+          description: Workflow description
+        definition:
+          $ref: '#/components/schemas/WorkflowDefinition'
+        version:
+          type: integer
+          description: Workflow version number
+        status:
+          type: string
+          enum: [active, inactive, archived]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    WorkflowDefinition:
+      type: object
+      required:
+        - nodes
+        - connections
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Node'
+          description: List of nodes in the workflow
+        connections:
+          type: array
+          items:
+            $ref: '#/components/schemas/Connection'
+          description: List of connections between nodes
+
+    Node:
+      type: object
+      required:
+        - id
+        - type
+        - name
+        - position
+      properties:
+        id:
+          type: string
+          description: Unique node identifier within the workflow
+        type:
+          type: string
+          description: Node type identifier
+        name:
+          type: string
+          description: Display name for the node
+        config:
+          type: object
+          description: Node-specific configuration
+          additionalProperties: true
+        position:
+          $ref: '#/components/schemas/Position'
+
+    Position:
+      type: object
+      required:
+        - x
+        - y
+      properties:
+        x:
+          type: number
+          description: X coordinate in the canvas
+        y:
+          type: number
+          description: Y coordinate in the canvas
+
+    Connection:
+      type: object
+      required:
+        - sourceId
+        - targetId
+        - sourcePort
+        - targetPort
+      properties:
+        sourceId:
+          type: string
+          description: Source node ID
+        targetId:
+          type: string
+          description: Target node ID
+        sourcePort:
+          type: string
+          description: Output port name on source node
+        targetPort:
+          type: string
+          description: Input port name on target node
+
+    CreateWorkflowRequest:
+      type: object
+      required:
+        - name
+        - definition
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 2000
+        definition:
+          $ref: '#/components/schemas/WorkflowDefinition'
+
+    UpdateWorkflowRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 2000
+        definition:
+          $ref: '#/components/schemas/WorkflowDefinition'
+        status:
+          type: string
+          enum: [active, inactive]
+        changeNote:
+          type: string
+          description: Note describing the changes in this version
+
+    ExecuteWorkflowRequest:
+      type: object
+      properties:
+        input:
+          type: object
+          description: Input data for the workflow
+          additionalProperties: true
+        options:
+          type: object
+          properties:
+            async:
+              type: boolean
+              default: true
+              description: Whether to execute asynchronously
+            timeout:
+              type: integer
+              description: Execution timeout in seconds
+              default: 300
+            version:
+              type: integer
+              description: Specific workflow version to execute
+
+    Execution:
+      type: object
+      required:
+        - id
+        - workflowId
+        - status
+        - startedAt
+      properties:
+        id:
+          type: string
+          description: Unique execution identifier
+        workflowId:
+          type: string
+        workflowName:
+          type: string
+        workflowVersion:
+          type: integer
+        status:
+          type: string
+          enum: [pending, running, completed, failed, cancelled]
+        input:
+          type: object
+          additionalProperties: true
+        output:
+          type: object
+          additionalProperties: true
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            nodeId:
+              type: string
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        cancelledAt:
+          type: string
+          format: date-time
+        durationMs:
+          type: integer
+          description: Execution duration in milliseconds
+
+    ExecutionDetails:
+      allOf:
+        - $ref: '#/components/schemas/Execution'
+        - type: object
+          properties:
+            nodeExecutions:
+              type: array
+              items:
+                $ref: '#/components/schemas/NodeExecution'
+
+    NodeExecution:
+      type: object
+      properties:
+        nodeId:
+          type: string
+        nodeName:
+          type: string
+        status:
+          type: string
+          enum: [pending, running, completed, failed, skipped]
+        input:
+          type: object
+        output:
+          type: object
+        error:
+          type: object
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        durationMs:
+          type: integer
+
+    ExecutionLog:
+      type: object
+      required:
+        - id
+        - nodeId
+        - status
+        - timestamp
+      properties:
+        id:
+          type: string
+          description: Unique log entry identifier
+        nodeId:
+          type: string
+          description: Node that generated this log
+        nodeName:
+          type: string
+        status:
+          type: string
+          enum: [started, completed, failed, skipped]
+        input:
+          type: object
+          description: Input data received by the node
+        output:
+          type: object
+          description: Output data produced by the node
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+        durationMs:
+          type: integer
+          description: Node execution duration in milliseconds
+        timestamp:
+          type: string
+          format: date-time
+        level:
+          type: string
+          enum: [debug, info, warn, error]
+        message:
+          type: string
+
+    ExecutionLogs:
+      type: object
+      properties:
+        executionId:
+          type: string
+        logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExecutionLog'
+
+    NodeType:
+      type: object
+      required:
+        - type
+        - name
+        - category
+      properties:
+        type:
+          type: string
+          description: Unique node type identifier
+        name:
+          type: string
+          description: Display name
+        description:
+          type: string
+        category:
+          type: string
+          enum: [trigger, action, condition, transform, integration]
+        inputs:
+          type: array
+          items:
+            $ref: '#/components/schemas/NodePort'
+        outputs:
+          type: array
+          items:
+            $ref: '#/components/schemas/NodePort'
+
+    NodeTypeDetails:
+      allOf:
+        - $ref: '#/components/schemas/NodeType'
+        - type: object
+          properties:
+            configSchema:
+              type: object
+              description: JSON Schema for node configuration
+              additionalProperties: true
+            examples:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  config:
+                    type: object
+
+    NodePort:
+      type: object
+      required:
+        - name
+        - type
+      properties:
+        name:
+          type: string
+          description: Port name
+        type:
+          type: string
+          description: Data type (object, string, number, boolean, array)
+        description:
+          type: string
+        required:
+          type: boolean
+          default: false
+
+    WorkflowVersion:
+      type: object
+      properties:
+        version:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+        changeNote:
+          type: string
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+          description: Additional error details
+
+    PaginatedResponse:
+      type: object
+      required:
+        - items
+        - total
+        - page
+        - pageSize
+      properties:
+        items:
+          type: array
+          items: {}
+        total:
+          type: integer
+          description: Total number of items
+        page:
+          type: integer
+          description: Current page number
+        pageSize:
+          type: integer
+          description: Items per page
+
+    PaginatedWorkflows:
+      allOf:
+        - $ref: '#/components/schemas/PaginatedResponse'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Workflow'
+
+    PaginatedExecutions:
+      allOf:
+        - $ref: '#/components/schemas/PaginatedResponse'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Execution'
+
+    PaginatedWorkflowVersions:
+      allOf:
+        - $ref: '#/components/schemas/PaginatedResponse'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/WorkflowVersion'
+

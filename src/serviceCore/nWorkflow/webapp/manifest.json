@@ -1,0 +1,230 @@
+{
+    "_version": "1.42.0",
+    "sap.app": {
+        "id": "serviceCore.nWorkflow",
+        "type": "application",
+        "title": "{{appTitle}}",
+        "description": "{{appDescription}}",
+        "subTitle": "{{appSubtitle}}",
+        "applicationVersion": {
+            "version": "2.0.0"
+        },
+        "ach": "CA-WF",
+        "resources": "resources.json",
+        "dataSources": {
+            "workflowService": {
+                "uri": "/api/v1/workflows/",
+                "type": "JSON",
+                "settings": {
+                    "odataVersion": ""
+                }
+            },
+            "workflowOData": {
+                "uri": "/sap/opu/odata/sap/WORKFLOW_SRV/",
+                "type": "OData",
+                "settings": {
+                    "odataVersion": "2.0",
+                    "localUri": "localService/metadata.xml",
+                    "annotations": []
+                }
+            }
+        },
+        "offline": false,
+        "sourceTemplate": {
+            "id": "html5moduletemplates.basicSAPUI5ApplicationProjectModule",
+            "version": "1.40.12"
+        }
+    },
+    "sap.ui": {
+        "technology": "UI5",
+        "icons": {
+            "icon": "sap-icon://workflow",
+            "favIcon": "",
+            "phone": "",
+            "phone@2": "",
+            "tablet": "",
+            "tablet@2": ""
+        },
+        "deviceTypes": {
+            "desktop": true,
+            "tablet": true,
+            "phone": true
+        },
+        "fullWidth": true
+    },
+    "sap.ui5": {
+        "flexEnabled": true,
+        "handleValidation": true,
+        "rootView": {
+            "viewName": "serviceCore.nWorkflow.view.App",
+            "type": "XML",
+            "async": true,
+            "id": "app"
+        },
+        "dependencies": {
+            "minUI5Version": "1.108.0",
+            "libs": {
+                "sap.m": {
+                    "lazy": false
+                },
+                "sap.ui.core": {
+                    "lazy": false
+                },
+                "sap.ui.layout": {
+                    "lazy": false
+                },
+                "sap.f": {
+                    "lazy": true
+                },
+                "sap.uxap": {
+                    "lazy": true
+                },
+                "sap.ui.unified": {
+                    "lazy": true
+                },
+                "sap.ui.table": {
+                    "lazy": true
+                }
+            }
+        },
+        "contentDensities": {
+            "compact": true,
+            "cozy": true
+        },
+        "models": {
+            "": {
+                "type": "sap.ui.model.json.JSONModel",
+                "settings": {
+                    "defaultBindingMode": "TwoWay"
+                }
+            },
+            "i18n": {
+                "type": "sap.ui.model.resource.ResourceModel",
+                "settings": {
+                    "bundleName": "serviceCore.nWorkflow.i18n.i18n",
+                    "supportedLocales": [
+                        "en",
+                        "de",
+                        "ar"
+                    ],
+                    "fallbackLocale": "en"
+                }
+            },
+            "workflow": {
+                "type": "sap.ui.model.json.JSONModel",
+                "dataSource": "workflowService",
+                "preload": false,
+                "settings": {
+                    "defaultBindingMode": "TwoWay"
+                }
+            },
+            "settings": {
+                "type": "sap.ui.model.json.JSONModel",
+                "settings": {
+                    "defaultBindingMode": "TwoWay"
+                }
+            }
+        },
+        "resources": {
+            "css": [
+                {
+                    "uri": "css/style.css"
+                }
+            ]
+        },
+        "resourceRoots": {
+            "serviceCore.nWorkflow.util": "./util",
+            "serviceCore.nWorkflow.model": "./model",
+            "serviceCore.nWorkflow.control": "./control"
+        },
+        "routing": {
+            "config": {
+                "routerClass": "sap.m.routing.Router",
+                "viewType": "XML",
+                "viewPath": "serviceCore.nWorkflow.view",
+                "controlId": "app",
+                "controlAggregation": "pages",
+                "async": true,
+                "bypassed": {
+                    "target": "notFound"
+                }
+            },
+            "routes": [
+                {
+                    "name": "dashboard",
+                    "pattern": "",
+                    "target": "dashboard",
+                    "titleTarget": ""
+                },
+                {
+                    "name": "workflowEditor",
+                    "pattern": "workflow-editor/{workflowId}",
+                    "target": "workflowEditor",
+                    "titleTarget": ""
+                },
+                {
+                    "name": "workflowEditorNew",
+                    "pattern": "workflow-editor/new",
+                    "target": "workflowEditor",
+                    "titleTarget": ""
+                },
+                {
+                    "name": "settings",
+                    "pattern": "settings",
+                    "target": "settings",
+                    "titleTarget": ""
+                },
+                {
+                    "name": "executionHistory",
+                    "pattern": "execution-history/{workflowId}",
+                    "target": "executionHistory",
+                    "titleTarget": ""
+                }
+            ],
+            "targets": {
+                "dashboard": {
+                    "viewName": "Dashboard",
+                    "viewId": "dashboard",
+                    "viewLevel": 1,
+                    "title": "{i18n>dashboardTitle}",
+                    "transition": "show"
+                },
+                "workflowEditor": {
+                    "viewName": "WorkflowEditor",
+                    "viewId": "workflowEditor",
+                    "viewLevel": 2,
+                    "title": "{i18n>workflowEditorTitle}",
+                    "transition": "slide"
+                },
+                "settings": {
+                    "viewName": "Settings",
+                    "viewId": "settings",
+                    "viewLevel": 2,
+                    "title": "{i18n>settingsTitle}",
+                    "transition": "slide"
+                },
+                "executionHistory": {
+                    "viewName": "ExecutionHistory",
+                    "viewId": "executionHistory",
+                    "viewLevel": 2,
+                    "title": "{i18n>executionHistory}",
+                    "transition": "slide"
+                },
+                "notFound": {
+                    "viewName": "NotFound",
+                    "viewId": "notFound",
+                    "viewLevel": 3,
+                    "transition": "show"
+                }
+            }
+        },
+        "config": {
+            "fullWidth": true,
+            "sapFiori2Adaptation": true
+        }
+    },
+    "sap.platform.hcp": {
+        "uri": "webapp"
+    }
+}
+

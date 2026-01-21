@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>UI5 Test</title>
+    <script
+        id="sap-ui-bootstrap"
+        src="https://sdk.openui5.org/1.120.0/resources/sap-ui-core.js"
+        data-sap-ui-theme="sap_horizon"
+        data-sap-ui-libs="sap.m"
+        data-sap-ui-compatVersion="edge"
+        data-sap-ui-async="true"
+        data-sap-ui-onInit="onInit">
+    </script>
+    <script>
+        function onInit() {
+            console.log("UI5 loaded successfully!");
+            new sap.m.App({
+                pages: [
+                    new sap.m.Page({
+                        title: "UI5 Test - Working!",
+                        content: [
+                            new sap.m.Text({ text: "If you see this, UI5 is working correctly." }),
+                            new sap.m.Button({ 
+                                text: "Click Me", 
+                                press: function() { 
+                                    sap.m.MessageToast.show("Button clicked!"); 
+                                }
+                            })
+                        ]
+                    })
+                ]
+            }).placeAt("content");
+        }
+    </script>
+</head>
+<body class="sapUiBody">
+    <div id="content"></div>
+</body>
+</html>
+

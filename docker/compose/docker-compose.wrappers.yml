@@ -43,27 +43,6 @@ services:
       - nucleus_internal
     restart: unless-stopped
 
-  wrapper-markitdown:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.service-wrapper
-      args:
-        SERVICE_PATH: src/serviceCore/serviceMarkItDownWrapper
-        SERVICE_BIN: service-markitdown
-        SERVICE_PORT: 8103
-    environment:
-      - RUST_LOG=info
-      - SERVICE_REGISTRY_URL=http://service-registry:8100
-      - SERVICE_PORT=8103
-    expose:
-      - "8103"
-    depends_on:
-      service-registry:
-        condition: service_healthy
-    networks:
-      - nucleus_internal
-    restart: unless-stopped
-
   wrapper-memgraph:
     build:
       context: .
@@ -226,32 +205,6 @@ services:
       - nucleus_internal
     restart: unless-stopped
 
-  wrapper-postgres-n8n:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.service-wrapper
-      args:
-        SERVICE_PATH: src/serviceData/servicePostgres
-        SERVICE_BIN: service-postgres
-        SERVICE_PORT: 8208
-    environment:
-      - RUST_LOG=info
-      - SERVICE_REGISTRY_URL=http://service-registry:8100
-      - SERVICE_PORT=8208
-      - SERVICE_ID=n8n-db
-      - SERVICE_NAME=n8n Postgres
-      - SERVICE_VERSION=15-alpine
-      - UPSTREAM_URL=postgres://n8n-db:5432/n8n
-      - SERVICE_TAGS=sql,postgres
-    expose:
-      - "8208"
-    depends_on:
-      service-registry:
-        condition: service_healthy
-    networks:
-      - nucleus_internal
-    restart: unless-stopped
-
   wrapper-postgres-registry:
     build:
       context: .
@@ -271,27 +224,6 @@ services:
       - SERVICE_TAGS=sql,postgres
     expose:
       - "8209"
-    depends_on:
-      service-registry:
-        condition: service_healthy
-    networks:
-      - nucleus_internal
-    restart: unless-stopped
-
-  wrapper-langflow:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.service-wrapper
-      args:
-        SERVICE_PATH: src/serviceAutomation/serviceLangflow
-        SERVICE_BIN: service-langflow
-        SERVICE_PORT: 8301
-    environment:
-      - RUST_LOG=info
-      - SERVICE_REGISTRY_URL=http://service-registry:8100
-      - SERVICE_PORT=8301
-    expose:
-      - "8301"
     depends_on:
       service-registry:
         condition: service_healthy

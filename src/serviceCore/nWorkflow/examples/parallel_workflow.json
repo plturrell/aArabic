@@ -1,0 +1,114 @@
+{
+  "version": "1.0",
+  "name": "Parallel Data Processing",
+  "description": "Process multiple data sources in parallel and aggregate results",
+  "metadata": {
+    "author": "nWorkflow Team",
+    "created": "2026-01-18",
+    "tags": ["parallel", "data", "aggregation"]
+  },
+  "nodes": [
+    {
+      "id": "start",
+      "type": "trigger",
+      "name": "Start Processing",
+      "config": {
+        "trigger_type": "scheduled",
+        "cron": "0 * * * *"
+      }
+    },
+    {
+      "id": "fetch_api1",
+      "type": "action",
+      "name": "Fetch API 1 Data",
+      "config": {
+        "url": "https://api1.example.com/data",
+        "method": "GET"
+      }
+    },
+    {
+      "id": "fetch_api2",
+      "type": "action",
+      "name": "Fetch API 2 Data",
+      "config": {
+        "url": "https://api2.example.com/data",
+        "method": "GET"
+      }
+    },
+    {
+      "id": "fetch_api3",
+      "type": "action",
+      "name": "Fetch API 3 Data",
+      "config": {
+        "url": "https://api3.example.com/data",
+        "method": "GET"
+      }
+    },
+    {
+      "id": "aggregate",
+      "type": "join",
+      "name": "Aggregate Results",
+      "config": {
+        "strategy": "merge",
+        "timeout_seconds": 30
+      }
+    },
+    {
+      "id": "transform",
+      "type": "transform",
+      "name": "Transform Data",
+      "config": {
+        "format": "normalized",
+        "schema": "v2"
+      }
+    },
+    {
+      "id": "save",
+      "type": "action",
+      "name": "Save Results",
+      "config": {
+        "database": "postgresql",
+        "table": "aggregated_data"
+      }
+    }
+  ],
+  "edges": [
+    {"from": "start", "to": "fetch_api1"},
+    {"from": "start", "to": "fetch_api2"},
+    {"from": "start", "to": "fetch_api3"},
+    {"from": "fetch_api1", "to": "aggregate"},
+    {"from": "fetch_api2", "to": "aggregate"},
+    {"from": "fetch_api3", "to": "aggregate"},
+    {"from": "aggregate", "to": "transform"},
+    {"from": "transform", "to": "save"}
+  ],
+  "error_handlers": [
+    {
+      "node": "fetch_api1",
+      "on_error": "retry",
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential",
+        "initial_delay_ms": 500
+      }
+    },
+    {
+      "node": "fetch_api2",
+      "on_error": "retry",
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential",
+        "initial_delay_ms": 500
+      }
+    },
+    {
+      "node": "fetch_api3",
+      "on_error": "retry",
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential",
+        "initial_delay_ms": 500
+      }
+    }
+  ]
+}

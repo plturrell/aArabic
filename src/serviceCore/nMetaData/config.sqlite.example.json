@@ -1,0 +1,31 @@
+{
+  "$schema": "./config.schema.json",
+  "database": {
+    "driver": "sqlite",
+    "sqlite": {
+      "path": ":memory:",
+      "flags": {
+        "readwrite": true,
+        "create": true,
+        "memory": true
+      },
+      "busy_timeout_ms": 5000,
+      "journal_mode": "wal",
+      "synchronous": "normal",
+      "cache_size": -2000
+    }
+  },
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8080,
+    "workers": 4
+  },
+  "logging": {
+    "level": "info",
+    "format": "json"
+  },
+  "features": {
+    "natural_language_query": false,
+    "graph_engine": false
+  }
+}

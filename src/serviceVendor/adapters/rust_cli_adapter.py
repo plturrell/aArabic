@@ -98,27 +98,6 @@ class RustCLIAdapter:
 # SPECIALIZED ADAPTERS FOR EACH RUST CLIENT
 # =============================================================================
 
-class LangflowCLI(RustCLIAdapter):
-    """Langflow workflow operations"""
-    def __init__(self, url: str = "http://localhost:7860"):
-        super().__init__("langflow-cli", url)
-    
-    async def health(self) -> Dict[str, Any]:
-        return await self.execute("health")
-    
-    async def list_flows(self) -> List[Dict]:
-        result = await self.execute("list-flows")
-        return result["data"]
-    
-    async def get_flow(self, flow_id: str) -> Dict:
-        result = await self.execute("get-flow", [flow_id])
-        return result["data"]
-    
-    async def run_flow(self, flow_id: str) -> Dict:
-        result = await self.execute("run-flow", [flow_id])
-        return result["data"]
-
-
 class GiteaCLI(RustCLIAdapter):
     """Gitea Git hosting operations"""
     def __init__(self, url: str = "http://localhost:3000"):
@@ -463,16 +442,6 @@ class DragonflyCLI(RustCLIAdapter):
         return result["data"]
 
 
-class MarkItDownCLI(RustCLIAdapter):
-    """MarkItDown document converter operations"""
-    def __init__(self, url: str = "http://localhost:8000"):
-        super().__init__("markitdown-cli", url)
-    
-    async def convert(self, file_path: str) -> str:
-        result = await self.execute("convert", [file_path])
-        return result["data"]["markdown"]
-
-
 class GleanCLI(RustCLIAdapter):
     """Glean search operations"""
     def __init__(self, url: str = "http://localhost:8080"):
@@ -497,7 +466,6 @@ def get_rust_client(client_name: str, **kwargs) -> RustCLIAdapter:
         repos = await gitea.list_repos()
     """
     clients = {
-        "langflow": LangflowCLI,
         "gitea": GiteaCLI,
         "git": GitCLI,
         "postgres": PostgresCLI,
@@ -515,7 +483,6 @@ def get_rust_client(client_name: str, **kwargs) -> RustCLIAdapter:
         "qdrant": QdrantCLI,
         "memgraph": MemgraphCLI,
         "dragonfly": DragonflyCLI,
-        "markitdown": MarkItDownCLI,
         "glean": GleanCLI,
     }
     

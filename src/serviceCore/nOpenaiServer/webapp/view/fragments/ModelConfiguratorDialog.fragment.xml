@@ -1,0 +1,200 @@
+<core:FragmentDefinition
+	xmlns="sap.m"
+	xmlns:core="sap.ui.core"
+	xmlns:f="sap.ui.layout.form">
+	
+	<Dialog
+		id="modelConfiguratorDialog"
+		title="Model Configuration"
+		contentWidth="600px"
+		draggable="true"
+		resizable="true"
+		afterClose=".onConfiguratorDialogClose">
+		
+		<content>
+			<VBox class="sapUiSmallMargin">
+				
+				<!-- Model Selection -->
+				<Label text="Model" design="Bold" class="sapUiSmallMarginBottom"/>
+				<Select
+					id="configModelSelect"
+					selectedKey="{modelConfig>/selectedModelId}"
+					change=".onConfigModelChange"
+					width="100%"
+					items="{modelConfig>/availableModels}">
+					<core:Item key="{modelConfig>id}" text="{modelConfig>display_name}"/>
+				</Select>
+				
+				<MessageStrip
+					text="Configure inference parameters for the selected model. Changes are saved to localStorage."
+					type="Information"
+					showIcon="true"
+					class="sapUiSmallMarginTop sapUiSmallMarginBottom"/>
+				
+				<!-- Temperature -->
+				<f:SimpleForm
+					editable="true"
+					layout="ResponsiveGridLayout"
+					labelSpanXL="4"
+					labelSpanL="4"
+					labelSpanM="4"
+					emptySpanXL="0"
+					emptySpanL="0"
+					emptySpanM="0"
+					columnsXL="1"
+					columnsL="1"
+					columnsM="1">
+					
+					<f:content>
+						<Label text="Temperature" tooltip="Controls randomness: 0.0 = deterministic, 2.0 = very creative"/>
+						<Slider
+							id="temperatureSlider"
+							value="{modelConfig>/config/temperature}"
+							min="0"
+							max="2"
+							step="0.1"
+							enableTickmarks="true"
+							width="80%"
+							liveChange=".onParameterChange"/>
+						<Text text="{modelConfig>/config/temperature}"/>
+						
+						<Label text="Top P" tooltip="Nucleus sampling: smaller = more focused, larger = more diverse"/>
+						<Slider
+							id="topPSlider"
+							value="{modelConfig>/config/top_p}"
+							min="0"
+							max="1"
+							step="0.05"
+							enableTickmarks="true"
+							width="80%"
+							liveChange=".onParameterChange"/>
+						<Text text="{modelConfig>/config/top_p}"/>
+						
+						<Label text="Top K" tooltip="Limits vocabulary to top K tokens"/>
+						<Slider
+							id="topKSlider"
+							value="{modelConfig>/config/top_k}"
+							min="0"
+							max="100"
+							step="5"
+							enableTickmarks="true"
+							width="80%"
+							liveChange=".onParameterChange"/>
+						<Text text="{modelConfig>/config/top_k}"/>
+						
+						<Label text="Max Tokens" tooltip="Maximum tokens to generate"/>
+						<Input
+							id="maxTokensInput"
+							value="{modelConfig>/config/max_tokens}"
+							type="Number"
+							width="150px"
+							change=".onParameterChange"/>
+						
+						<Label text="Context Length" tooltip="Maximum context window size"/>
+						<Input
+							id="contextLengthInput"
+							value="{modelConfig>/config/context_length}"
+							type="Number"
+							width="150px"
+							change=".onParameterChange"
+							enabled="false"
+							description="Read-only"/>
+						
+						<Label text="Repeat Penalty" tooltip="Penalty for repeating tokens (1.0 = no penalty)"/>
+						<Slider
+							id="repeatPenaltySlider"
+							value="{modelConfig>/config/repeat_penalty}"
+							min="0.5"
+							max="2"
+							step="0.1"
+							enableTickmarks="true"
+							width="80%"
+							liveChange=".onParameterChange"/>
+						<Text text="{modelConfig>/config/repeat_penalty}"/>
+						
+						<Label text="Presence Penalty" tooltip="Penalty for tokens already present"/>
+						<Slider
+							id="presencePenaltySlider"
+							value="{modelConfig>/config/presence_penalty}"
+							min="-2"
+							max="2"
+							step="0.1"
+							width="80%"
+							liveChange=".onParameterChange"/>
+						<Text text="{modelConfig>/config/presence_penalty}"/>
+						
+						<Label text="Frequency Penalty" tooltip="Penalty based on token frequency"/>
+						<Slider
+							id="frequencyPenaltySlider"
+							value="{modelConfig>/config/frequency_penalty}"
+							min="-2"
+							max="2"
+							step="0.1"
+							width="80%"
+							liveChange=".onParameterChange"/>
+						<Text text="{modelConfig>/config/frequency_penalty}"/>
+					</f:content>
+				</f:SimpleForm>
+				
+				<!-- Advanced Options -->
+				<Panel headerText="Advanced Options" expandable="true" expanded="false">
+					<content>
+						<VBox class="sapUiSmallMargin">
+							<CheckBox
+								text="Enable Streaming"
+								selected="{modelConfig>/config/stream}"
+								select=".onParameterChange"/>
+							<CheckBox
+								text="Enable Caching"
+								selected="{modelConfig>/config/enable_cache}"
+								select=".onParameterChange"/>
+							<CheckBox
+								text="Log Probabilities"
+								selected="{modelConfig>/config/logprobs}"
+								select=".onParameterChange"/>
+							
+							<Label text="Seed (for reproducibility)" class="sapUiSmallMarginTop"/>
+							<Input
+								id="seedInput"
+								value="{modelConfig>/config/seed}"
+								type="Number"
+								width="150px"
+								change=".onParameterChange"
+								placeholder="Leave empty for random"/>
+							
+							<Label text="Stop Sequences (comma-separated)" class="sapUiSmallMarginTop"/>
+							<TextArea
+								id="stopSequencesInput"
+								value="{modelConfig>/config/stop_sequences}"
+								rows="2"
+								width="100%"
+								change=".onParameterChange"
+								placeholder="e.g., \n, END, ###"/>
+						</VBox>
+					</content>
+				</Panel>
+				
+			</VBox>
+		</content>
+		
+		<beginButton>
+			<Button
+				text="Reset to Defaults"
+				icon="sap-icon://undo"
+				press=".onResetConfig"/>
+		</beginButton>
+		
+		<endButton>
+			<Button
+				text="Save"
+				type="Emphasized"
+				icon="sap-icon://save"
+				press=".onSaveConfig"/>
+			<Button
+				text="Cancel"
+				press=".onCloseConfigurator"/>
+		</endButton>
+		
+	</Dialog>
+	
+</core:FragmentDefinition>

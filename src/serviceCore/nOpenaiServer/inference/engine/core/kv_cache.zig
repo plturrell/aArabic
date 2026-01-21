@@ -33,39 +33,56 @@ pub const KVCache = struct {
         std.debug.print("\n🗄️  Initializing KV cache...\n", .{});
         std.debug.print("   Layers: {d}, Heads: {d}, Head dim: {d}\n", .{ n_layers, n_heads, head_dim });
         std.debug.print("   Max sequence length: {d}\n", .{max_seq_len});
-        
-        const kv_dim = n_heads * head_dim;
-        const cache_size_per_layer = 2 * max_seq_len * kv_dim; // 2 for keys + values
-        const total_size = n_layers * cache_size_per_layer;
+
+        // Clamp max_seq_len to prevent integer overflow and excessive memory usage
+        // Most inference doesn't need >32K context, and 128K would use too much RAM
+        const max_reasonable_seq: u32 = 32768;
+        const effective_max_seq = @min(max_seq_len, max_reasonable_seq);
+        if (effective_max_seq != max_seq_len) {
+            std.debug.print("   ⚠️  Clamping max_seq_len from {d} to {d} to prevent overflow\n", .{ max_seq_len, effective_max_seq });
+        }
+
+        // Use u64 for intermediate calculations to prevent overflow
+        const kv_dim: u64 = @as(u64, n_heads) * @as(u64, head_dim);
+        const cache_size_per_layer: u64 = 2 * @as(u64, effective_max_seq) * kv_dim; // 2 for keys + values
+        const total_size: u64 = @as(u64, n_layers) * cache_size_per_layer;
         
         std.debug.print("   Total cache size: {d} floats ({d:.2} MB)\n", .{
             total_size,
-            @as(f32, @floatFromInt(total_size * @sizeOf(f32))) / (1024.0 * 1024.0),
+            @as(f64, @floatFromInt(total_size * @sizeOf(f32))) / (1024.0 * 1024.0),
         });
-        
+
+        // Check if allocation size is reasonable (max ~4GB per layer)
+        const max_alloc_size: u64 = 1024 * 1024 * 1024; // 1GB max per layer
+        if (cache_size_per_layer > max_alloc_size) {
+            std.debug.print("   ❌ Cache size per layer ({d}) exceeds maximum ({d})\n", .{ cache_size_per_layer, max_alloc_size });
+            return error.CacheSizeTooLarge;
+        }
+
         // Allocate cache storage
         var cache = try allocator.alloc([]f32, n_layers);
         errdefer allocator.free(cache);
-        
+
+        const cache_size_usize: usize = @intCast(cache_size_per_layer);
         for (0..n_layers) |layer| {
-            cache[layer] = try allocator.alloc(f32, cache_size_per_layer);
+            cache[layer] = try allocator.alloc(f32, cache_size_usize);
             errdefer {
                 for (0..layer) |l| allocator.free(cache[l]);
                 allocator.free(cache);
             }
-            
+
             // Initialize to zeros
             @memset(cache[layer], 0.0);
         }
-        
+
         std.debug.print("   ✅ KV cache initialized\n", .{});
-        
+
         return KVCache{
             .allocator = allocator,
             .n_layers = n_layers,
             .n_heads = n_heads,
             .head_dim = head_dim,
-            .max_seq_len = max_seq_len,
+            .max_seq_len = effective_max_seq,
             .seq_pos = 0,
             .cache = cache,
         };

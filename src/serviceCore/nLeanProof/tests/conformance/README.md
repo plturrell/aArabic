@@ -5,25 +5,25 @@ Discovery tool for Lean4 upstream tests.
 ## Usage
 
 ```bash
-zig build conformance-discover -- --root vendor/layerIntelligence/lean4/tests --suite lean --limit 10
+zig build conformance-discover -- --root tests/lean4 --suite lean --limit 10
 ```
 
 ## Baseline Report
 
 ```bash
-zig build conformance-baseline -- --root vendor/layerIntelligence/lean4/tests --suite lean --sample 10
+zig build conformance-baseline -- --root tests/lean4 --suite lean --sample 10
 ```
 
 ## Manifest
 
 ```bash
-zig build conformance-manifest -- --root vendor/layerIntelligence/lean4/tests --suite lean --output tmp/conformance/manifest.json
+zig build conformance-manifest -- --root tests/lean4 --suite lean --output tmp/conformance/manifest.json
 ```
 
 ## Summary
 
 ```bash
-zig build conformance-summary -- --root vendor/layerIntelligence/lean4/tests --suite lean --output tmp/conformance/summary.json
+zig build conformance-summary -- --root tests/lean4 --suite lean --output tmp/conformance/summary.json
 ```
 
 ## Oracle + Diff

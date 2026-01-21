@@ -1,0 +1,513 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:layout="sap.ui.layout"
+    xmlns:f="sap.f"
+    xmlns:card="sap.f.cards">
+
+    <Dialog
+        id="trainingComparisonDialog"
+        title="Compare Training Experiments"
+        contentWidth="95%"
+        contentHeight="90%"
+        stretch="true"
+        draggable="true"
+        resizable="true">
+
+        <customHeader>
+            <Bar>
+                <contentMiddle>
+                    <Title text="Compare Training Experiments" level="H3"/>
+                </contentMiddle>
+                <contentRight>
+                    <Button
+                        icon="sap-icon://decline"
+                        type="Transparent"
+                        press=".onCloseComparisonDialog"
+                        tooltip="Close"/>
+                </contentRight>
+            </Bar>
+        </customHeader>
+
+        <content>
+            <VBox class="sapUiSmallMargin" height="100%">
+                
+                <!-- Main T-Account Layout: Left | Center | Right -->
+                <HBox justifyContent="SpaceBetween" height="100%">
+                    
+                    <!-- ==================== LEFT SIDE: Experiment A ==================== -->
+                    <VBox width="42%" class="sapUiSmallMarginEnd">
+                        <ScrollContainer height="100%" vertical="true" horizontal="false">
+                            
+                            <!-- Experiment A Header -->
+                            <Panel class="sapUiTinyMarginBottom">
+                                <headerToolbar>
+                                    <Toolbar>
+                                        <Title text="{trainingComparison>/experimentA/name}" level="H4"/>
+                                        <ToolbarSpacer/>
+                                        <ObjectStatus
+                                            text="{trainingComparison>/experimentA/status}"
+                                            state="{= ${trainingComparison>/experimentA/status} === 'RUNNING' ? 'Warning' : 
+                                                    (${trainingComparison>/experimentA/status} === 'COMPLETED' ? 'Success' : 
+                                                    (${trainingComparison>/experimentA/status} === 'FAILED' ? 'Error' : 'None')) }"
+                                            icon="{= ${trainingComparison>/experimentA/status} === 'RUNNING' ? 'sap-icon://synchronize' : 
+                                                   (${trainingComparison>/experimentA/status} === 'COMPLETED' ? 'sap-icon://sys-enter-2' : 
+                                                   (${trainingComparison>/experimentA/status} === 'FAILED' ? 'sap-icon://error' : 'sap-icon://status-inactive')) }"
+                                            inverted="true"/>
+                                    </Toolbar>
+                                </headerToolbar>
+                                <content>
+                                    <!-- Experiment Metadata -->
+                                    <layout:Grid defaultSpan="L6 M6 S12" class="sapUiTinyMarginTop">
+                                        <VBox>
+                                            <Label text="Base Model" design="Bold"/>
+                                            <Text text="{trainingComparison>/experimentA/baseModel}"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="Fine-Tuning Method" design="Bold"/>
+                                            <ObjectStatus
+                                                text="{trainingComparison>/experimentA/method}"
+                                                state="{= ${trainingComparison>/experimentA/method} === 'LoRA' ? 'Information' : 
+                                                        (${trainingComparison>/experimentA/method} === 'mHC' ? 'Success' : 'Warning') }"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="Start Time" design="Bold"/>
+                                            <Text text="{trainingComparison>/experimentA/startTime}"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="End Time" design="Bold"/>
+                                            <Text text="{trainingComparison>/experimentA/endTime}"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="Duration" design="Bold"/>
+                                            <ObjectNumber
+                                                number="{trainingComparison>/experimentA/duration}"
+                                                unit="{trainingComparison>/experimentA/durationUnit}"
+                                                state="{= ${trainingComparison>/analysis/durationWinner} === 'A' ? 'Success' : 'None' }"/>
+                                        </VBox>
+                                    </layout:Grid>
+                                </content>
+                            </Panel>
+
+                            <!-- Training Parameters Panel A -->
+                            <Panel headerText="Training Parameters" expandable="true" expanded="true" class="sapUiTinyMarginBottom">
+                                <content>
+                                    <layout:Grid defaultSpan="L6 M6 S12">
+                                        <VBox>
+                                            <Label text="Learning Rate"/>
+                                            <HBox alignItems="Center">
+                                                <ObjectNumber
+                                                    number="{trainingComparison>/experimentA/params/learningRate}"
+                                                    state="{= ${trainingComparison>/analysis/learningRateWinner} === 'A' ? 'Success' : 'None' }"/>
+                                                <core:Icon
+                                                    src="sap-icon://competitor"
+                                                    visible="{= ${trainingComparison>/analysis/learningRateWinner} === 'A' }"
+                                                    color="#107e3e"
+                                                    class="sapUiTinyMarginBegin"/>
+                                            </HBox>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="Batch Size"/>
+                                            <ObjectNumber
+                                                number="{trainingComparison>/experimentA/params/batchSize}"
+                                                state="{= ${trainingComparison>/analysis/batchSizeWinner} === 'A' ? 'Success' : 'None' }"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="Epochs"/>
+                                            <ObjectNumber number="{trainingComparison>/experimentA/params/epochs}"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="Optimizer"/>
+                                            <Text text="{trainingComparison>/experimentA/params/optimizer}"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="Warmup Steps"/>
+                                            <ObjectNumber number="{trainingComparison>/experimentA/params/warmupSteps}"/>
+                                        </VBox>
+                                    </layout:Grid>
+                                </content>
+                            </Panel>
+
+                            <!-- Training Curve Metrics A -->
+                            <Panel headerText="Training Curve Metrics" expandable="true" expanded="true" class="sapUiTinyMarginBottom">
+                                <content>
+                                    <VBox>
+                                        <!-- Loss Progression -->
+                                        <HBox alignItems="Center" justifyContent="SpaceBetween" class="sapUiTinyMarginBottom">
+                                            <Label text="Loss Progression" design="Bold"/>
+                                            <HBox alignItems="Center">
+                                                <ObjectNumber
+                                                    number="{trainingComparison>/experimentA/metrics/initialLoss}"
+                                                    state="Error"/>
+                                                <core:Icon src="sap-icon://navigation-right-arrow" class="sapUiTinyMarginBeginEnd"/>
+                                                <ObjectNumber
+                                                    number="{trainingComparison>/experimentA/metrics/finalLoss}"
+                                                    state="{= ${trainingComparison>/analysis/lossWinner} === 'A' ? 'Success' : 'Information' }"/>
+                                                <core:Icon
+                                                    src="sap-icon://competitor"
+                                                    visible="{= ${trainingComparison>/analysis/lossWinner} === 'A' }"
+                                                    color="#107e3e"
+                                                    class="sapUiTinyMarginBegin"/>
+                                            </HBox>
+                                        </HBox>
+                                        <!-- Accuracy Progression -->
+                                        <HBox alignItems="Center" justifyContent="SpaceBetween" class="sapUiTinyMarginBottom">
+                                            <Label text="Accuracy Progression" design="Bold"/>
+                                            <HBox alignItems="Center">
+                                                <ObjectNumber
+                                                    number="{trainingComparison>/experimentA/metrics/initialAccuracy}"
+                                                    unit="%"/>
+                                                <core:Icon src="sap-icon://navigation-right-arrow" class="sapUiTinyMarginBeginEnd"/>
+                                                <ObjectNumber
+                                                    number="{trainingComparison>/experimentA/metrics/finalAccuracy}"
+                                                    unit="%"
+                                                    state="{= ${trainingComparison>/analysis/accuracyWinner} === 'A' ? 'Success' : 'Information' }"/>
+                                            </HBox>
+                                        </HBox>
+                                        <!-- Samples Processed -->
+                                        <HBox alignItems="Center" justifyContent="SpaceBetween">
+                                            <Label text="Training Samples" design="Bold"/>
+                                            <ObjectNumber
+                                                number="{trainingComparison>/experimentA/metrics/samplesProcessed}"
+                                                emphasized="true"/>
+                                        </HBox>
+                                    </VBox>
+                                </content>
+                            </Panel>
+
+                            <!-- Resource Usage Panel A -->
+                            <Panel headerText="Resource Usage" expandable="true" expanded="true">
+                                <content>
+                                    <layout:Grid defaultSpan="L4 M6 S12">
+                                        <VBox>
+                                            <Label text="Peak GPU Memory"/>
+                                            <ObjectNumber
+                                                number="{trainingComparison>/experimentA/resources/peakGpuMemory}"
+                                                unit="GB"
+                                                state="{= ${trainingComparison>/analysis/gpuMemoryWinner} === 'A' ? 'Success' : 'None' }"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="Avg GPU Utilization"/>
+                                            <ObjectNumber
+                                                number="{trainingComparison>/experimentA/resources/avgGpuUtilization}"
+                                                unit="%"
+                                                state="{= ${trainingComparison>/analysis/gpuUtilWinner} === 'A' ? 'Success' : 'None' }"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="Total Tokens"/>
+                                            <ObjectNumber
+                                                number="{trainingComparison>/experimentA/resources/totalTokensProcessed}"
+                                                emphasized="true"/>
+                                        </VBox>
+                                    </layout:Grid>
+                                </content>
+                            </Panel>
+
+                        </ScrollContainer>
+                    </VBox>
+
+                    <!-- ==================== CENTER: Comparison Indicators ==================== -->
+                    <VBox width="14%" alignItems="Center" justifyContent="Center" class="sapUiSmallMargin">
+                        <ScrollContainer height="100%" vertical="true" horizontal="false">
+
+                            <Panel class="sapUiTinyMarginBottom">
+                                <headerToolbar>
+                                    <Toolbar>
+                                        <Title text="Analysis" level="H5"/>
+                                    </Toolbar>
+                                </headerToolbar>
+                                <content>
+                                    <VBox alignItems="Center" class="sapUiSmallMargin">
+
+                                        <!-- Convergence Speed Delta -->
+                                        <VBox alignItems="Center" class="sapUiSmallMarginBottom">
+                                            <Label text="Convergence" design="Bold"/>
+                                            <ObjectStatus
+                                                text="{trainingComparison>/analysis/convergenceDelta}"
+                                                state="{= ${trainingComparison>/analysis/convergenceWinner} !== 'tie' ? 'Success' : 'None' }"
+                                                icon="sap-icon://line-chart-time-axis"/>
+                                            <Text
+                                                text="{= ${trainingComparison>/analysis/convergenceWinner} === 'A' ? '← Winner' :
+                                                       (${trainingComparison>/analysis/convergenceWinner} === 'B' ? 'Winner →' : 'Tie') }"
+                                                class="sapUiTinyMarginTop"/>
+                                        </VBox>
+
+                                        <!-- Loss Delta -->
+                                        <VBox alignItems="Center" class="sapUiSmallMarginBottom">
+                                            <Label text="Loss Reduction" design="Bold"/>
+                                            <ObjectStatus
+                                                text="{trainingComparison>/analysis/lossDelta}"
+                                                state="{= ${trainingComparison>/analysis/lossWinner} !== 'tie' ? 'Success' : 'None' }"
+                                                icon="sap-icon://trend-down"/>
+                                            <Text
+                                                text="{= ${trainingComparison>/analysis/lossWinner} === 'A' ? '← Better' :
+                                                       (${trainingComparison>/analysis/lossWinner} === 'B' ? 'Better →' : 'Equal') }"
+                                                class="sapUiTinyMarginTop"/>
+                                        </VBox>
+
+                                        <!-- Accuracy Delta -->
+                                        <VBox alignItems="Center" class="sapUiSmallMarginBottom">
+                                            <Label text="Accuracy Gain" design="Bold"/>
+                                            <ObjectStatus
+                                                text="{trainingComparison>/analysis/accuracyDelta}"
+                                                state="{= ${trainingComparison>/analysis/accuracyWinner} !== 'tie' ? 'Success' : 'None' }"
+                                                icon="sap-icon://trend-up"/>
+                                            <Text
+                                                text="{= ${trainingComparison>/analysis/accuracyWinner} === 'A' ? '← Better' :
+                                                       (${trainingComparison>/analysis/accuracyWinner} === 'B' ? 'Better →' : 'Equal') }"
+                                                class="sapUiTinyMarginTop"/>
+                                        </VBox>
+
+                                        <!-- Efficiency Score -->
+                                        <VBox alignItems="Center" class="sapUiSmallMarginBottom">
+                                            <Label text="Efficiency" design="Bold"/>
+                                            <ObjectStatus
+                                                text="{trainingComparison>/analysis/efficiencyDelta}"
+                                                state="{= ${trainingComparison>/analysis/efficiencyWinner} !== 'tie' ? 'Information' : 'None' }"
+                                                icon="sap-icon://performance"/>
+                                            <Text
+                                                text="{= ${trainingComparison>/analysis/efficiencyWinner} === 'A' ? '← More Efficient' :
+                                                       (${trainingComparison>/analysis/efficiencyWinner} === 'B' ? 'More Efficient →' : 'Equal') }"
+                                                class="sapUiTinyMarginTop"/>
+                                        </VBox>
+
+                                        <!-- Overall Winner -->
+                                        <VBox alignItems="Center" class="sapUiMediumMarginTop">
+                                            <Label text="Overall Winner" design="Bold"/>
+                                            <ObjectStatus
+                                                text="{= ${trainingComparison>/analysis/overallWinner} === 'A' ? 'Experiment A' :
+                                                       (${trainingComparison>/analysis/overallWinner} === 'B' ? 'Experiment B' : 'Too Close') }"
+                                                state="{= ${trainingComparison>/analysis/overallWinner} !== 'tie' ? 'Success' : 'Warning' }"
+                                                icon="sap-icon://competitor"
+                                                inverted="true"/>
+                                            <Text
+                                                text="{trainingComparison>/analysis/overallScore}"
+                                                class="sapUiTinyMarginTop"/>
+                                        </VBox>
+
+                                    </VBox>
+                                </content>
+                            </Panel>
+
+                        </ScrollContainer>
+                    </VBox>
+
+                    <!-- ==================== RIGHT SIDE: Experiment B ==================== -->
+                    <VBox width="42%" class="sapUiSmallMarginBegin">
+                        <ScrollContainer height="100%" vertical="true" horizontal="false">
+
+                            <!-- Experiment B Header -->
+                            <Panel class="sapUiTinyMarginBottom">
+                                <headerToolbar>
+                                    <Toolbar>
+                                        <Title text="{trainingComparison>/experimentB/name}" level="H4"/>
+                                        <ToolbarSpacer/>
+                                        <ObjectStatus
+                                            text="{trainingComparison>/experimentB/status}"
+                                            state="{= ${trainingComparison>/experimentB/status} === 'RUNNING' ? 'Warning' :
+                                                    (${trainingComparison>/experimentB/status} === 'COMPLETED' ? 'Success' :
+                                                    (${trainingComparison>/experimentB/status} === 'FAILED' ? 'Error' : 'None')) }"
+                                            icon="{= ${trainingComparison>/experimentB/status} === 'RUNNING' ? 'sap-icon://synchronize' :
+                                                   (${trainingComparison>/experimentB/status} === 'COMPLETED' ? 'sap-icon://sys-enter-2' :
+                                                   (${trainingComparison>/experimentB/status} === 'FAILED' ? 'sap-icon://error' : 'sap-icon://status-inactive')) }"
+                                            inverted="true"/>
+                                    </Toolbar>
+                                </headerToolbar>
+                                <content>
+                                    <!-- Experiment Metadata -->
+                                    <layout:Grid defaultSpan="L6 M6 S12" class="sapUiTinyMarginTop">
+                                        <VBox>
+                                            <Label text="Base Model" design="Bold"/>
+                                            <Text text="{trainingComparison>/experimentB/baseModel}"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="Fine-Tuning Method" design="Bold"/>
+                                            <ObjectStatus
+                                                text="{trainingComparison>/experimentB/method}"
+                                                state="{= ${trainingComparison>/experimentB/method} === 'LoRA' ? 'Information' :
+                                                        (${trainingComparison>/experimentB/method} === 'mHC' ? 'Success' : 'Warning') }"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="Start Time" design="Bold"/>
+                                            <Text text="{trainingComparison>/experimentB/startTime}"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="End Time" design="Bold"/>
+                                            <Text text="{trainingComparison>/experimentB/endTime}"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="Duration" design="Bold"/>
+                                            <ObjectNumber
+                                                number="{trainingComparison>/experimentB/duration}"
+                                                unit="{trainingComparison>/experimentB/durationUnit}"
+                                                state="{= ${trainingComparison>/analysis/durationWinner} === 'B' ? 'Success' : 'None' }"/>
+                                        </VBox>
+                                    </layout:Grid>
+                                </content>
+                            </Panel>
+
+                            <!-- Training Parameters Panel B -->
+                            <Panel headerText="Training Parameters" expandable="true" expanded="true" class="sapUiTinyMarginBottom">
+                                <content>
+                                    <layout:Grid defaultSpan="L6 M6 S12">
+                                        <VBox>
+                                            <Label text="Learning Rate"/>
+                                            <HBox alignItems="Center">
+                                                <ObjectNumber
+                                                    number="{trainingComparison>/experimentB/params/learningRate}"
+                                                    state="{= ${trainingComparison>/analysis/learningRateWinner} === 'B' ? 'Success' : 'None' }"/>
+                                                <core:Icon
+                                                    src="sap-icon://competitor"
+                                                    visible="{= ${trainingComparison>/analysis/learningRateWinner} === 'B' }"
+                                                    color="#107e3e"
+                                                    class="sapUiTinyMarginBegin"/>
+                                            </HBox>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="Batch Size"/>
+                                            <ObjectNumber
+                                                number="{trainingComparison>/experimentB/params/batchSize}"
+                                                state="{= ${trainingComparison>/analysis/batchSizeWinner} === 'B' ? 'Success' : 'None' }"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="Epochs"/>
+                                            <ObjectNumber number="{trainingComparison>/experimentB/params/epochs}"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="Optimizer"/>
+                                            <Text text="{trainingComparison>/experimentB/params/optimizer}"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="Warmup Steps"/>
+                                            <ObjectNumber number="{trainingComparison>/experimentB/params/warmupSteps}"/>
+                                        </VBox>
+                                    </layout:Grid>
+                                </content>
+                            </Panel>
+
+                            <!-- Training Curve Metrics B -->
+                            <Panel headerText="Training Curve Metrics" expandable="true" expanded="true" class="sapUiTinyMarginBottom">
+                                <content>
+                                    <VBox>
+                                        <!-- Loss Progression -->
+                                        <HBox alignItems="Center" justifyContent="SpaceBetween" class="sapUiTinyMarginBottom">
+                                            <Label text="Loss Progression" design="Bold"/>
+                                            <HBox alignItems="Center">
+                                                <ObjectNumber
+                                                    number="{trainingComparison>/experimentB/metrics/initialLoss}"
+                                                    state="Error"/>
+                                                <core:Icon src="sap-icon://navigation-right-arrow" class="sapUiTinyMarginBeginEnd"/>
+                                                <ObjectNumber
+                                                    number="{trainingComparison>/experimentB/metrics/finalLoss}"
+                                                    state="{= ${trainingComparison>/analysis/lossWinner} === 'B' ? 'Success' : 'Information' }"/>
+                                                <core:Icon
+                                                    src="sap-icon://competitor"
+                                                    visible="{= ${trainingComparison>/analysis/lossWinner} === 'B' }"
+                                                    color="#107e3e"
+                                                    class="sapUiTinyMarginBegin"/>
+                                            </HBox>
+                                        </HBox>
+                                        <!-- Accuracy Progression -->
+                                        <HBox alignItems="Center" justifyContent="SpaceBetween" class="sapUiTinyMarginBottom">
+                                            <Label text="Accuracy Progression" design="Bold"/>
+                                            <HBox alignItems="Center">
+                                                <ObjectNumber
+                                                    number="{trainingComparison>/experimentB/metrics/initialAccuracy}"
+                                                    unit="%"/>
+                                                <core:Icon src="sap-icon://navigation-right-arrow" class="sapUiTinyMarginBeginEnd"/>
+                                                <ObjectNumber
+                                                    number="{trainingComparison>/experimentB/metrics/finalAccuracy}"
+                                                    unit="%"
+                                                    state="{= ${trainingComparison>/analysis/accuracyWinner} === 'B' ? 'Success' : 'Information' }"/>
+                                            </HBox>
+                                        </HBox>
+                                        <!-- Samples Processed -->
+                                        <HBox alignItems="Center" justifyContent="SpaceBetween">
+                                            <Label text="Training Samples" design="Bold"/>
+                                            <ObjectNumber
+                                                number="{trainingComparison>/experimentB/metrics/samplesProcessed}"
+                                                emphasized="true"/>
+                                        </HBox>
+                                    </VBox>
+                                </content>
+                            </Panel>
+
+                            <!-- Resource Usage Panel B -->
+                            <Panel headerText="Resource Usage" expandable="true" expanded="true">
+                                <content>
+                                    <layout:Grid defaultSpan="L4 M6 S12">
+                                        <VBox>
+                                            <Label text="Peak GPU Memory"/>
+                                            <ObjectNumber
+                                                number="{trainingComparison>/experimentB/resources/peakGpuMemory}"
+                                                unit="GB"
+                                                state="{= ${trainingComparison>/analysis/gpuMemoryWinner} === 'B' ? 'Success' : 'None' }"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="Avg GPU Utilization"/>
+                                            <ObjectNumber
+                                                number="{trainingComparison>/experimentB/resources/avgGpuUtilization}"
+                                                unit="%"
+                                                state="{= ${trainingComparison>/analysis/gpuUtilWinner} === 'B' ? 'Success' : 'None' }"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="Total Tokens"/>
+                                            <ObjectNumber
+                                                number="{trainingComparison>/experimentB/resources/totalTokensProcessed}"
+                                                emphasized="true"/>
+                                        </VBox>
+                                    </layout:Grid>
+                                </content>
+                            </Panel>
+
+                        </ScrollContainer>
+                    </VBox>
+
+                </HBox>
+
+            </VBox>
+        </content>
+
+        <!-- Bottom Action Panel -->
+        <footer>
+            <OverflowToolbar>
+                <ToolbarSpacer/>
+
+                <!-- Use Configuration A Button -->
+                <Button
+                    text="Use Configuration A"
+                    icon="sap-icon://accept"
+                    type="Accept"
+                    press=".onUseConfigurationA"
+                    enabled="{= ${trainingComparison>/experimentA/status} === 'COMPLETED' }"/>
+
+                <!-- Use Configuration B Button -->
+                <Button
+                    text="Use Configuration B"
+                    icon="sap-icon://accept"
+                    type="Accept"
+                    press=".onUseConfigurationB"
+                    enabled="{= ${trainingComparison>/experimentB/status} === 'COMPLETED' }"/>
+
+                <!-- Create New Experiment with Best Params -->
+                <Button
+                    text="Create New Experiment"
+                    icon="sap-icon://add"
+                    type="Emphasized"
+                    press=".onCreateMergedExperiment"
+                    tooltip="Create new experiment with best parameters from both"/>
+
+                <!-- Export Comparison Report -->
+                <Button
+                    text="Export Report"
+                    icon="sap-icon://excel-attachment"
+                    type="Transparent"
+                    press=".onExportComparisonReport"/>
+
+                <ToolbarSpacer/>
+            </OverflowToolbar>
+        </footer>
+
+    </Dialog>
+
+</core:FragmentDefinition>

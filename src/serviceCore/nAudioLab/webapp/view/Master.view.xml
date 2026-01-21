@@ -1,0 +1,38 @@
+<mvc:View
+    controllerName="nAudioLab.webapp.controller.Master"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:f="sap.f">
+    <f:DynamicPage toggleHeaderOnTitleClick="false">
+        <f:title>
+            <f:DynamicPageTitle>
+                <f:heading>
+                    <Title text="Audio Projects"/>
+                </f:heading>
+                <f:actions>
+                    <Button icon="sap-icon://add" type="Transparent"/>
+                    <Button icon="sap-icon://home" tooltip="Back to Launchpad" press=".onPressHome"/>
+                </f:actions>
+            </f:DynamicPageTitle>
+        </f:title>
+        <f:content>
+            <List
+                items="{audio>/projects}"
+                mode="SingleSelectMaster"
+                selectionChange=".onSelectionChange"
+                class="hypershimmyMasterList">
+                <ObjectListItem
+                    title="{audio>title}"
+                    type="Active"
+                    intro="{audio>date}"
+                    icon="{audio>icon}"
+                    number="{audio>duration}"
+                    numberUnit="min">
+                    <firstStatus>
+                        <ObjectStatus text="{audio>status}" state="{= ${audio>status} === 'Ready' ? 'Success' : 'Warning'}"/>
+                    </firstStatus>
+                </ObjectListItem>
+            </List>
+        </f:content>
+    </f:DynamicPage>
+</mvc:View>

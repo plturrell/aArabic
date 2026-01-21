@@ -1,0 +1,631 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "health-monitoring",
+    "title": "LLM Server - Health & Load Monitoring",
+    "tags": ["health", "monitoring", "kubernetes", "load-shedding"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "10s",
+    
+    "panels": [
+      {
+        "id": 1,
+        "title": "Overall System Health",
+        "type": "stat",
+        "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+        "targets": [{
+          "expr": "health_status{component=\"overall\"}",
+          "legendFormat": "System Health"
+        }],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "background",
+          "textMode": "value_and_name"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {"value": 0, "text": "Healthy", "color": "green"},
+              {"value": 1, "text": "Degraded", "color": "yellow"},
+              {"value": 2, "text": "Unhealthy", "color": "orange"},
+              {"value": 3, "text": "Critical", "color": "red"}
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 1, "color": "yellow"},
+                {"value": 2, "color": "orange"},
+                {"value": 3, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      
+      {
+        "id": 2,
+        "title": "Kubernetes Pod Status",
+        "type": "stat",
+        "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
+        "targets": [{
+          "expr": "count(kube_pod_status_phase{namespace=\"production\",pod=~\"llm-inference.*\",phase=\"Running\"})",
+          "legendFormat": "Running Pods"
+        }],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value",
+          "textMode": "value_and_name"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 2, "color": "yellow"},
+                {"value": 3, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      
+      {
+        "id": 3,
+        "title": "Service Uptime",
+        "type": "stat",
+        "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
+        "targets": [{
+          "expr": "time() - process_start_time_seconds",
+          "legendFormat": "Uptime"
+        }],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "value",
+          "textMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "decimals": 0
+          }
+        }
+      },
+      
+      {
+        "id": 4,
+        "title": "Active Alerts",
+        "type": "stat",
+        "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
+        "targets": [{
+          "expr": "count(ALERTS{alertstate=\"firing\",namespace=\"production\"})",
+          "legendFormat": "Firing Alerts"
+        }],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "background",
+          "textMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 1, "color": "orange"},
+                {"value": 5, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      
+      {
+        "id": 5,
+        "title": "Component Health Status",
+        "type": "table",
+        "gridPos": {"x": 0, "y": 4, "w": 12, "h": 6},
+        "targets": [{
+          "expr": "health_check_status",
+          "format": "table",
+          "instant": true
+        }],
+        "options": {
+          "showHeader": true
+        },
+        "fieldConfig": {
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "component"},
+              "properties": [{"id": "custom.width", "value": 150}]
+            },
+            {
+              "matcher": {"id": "byName", "options": "Value"},
+              "properties": [
+                {"id": "custom.width", "value": 100},
+                {
+                  "id": "mappings",
+                  "value": [
+                    {"value": 0, "text": "✓ Healthy", "color": "green"},
+                    {"value": 1, "text": "⚠ Degraded", "color": "yellow"},
+                    {"value": 2, "text": "✗ Unhealthy", "color": "orange"},
+                    {"value": 3, "text": "☠ Critical", "color": "red"}
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      
+      {
+        "id": 6,
+        "title": "Health Check Duration",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 4, "w": 12, "h": 6},
+        "targets": [
+          {
+            "expr": "health_check_duration_microseconds{component=\"ssd\"}",
+            "legendFormat": "SSD Check"
+          },
+          {
+            "expr": "health_check_duration_microseconds{component=\"ram\"}",
+            "legendFormat": "RAM Check"
+          },
+          {
+            "expr": "health_check_duration_microseconds{component=\"model_integrity\"}",
+            "legendFormat": "Model Check"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "µs",
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 10
+            }
+          }
+        }
+      },
+      
+      {
+        "id": 7,
+        "title": "Load Shedding - Active Requests",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 10, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "load_shedding_active_requests",
+            "legendFormat": "Active"
+          },
+          {
+            "expr": "load_shedding_config_max_active",
+            "legendFormat": "Max Allowed"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 20
+            }
+          }
+        }
+      },
+      
+      {
+        "id": 8,
+        "title": "Load Shedding - Queue Size",
+        "type": "timeseries",
+        "gridPos": {"x": 8, "y": 10, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "load_shedding_queued_requests",
+            "legendFormat": "Queued"
+          },
+          {
+            "expr": "load_shedding_config_max_queue",
+            "legendFormat": "Max Queue"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 20
+            }
+          }
+        }
+      },
+      
+      {
+        "id": 9,
+        "title": "Load Shedding - Rejected Requests",
+        "type": "timeseries",
+        "gridPos": {"x": 16, "y": 10, "w": 8, "h": 6},
+        "targets": [{
+          "expr": "rate(load_shedding_rejected_requests_total[1m])",
+          "legendFormat": "Rejected/sec"
+        }],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "custom": {
+              "drawStyle": "bars",
+              "fillOpacity": 50
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 10, "color": "yellow"},
+                {"value": 50, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      
+      {
+        "id": 10,
+        "title": "Average Request Latency",
+        "type": "gauge",
+        "gridPos": {"x": 0, "y": 16, "w": 8, "h": 6},
+        "targets": [{
+          "expr": "load_shedding_avg_latency_milliseconds",
+          "legendFormat": "Avg Latency"
+        }],
+        "options": {
+          "showThresholdLabels": true,
+          "showThresholdMarkers": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "min": 0,
+            "max": 2000,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 500, "color": "yellow"},
+                {"value": 1000, "color": "orange"},
+                {"value": 1500, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      
+      {
+        "id": 11,
+        "title": "SSD Health Metrics",
+        "type": "timeseries",
+        "gridPos": {"x": 8, "y": 16, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "health_ssd_free_space_gb",
+            "legendFormat": "Free Space (GB)"
+          },
+          {
+            "expr": "health_ssd_io_error_rate * 100",
+            "legendFormat": "I/O Error Rate (per 100k ops)",
+            "yAxisIndex": 1
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 10
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "Free Space (GB)"},
+              "properties": [
+                {"id": "unit", "value": "decgbytes"},
+                {"id": "custom.axisPlacement", "value": "left"}
+              ]
+            },
+            {
+              "matcher": {"id": "byName", "options": "I/O Error Rate (per 100k ops)"},
+              "properties": [
+                {"id": "unit", "value": "short"},
+                {"id": "custom.axisPlacement", "value": "right"}
+              ]
+            }
+          ]
+        }
+      },
+      
+      {
+        "id": 12,
+        "title": "RAM Health Metrics",
+        "type": "timeseries",
+        "gridPos": {"x": 16, "y": 16, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "health_ram_usage_percent",
+            "legendFormat": "Usage %"
+          },
+          {
+            "expr": "health_ram_fragmentation * 100",
+            "legendFormat": "Fragmentation %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 10
+            }
+          }
+        }
+      },
+      
+      {
+        "id": 13,
+        "title": "Kubernetes Probe Success Rate",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 22, "w": 12, "h": 6},
+        "targets": [
+          {
+            "expr": "rate(probe_success_total{probe_type=\"readiness\"}[5m]) / rate(probe_total{probe_type=\"readiness\"}[5m]) * 100",
+            "legendFormat": "Readiness"
+          },
+          {
+            "expr": "rate(probe_success_total{probe_type=\"liveness\"}[5m]) / rate(probe_total{probe_type=\"liveness\"}[5m]) * 100",
+            "legendFormat": "Liveness"
+          },
+          {
+            "expr": "rate(probe_success_total{probe_type=\"startup\"}[5m]) / rate(probe_total{probe_type=\"startup\"}[5m]) * 100",
+            "legendFormat": "Startup"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 10
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 90, "color": "yellow"},
+                {"value": 99, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      
+      {
+        "id": 14,
+        "title": "Request Queue Wait Time (p50, p95, p99)",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 22, "w": 12, "h": 6},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(request_queue_wait_time_bucket[5m]))",
+            "legendFormat": "p50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(request_queue_wait_time_bucket[5m]))",
+            "legendFormat": "p95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(request_queue_wait_time_bucket[5m]))",
+            "legendFormat": "p99"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 0
+            }
+          }
+        }
+      },
+      
+      {
+        "id": 15,
+        "title": "Circuit Breaker State (from Day 8)",
+        "type": "stat",
+        "gridPos": {"x": 0, "y": 28, "w": 6, "h": 4},
+        "targets": [{
+          "expr": "circuit_breaker_state",
+          "legendFormat": "Circuit State"
+        }],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "background",
+          "textMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {"value": 0, "text": "Closed (Normal)", "color": "green"},
+              {"value": 1, "text": "Open (Failing)", "color": "red"},
+              {"value": 2, "text": "Half-Open (Testing)", "color": "yellow"}
+            ]
+          }
+        }
+      },
+      
+      {
+        "id": 16,
+        "title": "Error Rate by Category",
+        "type": "timeseries",
+        "gridPos": {"x": 6, "y": 28, "w": 18, "h": 6},
+        "targets": [
+          {
+            "expr": "rate(error_count_total{category=\"transient\"}[5m])",
+            "legendFormat": "Transient"
+          },
+          {
+            "expr": "rate(error_count_total{category=\"timeout\"}[5m])",
+            "legendFormat": "Timeout"
+          },
+          {
+            "expr": "rate(error_count_total{category=\"io\"}[5m])",
+            "legendFormat": "I/O"
+          },
+          {
+            "expr": "rate(error_count_total{category=\"permanent\"}[5m])",
+            "legendFormat": "Permanent"
+          },
+          {
+            "expr": "rate(error_count_total{category=\"resource\"}[5m])",
+            "legendFormat": "Resource"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 10,
+              "stacking": {"mode": "normal"}
+            }
+          }
+        }
+      },
+      
+      {
+        "id": 17,
+        "title": "Pod Restart Count",
+        "type": "stat",
+        "gridPos": {"x": 0, "y": 34, "w": 8, "h": 4},
+        "targets": [{
+          "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"production\",pod=~\"llm-inference.*\"})",
+          "legendFormat": "Total Restarts"
+        }],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value",
+          "textMode": "value_and_name"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 5, "color": "yellow"},
+                {"value": 10, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      
+      {
+        "id": 18,
+        "title": "Memory Usage by Pod",
+        "type": "timeseries",
+        "gridPos": {"x": 8, "y": 34, "w": 8, "h": 6},
+        "targets": [{
+          "expr": "container_memory_usage_bytes{namespace=\"production\",pod=~\"llm-inference.*\"} / 1024 / 1024 / 1024",
+          "legendFormat": "{{pod}}"
+        }],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "decgbytes",
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 10
+            }
+          }
+        }
+      },
+      
+      {
+        "id": 19,
+        "title": "CPU Usage by Pod",
+        "type": "timeseries",
+        "gridPos": {"x": 16, "y": 34, "w": 8, "h": 6},
+        "targets": [{
+          "expr": "rate(container_cpu_usage_seconds_total{namespace=\"production\",pod=~\"llm-inference.*\"}[5m]) * 100",
+          "legendFormat": "{{pod}}"
+        }],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 10
+            }
+          }
+        }
+      }
+    ],
+    
+    "templating": {
+      "list": [
+        {
+          "name": "namespace",
+          "type": "constant",
+          "query": "production",
+          "current": {
+            "value": "production",
+            "text": "production"
+          }
+        },
+        {
+          "name": "pod",
+          "type": "query",
+          "query": "label_values(kube_pod_info{namespace=\"$namespace\"}, pod)",
+          "refresh": 1,
+          "multi": true,
+          "includeAll": true
+        }
+      ]
+    },
+    
+    "annotations": {
+      "list": [
+        {
+          "name": "Deployments",
+          "datasource": "Prometheus",
+          "enable": true,
+          "expr": "changes(kube_deployment_status_replicas{namespace=\"production\",deployment=\"llm-inference-server\"}[1m]) > 0",
+          "tagKeys": "deployment",
+          "textFormat": "Deployment updated",
+          "iconColor": "blue"
+        },
+        {
+          "name": "Alerts",
+          "datasource": "Prometheus",
+          "enable": true,
+          "expr": "ALERTS{alertstate=\"firing\",namespace=\"production\"}",
+          "tagKeys": "alertname",
+          "textFormat": "{{alertname}}: {{summary}}",
+          "iconColor": "red"
+        }
+      ]
+    },
+    
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    }
+  }
+}

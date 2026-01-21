@@ -1,0 +1,353 @@
+<mvc:View
+	controllerName="llm.server.dashboard.controller.ModelRouter"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns="sap.m"
+	xmlns:l="sap.ui.layout"
+	xmlns:f="sap.f"
+	xmlns:core="sap.ui.core"
+	xmlns:table="sap.ui.table"
+	displayBlock="true">
+	
+	<Page
+		id="modelRouterPage"
+		title="Intelligent Model Router"
+		showNavButton="false"
+		showHeader="true">
+		
+		<headerContent>
+			<Button
+				icon="sap-icon://refresh"
+				text="Refresh"
+				press="onRefresh" />
+			<Button
+				icon="sap-icon://synchronize"
+				text="Auto-Assign All"
+				type="Emphasized"
+				press="onAutoAssignAll" />
+			<Button
+				icon="sap-icon://download"
+				text="Export Config"
+				press="onExportConfig" />
+		</headerContent>
+		
+		<content>
+			<IconTabBar id="modelRouterTabBar" class="sapUiResponsiveContentPadding">
+				<items>
+					<!-- Tab 1: Model-Agent Assignments -->
+					<IconTabFilter
+						icon="sap-icon://connection"
+						text="Model-Agent Assignments"
+						key="assignments">
+						<VBox height="100%">
+							<Toolbar>
+								<Title text="Agent-Model Assignments" level="H2" />
+								<ToolbarSpacer />
+								<Button
+									icon="sap-icon://synchronize"
+									text="Auto-Assign"
+									type="Transparent"
+									press="onAutoAssign" />
+							</Toolbar>
+
+							<!-- Statistics Tiles -->
+							<l:HorizontalLayout class="sapUiSmallMarginBottom">
+								<l:content>
+									<GenericTile
+										header="Total Agents"
+										class="sapUiTinyMarginEnd"
+										frameType="OneByHalf">
+										<TileContent>
+											<NumericContent
+												value="{/stats/totalAgents}"
+												icon="sap-icon://group"
+												valueColor="Neutral" />
+										</TileContent>
+									</GenericTile>
+									<GenericTile
+										header="Auto-Assigned"
+										class="sapUiTinyMarginEnd"
+										frameType="OneByHalf">
+										<TileContent>
+											<NumericContent
+												value="{/stats/autoAssigned}"
+												icon="sap-icon://synchronize"
+												valueColor="Good" />
+										</TileContent>
+									</GenericTile>
+									<GenericTile
+										header="Total Models"
+										class="sapUiTinyMarginEnd"
+										frameType="OneByHalf">
+										<TileContent>
+											<NumericContent
+												value="{/stats/totalModels}"
+												icon="sap-icon://machine"
+												valueColor="Neutral" />
+										</TileContent>
+									</GenericTile>
+									<GenericTile
+										header="Avg Match Score"
+										frameType="OneByHalf">
+										<TileContent>
+											<NumericContent
+												value="{/stats/avgMatchScore}"
+												scale="%"
+												icon="sap-icon://performance"
+												valueColor="Good" />
+										</TileContent>
+									</GenericTile>
+								</l:content>
+							</l:HorizontalLayout>
+
+							<!-- Assignments Table -->
+							<table:Table
+								id="assignmentsTable"
+								rows="{/assignments}"
+								selectionMode="Single"
+								visibleRowCount="10"
+								enableBusyIndicator="true">
+								<table:columns>
+									<table:Column width="15%">
+										<Label text="Agent Name" />
+										<table:template>
+											<Text text="{agentName}" />
+										</table:template>
+									</table:Column>
+									<table:Column width="12%">
+										<Label text="Agent Type" />
+										<table:template>
+											<ObjectStatus text="{agentType}" state="Information" />
+										</table:template>
+									</table:Column>
+									<table:Column width="15%">
+										<Label text="Assigned Model" />
+										<table:template>
+											<Text text="{modelId}" wrapping="false" />
+										</table:template>
+									</table:Column>
+									<table:Column width="20%">
+										<Label text="Match Score" />
+										<table:template>
+											<ProgressIndicator
+												percentValue="{matchScore}"
+												displayValue="{matchScore}%"
+												state="{= ${matchScore} >= 70 ? 'Success' : (${matchScore} >= 40 ? 'Warning' : 'Error') }"
+												showValue="true" />
+										</table:template>
+									</table:Column>
+									<table:Column width="12%">
+										<Label text="Status" />
+										<table:template>
+											<ObjectStatus
+												text="{status}"
+												state="{= ${status} === 'assigned' ? 'Success' : 'Warning' }"
+												icon="{= ${status} === 'assigned' ? 'sap-icon://accept' : 'sap-icon://pending' }" />
+										</table:template>
+									</table:Column>
+									<table:Column width="10%">
+										<Label text="Actions" />
+										<table:template>
+											<Button
+												icon="sap-icon://action-settings"
+												text="Configure"
+												type="Transparent"
+												press="onConfigureAssignment" />
+										</table:template>
+									</table:Column>
+								</table:columns>
+							</table:Table>
+						</VBox>
+					</IconTabFilter>
+
+					<!-- Tab 2: Model Registry -->
+					<IconTabFilter
+						icon="sap-icon://database"
+						text="Model Registry"
+						key="models">
+						<VBox height="100%">
+							<Toolbar>
+								<Title text="Model Registry" level="H2" />
+								<ToolbarSpacer />
+								<Button
+									icon="sap-icon://add"
+									text="Add Model"
+									type="Emphasized"
+									press="onAddModel" />
+							</Toolbar>
+
+							<!-- Models Grid -->
+							<ScrollContainer height="calc(100vh - 250px)" vertical="true">
+								<l:Grid
+									defaultSpan="L3 M4 S6"
+									hSpacing="1"
+									vSpacing="1"
+									containerQuery="true">
+									<l:content>
+										<List items="{/models}">
+											<CustomListItem>
+												<GenericTile
+													header="{name}"
+													subheader="{provider}"
+													state="Loaded"
+													press="onModelPress"
+													class="sapUiSmallMargin">
+													<TileContent
+														footer="{= ${capabilities} ? ${capabilities}.length + ' capabilities' : '0 capabilities' }">
+														<NumericContent
+															value="{quality}"
+															scale="%"
+															valueColor="{= ${quality} >= 90 ? 'Good' : (${quality} >= 70 ? 'Neutral' : 'Critical') }"
+															icon="sap-icon://quality-issue"
+															withMargin="false" />
+													</TileContent>
+												</GenericTile>
+											</CustomListItem>
+										</List>
+									</l:content>
+								</l:Grid>
+							</ScrollContainer>
+						</VBox>
+					</IconTabFilter>
+
+					<!-- Tab 3: Routing Visualization -->
+					<IconTabFilter
+						icon="sap-icon://overview-chart"
+						text="Routing Visualization"
+						key="network">
+						<VBox height="100%">
+							<Toolbar>
+								<Title text="Agent-Model Network" level="H2" />
+								<ToolbarSpacer />
+								<Button
+									icon="sap-icon://refresh"
+									text="Refresh Network"
+									type="Transparent"
+									press="onRefreshNetwork" />
+							</Toolbar>
+
+							<!-- Network Graph Container -->
+							<core:HTML content="&lt;div id='modelRouterNetworkGraph' style='width:100%; height:600px; border:1px solid #d9d9d9; border-radius:4px; background:#fff;'&gt;&lt;/div&gt;" />
+						</VBox>
+					</IconTabFilter>
+
+					<!-- Tab 4: Task Flow -->
+					<IconTabFilter
+						icon="sap-icon://process"
+						text="Task Flow"
+						key="taskflow">
+						<VBox height="100%">
+							<Toolbar>
+								<Title text="Task Routing Pipeline" level="H2" />
+								<ToolbarSpacer />
+								<Button
+									icon="sap-icon://refresh"
+									text="Refresh Flow"
+									type="Transparent"
+									press="onRefreshTaskFlow" />
+							</Toolbar>
+
+							<!-- Process Flow Container -->
+							<core:HTML content="&lt;div id='modelRouterProcessFlow' style='width:100%; height:500px; border:1px solid #d9d9d9; border-radius:4px; background:#fff;'&gt;&lt;/div&gt;" />
+						</VBox>
+					</IconTabFilter>
+
+					<!-- Tab 5: Real-Time Metrics -->
+					<IconTabFilter
+						icon="sap-icon://performance"
+						text="Live Metrics"
+						key="metrics">
+						<VBox height="100%">
+							<Toolbar>
+								<Title text="Real-Time Routing Metrics" level="H2" />
+								<ToolbarSpacer />
+								<Switch
+									id="autoRefreshSwitch"
+									state="{/metricsConfig/autoRefresh}"
+									customTextOn="Auto"
+									customTextOff="Manual"
+									change="onAutoRefreshToggle" />
+								<Button
+									icon="sap-icon://refresh"
+									text="Refresh"
+									type="Transparent"
+									press="onRefreshMetrics" />
+							</Toolbar>
+
+							<!-- Live Metrics Tiles -->
+							<l:HorizontalLayout class="sapUiSmallMarginBottom">
+								<l:content>
+									<GenericTile
+										header="Routing Decisions"
+										class="sapUiTinyMarginEnd"
+										frameType="OneByHalf">
+										<TileContent>
+											<NumericContent
+												value="{/liveMetrics/totalDecisions}"
+												icon="sap-icon://decision"
+												valueColor="Neutral" />
+										</TileContent>
+									</GenericTile>
+									<GenericTile
+										header="Success Rate"
+										class="sapUiTinyMarginEnd"
+										frameType="OneByHalf">
+										<TileContent>
+											<NumericContent
+												value="{/liveMetrics/successRate}"
+												scale="%"
+												icon="sap-icon://accept"
+												valueColor="{= ${/liveMetrics/successRate} >= 90 ? 'Good' : (${/liveMetrics/successRate} >= 70 ? 'Neutral' : 'Critical') }" />
+										</TileContent>
+									</GenericTile>
+									<GenericTile
+										header="Avg Latency"
+										class="sapUiTinyMarginEnd"
+										frameType="OneByHalf">
+										<TileContent>
+											<NumericContent
+												value="{/liveMetrics/avgLatency}"
+												scale="ms"
+												icon="sap-icon://latency"
+												valueColor="{= ${/liveMetrics/avgLatency} < 500 ? 'Good' : (${/liveMetrics/avgLatency} < 1000 ? 'Neutral' : 'Critical') }" />
+										</TileContent>
+									</GenericTile>
+									<GenericTile
+										header="Fallbacks Used"
+										frameType="OneByHalf">
+										<TileContent>
+											<NumericContent
+												value="{/liveMetrics/fallbacksUsed}"
+												icon="sap-icon://redo"
+												valueColor="{= ${/liveMetrics/fallbacksUsed} < 5 ? 'Good' : 'Warning' }" />
+										</TileContent>
+									</GenericTile>
+								</l:content>
+							</l:HorizontalLayout>
+
+							<!-- Model Usage Chart Container -->
+							<Panel headerText="Model Usage Distribution" expandable="true" expanded="true">
+								<core:HTML content="&lt;div id='modelUsageChart' style='width:100%; height:300px; background:#fff;'&gt;&lt;/div&gt;" />
+							</Panel>
+
+							<!-- Recent Routing Decisions -->
+							<Panel headerText="Recent Routing Decisions" expandable="true" expanded="true">
+								<List
+									id="recentDecisionsList"
+									items="{/liveMetrics/recentDecisions}"
+									noDataText="No routing decisions yet">
+									<StandardListItem
+										title="{taskType} → {selectedModel}"
+										description="Score: {score} | Latency: {latency}ms"
+										icon="{= ${success} ? 'sap-icon://accept' : 'sap-icon://decline' }"
+										iconInset="false"
+										info="{timestamp}"
+										infoState="{= ${success} ? 'Success' : 'Error' }" />
+								</List>
+							</Panel>
+						</VBox>
+					</IconTabFilter>
+				</items>
+			</IconTabBar>
+		</content>
+	</Page>
+</mvc:View>

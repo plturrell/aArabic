@@ -1,0 +1,801 @@
+openapi: 3.0.3
+info:
+  title: nMetaData API
+  description: |
+    Metadata management system API with multi-database support.
+    
+    ## Features
+    - Dataset CRUD operations
+    - Lineage tracking
+    - GraphQL support
+    - JWT authentication
+    - Role-based access control
+    
+    ## Authentication
+    Most endpoints require JWT authentication. Include the token in the Authorization header:
+    ```
+    Authorization: Bearer <your-jwt-token>
+    ```
+    
+    ## Demo Credentials
+    - **Admin**: username=`admin`, password=`admin123`
+    - **User**: username=`user`, password=`user123`
+  version: 1.0.0
+  contact:
+    name: nMetaData API Support
+    url: https://docs.nmetadata.io
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://api.nmetadata.io
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Datasets
+    description: Dataset management operations
+  - name: Lineage
+    description: Data lineage tracking
+  - name: GraphQL
+    description: GraphQL API
+  - name: System
+    description: System information and health
+
+paths:
+  # Authentication Endpoints
+  /api/v1/auth/login:
+    post:
+      tags: [Authentication]
+      summary: User login
+      description: Authenticate user and receive JWT tokens
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: admin
+                password:
+                  type: string
+                  format: password
+                  example: admin123
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: JWT access token (1 hour expiration)
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  refresh_token:
+                    type: string
+                    description: JWT refresh token (7 days expiration)
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  expires_in:
+                    type: integer
+                    description: Token expiration time in seconds
+                    example: 3600
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Authentication]
+      summary: User logout
+      description: Invalidate current session
+      operationId: logout
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logged out successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh access token
+      description: Exchange refresh token for new access token
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refresh_token
+              properties:
+                refresh_token:
+                  type: string
+                  example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  expires_in:
+                    type: integer
+                    example: 3600
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/me:
+    get:
+      tags: [Authentication]
+      summary: Get current user
+      description: Retrieve authenticated user information
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/verify:
+    get:
+      tags: [Authentication]
+      summary: Verify token
+      description: Validate JWT token and return claims
+      operationId: verifyToken
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Token valid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                    example: true
+                  user_id:
+                    type: string
+                    example: user-001
+                  roles:
+                    type: array
+                    items:
+                      type: string
+                    example: [admin, user]
+                  expires_at:
+                    type: integer
+                    description: Unix timestamp
+                    example: 1705734123
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # Dataset Endpoints
+  /api/v1/datasets:
+    get:
+      tags: [Datasets]
+      summary: List datasets
+      description: Retrieve paginated list of datasets
+      operationId: listDatasets
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          description: Items per page
+      responses:
+        '200':
+          description: Datasets list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  datasets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Dataset'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Datasets]
+      summary: Create dataset
+      description: Create a new dataset
+      operationId: createDataset
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDatasetRequest'
+      responses:
+        '201':
+          description: Dataset created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dataset'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/datasets/{id}:
+    get:
+      tags: [Datasets]
+      summary: Get dataset
+      description: Retrieve dataset by ID
+      operationId: getDataset
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/DatasetId'
+      responses:
+        '200':
+          description: Dataset details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dataset'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    put:
+      tags: [Datasets]
+      summary: Update dataset
+      description: Update existing dataset
+      operationId: updateDataset
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/DatasetId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDatasetRequest'
+      responses:
+        '200':
+          description: Dataset updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dataset'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    delete:
+      tags: [Datasets]
+      summary: Delete dataset
+      description: Delete dataset by ID
+      operationId: deleteDataset
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/DatasetId'
+        - name: force
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Force deletion even with dependencies
+      responses:
+        '200':
+          description: Dataset deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Dataset deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # Lineage Endpoints
+  /api/v1/lineage/upstream/{id}:
+    get:
+      tags: [Lineage]
+      summary: Get upstream lineage
+      description: Retrieve upstream dependencies for a dataset
+      operationId: getUpstreamLineage
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/DatasetId'
+        - name: depth
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10
+            default: 5
+          description: Maximum traversal depth
+      responses:
+        '200':
+          description: Upstream lineage
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LineageGraph'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/lineage/downstream/{id}:
+    get:
+      tags: [Lineage]
+      summary: Get downstream lineage
+      description: Retrieve downstream consumers for a dataset
+      operationId: getDownstreamLineage
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/DatasetId'
+        - name: depth
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10
+            default: 5
+          description: Maximum traversal depth
+      responses:
+        '200':
+          description: Downstream lineage
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LineageGraph'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/lineage/edges:
+    post:
+      tags: [Lineage]
+      summary: Create lineage edge
+      description: Create relationship between datasets
+      operationId: createLineageEdge
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - source_id
+                - target_id
+              properties:
+                source_id:
+                  type: string
+                  example: ds-001
+                target_id:
+                  type: string
+                  example: ds-002
+                relationship_type:
+                  type: string
+                  example: derives_from
+      responses:
+        '201':
+          description: Lineage edge created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LineageEdge'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # GraphQL Endpoints
+  /api/v1/graphql:
+    post:
+      tags: [GraphQL]
+      summary: GraphQL endpoint
+      description: Execute GraphQL queries and mutations
+      operationId: graphql
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  example: "query { datasets { id name type } }"
+                variables:
+                  type: object
+                operationName:
+                  type: string
+      responses:
+        '200':
+          description: GraphQL response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                  errors:
+                    type: array
+                    items:
+                      type: object
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/graphiql:
+    get:
+      tags: [GraphQL]
+      summary: GraphiQL playground
+      description: Interactive GraphQL development interface
+      operationId: graphiql
+      responses:
+        '200':
+          description: GraphiQL HTML interface
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /api/v1/schema:
+    get:
+      tags: [GraphQL]
+      summary: GraphQL schema
+      description: Get GraphQL schema information
+      operationId: graphqlSchema
+      responses:
+        '200':
+          description: Schema information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  types:
+                    type: array
+                    items:
+                      type: string
+                  queries:
+                    type: array
+                    items:
+                      type: string
+                  mutations:
+                    type: array
+                    items:
+                      type: string
+
+  # System Endpoints
+  /:
+    get:
+      tags: [System]
+      summary: API root
+      description: Get API information
+      operationId: root
+      responses:
+        '200':
+          description: API information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  version:
+                    type: string
+                  endpoints:
+                    type: object
+
+  /health:
+    get:
+      tags: [System]
+      summary: Health check
+      description: Check API health status
+      operationId: health
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+
+  /api/v1/info:
+    get:
+      tags: [System]
+      summary: Server information
+      description: Get server details
+      operationId: serverInfo
+      responses:
+        '200':
+          description: Server information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  server:
+                    type: string
+                  version:
+                    type: string
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT authentication. Login to get token.
+
+  parameters:
+    DatasetId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Dataset identifier
+      example: ds-001
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: user-001
+        username:
+          type: string
+          example: admin
+        roles:
+          type: array
+          items:
+            type: string
+          example: [admin, user]
+
+    Dataset:
+      type: object
+      properties:
+        id:
+          type: string
+          example: ds-001
+        name:
+          type: string
+          example: customer_data
+        type:
+          type: string
+          enum: [table, view, pipeline, stream, file]
+          example: table
+        schema:
+          type: string
+          example: public
+        description:
+          type: string
+          example: Customer information table
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateDatasetRequest:
+      type: object
+      required:
+        - name
+        - type
+      properties:
+        name:
+          type: string
+          example: new_dataset
+        type:
+          type: string
+          enum: [table, view, pipeline, stream, file]
+          example: table
+        schema:
+          type: string
+          example: public
+        description:
+          type: string
+          example: Dataset description
+
+    UpdateDatasetRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        schema:
+          type: string
+
+    LineageEdge:
+      type: object
+      properties:
+        source_id:
+          type: string
+          example: ds-001
+        target_id:
+          type: string
+          example: ds-002
+        relationship_type:
+          type: string
+          example: derives_from
+
+    LineageGraph:
+      type: object
+      properties:
+        root_id:
+          type: string
+        depth:
+          type: integer
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Dataset'
+        edges:
+          type: array
+          items:
+            $ref: '#/components/schemas/LineageEdge'
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        total:
+          type: integer
+          example: 100
+        has_next:
+          type: boolean
+          example: true
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Error message
+        status:
+          type: integer
+          example: 400
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Invalid request parameters
+            status: 400
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Missing or invalid authentication token
+            status: 401
+
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Insufficient permissions
+            status: 403
+
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Resource not found
+            status: 404
+
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Resource conflict
+            status: 409

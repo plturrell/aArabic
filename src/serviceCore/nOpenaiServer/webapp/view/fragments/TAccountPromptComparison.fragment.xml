@@ -1,0 +1,347 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:layout="sap.ui.layout"
+    xmlns:f="sap.f"
+    xmlns:card="sap.f.cards">
+
+    <Dialog
+        id="tAccountPromptComparisonDialog"
+        title="Compare Prompts"
+        contentWidth="95%"
+        contentHeight="90%"
+        stretch="true"
+        draggable="true"
+        resizable="true"
+        escapeHandler=".onCloseComparison">
+        <content>
+            <ScrollContainer
+                height="100%"
+                width="100%"
+                horizontal="false"
+                vertical="true">
+
+        <!-- Main T-Account Layout -->
+        <HBox width="100%" class="sapUiSmallMargin">
+            
+            <!-- Left Side: Prompt A (50%) -->
+            <VBox width="48%" class="sapUiSmallMarginEnd">
+                <Panel class="sapUiTinyMargin">
+                    <headerToolbar>
+                        <OverflowToolbar>
+                            <Title text="Prompt A" level="H4"/>
+                            <ToolbarSpacer/>
+                            <ObjectStatus
+                                text="{comparison>/promptA/status}"
+                                state="{= ${comparison>/promptA/status} === 'Success' ? 'Success' : 
+                                        (${comparison>/promptA/status} === 'Error' ? 'Error' : 
+                                        (${comparison>/promptA/status} === 'Running' ? 'Information' : 'None')) }"
+                                icon="{= ${comparison>/promptA/status} === 'Success' ? 'sap-icon://sys-enter-2' : 
+                                       (${comparison>/promptA/status} === 'Error' ? 'sap-icon://error' : 
+                                       (${comparison>/promptA/status} === 'Running' ? 'sap-icon://synchronize' : 'sap-icon://status-inactive')) }"/>
+                        </OverflowToolbar>
+                    </headerToolbar>
+                    <content>
+                        <VBox class="sapUiSmallMargin">
+                            <!-- Mode Selector -->
+                            <HBox alignItems="Center" class="sapUiSmallMarginBottom">
+                                <Label text="Mode:" class="sapUiTinyMarginEnd"/>
+                                <SegmentedButton
+                                    selectedKey="{comparison>/promptA/mode}"
+                                    selectionChange=".onModeChangeA">
+                                    <items>
+                                        <SegmentedButtonItem key="fast" text="Fast"/>
+                                        <SegmentedButtonItem key="normal" text="Normal"/>
+                                        <SegmentedButtonItem key="expert" text="Expert"/>
+                                        <SegmentedButtonItem key="research" text="Research"/>
+                                    </items>
+                                </SegmentedButton>
+                            </HBox>
+                            
+                            <!-- Model Display -->
+                            <HBox alignItems="Center" class="sapUiSmallMarginBottom">
+                                <Label text="Model:" class="sapUiTinyMarginEnd"/>
+                                <Text text="{comparison>/promptA/modelName}" class="sapUiTinyMarginEnd"/>
+                                <ObjectStatus
+                                    text="{comparison>/promptA/modelVersion}"
+                                    state="Information"
+                                    inverted="true"/>
+                            </HBox>
+                            
+                            <!-- Prompt Text Area -->
+                            <Label text="Prompt:" class="sapUiTinyMarginBottom"/>
+                            <TextArea
+                                value="{comparison>/promptA/promptText}"
+                                rows="4"
+                                width="100%"
+                                editable="false"
+                                class="sapUiSmallMarginBottom"/>
+                            
+                            <!-- Response Text Area -->
+                            <Label text="Response:" class="sapUiTinyMarginBottom"/>
+                            <TextArea
+                                value="{comparison>/promptA/responseText}"
+                                rows="6"
+                                width="100%"
+                                editable="false"
+                                class="sapUiSmallMarginBottom"/>
+                            
+                            <!-- Metrics Panel -->
+                            <Panel headerText="Metrics" expandable="true" expanded="true">
+                                <content>
+                                    <layout:Grid defaultSpan="L6 M6 S12" class="sapUiTinyMargin">
+                                        <VBox>
+                                            <Label text="Latency" class="sapUiTinyMarginBottom"/>
+                                            <ObjectNumber
+                                                number="{comparison>/promptA/metrics/latency}"
+                                                unit="ms"
+                                                emphasized="true"
+                                                state="{= ${comparison>/differences/latencyWinner} === 'A' ? 'Success' : 'None' }"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="TTFT" class="sapUiTinyMarginBottom"/>
+                                            <ObjectNumber
+                                                number="{comparison>/promptA/metrics/ttft}"
+                                                unit="ms"
+                                                emphasized="true"
+                                                state="{= ${comparison>/differences/ttftWinner} === 'A' ? 'Success' : 'None' }"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="TPS" class="sapUiTinyMarginBottom"/>
+                                            <ObjectNumber
+                                                number="{comparison>/promptA/metrics/tps}"
+                                                unit="tok/s"
+                                                emphasized="true"
+                                                state="{= ${comparison>/differences/tpsWinner} === 'A' ? 'Success' : 'None' }"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="Token Count" class="sapUiTinyMarginBottom"/>
+                                            <Text text="{comparison>/promptA/metrics/tokenCount}"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="Cost Estimate" class="sapUiTinyMarginBottom"/>
+                                            <ObjectNumber
+                                                number="{comparison>/promptA/metrics/costEstimate}"
+                                                unit="USD"
+                                                state="{= ${comparison>/differences/costWinner} === 'A' ? 'Success' : 'None' }"/>
+                                        </VBox>
+                                    </layout:Grid>
+                                </content>
+                            </Panel>
+                        </VBox>
+                    </content>
+                </Panel>
+            </VBox>
+
+            <!-- Center: Comparison Indicators (4%) -->
+            <VBox width="4%" alignItems="Center" justifyContent="Center" class="sapUiSmallMarginTop">
+                <!-- Spacer for header alignment -->
+                <core:Icon src="sap-icon://blank-tag" size="1rem" visible="false" class="sapUiLargeMarginBottom"/>
+
+                <!-- Overall Winner Display -->
+                <VBox alignItems="Center" class="sapUiMediumMarginBottom">
+                    <core:Icon
+                        src="sap-icon://competitor"
+                        size="1.5rem"
+                        color="{= ${comparison>/differences/overallWinner} ? '#107e3e' : '#666' }"
+                        class="sapUiTinyMarginBottom"/>
+                    <ObjectStatus
+                        text="{= ${comparison>/differences/overallWinner} === 'A' ? '◄ Winner' :
+                               (${comparison>/differences/overallWinner} === 'B' ? 'Winner ►' : 'Tie') }"
+                        state="{= ${comparison>/differences/overallWinner} ? 'Success' : 'None' }"
+                        inverted="true"/>
+                </VBox>
+
+                <!-- Latency Indicator -->
+                <VBox alignItems="Center" class="sapUiSmallMarginBottom">
+                    <core:Icon
+                        src="{= ${comparison>/differences/latencyWinner} === 'A' ? 'sap-icon://arrow-left' :
+                              (${comparison>/differences/latencyWinner} === 'B' ? 'sap-icon://arrow-right' : 'sap-icon://less') }"
+                        size="1rem"
+                        color="{= ${comparison>/differences/latencyWinner} ? '#107e3e' : '#666' }"/>
+                    <Text text="Latency" class="sapUiTinyMarginTop"/>
+                </VBox>
+
+                <!-- TTFT Indicator -->
+                <VBox alignItems="Center" class="sapUiSmallMarginBottom">
+                    <core:Icon
+                        src="{= ${comparison>/differences/ttftWinner} === 'A' ? 'sap-icon://arrow-left' :
+                              (${comparison>/differences/ttftWinner} === 'B' ? 'sap-icon://arrow-right' : 'sap-icon://less') }"
+                        size="1rem"
+                        color="{= ${comparison>/differences/ttftWinner} ? '#107e3e' : '#666' }"/>
+                    <Text text="TTFT" class="sapUiTinyMarginTop"/>
+                </VBox>
+
+                <!-- TPS Indicator -->
+                <VBox alignItems="Center" class="sapUiSmallMarginBottom">
+                    <core:Icon
+                        src="{= ${comparison>/differences/tpsWinner} === 'A' ? 'sap-icon://arrow-left' :
+                              (${comparison>/differences/tpsWinner} === 'B' ? 'sap-icon://arrow-right' : 'sap-icon://less') }"
+                        size="1rem"
+                        color="{= ${comparison>/differences/tpsWinner} ? '#107e3e' : '#666' }"/>
+                    <Text text="TPS" class="sapUiTinyMarginTop"/>
+                </VBox>
+
+                <!-- Cost Indicator -->
+                <VBox alignItems="Center" class="sapUiSmallMarginBottom">
+                    <core:Icon
+                        src="{= ${comparison>/differences/costWinner} === 'A' ? 'sap-icon://arrow-left' :
+                              (${comparison>/differences/costWinner} === 'B' ? 'sap-icon://arrow-right' : 'sap-icon://less') }"
+                        size="1rem"
+                        color="{= ${comparison>/differences/costWinner} ? '#107e3e' : '#666' }"/>
+                    <Text text="Cost" class="sapUiTinyMarginTop"/>
+                </VBox>
+            </VBox>
+
+            <!-- Right Side: Prompt B (48%) -->
+            <VBox width="48%">
+                <Panel class="sapUiTinyMargin">
+                    <headerToolbar>
+                        <OverflowToolbar>
+                            <Title text="Prompt B" level="H4"/>
+                            <ToolbarSpacer/>
+                            <ObjectStatus
+                                text="{comparison>/promptB/status}"
+                                state="{= ${comparison>/promptB/status} === 'Success' ? 'Success' :
+                                        (${comparison>/promptB/status} === 'Error' ? 'Error' :
+                                        (${comparison>/promptB/status} === 'Running' ? 'Information' : 'None')) }"
+                                icon="{= ${comparison>/promptB/status} === 'Success' ? 'sap-icon://sys-enter-2' :
+                                       (${comparison>/promptB/status} === 'Error' ? 'sap-icon://error' :
+                                       (${comparison>/promptB/status} === 'Running' ? 'sap-icon://synchronize' : 'sap-icon://status-inactive')) }"/>
+                        </OverflowToolbar>
+                    </headerToolbar>
+                    <content>
+                        <VBox class="sapUiSmallMargin">
+                            <!-- Mode Selector -->
+                            <HBox alignItems="Center" class="sapUiSmallMarginBottom">
+                                <Label text="Mode:" class="sapUiTinyMarginEnd"/>
+                                <SegmentedButton
+                                    selectedKey="{comparison>/promptB/mode}"
+                                    selectionChange=".onModeChangeB">
+                                    <items>
+                                        <SegmentedButtonItem key="fast" text="Fast"/>
+                                        <SegmentedButtonItem key="normal" text="Normal"/>
+                                        <SegmentedButtonItem key="expert" text="Expert"/>
+                                        <SegmentedButtonItem key="research" text="Research"/>
+                                    </items>
+                                </SegmentedButton>
+                            </HBox>
+
+                            <!-- Model Display -->
+                            <HBox alignItems="Center" class="sapUiSmallMarginBottom">
+                                <Label text="Model:" class="sapUiTinyMarginEnd"/>
+                                <Text text="{comparison>/promptB/modelName}" class="sapUiTinyMarginEnd"/>
+                                <ObjectStatus
+                                    text="{comparison>/promptB/modelVersion}"
+                                    state="Information"
+                                    inverted="true"/>
+                            </HBox>
+
+                            <!-- Prompt Text Area -->
+                            <Label text="Prompt:" class="sapUiTinyMarginBottom"/>
+                            <TextArea
+                                value="{comparison>/promptB/promptText}"
+                                rows="4"
+                                width="100%"
+                                editable="false"
+                                class="sapUiSmallMarginBottom"/>
+
+                            <!-- Response Text Area -->
+                            <Label text="Response:" class="sapUiTinyMarginBottom"/>
+                            <TextArea
+                                value="{comparison>/promptB/responseText}"
+                                rows="6"
+                                width="100%"
+                                editable="false"
+                                class="sapUiSmallMarginBottom"/>
+
+                            <!-- Metrics Panel -->
+                            <Panel headerText="Metrics" expandable="true" expanded="true">
+                                <content>
+                                    <layout:Grid defaultSpan="L6 M6 S12" class="sapUiTinyMargin">
+                                        <VBox>
+                                            <Label text="Latency" class="sapUiTinyMarginBottom"/>
+                                            <ObjectNumber
+                                                number="{comparison>/promptB/metrics/latency}"
+                                                unit="ms"
+                                                emphasized="true"
+                                                state="{= ${comparison>/differences/latencyWinner} === 'B' ? 'Success' : 'None' }"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="TTFT" class="sapUiTinyMarginBottom"/>
+                                            <ObjectNumber
+                                                number="{comparison>/promptB/metrics/ttft}"
+                                                unit="ms"
+                                                emphasized="true"
+                                                state="{= ${comparison>/differences/ttftWinner} === 'B' ? 'Success' : 'None' }"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="TPS" class="sapUiTinyMarginBottom"/>
+                                            <ObjectNumber
+                                                number="{comparison>/promptB/metrics/tps}"
+                                                unit="tok/s"
+                                                emphasized="true"
+                                                state="{= ${comparison>/differences/tpsWinner} === 'B' ? 'Success' : 'None' }"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="Token Count" class="sapUiTinyMarginBottom"/>
+                                            <Text text="{comparison>/promptB/metrics/tokenCount}"/>
+                                        </VBox>
+                                        <VBox>
+                                            <Label text="Cost Estimate" class="sapUiTinyMarginBottom"/>
+                                            <ObjectNumber
+                                                number="{comparison>/promptB/metrics/costEstimate}"
+                                                unit="USD"
+                                                state="{= ${comparison>/differences/costWinner} === 'B' ? 'Success' : 'None' }"/>
+                                        </VBox>
+                                    </layout:Grid>
+                                </content>
+                            </Panel>
+                        </VBox>
+                    </content>
+                </Panel>
+            </VBox>
+
+        </HBox>
+
+        <!-- Bottom Action Bar -->
+        <OverflowToolbar class="sapUiSmallMargin">
+            <ToolbarSpacer/>
+            <Button
+                text="Swap"
+                icon="sap-icon://sorting-ranking"
+                type="Transparent"
+                press=".onSwapPrompts"
+                tooltip="Swap Prompt A and Prompt B"/>
+            <Button
+                text="Select Winner"
+                icon="sap-icon://accept"
+                type="Emphasized"
+                press=".onSelectWinner"
+                tooltip="Select the winning prompt"/>
+            <Button
+                text="Save Comparison"
+                icon="sap-icon://save"
+                type="Accept"
+                press=".onSaveComparison"
+                tooltip="Save this comparison"/>
+            <Button
+                text="Clear"
+                icon="sap-icon://delete"
+                type="Reject"
+                press=".onClearComparison"
+                tooltip="Clear both prompts"/>
+            <ToolbarSpacer/>
+        </OverflowToolbar>
+
+            </ScrollContainer>
+        </content>
+        <buttons>
+            <Button
+                text="Close"
+                press=".onCloseComparison"/>
+        </buttons>
+    </Dialog>
+
+</core:FragmentDefinition>
+

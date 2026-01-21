@@ -1,0 +1,202 @@
+/* =============================================================================
+   nWorkflow - Custom Styles
+   ============================================================================= */
+
+/* Tile hover effect (consistent with nLaunchpad) */
+.tileHover {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.tileHover:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    transform: translateY(-4px);
+}
+
+.tileHover:active {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Panel styling */
+.sapMPanel {
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.sapMPanelHdr {
+    font-weight: 600;
+}
+
+/* Footer styling */
+.sapMPageFooter .sapMTB {
+    background-color: transparent;
+}
+
+/* Canvas Container */
+.nwf-canvas-container {
+    width: 100%;
+    height: 100%;
+    min-height: 500px;
+    background-color: #f5f5f5;
+    background-image:
+        linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+    background-size: 20px 20px;
+    overflow: hidden;
+    position: relative;
+}
+
+.nwf-canvas-container .joint-paper {
+    width: 100%;
+    height: 100%;
+}
+
+/* Node Styles */
+.nwf-node {
+    cursor: move;
+}
+
+.nwf-node-start .body {
+    fill: #4CAF50;
+    stroke: #388E3C;
+}
+
+.nwf-node-end .body {
+    fill: #f44336;
+    stroke: #D32F2F;
+}
+
+.nwf-node-task .body {
+    fill: #2196F3;
+    stroke: #1976D2;
+}
+
+.nwf-node-decision .body {
+    fill: #FF9800;
+    stroke: #F57C00;
+}
+
+.nwf-node-llm .body {
+    fill: #9C27B0;
+    stroke: #7B1FA2;
+}
+
+.nwf-node-http .body {
+    fill: #00BCD4;
+    stroke: #0097A7;
+}
+
+.nwf-node-database .body {
+    fill: #795548;
+    stroke: #5D4037;
+}
+
+.nwf-node-transform .body {
+    fill: #607D8B;
+    stroke: #455A64;
+}
+
+.nwf-node-filter .body {
+    fill: #E91E63;
+    stroke: #C2185B;
+}
+
+.nwf-node-aggregate .body {
+    fill: #673AB7;
+    stroke: #512DA8;
+}
+
+/* Node Selection */
+.nwf-node-selected .body {
+    stroke-width: 3px;
+    stroke-dasharray: 5, 5;
+}
+
+/* Connection Styles */
+.nwf-connection .connection {
+    stroke: #333;
+    stroke-width: 2px;
+}
+
+.nwf-connection .marker-target {
+    fill: #333;
+}
+
+.nwf-connection-selected .connection {
+    stroke: #2196F3;
+    stroke-width: 3px;
+}
+
+/* Toolbox Panel */
+.nwf-toolbox {
+    background-color: #fff;
+    border-right: 1px solid #e0e0e0;
+}
+
+.nwf-toolbox-item {
+    padding: 8px 12px;
+    cursor: grab;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s;
+}
+
+.nwf-toolbox-item:hover {
+    background-color: #e3f2fd;
+}
+
+.nwf-toolbox-item:active {
+    cursor: grabbing;
+}
+
+/* Properties Panel */
+.nwf-properties {
+    background-color: #fff;
+    border-left: 1px solid #e0e0e0;
+}
+
+.nwf-properties-header {
+    padding: 12px;
+    background-color: #f5f5f5;
+    border-bottom: 1px solid #e0e0e0;
+    font-weight: 600;
+}
+
+/* Statistics Cards */
+.nwf-stat-card {
+    margin: 8px;
+}
+
+/* Workflow List */
+.nwf-workflow-item {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.nwf-workflow-item:hover {
+    background-color: #fafafa;
+}
+
+/* Status Badges */
+.nwf-status-active {
+    color: #4CAF50;
+}
+
+.nwf-status-draft {
+    color: #FF9800;
+}
+
+.nwf-status-running {
+    color: #2196F3;
+}
+
+.nwf-status-failed {
+    color: #f44336;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .nwf-canvas-container {
+        min-height: 300px;
+    }
+}
+

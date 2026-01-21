@@ -104,13 +104,13 @@ const Lexer = struct {
         };
     }
 
-    pub fn scanAll(self: *Lexer) !std.ArrayList(Token) {
-        var tokens = std.ArrayList(Token).init(self.allocator);
-        errdefer tokens.deinit();
+    pub fn scanAll(self: *Lexer) !std.ArrayListUnmanaged(Token) {
+        var tokens = std.ArrayListUnmanaged(Token){};
+        errdefer tokens.deinit(self.allocator);
 
         while (self.pos < self.source.len) {
             const token = self.scanToken();
-            try tokens.append(token);
+            try tokens.append(self.allocator, token);
 
             if (token.type == .Eof) break;
 
@@ -122,7 +122,7 @@ const Lexer = struct {
 
         // Ensure EOF at end
         if (tokens.items.len == 0 or tokens.items[tokens.items.len - 1].type != .Eof) {
-            try tokens.append(Token{
+            try tokens.append(self.allocator, Token{
                 .type = .Eof,
                 .lexeme = "",
                 .line = self.line,
@@ -344,11 +344,16 @@ const Parser = struct {
         };
     }
 
-    pub fn parse(self: *Parser) !AstNode {
+    const ParseError = error{
+        MaxRecursionDepth,
+        OutOfMemory,
+    };
+
+    pub fn parse(self: *Parser) ParseError!AstNode {
         return self.parseStatement();
     }
 
-    fn parseStatement(self: *Parser) !AstNode {
+    fn parseStatement(self: *Parser) ParseError!AstNode {
         if (self.depth > config.max_recursion_depth) {
             return error.MaxRecursionDepth;
         }
@@ -372,7 +377,7 @@ const Parser = struct {
         };
     }
 
-    fn parseExpression(self: *Parser) !AstNode {
+    fn parseExpression(self: *Parser) ParseError!AstNode {
         if (self.depth > config.max_recursion_depth) {
             return error.MaxRecursionDepth;
         }
@@ -382,7 +387,7 @@ const Parser = struct {
         return self.parseOr();
     }
 
-    fn parseOr(self: *Parser) !AstNode {
+    fn parseOr(self: *Parser) ParseError!AstNode {
         var left = try self.parseAnd();
 
         while (self.match(.Or)) {
@@ -393,7 +398,7 @@ const Parser = struct {
         return left;
     }
 
-    fn parseAnd(self: *Parser) !AstNode {
+    fn parseAnd(self: *Parser) ParseError!AstNode {
         var left = try self.parseEquality();
 
         while (self.match(.And)) {
@@ -404,7 +409,7 @@ const Parser = struct {
         return left;
     }
 
-    fn parseEquality(self: *Parser) !AstNode {
+    fn parseEquality(self: *Parser) ParseError!AstNode {
         var left = try self.parseComparison();
 
         while (self.match(.EqualEqual) or self.match(.NotEqual)) {
@@ -415,7 +420,7 @@ const Parser = struct {
         return left;
     }
 
-    fn parseComparison(self: *Parser) !AstNode {
+    fn parseComparison(self: *Parser) ParseError!AstNode {
         var left = try self.parseTerm();
 
         while (self.match(.Less) or self.match(.LessEqual) or
@@ -428,7 +433,7 @@ const Parser = struct {
         return left;
     }
 
-    fn parseTerm(self: *Parser) !AstNode {
+    fn parseTerm(self: *Parser) ParseError!AstNode {
         var left = try self.parseFactor();
 
         while (self.match(.Plus) or self.match(.Minus)) {
@@ -439,7 +444,7 @@ const Parser = struct {
         return left;
     }
 
-    fn parseFactor(self: *Parser) !AstNode {
+    fn parseFactor(self: *Parser) ParseError!AstNode {
         var left = try self.parseUnary();
 
         while (self.match(.Star) or self.match(.Slash)) {
@@ -450,7 +455,7 @@ const Parser = struct {
         return left;
     }
 
-    fn parseUnary(self: *Parser) !AstNode {
+    fn parseUnary(self: *Parser) ParseError!AstNode {
         if (self.match(.Minus) or self.match(.Not)) {
             _ = try self.parseUnary();
             return AstNode{ .tag = .Unary };
@@ -459,7 +464,7 @@ const Parser = struct {
         return self.parsePostfix();
     }
 
-    fn parsePostfix(self: *Parser) !AstNode {
+    fn parsePostfix(self: *Parser) ParseError!AstNode {
         var left = try self.parsePrimary();
 
         while (true) {
@@ -485,7 +490,7 @@ const Parser = struct {
         return left;
     }
 
-    fn parsePrimary(self: *Parser) !AstNode {
+    fn parsePrimary(self: *Parser) ParseError!AstNode {
         if (self.match(.Number)) {
             return AstNode{ .tag = .Number };
         }
@@ -507,7 +512,7 @@ const Parser = struct {
         return AstNode{ .tag = .Error };
     }
 
-    fn parseArguments(self: *Parser) !void {
+    fn parseArguments(self: *Parser) ParseError!void {
         if (self.check(.RightParen)) return;
 
         _ = try self.parseExpression();
@@ -516,7 +521,7 @@ const Parser = struct {
         }
     }
 
-    fn parseFnDecl(self: *Parser) !AstNode {
+    fn parseFnDecl(self: *Parser) ParseError!AstNode {
         _ = self.consume(.Fn);
         _ = self.consume(.Identifier);
         _ = self.consume(.LeftParen);
@@ -547,7 +552,7 @@ const Parser = struct {
         return AstNode{ .tag = .FnDecl };
     }
 
-    fn parseVarDecl(self: *Parser) !AstNode {
+    fn parseVarDecl(self: *Parser) ParseError!AstNode {
         _ = self.advance(); // var or let
         _ = self.consume(.Identifier);
 
@@ -562,7 +567,7 @@ const Parser = struct {
         return AstNode{ .tag = .VarDecl };
     }
 
-    fn parseIf(self: *Parser) !AstNode {
+    fn parseIf(self: *Parser) ParseError!AstNode {
         _ = self.consume(.If);
         _ = try self.parseExpression();
         _ = try self.parseBlock();
@@ -578,14 +583,14 @@ const Parser = struct {
         return AstNode{ .tag = .If };
     }
 
-    fn parseWhile(self: *Parser) !AstNode {
+    fn parseWhile(self: *Parser) ParseError!AstNode {
         _ = self.consume(.While);
         _ = try self.parseExpression();
         _ = try self.parseBlock();
         return AstNode{ .tag = .While };
     }
 
-    fn parseFor(self: *Parser) !AstNode {
+    fn parseFor(self: *Parser) ParseError!AstNode {
         _ = self.consume(.For);
         _ = self.consume(.Identifier);
         // Simplified: skip to block
@@ -596,7 +601,7 @@ const Parser = struct {
         return AstNode{ .tag = .For };
     }
 
-    fn parseReturn(self: *Parser) !AstNode {
+    fn parseReturn(self: *Parser) ParseError!AstNode {
         _ = self.consume(.Return);
         if (!self.check(.Newline) and !self.check(.RightBrace) and !self.isAtEnd()) {
             _ = try self.parseExpression();
@@ -604,14 +609,14 @@ const Parser = struct {
         return AstNode{ .tag = .Return };
     }
 
-    fn parseStruct(self: *Parser) !AstNode {
+    fn parseStruct(self: *Parser) ParseError!AstNode {
         _ = self.consume(.Struct);
         _ = self.consume(.Identifier);
         _ = try self.parseBlock();
         return AstNode{ .tag = .StructDecl };
     }
 
-    fn parseBlock(self: *Parser) !AstNode {
+    fn parseBlock(self: *Parser) ParseError!AstNode {
         _ = self.consume(.LeftBrace);
 
         while (!self.check(.RightBrace) and !self.isAtEnd()) {
@@ -624,7 +629,7 @@ const Parser = struct {
         return AstNode{ .tag = .Block };
     }
 
-    fn parseExpressionStatement(self: *Parser) !AstNode {
+    fn parseExpressionStatement(self: *Parser) ParseError!AstNode {
         return self.parseExpression();
     }
 
@@ -679,7 +684,7 @@ const Parser = struct {
 // Fuzzer Entry Point (libFuzzer)
 // ============================================================================
 
-export fn LLVMFuzzerTestOneInput(data: [*]const u8, size: usize) callconv(.C) c_int {
+export fn LLVMFuzzerTestOneInput(data: [*]const u8, size: usize) callconv(.c) c_int {
     // Limit input size
     if (size > config.max_input_size) {
         return 0;
@@ -699,7 +704,6 @@ export fn LLVMFuzzerTestOneInput(data: [*]const u8, size: usize) callconv(.C) c_
         switch (err) {
             error.MaxRecursionDepth => {},
             error.OutOfMemory => {},
-            else => {},
         }
     };
 
@@ -710,7 +714,7 @@ fn fuzzParse(allocator: Allocator, source: []const u8) !void {
     // Tokenize
     var lexer = Lexer.init(allocator, source);
     var tokens = try lexer.scanAll();
-    defer tokens.deinit();
+    defer tokens.deinit(allocator);
 
     // Parse
     var parser = Parser.init(allocator, tokens.items);
@@ -741,10 +745,13 @@ pub fn main() !void {
 
     var passed: usize = 0;
     var failed: usize = 0;
+    _ = &failed;
 
     for (test_cases) |tc| {
         fuzzParse(allocator, tc) catch {
             // Expected for malformed input
+            failed += 1;
+            continue;
         };
         passed += 1;
     }

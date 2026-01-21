@@ -1,0 +1,340 @@
+<mvc:View
+    controllerName="serviceCore.nWorkflow.controller.WorkflowEditor"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:l="sap.ui.layout"
+    xmlns:f="sap.ui.layout.form"
+    xmlns:core="sap.ui.core">
+    <Page
+        id="workflowEditorPage"
+        title="{i18n>workflowEditorTitle}"
+        showNavButton="true"
+        navButtonPress=".onNavBack"
+        enableScrolling="false">
+
+        <!-- Toolbar -->
+        <customHeader>
+            <OverflowToolbar>
+                <Button icon="sap-icon://nav-back" press=".onNavBack" tooltip="{i18n>back}"/>
+                <Title text="{i18n>workflowEditorTitle}"/>
+                <ToolbarSpacer/>
+                <Button id="undoBtn" icon="sap-icon://undo" press=".onUndoPress" tooltip="{i18n>undo}" enabled="false"/>
+                <Button id="redoBtn" icon="sap-icon://redo" press=".onRedoPress" tooltip="{i18n>redo}" enabled="false"/>
+                <ToolbarSeparator/>
+                <Button id="zoomOutBtn" icon="sap-icon://zoom-out" press=".onZoomOutPress" tooltip="{i18n>zoomOut}"/>
+                <Label text="{editor>/zoomLevel}%" class="sapUiSmallMarginBeginEnd"/>
+                <Button id="zoomInBtn" icon="sap-icon://zoom-in" press=".onZoomInPress" tooltip="{i18n>zoomIn}"/>
+                <Button id="fitContentBtn" icon="sap-icon://fit-to-size" press=".onFitContentPress" tooltip="{i18n>fitContent}"/>
+                <ToolbarSeparator/>
+                <Button id="deleteBtn" icon="sap-icon://delete" press=".onDeletePress" tooltip="{i18n>delete}" type="Reject"/>
+                <ToolbarSeparator/>
+                <Button id="saveButton" text="{i18n>save}" icon="sap-icon://save" type="Emphasized" press=".onSavePress"/>
+                <Button id="runButton" text="{i18n>run}" icon="sap-icon://play" press=".onRunPress"/>
+            </OverflowToolbar>
+        </customHeader>
+
+        <content>
+            <l:Splitter height="100%">
+                <l:contentAreas>
+                    <!-- Left Panel: Node Palette -->
+                    <ScrollContainer
+                        id="paletteContainer"
+                        width="250px"
+                        height="100%"
+                        vertical="true"
+                        horizontal="false">
+                        <VBox class="sapUiSmallMargin">
+                            <!-- Flow Control Nodes -->
+                            <Panel headerText="{i18n>flowControlNodes}" expandable="true" expanded="true">
+                                <List id="flowNodeList" mode="None">
+                                    <CustomListItem type="Active" press=".onNodeTypePress" class="sapUiTinyMarginTopBottom draggableNode" data:nodeType="start">
+                                        <HBox alignItems="Center" class="sapUiSmallMargin">
+                                            <core:Icon src="sap-icon://begin" size="1.5rem" color="#2ECC71" class="sapUiSmallMarginEnd"/>
+                                            <VBox>
+                                                <Text text="{i18n>startNode}" class="sapUiTinyMarginBottom"/>
+                                                <Text text="{i18n>startNodeDesc}" class="sapUiTinyText"/>
+                                            </VBox>
+                                        </HBox>
+                                    </CustomListItem>
+                                    <CustomListItem type="Active" press=".onNodeTypePress" class="sapUiTinyMarginTopBottom draggableNode" data:nodeType="end">
+                                        <HBox alignItems="Center" class="sapUiSmallMargin">
+                                            <core:Icon src="sap-icon://stop" size="1.5rem" color="#E74C3C" class="sapUiSmallMarginEnd"/>
+                                            <VBox>
+                                                <Text text="{i18n>endNode}" class="sapUiTinyMarginBottom"/>
+                                                <Text text="{i18n>endNodeDesc}" class="sapUiTinyText"/>
+                                            </VBox>
+                                        </HBox>
+                                    </CustomListItem>
+                                    <CustomListItem type="Active" press=".onNodeTypePress" class="sapUiTinyMarginTopBottom draggableNode" data:nodeType="decision">
+                                        <HBox alignItems="Center" class="sapUiSmallMargin">
+                                            <core:Icon src="sap-icon://decision" size="1.5rem" color="#F39C12" class="sapUiSmallMarginEnd"/>
+                                            <VBox>
+                                                <Text text="{i18n>decisionNode}" class="sapUiTinyMarginBottom"/>
+                                                <Text text="{i18n>decisionNodeDesc}" class="sapUiTinyText"/>
+                                            </VBox>
+                                        </HBox>
+                                    </CustomListItem>
+                                </List>
+                            </Panel>
+
+                            <!-- Action Nodes -->
+                            <Panel headerText="{i18n>actionNodes}" expandable="true" expanded="true">
+                                <List id="actionNodeList" mode="None">
+                                    <CustomListItem type="Active" press=".onNodeTypePress" class="sapUiTinyMarginTopBottom draggableNode" data:nodeType="task">
+                                        <HBox alignItems="Center" class="sapUiSmallMargin">
+                                            <core:Icon src="sap-icon://task" size="1.5rem" color="#3498DB" class="sapUiSmallMarginEnd"/>
+                                            <VBox>
+                                                <Text text="{i18n>taskNode}" class="sapUiTinyMarginBottom"/>
+                                                <Text text="{i18n>taskNodeDesc}" class="sapUiTinyText"/>
+                                            </VBox>
+                                        </HBox>
+                                    </CustomListItem>
+                                    <CustomListItem type="Active" press=".onNodeTypePress" class="sapUiTinyMarginTopBottom draggableNode" data:nodeType="http">
+                                        <HBox alignItems="Center" class="sapUiSmallMargin">
+                                            <core:Icon src="sap-icon://world" size="1.5rem" color="#1ABC9C" class="sapUiSmallMarginEnd"/>
+                                            <VBox>
+                                                <Text text="{i18n>httpNode}" class="sapUiTinyMarginBottom"/>
+                                                <Text text="{i18n>httpNodeDesc}" class="sapUiTinyText"/>
+                                            </VBox>
+                                        </HBox>
+                                    </CustomListItem>
+                                </List>
+                            </Panel>
+
+                            <!-- AI Nodes -->
+                            <Panel headerText="{i18n>aiNodes}" expandable="true" expanded="true">
+                                <List id="aiNodeList" mode="None">
+                                    <CustomListItem type="Active" press=".onNodeTypePress" class="sapUiTinyMarginTopBottom draggableNode" data:nodeType="llm">
+                                        <HBox alignItems="Center" class="sapUiSmallMargin">
+                                            <core:Icon src="sap-icon://ai" size="1.5rem" color="#9B59B6" class="sapUiSmallMarginEnd"/>
+                                            <VBox>
+                                                <Text text="{i18n>llmNode}" class="sapUiTinyMarginBottom"/>
+                                                <Text text="{i18n>llmNodeDesc}" class="sapUiTinyText"/>
+                                            </VBox>
+                                        </HBox>
+                                    </CustomListItem>
+                                </List>
+                            </Panel>
+
+                            <!-- Human Task Nodes -->
+                            <Panel headerText="{i18n>humanTaskNodes}" expandable="true" expanded="true">
+                                <List id="humanTaskNodeList" mode="None">
+                                    <CustomListItem type="Active" press=".onNodeTypePress" class="sapUiTinyMarginTopBottom draggableNode" data:nodeType="humanTask">
+                                        <HBox alignItems="Center" class="sapUiSmallMargin">
+                                            <core:Icon src="sap-icon://personnel-view" size="1.5rem" color="#27AE60" class="sapUiSmallMarginEnd"/>
+                                            <VBox>
+                                                <Text text="{i18n>humanTaskNode}" class="sapUiTinyMarginBottom"/>
+                                                <Text text="{i18n>humanTaskNodeDesc}" class="sapUiTinyText"/>
+                                            </VBox>
+                                        </HBox>
+                                    </CustomListItem>
+                                    <CustomListItem type="Active" press=".onNodeTypePress" class="sapUiTinyMarginTopBottom draggableNode" data:nodeType="approval">
+                                        <HBox alignItems="Center" class="sapUiSmallMargin">
+                                            <core:Icon src="sap-icon://accept" size="1.5rem" color="#2ECC71" class="sapUiSmallMarginEnd"/>
+                                            <VBox>
+                                                <Text text="{i18n>approvalNode}" class="sapUiTinyMarginBottom"/>
+                                                <Text text="{i18n>approvalNodeDesc}" class="sapUiTinyText"/>
+                                            </VBox>
+                                        </HBox>
+                                    </CustomListItem>
+                                    <CustomListItem type="Active" press=".onNodeTypePress" class="sapUiTinyMarginTopBottom draggableNode" data:nodeType="form">
+                                        <HBox alignItems="Center" class="sapUiSmallMargin">
+                                            <core:Icon src="sap-icon://form" size="1.5rem" color="#16A085" class="sapUiSmallMarginEnd"/>
+                                            <VBox>
+                                                <Text text="{i18n>formNode}" class="sapUiTinyMarginBottom"/>
+                                                <Text text="{i18n>formNodeDesc}" class="sapUiTinyText"/>
+                                            </VBox>
+                                        </HBox>
+                                    </CustomListItem>
+                                </List>
+                            </Panel>
+
+                            <!-- Document Processing Nodes (IDP) -->
+                            <Panel headerText="{i18n>documentProcessingNodes}" expandable="true" expanded="true">
+                                <List id="idpNodeList" mode="None">
+                                    <CustomListItem type="Active" press=".onNodeTypePress" class="sapUiTinyMarginTopBottom draggableNode" data:nodeType="ocr">
+                                        <HBox alignItems="Center" class="sapUiSmallMargin">
+                                            <core:Icon src="sap-icon://document-text" size="1.5rem" color="#9B59B6" class="sapUiSmallMarginEnd"/>
+                                            <VBox>
+                                                <Text text="{i18n>ocrNode}" class="sapUiTinyMarginBottom"/>
+                                                <Text text="{i18n>ocrNodeDesc}" class="sapUiTinyText"/>
+                                            </VBox>
+                                        </HBox>
+                                    </CustomListItem>
+                                    <CustomListItem type="Active" press=".onNodeTypePress" class="sapUiTinyMarginTopBottom draggableNode" data:nodeType="classifier">
+                                        <HBox alignItems="Center" class="sapUiSmallMargin">
+                                            <core:Icon src="sap-icon://tag" size="1.5rem" color="#8E44AD" class="sapUiSmallMarginEnd"/>
+                                            <VBox>
+                                                <Text text="{i18n>classifierNode}" class="sapUiTinyMarginBottom"/>
+                                                <Text text="{i18n>classifierNodeDesc}" class="sapUiTinyText"/>
+                                            </VBox>
+                                        </HBox>
+                                    </CustomListItem>
+                                    <CustomListItem type="Active" press=".onNodeTypePress" class="sapUiTinyMarginTopBottom draggableNode" data:nodeType="extractor">
+                                        <HBox alignItems="Center" class="sapUiSmallMargin">
+                                            <core:Icon src="sap-icon://draw-rectangle" size="1.5rem" color="#7D3C98" class="sapUiSmallMarginEnd"/>
+                                            <VBox>
+                                                <Text text="{i18n>extractorNode}" class="sapUiTinyMarginBottom"/>
+                                                <Text text="{i18n>extractorNodeDesc}" class="sapUiTinyText"/>
+                                            </VBox>
+                                        </HBox>
+                                    </CustomListItem>
+                                </List>
+                            </Panel>
+
+                            <!-- RPA Nodes -->
+                            <Panel headerText="{i18n>rpaNodes}" expandable="true" expanded="true">
+                                <List id="rpaNodeList" mode="None">
+                                    <CustomListItem type="Active" press=".onNodeTypePress" class="sapUiTinyMarginTopBottom draggableNode" data:nodeType="rpaBot">
+                                        <HBox alignItems="Center" class="sapUiSmallMargin">
+                                            <core:Icon src="sap-icon://robot" size="1.5rem" color="#E74C3C" class="sapUiSmallMarginEnd"/>
+                                            <VBox>
+                                                <Text text="{i18n>rpaBotNode}" class="sapUiTinyMarginBottom"/>
+                                                <Text text="{i18n>rpaBotNodeDesc}" class="sapUiTinyText"/>
+                                            </VBox>
+                                        </HBox>
+                                    </CustomListItem>
+                                    <CustomListItem type="Active" press=".onNodeTypePress" class="sapUiTinyMarginTopBottom draggableNode" data:nodeType="uiAutomation">
+                                        <HBox alignItems="Center" class="sapUiSmallMargin">
+                                            <core:Icon src="sap-icon://screen-split-three" size="1.5rem" color="#C0392B" class="sapUiSmallMarginEnd"/>
+                                            <VBox>
+                                                <Text text="{i18n>uiAutomationNode}" class="sapUiTinyMarginBottom"/>
+                                                <Text text="{i18n>uiAutomationNodeDesc}" class="sapUiTinyText"/>
+                                            </VBox>
+                                        </HBox>
+                                    </CustomListItem>
+                                    <CustomListItem type="Active" press=".onNodeTypePress" class="sapUiTinyMarginTopBottom draggableNode" data:nodeType="screenCapture">
+                                        <HBox alignItems="Center" class="sapUiSmallMargin">
+                                            <core:Icon src="sap-icon://camera" size="1.5rem" color="#B03A2E" class="sapUiSmallMarginEnd"/>
+                                            <VBox>
+                                                <Text text="{i18n>screenCaptureNode}" class="sapUiTinyMarginBottom"/>
+                                                <Text text="{i18n>screenCaptureNodeDesc}" class="sapUiTinyText"/>
+                                            </VBox>
+                                        </HBox>
+                                    </CustomListItem>
+                                </List>
+                            </Panel>
+
+                            <!-- Case Management Nodes -->
+                            <Panel headerText="{i18n>caseManagementNodes}" expandable="true" expanded="true">
+                                <List id="caseNodeList" mode="None">
+                                    <CustomListItem type="Active" press=".onNodeTypePress" class="sapUiTinyMarginTopBottom draggableNode" data:nodeType="case">
+                                        <HBox alignItems="Center" class="sapUiSmallMargin">
+                                            <core:Icon src="sap-icon://folder-full" size="1.5rem" color="#F39C12" class="sapUiSmallMarginEnd"/>
+                                            <VBox>
+                                                <Text text="{i18n>caseNode}" class="sapUiTinyMarginBottom"/>
+                                                <Text text="{i18n>caseNodeDesc}" class="sapUiTinyText"/>
+                                            </VBox>
+                                        </HBox>
+                                    </CustomListItem>
+                                    <CustomListItem type="Active" press=".onNodeTypePress" class="sapUiTinyMarginTopBottom draggableNode" data:nodeType="milestone">
+                                        <HBox alignItems="Center" class="sapUiSmallMargin">
+                                            <core:Icon src="sap-icon://flag" size="1.5rem" color="#F1C40F" class="sapUiSmallMarginEnd"/>
+                                            <VBox>
+                                                <Text text="{i18n>milestoneNode}" class="sapUiTinyMarginBottom"/>
+                                                <Text text="{i18n>milestoneNodeDesc}" class="sapUiTinyText"/>
+                                            </VBox>
+                                        </HBox>
+                                    </CustomListItem>
+                                    <CustomListItem type="Active" press=".onNodeTypePress" class="sapUiTinyMarginTopBottom draggableNode" data:nodeType="assignment">
+                                        <HBox alignItems="Center" class="sapUiSmallMargin">
+                                            <core:Icon src="sap-icon://employee-lookup" size="1.5rem" color="#D68910" class="sapUiSmallMarginEnd"/>
+                                            <VBox>
+                                                <Text text="{i18n>assignmentNode}" class="sapUiTinyMarginBottom"/>
+                                                <Text text="{i18n>assignmentNodeDesc}" class="sapUiTinyText"/>
+                                            </VBox>
+                                        </HBox>
+                                    </CustomListItem>
+                                </List>
+                            </Panel>
+
+                            <!-- Data Nodes -->
+                            <Panel headerText="{i18n>dataNodes}" expandable="true" expanded="true">
+                                <List id="dataNodeList" mode="None">
+                                    <CustomListItem type="Active" press=".onNodeTypePress" class="sapUiTinyMarginTopBottom draggableNode" data:nodeType="database">
+                                        <HBox alignItems="Center" class="sapUiSmallMargin">
+                                            <core:Icon src="sap-icon://database" size="1.5rem" color="#34495E" class="sapUiSmallMarginEnd"/>
+                                            <VBox>
+                                                <Text text="{i18n>databaseNode}" class="sapUiTinyMarginBottom"/>
+                                                <Text text="{i18n>databaseNodeDesc}" class="sapUiTinyText"/>
+                                            </VBox>
+                                        </HBox>
+                                    </CustomListItem>
+                                    <CustomListItem type="Active" press=".onNodeTypePress" class="sapUiTinyMarginTopBottom draggableNode" data:nodeType="transform">
+                                        <HBox alignItems="Center" class="sapUiSmallMargin">
+                                            <core:Icon src="sap-icon://syntax" size="1.5rem" color="#E67E22" class="sapUiSmallMarginEnd"/>
+                                            <VBox>
+                                                <Text text="{i18n>transformNode}" class="sapUiTinyMarginBottom"/>
+                                                <Text text="{i18n>transformNodeDesc}" class="sapUiTinyText"/>
+                                            </VBox>
+                                        </HBox>
+                                    </CustomListItem>
+                                    <CustomListItem type="Active" press=".onNodeTypePress" class="sapUiTinyMarginTopBottom draggableNode" data:nodeType="filter">
+                                        <HBox alignItems="Center" class="sapUiSmallMargin">
+                                            <core:Icon src="sap-icon://filter" size="1.5rem" color="#16A085" class="sapUiSmallMarginEnd"/>
+                                            <VBox>
+                                                <Text text="{i18n>filterNode}" class="sapUiTinyMarginBottom"/>
+                                                <Text text="{i18n>filterNodeDesc}" class="sapUiTinyText"/>
+                                            </VBox>
+                                        </HBox>
+                                    </CustomListItem>
+                                    <CustomListItem type="Active" press=".onNodeTypePress" class="sapUiTinyMarginTopBottom draggableNode" data:nodeType="aggregate">
+                                        <HBox alignItems="Center" class="sapUiSmallMargin">
+                                            <core:Icon src="sap-icon://sum" size="1.5rem" color="#8E44AD" class="sapUiSmallMarginEnd"/>
+                                            <VBox>
+                                                <Text text="{i18n>aggregateNode}" class="sapUiTinyMarginBottom"/>
+                                                <Text text="{i18n>aggregateNodeDesc}" class="sapUiTinyText"/>
+                                            </VBox>
+                                        </HBox>
+                                    </CustomListItem>
+                                </List>
+                            </Panel>
+                        </VBox>
+                    </ScrollContainer>
+
+                    <!-- Center: Canvas -->
+                    <VBox id="canvasWrapper" height="100%">
+                        <core:HTML id="jointjsCanvas" content="&lt;div id='workflow-canvas' style='width:100%;height:100%;min-height:600px;'&gt;&lt;/div&gt;"/>
+                    </VBox>
+
+                    <!-- Right Panel: Properties -->
+                    <ScrollContainer
+                        id="propertiesContainer"
+                        width="320px"
+                        height="100%"
+                        vertical="true"
+                        horizontal="false">
+                        <VBox id="propertiesPanel" class="sapUiSmallMargin" visible="{= ${editor>/selectedNode} !== null }">
+                            <Panel headerText="{i18n>nodeProperties}" expandable="false">
+                                <f:SimpleForm
+                                    id="nodePropertiesForm"
+                                    editable="true"
+                                    layout="ResponsiveGridLayout"
+                                    labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="12"
+                                    adjustLabelSpan="false"
+                                    emptySpanXL="0" emptySpanL="0" emptySpanM="0" emptySpanS="0"
+                                    columnsXL="1" columnsL="1" columnsM="1"
+                                    singleContainerFullSize="false">
+                                    <Label text="{i18n>nodeType}"/>
+                                    <Text text="{editor>/selectedNode/typeName}"/>
+                                    <Label text="{i18n>nodeId}"/>
+                                    <Text text="{editor>/selectedNode/id}"/>
+                                </f:SimpleForm>
+                            </Panel>
+                            <Panel id="dynamicPropertiesPanel" headerText="{i18n>configuration}" expandable="false" class="sapUiSmallMarginTop">
+                                <VBox id="dynamicPropertiesContainer"/>
+                            </Panel>
+                        </VBox>
+                        <VBox id="noSelectionPanel" class="sapUiSmallMargin" visible="{= ${editor>/selectedNode} === null }">
+                            <IllustratedMessage
+                                illustrationType="sapIllus-SimpleNoData"
+                                title="{i18n>noNodeSelected}"
+                                description="{i18n>selectNodeHint}"/>
+                        </VBox>
+                    </ScrollContainer>
+                </l:contentAreas>
+            </l:Splitter>
+        </content>
+    </Page>
+</mvc:View>
+

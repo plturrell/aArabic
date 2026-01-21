@@ -11,14 +11,12 @@ Core platform scripts:
 - `docker-up.sh` / `docker-down.sh` - Start/stop all containers
 - `start_all_services.sh` - Start all platform services
 - `start_backend.sh` - Start backend service only
-- `start_langflow.sh` - Start Langflow only
 - `start_services.sh` - Start core services
 - `start_vendor_services.sh` - Start vendor services
 - `start-local-inference.sh` - Start local LLM inference
 - `open_all_uis.sh` - Open all web UIs
 - `init-platform.sh` - Initialize platform (first-time setup)
 - `download-local-models.sh` - Download required models
-- `rebuild-langflow.sh` - Rebuild Langflow container
 - `n8n_export_workflows.sh` - Export n8n workflows
 - `n8n_import_workflows.sh` - Import n8n workflows
 

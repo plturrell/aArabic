@@ -1,0 +1,248 @@
+<mvc:View
+    controllerName="serviceCore.nWorkflow.controller.BPMNViewer"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:l="sap.ui.layout"
+    xmlns:f="sap.ui.layout.form"
+    xmlns:u="sap.ui.unified">
+    <Page
+        id="bpmnViewerPage"
+        title="{i18n>bpmnProcessViewer}"
+        showNavButton="true"
+        navButtonPress=".onNavBack"
+        showFooter="true"
+        backgroundDesign="Solid">
+
+        <!-- Header Toolbar -->
+        <customHeader>
+            <OverflowToolbar>
+                <Button
+                    id="navBackBtn"
+                    icon="sap-icon://nav-back"
+                    tooltip="{i18n>back}"
+                    type="Transparent"
+                    press=".onNavBack"/>
+                <Title text="{i18n>bpmnProcessViewer}" level="H4"/>
+                <ToolbarSpacer/>
+                <!-- Import/Export Controls -->
+                <u:FileUploader
+                    id="bpmnFileUploader"
+                    name="bpmnFile"
+                    uploadOnChange="false"
+                    fileType="bpmn,xml"
+                    buttonText="{i18n>importBpmn}"
+                    icon="sap-icon://upload"
+                    buttonOnly="true"
+                    style="Transparent"
+                    change=".onImportBPMN"/>
+                <Button
+                    id="exportBpmnBtn"
+                    text="{i18n>exportBpmn}"
+                    icon="sap-icon://download"
+                    type="Transparent"
+                    press=".onExportBPMN"/>
+                <ToolbarSeparator/>
+                <!-- Zoom Controls -->
+                <Button
+                    id="zoomInBtn"
+                    icon="sap-icon://zoom-in"
+                    tooltip="{i18n>zoomIn}"
+                    type="Transparent"
+                    press=".onZoomIn"/>
+                <Button
+                    id="zoomOutBtn"
+                    icon="sap-icon://zoom-out"
+                    tooltip="{i18n>zoomOut}"
+                    type="Transparent"
+                    press=".onZoomOut"/>
+                <Button
+                    id="fitToScreenBtn"
+                    icon="sap-icon://fit-to-size"
+                    tooltip="{i18n>fitToScreen}"
+                    type="Transparent"
+                    press=".onFitToScreen"/>
+                <ToolbarSeparator/>
+                <ToggleButton
+                    id="togglePropertiesBtn"
+                    icon="sap-icon://sidebar-right"
+                    tooltip="{i18n>togglePropertiesPanel}"
+                    pressed="{bpmnViewer>/propertiesPanelVisible}"
+                    press=".onTogglePropertiesPanel"/>
+            </OverflowToolbar>
+        </customHeader>
+
+        <content>
+            <l:VerticalLayout width="100%" height="100%">
+                <!-- Main Splitter: Canvas + Properties Panel -->
+                <l:Splitter
+                    id="mainSplitter"
+                    orientation="Horizontal"
+                    height="calc(100vh - 200px)">
+
+                    <!-- Left: BPMN Canvas -->
+                    <l:contentAreas>
+                        <Panel
+                            id="canvasPanel"
+                            headerText="{i18n>bpmnCanvas}"
+                            expandable="false"
+                            height="100%"
+                            class="sapUiNoContentPadding">
+                            <l:layoutData>
+                                <l:SplitterLayoutData size="80%"/>
+                            </l:layoutData>
+                            <!-- BPMN Canvas Container -->
+                            <core:HTML
+                                id="bpmnCanvasContainer"
+                                content="&lt;div id='bpmn-canvas' style='width:100%;height:100%;position:relative;'&gt;&lt;div id='bpmn-minimap' style='position:absolute;bottom:10px;right:10px;width:150px;height:120px;border:1px solid #ccc;background:#fff;z-index:100;'&gt;&lt;/div&gt;&lt;/div&gt;"
+                                afterRendering=".onCanvasRendered"/>
+                        </Panel>
+
+                        <!-- Right: Properties Panel -->
+                        <Panel
+                            id="propertiesPanel"
+                            headerText="{i18n>elementProperties}"
+                            expandable="false"
+                            height="100%"
+                            visible="{bpmnViewer>/propertiesPanelVisible}">
+                            <l:layoutData>
+                                <l:SplitterLayoutData size="20%"/>
+                            </l:layoutData>
+                            <f:SimpleForm
+                                id="elementPropertiesForm"
+                                editable="true"
+                                layout="ResponsiveGridLayout"
+                                labelSpanL="12"
+                                labelSpanM="12"
+                                emptySpanL="0"
+                                emptySpanM="0"
+                                columnsL="1"
+                                columnsM="1">
+                                <f:content>
+                                    <core:Title text="{i18n>basicProperties}"/>
+                                    <Label text="{i18n>elementId}"/>
+                                    <Input
+                                        id="elementIdInput"
+                                        value="{bpmnViewer>/selectedElement/id}"
+                                        editable="false"/>
+                                    <Label text="{i18n>elementName}"/>
+                                    <Input
+                                        id="elementNameInput"
+                                        value="{bpmnViewer>/selectedElement/name}"
+                                        change=".onElementPropertyChange"/>
+                                    <Label text="{i18n>elementType}"/>
+                                    <Input
+                                        id="elementTypeInput"
+                                        value="{bpmnViewer>/selectedElement/type}"
+                                        editable="false"/>
+                                    <core:Title text="{i18n>documentation}"/>
+                                    <Label text="{i18n>description}"/>
+                                    <TextArea
+                                        id="elementDocumentation"
+                                        value="{bpmnViewer>/selectedElement/documentation}"
+                                        rows="4"
+                                        width="100%"
+                                        change=".onElementPropertyChange"/>
+                                    <!-- Conditional: Task Properties -->
+                                    <core:Title
+                                        text="{i18n>taskProperties}"
+                                        visible="{= ${bpmnViewer>/selectedElement/type} === 'bpmn:Task' || ${bpmnViewer>/selectedElement/type} === 'bpmn:UserTask' || ${bpmnViewer>/selectedElement/type} === 'bpmn:ServiceTask' }"/>
+                                    <Label
+                                        text="{i18n>assignee}"
+                                        visible="{= ${bpmnViewer>/selectedElement/type} === 'bpmn:UserTask' }"/>
+                                    <Input
+                                        id="taskAssigneeInput"
+                                        value="{bpmnViewer>/selectedElement/assignee}"
+                                        visible="{= ${bpmnViewer>/selectedElement/type} === 'bpmn:UserTask' }"
+                                        change=".onElementPropertyChange"/>
+                                    <!-- Conditional: Gateway Properties -->
+                                    <core:Title
+                                        text="{i18n>gatewayProperties}"
+                                        visible="{= ${bpmnViewer>/selectedElement/type} === 'bpmn:ExclusiveGateway' || ${bpmnViewer>/selectedElement/type} === 'bpmn:ParallelGateway' }"/>
+                                    <Label
+                                        text="{i18n>defaultFlow}"
+                                        visible="{= ${bpmnViewer>/selectedElement/type} === 'bpmn:ExclusiveGateway' }"/>
+                                    <Select
+                                        id="defaultFlowSelect"
+                                        selectedKey="{bpmnViewer>/selectedElement/defaultFlow}"
+                                        visible="{= ${bpmnViewer>/selectedElement/type} === 'bpmn:ExclusiveGateway' }"
+                                        items="{bpmnViewer>/selectedElement/outgoingFlows}"
+                                        change=".onElementPropertyChange">
+                                        <core:Item key="{key}" text="{text}"/>
+                                    </Select>
+                                </f:content>
+                            </f:SimpleForm>
+                        </Panel>
+                    </l:contentAreas>
+                </l:Splitter>
+
+                <!-- Process Info Panel (Collapsible) -->
+                <Panel
+                    id="processInfoPanel"
+                    headerText="{i18n>processInfo}"
+                    expandable="true"
+                    expanded="false"
+                    class="sapUiTinyMarginTop">
+                    <headerToolbar>
+                        <Toolbar>
+                            <Title text="{i18n>processInfo}" level="H5"/>
+                            <ToolbarSpacer/>
+                            <ObjectStatus
+                                text="{bpmnViewer>/processInfo/status}"
+                                state="{= ${bpmnViewer>/processInfo/status} === 'Valid' ? 'Success' : 'Warning' }"/>
+                        </Toolbar>
+                    </headerToolbar>
+                    <HBox justifyContent="SpaceBetween" wrap="Wrap" class="sapUiSmallMargin">
+                        <VBox class="sapUiSmallMarginEnd">
+                            <Label text="{i18n>processId}" design="Bold"/>
+                            <Text text="{bpmnViewer>/processInfo/id}"/>
+                        </VBox>
+                        <VBox class="sapUiSmallMarginEnd">
+                            <Label text="{i18n>processName}" design="Bold"/>
+                            <Text text="{bpmnViewer>/processInfo/name}"/>
+                        </VBox>
+                        <VBox class="sapUiSmallMarginEnd">
+                            <Label text="{i18n>processVersion}" design="Bold"/>
+                            <Text text="{bpmnViewer>/processInfo/version}"/>
+                        </VBox>
+                        <VBox class="sapUiSmallMarginEnd">
+                            <Label text="{i18n>tasks}" design="Bold"/>
+                            <ObjectNumber number="{bpmnViewer>/processInfo/taskCount}" unit="{i18n>elements}"/>
+                        </VBox>
+                        <VBox class="sapUiSmallMarginEnd">
+                            <Label text="{i18n>gateways}" design="Bold"/>
+                            <ObjectNumber number="{bpmnViewer>/processInfo/gatewayCount}" unit="{i18n>elements}"/>
+                        </VBox>
+                        <VBox class="sapUiSmallMarginEnd">
+                            <Label text="{i18n>events}" design="Bold"/>
+                            <ObjectNumber number="{bpmnViewer>/processInfo/eventCount}" unit="{i18n>elements}"/>
+                        </VBox>
+                        <VBox>
+                            <Label text="{i18n>lastModified}" design="Bold"/>
+                            <Text text="{bpmnViewer>/processInfo/lastModified}"/>
+                        </VBox>
+                    </HBox>
+                </Panel>
+            </l:VerticalLayout>
+        </content>
+
+        <!-- Footer: Status Bar -->
+        <footer>
+            <Toolbar>
+                <core:Icon
+                    src="{= ${bpmnViewer>/selectedElement/id} ? 'sap-icon://detail-view' : 'sap-icon://hint' }"
+                    class="sapUiSmallMarginEnd"/>
+                <Text
+                    id="statusBarText"
+                    text="{= ${bpmnViewer>/selectedElement/id} ? ${i18n>selected} + ': ' + ${bpmnViewer>/selectedElement/name} + ' (' + ${bpmnViewer>/selectedElement/type} + ')' : ${i18n>noElementSelected} }"/>
+                <ToolbarSpacer/>
+                <ToolbarSeparator/>
+                <core:Icon src="sap-icon://zoom-in" class="sapUiSmallMarginEnd"/>
+                <Text text="{i18n>zoom}: {bpmnViewer>/zoomLevel}%"/>
+                <ToolbarSeparator/>
+                <Text text="© 2026 n-Suite"/>
+            </Toolbar>
+        </footer>
+    </Page>
+</mvc:View>
+

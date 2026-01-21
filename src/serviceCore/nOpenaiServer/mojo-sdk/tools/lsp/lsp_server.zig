@@ -68,21 +68,24 @@ const LspServer = struct {
     }
 
     pub fn run(self: *Self) !void {
-        const stdin = std.fs.File.stdin().reader();
-        const stdout = std.fs.File.stdout().writer();
+        const stdin_file = std.fs.File.stdin();
+        const stdout_file = std.fs.File.stdout();
 
-        // Input buffer
+        // Input buffer for headers
         var header_buffer: [1024]u8 = undefined;
 
         while (self.running) {
             // 1. Read Content-Length header
-            const content_length = try readContentLength(stdin, &header_buffer) orelse break; // EOF
+            const content_length = try readContentLength(stdin_file, &header_buffer) orelse break; // EOF
 
             // 2. Read Body
             const body = try self.allocator.alloc(u8, content_length);
             defer self.allocator.free(body);
 
-            try stdin.readNoEof(body);
+            const bytes_read = try stdin_file.readAll(body);
+            if (bytes_read != content_length) {
+                break; // EOF or error
+            }
 
             // 3. Parse
             var parser = jsonrpc.MessageParser.init(self.allocator);
@@ -109,7 +112,11 @@ const LspServer = struct {
                 const serialized = try serializer.serialize(resp);
                 defer self.allocator.free(serialized);
 
-                try stdout.print("Content-Length: {}\r\n\r\n{s}", .{ serialized.len, serialized });
+                // Write header using File.writeAll
+                var header_buf: [64]u8 = undefined;
+                const header = std.fmt.bufPrint(&header_buf, "Content-Length: {d}\r\n\r\n", .{serialized.len}) catch unreachable;
+                try stdout_file.writeAll(header);
+                try stdout_file.writeAll(serialized);
             }
         }
     }
@@ -118,7 +125,6 @@ const LspServer = struct {
 // Handlers ...
 fn handleInitialize(ptr: *anyopaque, request: jsonrpc.Request) anyerror!json.Value {
     const self: *LspServer = @ptrCast(@alignCast(ptr));
-    _ = self;
     _ = request; // Read capabilities if needed
 
     // Return ServerCapabilities
@@ -128,15 +134,16 @@ fn handleInitialize(ptr: *anyopaque, request: jsonrpc.Request) anyerror!json.Val
     // Ensure jsonrpc.Response.result is json.Value.
 
     // For now, return empty object (dummy)
-    // We really need a way to construct json.Value easily.
-    return json.Value{ .object = .{} };
+    // In Zig 0.15, ObjectMap needs allocator
+    const obj = json.ObjectMap.init(self.allocator);
+    return json.Value{ .object = obj };
 }
 
 fn handleShutdown(ptr: *anyopaque, request: jsonrpc.Request) anyerror!json.Value {
     const self: *LspServer = @ptrCast(@alignCast(ptr));
     _ = self;
     _ = request;
-    return json.Value{ .null = {} };
+    return json.Value.null;
 }
 
 fn handleExit(ptr: *anyopaque, notification: jsonrpc.Notification) anyerror!void {
@@ -151,24 +158,48 @@ fn handleInitialized(ptr: *anyopaque, notification: jsonrpc.Notification) anyerr
     self.initialized = true;
 }
 
-// Helper to read content length
-fn readContentLength(reader: anytype, buffer: []u8) !?usize {
+// Helper to read content length using File.read() directly
+fn readContentLength(file: std.fs.File, buffer: []u8) !?usize {
     // Read line by line until empty line
     var length: ?usize = null;
+    var line_start: usize = 0;
+    var byte_buf: [1]u8 = undefined;
 
     while (true) {
-        const line = try reader.readUntilDelimiterOrEof(buffer, '\n') orelse return null;
-        // Handle CR
-        const trimmed = std.mem.trimRight(u8, line, "\r");
+        // Read one byte at a time to find newline
+        const bytes_read = file.read(&byte_buf) catch |err| {
+            return err;
+        };
 
-        if (trimmed.len == 0) {
-            // Empty line, end of headers
-            return length;
-        }
+        if (bytes_read == 0) return null; // EOF
 
-        if (std.mem.startsWith(u8, trimmed, "Content-Length: ")) {
-            const num_str = trimmed["Content-Length: ".len..];
-            length = try std.fmt.parseInt(usize, num_str, 10);
+        const byte = byte_buf[0];
+
+        if (byte == '\n') {
+            // Got a line - trim trailing \r
+            var line_end = line_start;
+            if (line_end > 0 and buffer[line_end - 1] == '\r') {
+                line_end -= 1;
+            }
+
+            const line = buffer[0..line_end];
+
+            if (line.len == 0) {
+                // Empty line, end of headers
+                return length;
+            }
+
+            if (std.mem.startsWith(u8, line, "Content-Length: ")) {
+                const num_str = line["Content-Length: ".len..];
+                length = try std.fmt.parseInt(usize, num_str, 10);
+            }
+
+            line_start = 0;
+        } else {
+            if (line_start < buffer.len) {
+                buffer[line_start] = byte;
+                line_start += 1;
+            }
         }
     }
 }

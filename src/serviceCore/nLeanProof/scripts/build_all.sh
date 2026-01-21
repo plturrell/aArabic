@@ -14,7 +14,33 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 cd "$PROJECT_ROOT"
 
-echo "Step 1/3: Building Zig server and libraries"
+echo ""
+echo "Step 1/3: Building Mojo core modules"
+echo "----------------------------------------------------------------------"
+
+if command -v mojo &> /dev/null; then
+    echo "Mojo found: $(mojo --version 2>&1 | head -n1)"
+    mkdir -p lib
+
+    # Determine extension
+    LIB_EXT="dylib"
+    if [[ "$(uname -s)" == "Linux" ]]; then
+        LIB_EXT="so"
+    fi
+
+    if [ -f "bridge/lean4_ffi.mojo" ]; then
+        echo "Compiling Mojo FFI library..."
+        mojo build bridge/lean4_ffi.mojo -I . -o "lib/liblean4_ffi.${LIB_EXT}" || \
+            echo "Mojo build failed"
+    else
+        echo "Bridge module not found"
+    fi
+else
+    echo "WARNING: Mojo not found. Skipping Mojo build."
+fi
+
+echo ""
+echo "Step 2/3: Building Zig server and libraries"
 echo "----------------------------------------------------------------------"
 
 if command -v zig &> /dev/null; then
@@ -24,24 +50,6 @@ if command -v zig &> /dev/null; then
 else
     echo "ERROR: Zig not found. Install Zig 0.15.2+"
     exit 1
-fi
-
-echo ""
-echo "Step 2/3: Building Mojo core modules"
-echo "----------------------------------------------------------------------"
-
-if command -v mojo &> /dev/null; then
-    echo "Mojo found: $(mojo --version 2>&1 | head -n1)"
-
-    if [ -f "core/__init__.mojo" ]; then
-        echo "Compiling core module..."
-        mojo build core/__init__.mojo -o lib/lsh_core.so 2>/dev/null || \
-            echo "Core module not ready yet"
-    else
-        echo "Core module not created yet"
-    fi
-else
-    echo "WARNING: Mojo not found. Skipping Mojo build."
 fi
 
 echo ""

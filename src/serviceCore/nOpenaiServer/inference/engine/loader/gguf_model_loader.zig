@@ -14,6 +14,51 @@ const matrix_ops = @import("matrix_ops");
 /// Loads Llama models from GGUF files and handles quantized weights
 
 // ============================================================================
+// Dynamic Tensor Naming Support
+// ============================================================================
+
+/// Tensor naming style for different model architectures
+pub const TensorNamingStyle = enum {
+    /// Llama/Mistral style: separate attn_q, attn_k, attn_v, ffn_gate, ffn_up
+    LlamaStyle,
+    /// Phi-3 style: fused attn_qkv, fused ffn_up (gate+up combined)
+    Phi3Style,
+    /// Unknown - will be auto-detected
+    Unknown,
+};
+
+/// Result of loading attention weights (may be separate or split from fused)
+pub const AttentionWeights = struct {
+    wq: []f32,
+    wk: []f32,
+    wv: []f32,
+    is_fused: bool = false,
+};
+
+/// Result of loading FFN weights (may be separate or split from fused)
+pub const FFNWeights = struct {
+    w_gate: []f32,
+    w_up: []f32,
+    is_fused: bool = false,
+};
+
+/// Detect tensor naming style by checking which tensors exist
+fn detectTensorNamingStyle(model: *gguf.GGUFModel) TensorNamingStyle {
+    // Check for Phi-3 style fused QKV
+    if (model.findTensor("blk.0.attn_qkv.weight") != null) {
+        std.debug.print("   📋 Detected Phi-3 style tensor naming (fused QKV)\n", .{});
+        return .Phi3Style;
+    }
+    // Check for Llama style separate Q/K/V
+    if (model.findTensor("blk.0.attn_q.weight") != null) {
+        std.debug.print("   📋 Detected Llama style tensor naming (separate Q/K/V)\n", .{});
+        return .LlamaStyle;
+    }
+    std.debug.print("   ⚠️  Could not detect tensor naming style, defaulting to Llama\n", .{});
+    return .LlamaStyle;
+}
+
+// ============================================================================
 // Weight Loading Strategy
 // ============================================================================
 
@@ -32,6 +77,12 @@ pub const WeightLoadStrategy = enum {
 // Model Loader
 // ============================================================================
 
+pub const TierConfig = struct {
+    max_ram_mb: u64,
+    kv_cache_ram_mb: u64,
+    max_ssd_mb: u64 = 0,
+};
+
 pub const GGUFModelLoader = struct {
     allocator: std.mem.Allocator,
     strategy: WeightLoadStrategy,
@@ -41,6 +92,43 @@ pub const GGUFModelLoader = struct {
             .allocator = allocator,
             .strategy = strategy,
         };
+    }
+
+    /// Select optimal loading strategy based on model size and tier config
+    pub fn selectStrategy(config: llama.LlamaConfig, tier_config: ?TierConfig) WeightLoadStrategy {
+        // Estimate model size when dequantized to F32
+        const vocab_mb: u64 = (config.vocab_size * config.embed_dim * 4) / (1024 * 1024);
+        const layer_mb: u64 = (config.n_layers * config.embed_dim * config.ffn_dim * 12) / (1024 * 1024);
+        const total_mb: u64 = vocab_mb + layer_mb;
+        
+        if (tier_config) |tc| {
+            const available = tc.max_ram_mb - tc.kv_cache_ram_mb;
+            
+            if (total_mb < available / 3) {
+                // Plenty of RAM - dequantize everything for speed
+                std.debug.print("   🎯 Strategy: DequantizeAll (model fits easily: {d}MB < {d}MB)\n", .{total_mb, available});
+                return .DequantizeAll;
+            } else if (total_mb < available) {
+                // Tight fit - keep quantized to save memory
+                std.debug.print("   🎯 Strategy: OnTheFly (tight fit: {d}MB < {d}MB)\n", .{total_mb, available});
+                return .OnTheFly;
+            } else {
+                // Too large even quantized - would need hybrid/mmap (fallback to OnTheFly for now)
+                std.debug.print("   🎯 Strategy: OnTheFly (large model: {d}MB > {d}MB available)\n", .{total_mb, available});
+                return .OnTheFly;
+            }
+        }
+        
+        // No tier config - use sensible defaults
+        // Small models (<5GB dequantized) get DequantizeAll for speed
+        // Large models stay quantized to save RAM
+        if (total_mb < 5000) {
+            std.debug.print("   🎯 Strategy: DequantizeAll (small model: {d}MB)\n", .{total_mb});
+            return .DequantizeAll;
+        } else {
+            std.debug.print("   🎯 Strategy: OnTheFly (large model: {d}MB)\n", .{total_mb});
+            return .OnTheFly;
+        }
     }
 
     /// Load a Llama model from a GGUF file
@@ -59,10 +147,13 @@ pub const GGUFModelLoader = struct {
 
         // Extract configuration
         var config = llama.LlamaConfig.fromGGUF(&model);
-        if (model.metadata.architecture != .Llama) {
+
+        // Check if architecture is Llama-compatible (Llama, Mistral, Phi, Gemma, Qwen, etc.)
+        if (!model.metadata.architecture.isLlamaCompatible()) {
             std.debug.print("   ❌ Architecture {s} not supported by loadModel() (use loadLfm2Model for LFM2)\n", .{@tagName(model.metadata.architecture)});
             return error.UnsupportedArchitecture;
         }
+        std.debug.print("   ✅ Architecture {s} is Llama-compatible\n", .{@tagName(model.metadata.architecture)});
 
         // Optional max sequence clamp to avoid oversized KV caches
         if (std.posix.getenv("SHIMMY_MAX_SEQ")) |max_seq_env| {
@@ -90,8 +181,8 @@ pub const GGUFModelLoader = struct {
         // Load weights based on strategy
         const weights = switch (self.strategy) {
             .DequantizeAll => try self.loadWeightsF32(&model, config),
-            .OnTheFly => return error.OnTheFlyNotImplementedYet,
-            .Hybrid => return error.HybridNotImplementedYet,
+            .OnTheFly => try self.loadWeightsQuantized(&model, config),
+            .Hybrid => try self.loadWeightsQuantized(&model, config), // Use quantized for now
         };
 
         // Initialize model
@@ -157,6 +248,9 @@ pub const GGUFModelLoader = struct {
             else => return err,
         };
 
+        // Detect tensor naming style
+        const naming_style = detectTensorNamingStyle(model);
+
         // Load per-layer weights
         std.debug.print("   Loading {d} transformer layers...\n", .{config.n_layers});
         const layer_weights = try self.allocator.alloc(transformer.TransformerWeights, config.n_layers);
@@ -172,60 +266,49 @@ pub const GGUFModelLoader = struct {
 
             // Format layer prefix
             var layer_prefix_buf: [64]u8 = undefined;
-            const layer_prefix = try std.fmt.bufPrint(&layer_prefix_buf, "blk.{d}", .{layer_idx});
+            const layer_prefix = std.fmt.bufPrint(&layer_prefix_buf, "blk.{d}", .{layer_idx}) catch return error.BufferOverflow;
 
             // Load attention norm
             var tensor_name_buf: [128]u8 = undefined;
-            const attn_norm_name = try std.fmt.bufPrint(&tensor_name_buf, "{s}.attn_norm.weight", .{layer_prefix});
+            const attn_norm_name = std.fmt.bufPrint(&tensor_name_buf, "{s}.attn_norm.weight", .{layer_prefix}) catch return error.BufferOverflow;
             const attn_norm = try self.loadTensorF32OrZero(model, attn_norm_name, config.embed_dim);
 
-            // Load attention weights
-            const wq_name = try std.fmt.bufPrint(&tensor_name_buf, "{s}.attn_q.weight", .{layer_prefix});
-            const wq = try self.loadTensorF32OrZero(model, wq_name, config.embed_dim * q_dim);
+            // Load attention weights (handles both separate Q/K/V and fused QKV)
+            const attn_weights = try self.loadAttentionWeights(model, layer_prefix, config.embed_dim, q_dim, kv_dim, naming_style);
 
-            const wk_name = try std.fmt.bufPrint(&tensor_name_buf, "{s}.attn_k.weight", .{layer_prefix});
-            const wk = try self.loadTensorF32OrZero(model, wk_name, config.embed_dim * kv_dim);
-
-            const wv_name = try std.fmt.bufPrint(&tensor_name_buf, "{s}.attn_v.weight", .{layer_prefix});
-            const wv = try self.loadTensorF32OrZero(model, wv_name, config.embed_dim * kv_dim);
-
-            const wo_name = try std.fmt.bufPrint(&tensor_name_buf, "{s}.attn_output.weight", .{layer_prefix});
+            const wo_name = std.fmt.bufPrint(&tensor_name_buf, "{s}.attn_output.weight", .{layer_prefix}) catch return error.BufferOverflow;
             const wo = try self.loadTensorF32OrZero(model, wo_name, q_dim * config.embed_dim);
 
             // Load FFN norm
-            const ffn_norm_name = try std.fmt.bufPrint(&tensor_name_buf, "{s}.ffn_norm.weight", .{layer_prefix});
+            const ffn_norm_name = std.fmt.bufPrint(&tensor_name_buf, "{s}.ffn_norm.weight", .{layer_prefix}) catch return error.BufferOverflow;
             const ffn_norm = try self.loadTensorF32OrZero(model, ffn_norm_name, config.embed_dim);
 
-            // Load FFN weights
-            const w_gate_name = try std.fmt.bufPrint(&tensor_name_buf, "{s}.ffn_gate.weight", .{layer_prefix});
-            const w_gate = try self.loadTensorF32OrZero(model, w_gate_name, config.embed_dim * config.ffn_dim);
+            // Load FFN weights (handles both separate gate/up and fused)
+            const ffn_weights = try self.loadFFNWeights(model, layer_prefix, config.embed_dim, config.ffn_dim, naming_style);
 
-            const w_up_name = try std.fmt.bufPrint(&tensor_name_buf, "{s}.ffn_up.weight", .{layer_prefix});
-            const w_up = try self.loadTensorF32OrZero(model, w_up_name, config.embed_dim * config.ffn_dim);
-
-            const w_down_name = try std.fmt.bufPrint(&tensor_name_buf, "{s}.ffn_down.weight", .{layer_prefix});
+            const w_down_name = std.fmt.bufPrint(&tensor_name_buf, "{s}.ffn_down.weight", .{layer_prefix}) catch return error.BufferOverflow;
             const w_down = try self.loadTensorF32OrZero(model, w_down_name, config.ffn_dim * config.embed_dim);
 
             layer_weights[layer_idx] = transformer.TransformerWeights{
                 .allocator = self.allocator,
                 .attn_norm = attn_norm,
-                .wq = .{ .f32 = wq },
-                .wk = .{ .f32 = wk },
-                .wv = .{ .f32 = wv },
+                .wq = .{ .f32 = attn_weights.wq },
+                .wk = .{ .f32 = attn_weights.wk },
+                .wv = .{ .f32 = attn_weights.wv },
                 .wo = .{ .f32 = wo },
                 .ffn_norm = ffn_norm,
-                .w_gate = .{ .f32 = w_gate },
-                .w_up = .{ .f32 = w_up },
+                .w_gate = .{ .f32 = ffn_weights.w_gate },
+                .w_up = .{ .f32 = ffn_weights.w_up },
                 .w_down = .{ .f32 = w_down },
             };
         }
 
         std.debug.print("   ✅ All weights loaded and dequantized\n", .{});
 
-        // Calculate total memory usage
-        const vocab_size_mb = (config.vocab_size * config.embed_dim * @sizeOf(f32)) / (1024 * 1024);
-        const layer_mb = (config.n_layers * config.embed_dim * config.ffn_dim * @sizeOf(f32) * 3) / (1024 * 1024);
-        const total_mb = vocab_size_mb + layer_mb;
+        // Calculate total memory usage (use u64 to avoid overflow)
+        const vocab_size_mb: u64 = (@as(u64, config.vocab_size) * @as(u64, config.embed_dim) * @sizeOf(f32)) / (1024 * 1024);
+        const layer_mb: u64 = (@as(u64, config.n_layers) * @as(u64, config.embed_dim) * @as(u64, config.ffn_dim) * @sizeOf(f32) * 3) / (1024 * 1024);
+        const total_mb: u64 = vocab_size_mb + layer_mb;
 
         std.debug.print("   Memory usage (approx): {d} MB\n", .{total_mb});
 
@@ -271,6 +354,155 @@ pub const GGUFModelLoader = struct {
                 break :blk matrix_ops.Weight{ .f32 = buf };
             },
             else => return err,
+        };
+    }
+
+    /// Load attention weights - handles both separate Q/K/V and fused QKV tensors
+    fn loadAttentionWeights(
+        self: *GGUFModelLoader,
+        model: *gguf.GGUFModel,
+        layer_prefix: []const u8,
+        embed_dim: usize,
+        q_dim: usize,
+        kv_dim: usize,
+        naming_style: TensorNamingStyle,
+    ) !AttentionWeights {
+        var buf: [128]u8 = undefined;
+
+        if (naming_style == .Phi3Style) {
+            // Try to load fused QKV tensor
+            const qkv_name = std.fmt.bufPrint(&buf, "{s}.attn_qkv.weight", .{layer_prefix}) catch return error.BufferOverflow;
+
+            if (model.findTensor(qkv_name) != null) {
+                // Fused QKV: shape is [embed_dim, q_dim + 2*kv_dim]
+                const qkv_total_size = embed_dim * (q_dim + 2 * kv_dim);
+                const qkv_data = self.loadTensorF32OrZero(model, qkv_name, qkv_total_size) catch |err| {
+                    std.debug.print("   ❌ Failed to load fused QKV: {any}\n", .{err});
+                    return err;
+                };
+                defer self.allocator.free(qkv_data);
+
+                // Split into Q, K, V
+                const wq = try self.allocator.alloc(f32, embed_dim * q_dim);
+                const wk = try self.allocator.alloc(f32, embed_dim * kv_dim);
+                const wv = try self.allocator.alloc(f32, embed_dim * kv_dim);
+
+                // QKV is concatenated: [Q | K | V] for each row
+                // Shape: [embed_dim, q_dim + kv_dim + kv_dim]
+                const row_q_size = q_dim;
+                const row_kv_size = kv_dim;
+                const row_total = q_dim + 2 * kv_dim;
+
+                for (0..embed_dim) |row| {
+                    const src_offset = row * row_total;
+                    // Copy Q part
+                    @memcpy(wq[row * row_q_size .. (row + 1) * row_q_size], qkv_data[src_offset .. src_offset + row_q_size]);
+                    // Copy K part
+                    @memcpy(wk[row * row_kv_size .. (row + 1) * row_kv_size], qkv_data[src_offset + row_q_size .. src_offset + row_q_size + row_kv_size]);
+                    // Copy V part
+                    @memcpy(wv[row * row_kv_size .. (row + 1) * row_kv_size], qkv_data[src_offset + row_q_size + row_kv_size .. src_offset + row_total]);
+                }
+
+                std.debug.print("   ✅ Split fused QKV: Q[{d}x{d}] K[{d}x{d}] V[{d}x{d}]\n", .{ embed_dim, q_dim, embed_dim, kv_dim, embed_dim, kv_dim });
+
+                return AttentionWeights{
+                    .wq = wq,
+                    .wk = wk,
+                    .wv = wv,
+                    .is_fused = true,
+                };
+            }
+        }
+
+        // Fall back to separate Q, K, V tensors (Llama style)
+        var name_buf: [128]u8 = undefined;
+
+        const wq_name = std.fmt.bufPrint(&name_buf, "{s}.attn_q.weight", .{layer_prefix}) catch return error.BufferOverflow;
+        const wq = try self.loadTensorF32OrZero(model, wq_name, embed_dim * q_dim);
+
+        const wk_name = std.fmt.bufPrint(&name_buf, "{s}.attn_k.weight", .{layer_prefix}) catch return error.BufferOverflow;
+        const wk = try self.loadTensorF32OrZero(model, wk_name, embed_dim * kv_dim);
+
+        const wv_name = std.fmt.bufPrint(&name_buf, "{s}.attn_v.weight", .{layer_prefix}) catch return error.BufferOverflow;
+        const wv = try self.loadTensorF32OrZero(model, wv_name, embed_dim * kv_dim);
+
+        return AttentionWeights{
+            .wq = wq,
+            .wk = wk,
+            .wv = wv,
+            .is_fused = false,
+        };
+    }
+
+    /// Load FFN weights - handles both separate gate/up and fused gate_up tensors
+    fn loadFFNWeights(
+        self: *GGUFModelLoader,
+        model: *gguf.GGUFModel,
+        layer_prefix: []const u8,
+        embed_dim: usize,
+        ffn_dim: usize,
+        naming_style: TensorNamingStyle,
+    ) !FFNWeights {
+        var buf: [128]u8 = undefined;
+
+        if (naming_style == .Phi3Style) {
+            // Phi-3 uses a single ffn_up with shape [embed_dim, 2*ffn_dim] that contains gate+up
+            const up_name = std.fmt.bufPrint(&buf, "{s}.ffn_up.weight", .{layer_prefix}) catch return error.BufferOverflow;
+
+            if (model.findTensor(up_name)) |tensor_idx| {
+                const tensor = model.tensors[tensor_idx];
+                // Check if it's fused (2x ffn_dim)
+                var total_elements: usize = 1;
+                for (tensor.dimensions[0..tensor.n_dimensions]) |d| {
+                    total_elements *= @intCast(d);
+                }
+                const expected_fused_size = embed_dim * ffn_dim * 2;
+
+                if (total_elements == expected_fused_size) {
+                    // It's fused gate+up
+                    const fused_data = self.loadTensorF32OrZero(model, up_name, expected_fused_size) catch |err| {
+                        std.debug.print("   ❌ Failed to load fused FFN: {any}\n", .{err});
+                        return err;
+                    };
+                    defer self.allocator.free(fused_data);
+
+                    // Split into gate and up
+                    const w_gate = try self.allocator.alloc(f32, embed_dim * ffn_dim);
+                    const w_up = try self.allocator.alloc(f32, embed_dim * ffn_dim);
+
+                    // Fused is [embed_dim, 2*ffn_dim] = [gate | up] for each row
+                    for (0..embed_dim) |row| {
+                        const src_offset = row * (2 * ffn_dim);
+                        // Copy gate part (first half)
+                        @memcpy(w_gate[row * ffn_dim .. (row + 1) * ffn_dim], fused_data[src_offset .. src_offset + ffn_dim]);
+                        // Copy up part (second half)
+                        @memcpy(w_up[row * ffn_dim .. (row + 1) * ffn_dim], fused_data[src_offset + ffn_dim .. src_offset + 2 * ffn_dim]);
+                    }
+
+                    std.debug.print("   ✅ Split fused FFN: gate[{d}x{d}] up[{d}x{d}]\n", .{ embed_dim, ffn_dim, embed_dim, ffn_dim });
+
+                    return FFNWeights{
+                        .w_gate = w_gate,
+                        .w_up = w_up,
+                        .is_fused = true,
+                    };
+                }
+            }
+        }
+
+        // Fall back to separate gate and up tensors (Llama style)
+        var name_buf: [128]u8 = undefined;
+
+        const gate_name = std.fmt.bufPrint(&name_buf, "{s}.ffn_gate.weight", .{layer_prefix}) catch return error.BufferOverflow;
+        const w_gate = try self.loadTensorF32OrZero(model, gate_name, embed_dim * ffn_dim);
+
+        const up_name = std.fmt.bufPrint(&name_buf, "{s}.ffn_up.weight", .{layer_prefix}) catch return error.BufferOverflow;
+        const w_up = try self.loadTensorF32OrZero(model, up_name, embed_dim * ffn_dim);
+
+        return FFNWeights{
+            .w_gate = w_gate,
+            .w_up = w_up,
+            .is_fused = false,
         };
     }
 
@@ -352,7 +584,6 @@ pub const GGUFModelLoader = struct {
             },
 
             .Q6_K => {
-                if (expected_size % q6_k.QK_K != 0) return error.InvalidTensorSize;
                 const data = model.getTensorData(tensor_idx) catch |err| {
                     std.debug.print("   ❌ Failed to load data for {s}: {any}\n", .{ name, err });
                     return err;
@@ -361,8 +592,23 @@ pub const GGUFModelLoader = struct {
                 const blocks = @as([*]const q6_k.BlockQ6_K, @ptrCast(@alignCast(data.ptr)))[0..block_count];
                 var out_idx: usize = 0;
                 for (blocks) |*blk| {
-                    q6_k.dequantizeBlock(output[out_idx .. out_idx + q6_k.QK_K], blk);
-                    out_idx += q6_k.QK_K;
+                    // Stop if we've filled the expected output
+                    if (out_idx >= expected_size) break;
+                    const remaining = expected_size - out_idx;
+                    const to_write = @min(q6_k.QK_K, remaining);
+                    if (to_write == q6_k.QK_K) {
+                        q6_k.dequantizeBlock(output[out_idx .. out_idx + q6_k.QK_K], blk);
+                    } else {
+                        // Partial block - dequantize to temp buffer
+                        var temp: [q6_k.QK_K]f32 = undefined;
+                        q6_k.dequantizeBlock(&temp, blk);
+                        @memcpy(output[out_idx .. out_idx + to_write], temp[0..to_write]);
+                    }
+                    out_idx += to_write;
+                }
+                // Zero-fill any remaining
+                if (out_idx < expected_size) {
+                    @memset(output[out_idx..], 0);
                 }
             },
 

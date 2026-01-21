@@ -1,0 +1,221 @@
+<mvc:View
+    controllerName="nLaunchpad.webapp.controller.App"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:f="sap.f"
+    xmlns:l="sap.ui.layout"
+    xmlns:core="sap.ui.core"
+    displayBlock="true">
+
+    <Shell id="shell">
+        <App id="app">
+            <Page id="mainPage"
+                  title="{i18n>appTitle}"
+                  titleLevel="H1"
+                  showFooter="true"
+                  backgroundDesign="List"
+                  class="sapUiContentPadding"
+                  busy="{launchpad>/busy}"
+                  busyIndicatorDelay="0">
+
+                <headerContent>
+                    <!-- Search Field -->
+                    <SearchField
+                        id="appSearch"
+                        placeholder="{i18n>searchPlaceholder}"
+                        width="20rem"
+                        liveChange=".onSearchLiveChange"
+                        search=".onSearch"/>
+                    <ToolbarSpacer/>
+                    <!-- Service Status -->
+                    <ObjectStatus
+                        text="{= ${launchpad>/onlineCount} + '/' + ${launchpad>/totalCount} + ' ' + ${i18n>statusActive} }"
+                        state="{= ${launchpad>/onlineCount} === ${launchpad>/totalCount} ? 'Success' : 'Warning' }"
+                        icon="sap-icon://connected"/>
+                    <ToolbarSeparator/>
+                    <Button icon="sap-icon://refresh" press=".onRefreshStatus" tooltip="Refresh Status" type="Transparent"/>
+                    <Button icon="sap-icon://action-settings" press=".onSettingsPress" tooltip="{i18n>settingsTooltip}" type="Emphasized"/>
+                </headerContent>
+
+                <content>
+                    <l:VerticalLayout width="100%" class="sapUiResponsiveMargin">
+
+                        <!-- Core Services Section -->
+                        <Panel headerText="{i18n>coreServices}" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+                            <f:GridContainer snapToRow="true">
+                                <!-- nCode -->
+                                <GenericTile
+                                    class="sapUiTinyMarginBegin sapUiTinyMarginTop tileHover"
+                                    header="{i18n>nCodeTitle}"
+                                    subheader="{i18n>nCodeSubheader}"
+                                    press=".onTilePress"
+                                    frameType="TwoByOne"
+                                    state="{= ${apps>/nCode/online} ? 'Loaded' : 'Loading' }">
+                                    <TileContent footer="{= ${apps>/nCode/online} ? ${i18n>statusActive} : ${i18n>statusOffline} }">
+                                        <ImageContent src="sap-icon://code"/>
+                                    </TileContent>
+                                    <customData>
+                                        <core:CustomData key="appId" value="nCode"/>
+                                        <core:CustomData key="url" value="../nCode/webapp/index.html"/>
+                                        <core:CustomData key="port" value="8087"/>
+                                    </customData>
+                                </GenericTile>
+
+                                <!-- nAudioLab -->
+                                <GenericTile
+                                    class="sapUiTinyMarginBegin sapUiTinyMarginTop tileHover"
+                                    header="{i18n>nAudioLabTitle}"
+                                    subheader="{i18n>nAudioLabSubheader}"
+                                    press=".onTilePress"
+                                    frameType="TwoByOne"
+                                    state="{= ${apps>/nAudioLab/online} ? 'Loaded' : 'Loading' }">
+                                    <TileContent footer="{= ${apps>/nAudioLab/online} ? ${i18n>statusReady} : ${i18n>statusOffline} }">
+                                        <ImageContent src="sap-icon://microphone"/>
+                                    </TileContent>
+                                    <customData>
+                                        <core:CustomData key="appId" value="nAudioLab"/>
+                                        <core:CustomData key="url" value="../nAudioLab/webapp/index.html"/>
+                                        <core:CustomData key="port" value="8088"/>
+                                    </customData>
+                                </GenericTile>
+
+                                <!-- nExtract -->
+                                <GenericTile
+                                    class="sapUiTinyMarginBegin sapUiTinyMarginTop tileHover"
+                                    header="{i18n>nExtractTitle}"
+                                    subheader="{i18n>nExtractSubheader}"
+                                    press=".onTilePress"
+                                    frameType="TwoByOne"
+                                    state="{= ${apps>/nExtract/online} ? 'Loaded' : 'Loading' }">
+                                    <TileContent footer="{= ${apps>/nExtract/online} ? ${i18n>statusProcessing} : ${i18n>statusOffline} }">
+                                        <ImageContent src="sap-icon://database"/>
+                                    </TileContent>
+                                    <customData>
+                                        <core:CustomData key="appId" value="nExtract"/>
+                                        <core:CustomData key="url" value="../nExtract/webapp/index.html"/>
+                                        <core:CustomData key="port" value="8089"/>
+                                    </customData>
+                                </GenericTile>
+                            </f:GridContainer>
+                        </Panel>
+
+                        <!-- Intelligence & Research Section -->
+                        <Panel headerText="{i18n>intelligence}" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+                            <f:GridContainer snapToRow="true">
+                                <!-- nLeanProof -->
+                                <GenericTile
+                                    class="sapUiTinyMarginBegin sapUiTinyMarginTop tileHover"
+                                    header="{i18n>nLeanProofTitle}"
+                                    subheader="{i18n>nLeanProofSubheader}"
+                                    press=".onTilePress"
+                                    frameType="TwoByOne"
+                                    state="{= ${apps>/nLeanProof/online} ? 'Loaded' : 'Loading' }">
+                                    <TileContent footer="{= ${apps>/nLeanProof/online} ? ${i18n>statusReady} : ${i18n>statusOffline} }">
+                                        <ImageContent src="sap-icon://validate"/>
+                                    </TileContent>
+                                    <customData>
+                                        <core:CustomData key="appId" value="nLeanProof"/>
+                                        <core:CustomData key="url" value="../nLeanProof/webapp/index.html"/>
+                                        <core:CustomData key="port" value="8085"/>
+                                    </customData>
+                                </GenericTile>
+
+                                <!-- nOpenaiServer (Shimmy AI) -->
+                                <GenericTile
+                                    class="sapUiTinyMarginBegin sapUiTinyMarginTop tileHover"
+                                    header="{i18n>nOpenaiServerTitle}"
+                                    subheader="{i18n>nOpenaiServerSubheader}"
+                                    press=".onTilePress"
+                                    frameType="TwoByOne"
+                                    state="{= ${apps>/nOpenaiServer/online} ? 'Loaded' : 'Loading' }">
+                                    <TileContent footer="{= ${apps>/nOpenaiServer/online} ? ${i18n>statusActive} : ${i18n>statusOffline} }">
+                                        <ImageContent src="sap-icon://performance"/>
+                                    </TileContent>
+                                    <customData>
+                                        <core:CustomData key="appId" value="nOpenaiServer"/>
+                                        <core:CustomData key="url" value="../nOpenaiServer/webapp/index.html"/>
+                                        <core:CustomData key="port" value="8081"/>
+                                    </customData>
+                                </GenericTile>
+
+                                <!-- nHyperBook -->
+                                <GenericTile
+                                    class="sapUiTinyMarginBegin sapUiTinyMarginTop tileHover"
+                                    header="{i18n>nHyperBookTitle}"
+                                    subheader="{i18n>nHyperBookSubheader}"
+                                    press=".onTilePress"
+                                    frameType="TwoByOne"
+                                    state="{= ${apps>/nHyperBook/online} ? 'Loaded' : 'Loading' }">
+                                    <TileContent footer="{= ${apps>/nHyperBook/online} ? ${i18n>statusReady} : ${i18n>statusOffline} }">
+                                        <ImageContent src="sap-icon://education"/>
+                                    </TileContent>
+                                    <customData>
+                                        <core:CustomData key="appId" value="nHyperBook"/>
+                                        <core:CustomData key="url" value="../nHyperBook/webapp/index.html"/>
+                                        <core:CustomData key="port" value="8090"/>
+                                    </customData>
+                                </GenericTile>
+                            </f:GridContainer>
+                        </Panel>
+
+                        <!-- Automation & Workflow Section -->
+                        <Panel headerText="{i18n>automation}" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+                            <f:GridContainer snapToRow="true">
+                                <!-- nWorkflow -->
+                                <GenericTile
+                                    class="sapUiTinyMarginBegin sapUiTinyMarginTop tileHover"
+                                    header="{i18n>nWorkflowTitle}"
+                                    subheader="{i18n>nWorkflowSubheader}"
+                                    press=".onTilePress"
+                                    frameType="TwoByOne"
+                                    state="{= ${apps>/nWorkflow/online} ? 'Loaded' : 'Loading' }">
+                                    <TileContent footer="{= ${apps>/nWorkflow/online} ? ${i18n>statusActive} : ${i18n>statusOffline} }">
+                                        <ImageContent src="sap-icon://workflow-tasks"/>
+                                    </TileContent>
+                                    <customData>
+                                        <core:CustomData key="appId" value="nWorkflow"/>
+                                        <core:CustomData key="url" value="../nWorkflow/webapp/index.html"/>
+                                        <core:CustomData key="port" value="8082"/>
+                                    </customData>
+                                </GenericTile>
+                            </f:GridContainer>
+                        </Panel>
+
+                        <!-- Utilities Section -->
+                        <Panel headerText="{i18n>utilities}" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+                            <f:GridContainer snapToRow="true">
+                                <!-- nWebServe -->
+                                <GenericTile
+                                    class="sapUiTinyMarginBegin sapUiTinyMarginTop tileHover"
+                                    header="{i18n>nWebServeTitle}"
+                                    subheader="{i18n>nWebServeSubheader}"
+                                    press=".onTilePress"
+                                    frameType="TwoByOne"
+                                    state="{= ${apps>/nWebServe/online} ? 'Loaded' : 'Loading' }">
+                                    <TileContent footer="{= ${apps>/nWebServe/online} ? ${i18n>statusActive} : ${i18n>statusOffline} }">
+                                        <ImageContent src="sap-icon://globe"/>
+                                    </TileContent>
+                                    <customData>
+                                        <core:CustomData key="appId" value="nWebServe"/>
+                                        <core:CustomData key="url" value="../nWebServe/webapp/index.html"/>
+                                        <core:CustomData key="port" value="8080"/>
+                                    </customData>
+                                </GenericTile>
+                            </f:GridContainer>
+                        </Panel>
+
+                    </l:VerticalLayout>
+                </content>
+
+                <footer>
+                    <Toolbar>
+                        <ToolbarSpacer/>
+                        <Label text="{i18n>version}: 2.0.0"/>
+                        <ToolbarSeparator/>
+                        <Text text="© 2026 n-Suite"/>
+                    </Toolbar>
+                </footer>
+            </Page>
+        </App>
+    </Shell>
+</mvc:View>

@@ -31,7 +31,7 @@ fn printUsage() void {
     _ = out.write(
         "Usage: lean4-manifest [--root PATH] [--suite NAME] [--output PATH] [--absolute] [--limit N]\n" ++
         "Defaults:\n" ++
-        "  --root   vendor/layerIntelligence/lean4/tests\n" ++
+        "  --root   tests/lean4\n" ++
         "  --suite  lean\n" ++
         "  --limit  0 (no limit)\n"
     ) catch {};
@@ -39,7 +39,7 @@ fn printUsage() void {
 
 fn parseArgs(args: []const [:0]u8) !Options {
     var options = Options{
-        .root = "vendor/layerIntelligence/lean4/tests",
+        .root = "tests/lean4",
         .suite = "lean",
         .output = null,
         .absolute = false,

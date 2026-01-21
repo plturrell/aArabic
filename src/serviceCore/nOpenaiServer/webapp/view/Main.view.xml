@@ -1,0 +1,474 @@
+<mvc:View
+	controllerName="llm.server.dashboard.controller.Main"
+	xmlns="sap.m"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns:layout="sap.ui.layout"
+	xmlns:core="sap.ui.core"
+	xmlns:f="sap.f"
+	xmlns:card="sap.f.cards"
+	height="100%">
+
+	<Page id="main" showHeader="true">
+		<customHeader>
+			<Bar>
+				<contentLeft>
+					<Breadcrumbs>
+						<Link text="Home" press=".onBreadcrumbHome"/>
+						<Link text="Dashboard"/>
+					</Breadcrumbs>
+				</contentLeft>
+				<contentMiddle>
+					<HBox alignItems="Center">
+						<Label text="Active Model:" class="sapUiTinyMarginEnd"/>
+						<Select
+							id="modelSelector"
+							selectedKey="{metrics>/selectedModel}"
+							width="350px"
+							change=".onModelChange"
+							items="{metrics>/availableModels}">
+							<core:Item 
+								key="{metrics>id}" 
+								text="{= ${metrics>display_name} + ' (' + ${metrics>quantization} + ')' }"/>
+						</Select>
+					</HBox>
+				</contentMiddle>
+				<contentRight>
+					<ObjectStatus
+						text="{= ${metrics>/connected} ? 'Connected' : 'Disconnected' }"
+						state="{= ${metrics>/connected} ? 'Success' : 'Error' }"
+						icon="{= ${metrics>/connected} ? 'sap-icon://connected' : 'sap-icon://disconnected' }"/>
+					<Button
+						icon="sap-icon://action-settings"
+						text="Model Configurator"
+						press=".onOpenModelConfigurator"
+						type="Emphasized"/>
+				</contentRight>
+			</Bar>
+		</customHeader>
+
+		<content>
+			<layout:VerticalLayout width="100%" class="sapUiSmallMargin">
+
+				<!-- 1. QUICK PROMPT TESTING (TOP - As Requested) -->
+				<Panel 
+					headerText="Quick Prompt Testing" 
+					expandable="true" 
+					expanded="true" 
+					class="sapUiResponsiveMargin">
+					<content>
+						<VBox class="sapUiSmallMargin">
+							<MessageStrip
+								text="Test prompts with the selected model. Results show current metrics vs. your historical average."
+								type="Information"
+								showIcon="true"
+								class="sapUiSmallMarginBottom"/>
+							
+							<HBox alignItems="End" class="sapUiSmallMarginBottom">
+								<VBox class="sapUiSmallMarginEnd" width="70%">
+									<Label text="Prompt:" class="sapUiTinyMarginBottom"/>
+									<TextArea
+										id="quickPromptInput"
+										value="{chat>/quickPrompt}"
+										placeholder="Enter your prompt here..."
+										rows="3"
+										width="100%"/>
+								</VBox>
+								<VBox width="30%">
+									<Button
+										text="Send"
+										type="Emphasized"
+										icon="sap-icon://paper-plane"
+										press=".onQuickPrompt"
+										width="120px"
+										class="sapUiSmallMarginBottom"/>
+									<Button
+										text="Clear"
+										icon="sap-icon://delete"
+										press=".onClearQuickPrompt"
+										width="120px"/>
+								</VBox>
+							</HBox>
+							
+							<!-- Response with Comparison -->
+							<Panel 
+								headerText="Response &amp; Metrics Comparison" 
+								visible="{= ${chat>/quickResponse} !== ''}"
+								class="sapUiSmallMarginTop">
+								<content>
+									<VBox>
+										<TextArea
+											value="{chat>/quickResponse}"
+											rows="4"
+											width="100%"
+											editable="false"
+											class="sapUiSmallMarginBottom"/>
+										
+										<!-- Current vs Historical Comparison -->
+										<layout:Grid defaultSpan="L3 M6 S12">
+											<VBox>
+												<Label text="Latency" class="sapUiTinyMarginBottom"/>
+												<HBox>
+													<ObjectNumber
+														number="{chat>/lastMetrics/latency}"
+														unit="ms"
+														state="{= ${chat>/lastMetrics/latency} &lt; ${chat>/historicalAvg/latency} ? 'Success' : 'Error' }"/>
+													<Text 
+														text="{= ' (Avg: ' + ${chat>/historicalAvg/latency} + 'ms)' }"
+														class="sapUiTinyMarginBegin"/>
+												</HBox>
+											</VBox>
+											<VBox>
+												<Label text="TTFT" class="sapUiTinyMarginBottom"/>
+												<HBox>
+													<ObjectNumber
+														number="{chat>/lastMetrics/ttft}"
+														unit="ms"
+														state="Success"/>
+													<Text 
+														text="{= ' (Avg: ' + ${chat>/historicalAvg/ttft} + 'ms)' }"
+														class="sapUiTinyMarginBegin"/>
+												</HBox>
+											</VBox>
+											<VBox>
+												<Label text="Throughput" class="sapUiTinyMarginBottom"/>
+												<HBox>
+													<ObjectNumber
+														number="{chat>/lastMetrics/tps}"
+														unit="tok/s"
+														state="Success"/>
+													<Text 
+														text="{= ' (Avg: ' + ${chat>/historicalAvg/tps} + ')' }"
+														class="sapUiTinyMarginBegin"/>
+												</HBox>
+											</VBox>
+											<VBox>
+												<Label text="Tokens" class="sapUiTinyMarginBottom"/>
+												<Text text="{= ${chat>/lastMetrics/tokens} + ' tokens' }"/>
+											</VBox>
+										</layout:Grid>
+									</VBox>
+								</content>
+							</Panel>
+						</VBox>
+					</content>
+				</Panel>
+
+				<!-- 2. MODEL PERFORMANCE ANALYTICS (Analytical-Style Cards with OpenUI5) -->
+				<Panel 
+					headerText="Model Performance Analytics - Real-Time Metrics" 
+					expandable="true" 
+					expanded="true"
+					class="sapUiResponsiveMargin">
+					<content>
+						<layout:Grid defaultSpan="L4 M6 S12" class="sapUiSmallMargin">
+							
+							<!-- Card 1: Current Latency -->
+							<f:Card class="sapUiSmallMargin">
+								<f:header>
+									<card:Header
+										title="Latency Performance"
+										subtitle="Current Response Times"/>
+								</f:header>
+								<f:content>
+									<VBox class="sapUiSmallMargin">
+										<HBox justifyContent="SpaceBetween" class="sapUiSmallMarginBottom">
+											<VBox width="33%">
+												<Label text="P50" class="sapUiTinyMarginBottom"/>
+												<ObjectNumber 
+													number="{= Math.round(${metrics>/selectedModelData/current/p50}) }" 
+													unit="ms"
+													emphasized="true"
+													state="Success"/>
+											</VBox>
+											<VBox width="33%">
+												<Label text="P95" class="sapUiTinyMarginBottom"/>
+												<ObjectNumber 
+													number="{= Math.round(${metrics>/selectedModelData/current/p95}) }" 
+													unit="ms"
+													emphasized="true"
+													state="Warning"/>
+											</VBox>
+											<VBox width="33%">
+												<Label text="P99" class="sapUiTinyMarginBottom"/>
+												<ObjectNumber 
+													number="{= Math.round(${metrics>/selectedModelData/current/p99}) }" 
+													unit="ms"
+													emphasized="true"
+													state="Error"/>
+											</VBox>
+										</HBox>
+										<ProgressIndicator
+											percentValue="{= Math.min(100, (${metrics>/selectedModelData/current/p50} / 200) * 100) }"
+											displayValue="Target: &lt;100ms"
+											state="{= ${metrics>/selectedModelData/current/p50} &lt; 100 ? 'Success' : 'Warning' }"/>
+										<Text text="Lower is better • Updates every 5s" class="sapUiTinyMarginTop"/>
+									</VBox>
+								</f:content>
+							</f:Card>
+
+							<!-- Card 2: Throughput -->
+							<f:Card class="sapUiSmallMargin">
+								<f:header>
+									<card:Header
+										title="Throughput"
+										subtitle="Tokens Per Second"/>
+								</f:header>
+								<f:content>
+									<VBox class="sapUiSmallMargin">
+										<ObjectNumber 
+											number="{= Math.round(${metrics>/selectedModelData/current/tps}) }" 
+											unit="tok/s"
+											emphasized="true"
+											state="Success"
+											class="sapUiLargeMarginBottom"/>
+										<ProgressIndicator
+											percentValue="{= Math.min(100, (${metrics>/selectedModelData/current/tps} / 100) * 100) }"
+											displayValue="Capacity"
+											state="Success"/>
+										<HBox justifyContent="SpaceBetween" class="sapUiSmallMarginTop">
+											<Label text="Peak: 85 tok/s"/>
+											<Label text="Min: 42 tok/s"/>
+										</HBox>
+										<Text text="Higher is better • Live streaming" class="sapUiTinyMarginTop"/>
+									</VBox>
+								</f:content>
+							</f:Card>
+
+							<!-- Card 3: TTFT -->
+							<f:Card class="sapUiSmallMargin">
+								<f:header>
+									<card:Header
+										title="Time To First Token"
+										subtitle="Initial Response Speed"/>
+								</f:header>
+								<f:content>
+									<VBox class="sapUiSmallMargin">
+										<ObjectNumber 
+											number="{= Math.round(${metrics>/selectedModelData/current/ttft}) }" 
+											unit="ms"
+											emphasized="true"
+											state="{= ${metrics>/selectedModelData/current/ttft} &lt; 100 ? 'Success' : 'Warning' }"
+											class="sapUiLargeMarginBottom"/>
+										<ProgressIndicator
+											percentValue="{= Math.min(100, (${metrics>/selectedModelData/current/ttft} / 150) * 100) }"
+											displayValue="Target: &lt;100ms"
+											state="{= ${metrics>/selectedModelData/current/ttft} &lt; 100 ? 'Success' : 'Warning' }"/>
+										<HBox justifyContent="SpaceBetween" class="sapUiSmallMarginTop">
+											<Label text="Best: 23ms"/>
+											<Label text="Worst: 156ms"/>
+										</HBox>
+										<Text text="Critical for user experience" class="sapUiTinyMarginTop"/>
+									</VBox>
+								</f:content>
+							</f:Card>
+
+							<!-- Card 4: Cache Hit Rate -->
+							<f:Card class="sapUiSmallMargin">
+								<f:header>
+									<card:Header
+										title="Cache Efficiency"
+										subtitle="Hit Rate Performance"/>
+								</f:header>
+								<f:content>
+									<VBox class="sapUiSmallMargin">
+										<ObjectNumber 
+											number="{= Math.round(${metrics>/selectedModelData/current/cacheHit} * 100) }" 
+											unit="%"
+											emphasized="true"
+											state="{= ${metrics>/selectedModelData/current/cacheHit} > 0.7 ? 'Success' : 'Warning' }"
+											class="sapUiLargeMarginBottom"/>
+										<ProgressIndicator
+											percentValue="{= ${metrics>/selectedModelData/current/cacheHit} * 100 }"
+											displayValue="Cache Utilization"
+											state="{= ${metrics>/selectedModelData/current/cacheHit} > 0.7 ? 'Success' : 'Warning' }"/>
+										<HBox justifyContent="SpaceBetween" class="sapUiSmallMarginTop">
+											<Label text="Target: >70%"/>
+											<ObjectStatus text="Healthy" state="Success"/>
+										</HBox>
+										<Text text="Reduces latency significantly" class="sapUiTinyMarginTop"/>
+									</VBox>
+								</f:content>
+							</f:Card>
+
+							<!-- Card 5: Queue Depth -->
+							<f:Card class="sapUiSmallMargin">
+								<f:header>
+									<card:Header
+										title="Queue Depth"
+										subtitle="Pending Requests"/>
+								</f:header>
+								<f:content>
+									<VBox class="sapUiSmallMargin">
+										<ObjectNumber 
+											number="{metrics>/selectedModelData/current/queueDepth}" 
+											emphasized="true"
+											state="{= ${metrics>/selectedModelData/current/queueDepth} &lt; 10 ? 'Success' : 'Error' }"
+											class="sapUiLargeMarginBottom"/>
+										<ProgressIndicator
+											percentValue="{= Math.min(100, (${metrics>/selectedModelData/current/queueDepth} / 20) * 100) }"
+											displayValue="Queue Status"
+											state="{= ${metrics>/selectedModelData/current/queueDepth} &lt; 10 ? 'Success' : 'Error' }"/>
+										<HBox justifyContent="SpaceBetween" class="sapUiSmallMarginTop">
+											<Label text="Capacity: 20"/>
+											<ObjectStatus 
+												text="{= ${metrics>/selectedModelData/current/queueDepth} &lt; 10 ? 'Healthy' : 'Congested' }"
+												state="{= ${metrics>/selectedModelData/current/queueDepth} &lt; 10 ? 'Success' : 'Error' }"/>
+										</HBox>
+										<Text text="Monitor for scaling decisions" class="sapUiTinyMarginTop"/>
+									</VBox>
+								</f:content>
+							</f:Card>
+
+							<!-- Card 6: Token Usage -->
+							<f:Card class="sapUiSmallMargin">
+								<f:header>
+									<card:Header
+										title="Token Usage"
+										subtitle="Current Processing"/>
+								</f:header>
+								<f:content>
+									<VBox class="sapUiSmallMargin">
+										<ObjectNumber 
+											number="{metrics>/selectedModelData/current/totalTokens}" 
+											emphasized="true"
+											state="Information"
+											class="sapUiLargeMarginBottom"/>
+										<HBox justifyContent="SpaceBetween" class="sapUiSmallMarginBottom">
+											<VBox width="48%">
+												<Label text="Input Tokens"/>
+												<ObjectNumber 
+													number="{= Math.floor(${metrics>/selectedModelData/current/totalTokens} * 0.3) }"
+													state="Information"/>
+											</VBox>
+											<VBox width="48%">
+												<Label text="Output Tokens"/>
+												<ObjectNumber 
+													number="{= Math.floor(${metrics>/selectedModelData/current/totalTokens} * 0.7) }"
+													state="Success"/>
+											</VBox>
+										</HBox>
+										<ProgressIndicator
+											percentValue="{= Math.min(100, (${metrics>/selectedModelData/current/totalTokens} / 2048) * 100) }"
+											displayValue="Context Window"
+											state="Information"/>
+										<Text text="Ratio: ~30% input / 70% output" class="sapUiTinyMarginTop"/>
+									</VBox>
+								</f:content>
+							</f:Card>
+
+						</layout:Grid>
+					</content>
+				</Panel>
+
+				<!-- 3. TIER STATISTICS (Moved Down) -->
+				<Panel headerText="Tier Statistics" expandable="true" expanded="false" class="sapUiResponsiveMargin">
+					<content>
+						<layout:Grid defaultSpan="L2 M4 S12" hSpacing="1" vSpacing="1" class="sapUiSmallMargin">
+							<layout:VerticalLayout class="sapUiTinyMargin">
+								<Title text="GPU Memory" level="H3"/>
+								<ProgressIndicator
+									percentValue="{= ${metrics>/tiers/gpu/total} > 0 ? Math.round(${metrics>/tiers/gpu/used} / ${metrics>/tiers/gpu/total} * 100) : 0 }"
+									displayValue="{= Math.round((${metrics>/tiers/gpu/hitRate} || 0) * 100) + '% Hit Rate' }"
+									state="Success"
+									class="sapUiSmallMarginTop"/>
+								<ObjectStatus
+									text="{metrics>/tiers/gpu/used} / {metrics>/tiers/gpu/total} GB"
+									class="sapUiTinyMarginTop"/>
+							</layout:VerticalLayout>
+							<layout:VerticalLayout class="sapUiTinyMargin">
+								<Title text="RAM" level="H3"/>
+								<ProgressIndicator
+									percentValue="{= ${metrics>/tiers/ram/total} > 0 ? Math.round(${metrics>/tiers/ram/used} / ${metrics>/tiers/ram/total} * 100) : 0 }"
+									displayValue="{= Math.round((${metrics>/tiers/ram/hitRate} || 0) * 100) + '% Hit Rate' }"
+									state="Information"
+									class="sapUiSmallMarginTop"/>
+								<ObjectStatus
+									text="{metrics>/tiers/ram/used} / {metrics>/tiers/ram/total} GB"
+									class="sapUiTinyMarginTop"/>
+							</layout:VerticalLayout>
+							<layout:VerticalLayout class="sapUiTinyMargin">
+								<Title text="Cache" level="H3"/>
+								<ProgressIndicator
+									percentValue="{= ${metrics>/tiers/dragonfly/total} > 0 ? Math.round(${metrics>/tiers/dragonfly/used} / ${metrics>/tiers/dragonfly/total} * 100) : 0 }"
+									displayValue="{= Math.round((${metrics>/tiers/dragonfly/hitRate} || 0) * 100) + '% Hit Rate' }"
+									state="Warning"
+									class="sapUiSmallMarginTop"/>
+								<ObjectStatus
+									text="{metrics>/tiers/dragonfly/used} / {metrics>/tiers/dragonfly/total} GB"
+									class="sapUiTinyMarginTop"/>
+							</layout:VerticalLayout>
+							<layout:VerticalLayout class="sapUiTinyMargin">
+								<Title text="Knowledge Engine" level="H3"/>
+								<ProgressIndicator
+									percentValue="{= ${metrics>/tiers/postgres/total} > 0 ? Math.round(${metrics>/tiers/postgres/used} / ${metrics>/tiers/postgres/total} * 100) : 0 }"
+									displayValue="{= Math.round((${metrics>/tiers/postgres/hitRate} || 0) * 100) + '% Hit Rate' }"
+									state="None"
+									class="sapUiSmallMarginTop"/>
+								<ObjectStatus
+									text="{metrics>/tiers/postgres/used} / {metrics>/tiers/postgres/total} GB"
+									class="sapUiTinyMarginTop"/>
+							</layout:VerticalLayout>
+							<layout:VerticalLayout class="sapUiTinyMargin">
+								<Title text="Object Store" level="H3"/>
+								<ProgressIndicator
+									percentValue="{= ${metrics>/tiers/ssd/total} > 0 ? Math.round(${metrics>/tiers/ssd/used} / ${metrics>/tiers/ssd/total} * 100) : 0 }"
+									displayValue="{= Math.round((${metrics>/tiers/ssd/hitRate} || 0) * 100) + '% Hit Rate' }"
+									state="Error"
+									class="sapUiSmallMarginTop"/>
+								<ObjectStatus
+									text="{metrics>/tiers/ssd/used} / {metrics>/tiers/ssd/total} GB"
+									class="sapUiTinyMarginTop"/>
+							</layout:VerticalLayout>
+						</layout:Grid>
+					</content>
+				</Panel>
+
+				<!-- 4. MODEL COMPARISON TABLE -->
+				<Panel headerText="Model Comparison" expandable="true" expanded="false" class="sapUiResponsiveMargin">
+					<content>
+						<Table
+							id="modelsTable"
+							items="{metrics>/availableModels}"
+							mode="SingleSelectMaster"
+							selectionChange=".onModelSelectFromTable"
+							noDataText="No models available"
+							class="sapUiSmallMarginTop">
+							<columns>
+								<Column width="25%"><Text text="Model"/></Column>
+								<Column width="15%"><Text text="Status"/></Column>
+								<Column width="15%"><Text text="Avg Latency"/></Column>
+								<Column width="15%"><Text text="Throughput"/></Column>
+								<Column width="15%"><Text text="Requests"/></Column>
+								<Column width="15%"><Text text="Last Used"/></Column>
+							</columns>
+							<items>
+								<ColumnListItem type="Active">
+									<cells>
+										<VBox>
+											<Text text="{metrics>display_name}" class="sapUiSmallMarginBottom"/>
+											<Text text="{= ${metrics>architecture} + ' | ' + ${metrics>quantization} }"/>
+										</VBox>
+										<ObjectStatus
+											text="{metrics>health}"
+											state="{= ${metrics>health} === 'healthy' ? 'Success' : 'Error' }"
+											icon="{= ${metrics>health} === 'healthy' ? 'sap-icon://sys-enter-2' : 'sap-icon://error' }"/>
+										<ObjectNumber
+											number="{metrics>avgLatency}"
+											unit="ms"
+											state="{= ${metrics>avgLatency} &lt; 100 ? 'Success' : 'Warning' }"/>
+										<ObjectNumber
+											number="{metrics>avgThroughput}"
+											unit="tok/s"/>
+										<Text text="{metrics>requests}"/>
+										<Text text="{metrics>lastUsed}"/>
+									</cells>
+								</ColumnListItem>
+							</items>
+						</Table>
+					</content>
+				</Panel>
+
+			</layout:VerticalLayout>
+		</content>
+	</Page>
+</mvc:View>

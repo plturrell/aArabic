@@ -1,0 +1,41 @@
+{
+  "server": {
+    "host": "127.0.0.1",
+    "port": 8080,
+    "workers": 2,
+    "read_timeout_ms": 30000,
+    "write_timeout_ms": 30000,
+    "max_request_size_bytes": 10485760
+  },
+  "database": {
+    "type": "sqlite",
+    "connection": "${DATABASE_URL:-./data/nmetadata-dev.db}",
+    "pool": {
+      "min_size": 1,
+      "max_size": 5,
+      "acquire_timeout_ms": 5000,
+      "idle_timeout_ms": 300000,
+      "max_lifetime_ms": 1800000,
+      "health_check_interval_ms": 30000
+    }
+  },
+  "auth": {
+    "jwt_secret": "${JWT_SECRET:-dev-secret-key-min-32-characters-long-change-in-prod}",
+    "token_expiry_minutes": 120,
+    "refresh_token_expiry_days": 30,
+    "bcrypt_rounds": 10
+  },
+  "logging": {
+    "level": "debug",
+    "format": "text",
+    "output": "stdout"
+  },
+  "metrics": {
+    "enabled": true,
+    "port": 9090,
+    "path": "/metrics"
+  },
+  "cors": {
+    "enabled": true
+  }
+}

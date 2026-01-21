@@ -23,10 +23,8 @@ Target: full Lean4 v4.26.0 compiler/runtime parity.
 
 ## Conformance
 
-- Upstream test suite in `vendor/layerIntelligence/lean4/tests` is the source
-  of truth for behavior and regressions.
-- Differential testing against upstream Lean4 is allowed as a test oracle, but
-  the new compiler/runtime must not link or depend on upstream Lean4 at runtime.
+- Test suite in `tests/lean4` contains conformance tests for Lean4 behavior.
+- This is a standalone implementation with no external Lean4 dependency.
 
 ## Service Endpoints
 

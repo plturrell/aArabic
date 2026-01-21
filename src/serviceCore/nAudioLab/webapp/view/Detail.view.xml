@@ -1,0 +1,91 @@
+<mvc:View
+    controllerName="nAudioLab.webapp.controller.Detail"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:f="sap.f"
+    xmlns:l="sap.ui.layout">
+    <f:DynamicPage showFooter="true">
+        <f:title>
+            <f:DynamicPageTitle>
+                <f:heading>
+                    <Title text="{project>/title}"/>
+                </f:heading>
+                <f:expandedContent>
+                    <Label text="44.1kHz • 24-bit • Stereo"/>
+                </f:expandedContent>
+                <f:actions>
+                    <Button text="Export" type="Emphasized" icon="sap-icon://download"/>
+                    <Button icon="sap-icon://full-screen" press=".onFullScreen"/>
+                    <Button icon="sap-icon://decline" press=".onCloseDetail"/>
+                </f:actions>
+            </f:DynamicPageTitle>
+        </f:title>
+        <f:header>
+            <f:DynamicPageHeader pinnable="true">
+                <HBox alignItems="Center" justifyContent="SpaceBetween" width="100%">
+                    <VBox>
+                        <Title text="Waveform" level="H3"/>
+                        <Text text="Visualization of audio signal"/>
+                    </VBox>
+                    <HBox>
+                         <Button icon="sap-icon://zoom-in" type="Transparent"/>
+                         <Button icon="sap-icon://zoom-out" type="Transparent"/>
+                    </HBox>
+                </HBox>
+            </f:DynamicPageHeader>
+        </f:header>
+        <f:content>
+            <VBox class="sapUiSmallMargin">
+                <!-- Fake Waveform Visualization -->
+                <HBox height="200px" width="100%" alignItems="Center" justifyContent="Center" class="audioPlayerContainer">
+                     <html:div xmlns:html="http://www.w3.org/1999/xhtml" style="width:100%; height:100px; display:flex; align-items:center; justify-content:center; gap:2px;">
+                        <!-- Using CSS to fake a waveform -->
+                         <html:div style="width:4px; height:40px; background:#0070f2;"></html:div>
+                         <html:div style="width:4px; height:60px; background:#0070f2;"></html:div>
+                         <html:div style="width:4px; height:30px; background:#0070f2;"></html:div>
+                         <html:div style="width:4px; height:80px; background:#0070f2;"></html:div>
+                         <html:div style="width:4px; height:50px; background:#0070f2;"></html:div>
+                         <html:div style="width:4px; height:20px; background:#0070f2;"></html:div>
+                         <html:div style="width:4px; height:70px; background:#0070f2;"></html:div>
+                         <html:div style="width:4px; height:90px; background:#0070f2;"></html:div>
+                         <html:div style="width:4px; height:40px; background:#0070f2;"></html:div>
+                     </html:div>
+                </HBox>
+
+                <!-- Mixer Controls -->
+                <l:Grid defaultSpan="L4 M6 S12" class="sapUiMediumMarginTop">
+                    <Panel headerText="Track 1: Vocals" class="hypershimmySourceCard">
+                        <VBox>
+                            <Slider value="80" class="sapUiSmallMarginBottom"/>
+                            <HBox justifyContent="SpaceBetween">
+                                <Button icon="sap-icon://microphone" type="Transparent"/>
+                                <Button text="M" type="Reject" width="30px"/>
+                                <Button text="S" type="Attention" width="30px"/>
+                            </HBox>
+                        </VBox>
+                    </Panel>
+                     <Panel headerText="Track 2: Beats" class="hypershimmySourceCard">
+                        <VBox>
+                            <Slider value="60" class="sapUiSmallMarginBottom"/>
+                             <HBox justifyContent="SpaceBetween">
+                                <Button icon="sap-icon://sound" type="Transparent"/>
+                                <Button text="M" type="Reject" width="30px"/>
+                                <Button text="S" type="Attention" width="30px"/>
+                            </HBox>
+                        </VBox>
+                    </Panel>
+                </l:Grid>
+            </VBox>
+        </f:content>
+        <f:footer>
+            <OverflowToolbar>
+                <Button icon="sap-icon://media-rewind"/>
+                <Button icon="{= ${player>/isPlaying} ? 'sap-icon://media-pause' : 'sap-icon://media-play' }" type="Emphasized" press=".onPlayPause"/>
+                <Button icon="sap-icon://media-forward"/>
+                <ToolbarSpacer/>
+                <Slider min="0" max="100" value="{player>/currentTime}" width="200px"/>
+                <Text text="{player>/timeLabel}" class="sapUiTinyMarginBegin"/>
+            </OverflowToolbar>
+        </f:footer>
+    </f:DynamicPage>
+</mvc:View>

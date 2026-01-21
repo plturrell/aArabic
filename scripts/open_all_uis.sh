@@ -46,11 +46,6 @@ echo "   Internal: http://localhost:5678"
 echo "   Access: docker exec ai_nucleus_n8n wget -qO- http://localhost:5678"
 echo ""
 
-echo -e "${YELLOW}Langflow AI Builder:${NC}"
-echo "   Internal: http://localhost:7860"
-echo "   Access: docker exec ai_nucleus_langflow curl http://localhost:7860"
-echo ""
-
 echo -e "${YELLOW}HyperbookLM:${NC}"
 echo "   Internal: http://localhost:3002"
 echo "   Access: docker exec ai_nucleus_hyperbooklm wget -qO- http://localhost:3002"

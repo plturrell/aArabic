@@ -46,8 +46,11 @@ fn dequantize_block(
     n_values: usize,
 ) void {
     // Convert f16 scale to f32
-    const scale = common.f16_to_f32(block.scale);
-    
+    var scale = common.f16_to_f32(block.scale);
+
+    // Handle NaN/Inf scales - replace with 0 to avoid propagation
+    if (std.math.isNan(scale) or std.math.isInf(scale)) scale = 0.0;
+
     // Dequantize each 4-bit value
     for (0..n_values) |i| {
         const qval = common.get_4bit_value(&block.qs, i);
@@ -62,20 +65,45 @@ fn dequantize_block(
 /// Fast SIMD-optimized dequantization for aligned blocks
 pub fn dequantize_simd(output: []f32, input: []const u8, n_values: usize) void {
     const n_blocks = (n_values + common.QK4_0 - 1) / common.QK4_0;
-    const blocks = @as([*]const common.BlockQ4_0, @ptrCast(@alignCast(input.ptr)))[0..n_blocks];
-    
+    const block_size_bytes = @sizeOf(common.BlockQ4_0); // 18 bytes
+
+    // Check if we have enough input data
+    const required_bytes = n_blocks * block_size_bytes;
+    if (input.len < required_bytes) {
+        std.debug.print("   ❌ Q4_0 dequantize: insufficient input data ({d} < {d} bytes)\n", .{ input.len, required_bytes });
+        @memset(output, 0);
+        return;
+    }
+
+    // Process blocks manually without alignment assumptions
     for (0..n_blocks) |block_idx| {
-        const block = &blocks[block_idx];
+        const block_offset = block_idx * block_size_bytes;
+        const block_data = input[block_offset..][0..block_size_bytes];
+
         const block_start = block_idx * common.QK4_0;
         const block_end = @min(block_start + common.QK4_0, n_values);
-        const block_size = block_end - block_start;
-        
-        if (block_size == common.QK4_0) {
-            // Full block - use SIMD
-            dequantize_block_simd(output[block_start..block_end], block);
-        } else {
-            // Partial block - scalar fallback
-            dequantize_block(output[block_start..block_end], block, block_size);
+        const values_in_block = block_end - block_start;
+
+        // Read scale (2 bytes, little-endian)
+        const scale_bytes = block_data[0..2];
+        const scale_u16 = @as(u16, scale_bytes[0]) | (@as(u16, scale_bytes[1]) << 8);
+        var scale = common.f16_to_f32(scale_u16);
+
+        // Handle NaN/Inf scales - replace with 0 to avoid propagation
+        if (std.math.isNan(scale) or std.math.isInf(scale)) scale = 0.0;
+
+        // Read quantized values (16 bytes = 32 x 4-bit)
+        const qs = block_data[2..18];
+
+        // Dequantize values
+        for (0..values_in_block) |i| {
+            const byte_idx = i / 2;
+            const is_high = (i % 2) == 1;
+            const qval = if (is_high) (qs[byte_idx] >> 4) & 0xF else qs[byte_idx] & 0xF;
+
+            // Q4_0 uses signed 4-bit: [0,15] maps to [-8,7]
+            const signed_val = @as(i8, @intCast(qval)) - 8;
+            output[block_start + i] = @as(f32, @floatFromInt(signed_val)) * scale;
         }
     }
 }

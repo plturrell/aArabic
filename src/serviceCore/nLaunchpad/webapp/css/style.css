@@ -1,0 +1,61 @@
+/* Tile hover effect */
+.tileHover {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.tileHover:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    transform: translateY(-4px);
+}
+
+.tileHover:active {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Panel styling */
+.sapMPanel {
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.sapMPanelHdr {
+    font-weight: 600;
+}
+
+/* Search field */
+.sapMSF {
+    border-radius: 0.25rem;
+}
+
+/* Grid container spacing */
+.sapFGridContainer {
+    padding: 0.5rem 0;
+}
+
+/* Footer styling */
+.sapMPageFooter .sapMTB {
+    background-color: transparent;
+}
+
+/* Tile state indicators */
+.sapMGT[data-state="Loading"] .sapMTileCntFtrTxt {
+    color: #e67e22;
+}
+
+.sapMGT[data-state="Loaded"] .sapMTileCntFtrTxt {
+    color: #27ae60;
+}
+
+/* Status indicator in header */
+.sapMObjStatus {
+    font-weight: 500;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .sapMSF {
+        width: 100% !important;
+    }
+}

@@ -42,32 +42,38 @@ pub fn f32_to_f16(val: f32) u16 {
 /// Convert f16 to f32
 pub fn f16_to_f32(val: u16) f32 {
     const bits = @as(u32, val);
-    
+
     const sign = (bits >> 15) & 0x1;
     const exp = (bits >> 10) & 0x1F;
     const mantissa = bits & 0x3FF;
-    
+
     // Handle special cases
     if (exp == 0) {
         if (mantissa == 0) {
             // Zero
             return @bitCast(@as(u32, sign << 31));
         }
-        // Denormal - not commonly used, return zero
-        return @bitCast(@as(u32, sign << 31));
+        // Denormal f16: value = (-1)^sign * 2^(-14) * (mantissa / 1024)
+        // Convert to f32 denormal or normal representation
+        // f16 denormal range: 2^-24 to 2^-14 (approximately 5.96e-8 to 6.1e-5)
+        const sign_f32: f32 = if (sign == 1) -1.0 else 1.0;
+        const mant_f32: f32 = @floatFromInt(mantissa);
+        // 2^(-14) / 1024 = 2^(-14) * 2^(-10) = 2^(-24)
+        const scale: f32 = 5.9604644775390625e-8; // 2^(-24)
+        return sign_f32 * mant_f32 * scale;
     }
-    
+
     if (exp == 0x1F) {
         // Inf or NaN
         const result_bits = (sign << 31) | (0xFF << 23) | (mantissa << 13);
         return @bitCast(result_bits);
     }
-    
+
     // Normal case - convert exponent
     const exp_f32 = exp + 127 - 15;
     const mantissa_f32 = mantissa << 13;
     const result_bits = (sign << 31) | (exp_f32 << 23) | mantissa_f32;
-    
+
     return @bitCast(result_bits);
 }
 

@@ -22,7 +22,6 @@ Open the file and add this configuration (or create the file if it doesn't exist
       "env": {
         "MEMGRAPH_URI": "bolt://localhost:7687",
         "SHIMMY_URL": "http://localhost:11434",
-        "LANGFLOW_URL": "http://localhost:7860",
         "MODEL_SERVER_URL": "http://localhost:8000",
         "DEFAULT_MODEL": "Qwen3-Coder-30B-A3B-Instruct"
       }
@@ -136,7 +135,7 @@ docker ps | grep memgraph
 
 **Solution**: Check services are running
 ```bash
-docker ps | grep -E "shimmy|langflow"
+docker ps | grep shimmy
 docker logs ai_nucleus_shimmy | tail -10
 ```
 
@@ -147,8 +146,7 @@ When you use graphchat-bridge in Cline:
 1. **Cline** sends your request to the GraphChat Bridge MCP server
 2. **GraphChat Bridge** tries to use **Shimmy** first (fastest)
 3. If Shimmy fails, it tries **Model Server**
-4. If Model Server fails, it tries **Langflow**
-5. The result is sent back to Cline and shown to you
+4. The result is sent back to Cline and shown to you
 
 All of this happens automatically with intelligent fallback!
 

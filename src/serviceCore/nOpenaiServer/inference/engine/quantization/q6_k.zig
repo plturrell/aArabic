@@ -17,11 +17,30 @@ pub const BlockQ6_K = extern struct {
     d: u16, // fp16 super-block scale
 };
 
+/// Debug flag for first block
+var debug_first_block: bool = true;
+
 /// Dequantize a single Q6_K block (256 values) into `output`.
 pub fn dequantizeBlock(output: []f32, block: *const BlockQ6_K) void {
     std.debug.assert(output.len == QK_K);
 
-    const d = common.f16_to_f32(block.d);
+    var d = common.f16_to_f32(block.d);
+
+    // Debug: print first block's d value
+    if (debug_first_block) {
+        std.debug.print("🔬 Q6_K dequant: d_raw=0x{x:0>4}, d_f32={d:.10}\n", .{ block.d, d });
+        std.debug.print("   ql[0:4]={d},{d},{d},{d} qh[0:4]={d},{d},{d},{d}\n", .{
+            block.ql[0], block.ql[1], block.ql[2], block.ql[3],
+            block.qh[0], block.qh[1], block.qh[2], block.qh[3],
+        });
+        std.debug.print("   scales[0:4]={d},{d},{d},{d}\n", .{
+            block.scales[0], block.scales[1], block.scales[2], block.scales[3],
+        });
+        debug_first_block = false;
+    }
+
+    // Handle NaN/Inf scales - replace with 0 to avoid propagation
+    if (std.math.isNan(d) or std.math.isInf(d)) d = 0.0;
     const ql = &block.ql;
     const qh = &block.qh;
     const sc = &block.scales;

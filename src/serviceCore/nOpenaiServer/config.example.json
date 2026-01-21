@@ -1,0 +1,14 @@
+{
+    "host": "127.0.0.1",
+    "port": 11434,
+    "num_workers": 4,
+    "max_request_mb": 16,
+    "request_timeout_ms": 30000,
+    "generation_timeout_ms": 300000,
+    "model_id": "shimmy-local",
+    "model_path": null,
+    "default_max_tokens": 512,
+    "default_temperature": 0.7,
+    "debug": false
+}
+

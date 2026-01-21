@@ -34,8 +34,12 @@ pub fn dequantizeBlock(
 ) void {
     std.debug.assert(output.len == BLOCK_SIZE);
 
-    const d = common.f16_to_f32(block.d);
-    const dmin = common.f16_to_f32(block.dmin);
+    var d = common.f16_to_f32(block.d);
+    var dmin = common.f16_to_f32(block.dmin);
+
+    // Handle NaN/Inf scales - replace with 0 to avoid propagation
+    if (std.math.isNan(d) or std.math.isInf(d)) d = 0.0;
+    if (std.math.isNan(dmin) or std.math.isInf(dmin)) dmin = 0.0;
 
     // Extract scales and mins for 8 sub-blocks
     var sc: [8]u8 = undefined;

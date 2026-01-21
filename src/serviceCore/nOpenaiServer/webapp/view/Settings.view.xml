@@ -1,0 +1,282 @@
+<mvc:View
+	controllerName="llm.server.dashboard.controller.Settings"
+	xmlns="sap.m"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns:core="sap.ui.core"
+	xmlns:layout="sap.ui.layout"
+	xmlns:f="sap.ui.layout.form"
+	height="100%">
+
+	<Page id="settingsPage" showHeader="true">
+		<customHeader>
+			<Bar>
+				<contentLeft>
+					<Breadcrumbs>
+						<Link text="Home" press=".onBreadcrumbHome"/>
+						<Link text="Settings"/>
+					</Breadcrumbs>
+				</contentLeft>
+				<contentMiddle>
+					<Title text="Settings" level="H4"/>
+				</contentMiddle>
+				<contentRight>
+					<Button
+						text="Reset to Defaults"
+						type="Transparent"
+						icon="sap-icon://reset"
+						press=".onResetDefaults"/>
+					<Button
+						text="Export"
+						type="Transparent"
+						icon="sap-icon://download"
+						press=".onExportSettings"/>
+					<Button
+						text="Import"
+						type="Transparent"
+						icon="sap-icon://upload"
+						press=".onImportSettings"/>
+				</contentRight>
+			</Bar>
+		</customHeader>
+		
+		<content>
+			<IconTabBar id="settingsTabBar" class="sapUiResponsiveContentPadding">
+				<!-- General Tab -->
+				<items>
+					<IconTabFilter text="General" icon="sap-icon://home" key="general">
+						<f:SimpleForm
+							editable="true"
+							layout="ResponsiveGridLayout"
+							labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="12"
+							emptySpanXL="0" emptySpanL="0" emptySpanM="0" emptySpanS="0"
+							columnsXL="2" columnsL="2" columnsM="1" columnsS="1">
+							<f:content>
+								<core:Title text="Application"/>
+								<Label text="Application Name"/>
+								<Input id="appNameInput" value="{settings>/general/appName}" placeholder="Nucleus OpenAI Server"/>
+								
+								<Label text="Language"/>
+								<Select id="languageSelect" selectedKey="{settings>/general/language}">
+									<core:Item key="en" text="English"/>
+									<core:Item key="de" text="German"/>
+									<core:Item key="fr" text="French"/>
+									<core:Item key="es" text="Spanish"/>
+									<core:Item key="zh" text="Chinese"/>
+									<core:Item key="ja" text="Japanese"/>
+								</Select>
+								
+								<Label text="Auto-Save"/>
+								<Switch id="autoSaveSwitch" state="{settings>/general/autoSave}" customTextOn="On" customTextOff="Off"/>
+								
+								<Label text="Auto-Save Interval (seconds)"/>
+								<StepInput id="autoSaveInterval" value="{settings>/general/autoSaveInterval}" min="10" max="300" step="10"/>
+							</f:content>
+						</f:SimpleForm>
+					</IconTabFilter>
+					
+					<!-- Server Tab -->
+					<IconTabFilter text="Server" icon="sap-icon://database" key="server">
+						<f:SimpleForm
+							editable="true"
+							layout="ResponsiveGridLayout"
+							labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="12"
+							emptySpanXL="0" emptySpanL="0" emptySpanM="0" emptySpanS="0"
+							columnsXL="2" columnsL="2" columnsM="1" columnsS="1">
+							<f:content>
+								<core:Title text="API Configuration"/>
+								<Label text="API Base URL"/>
+								<Input id="apiUrlInput" value="{settings>/server/apiUrl}" placeholder="http://localhost:11434"/>
+								
+								<Label text="WebSocket URL"/>
+								<Input id="wsUrlInput" value="{settings>/server/wsUrl}" placeholder="ws://localhost:8080/ws"/>
+								
+								<Label text="Request Timeout (seconds)"/>
+								<StepInput id="timeoutInput" value="{settings>/server/timeout}" min="5" max="300" step="5"/>
+								
+								<Label text="Max Retries"/>
+								<StepInput id="maxRetriesInput" value="{settings>/server/maxRetries}" min="0" max="10" step="1"/>
+								
+								<core:Title text="Connection"/>
+								<Label text=""/>
+								<HBox>
+									<Button
+										id="testConnectionBtn"
+										text="Test Connection"
+										type="Emphasized"
+										icon="sap-icon://connected"
+										press=".onTestConnection"/>
+									<ObjectStatus
+										id="connectionStatus"
+										class="sapUiSmallMarginBegin"
+										text="{settings>/server/connectionStatus}"
+										state="{settings>/server/connectionState}"/>
+								</HBox>
+							</f:content>
+						</f:SimpleForm>
+					</IconTabFilter>
+					
+					<!-- Models Tab -->
+					<IconTabFilter text="Models" icon="sap-icon://machine" key="models">
+						<f:SimpleForm
+							editable="true"
+							layout="ResponsiveGridLayout"
+							labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="12"
+							emptySpanXL="0" emptySpanL="0" emptySpanM="0" emptySpanS="0"
+							columnsXL="2" columnsL="2" columnsM="1" columnsS="1">
+							<f:content>
+								<core:Title text="Default Models"/>
+								<Label text="Default Model"/>
+								<Select id="defaultModelSelect" selectedKey="{settings>/models/defaultModel}">
+									<core:Item key="lfm2.5-1.2b-q4_0" text="LFM2.5 1.2B (Q4_0)"/>
+									<core:Item key="lfm2.5-3.2b-q4_0" text="LFM2.5 3.2B (Q4_0)"/>
+									<core:Item key="gpt-4" text="GPT-4"/>
+									<core:Item key="gpt-3.5-turbo" text="GPT-3.5 Turbo"/>
+									<core:Item key="claude-3" text="Claude 3"/>
+								</Select>
+								
+								<Label text="Fallback Model"/>
+								<Select id="fallbackModelSelect" selectedKey="{settings>/models/fallbackModel}">
+									<core:Item key="none" text="None"/>
+									<core:Item key="lfm2.5-1.2b-q4_0" text="LFM2.5 1.2B (Q4_0)"/>
+									<core:Item key="gpt-3.5-turbo" text="GPT-3.5 Turbo"/>
+								</Select>
+								
+								<core:Title text="Generation Defaults"/>
+								<Label text="Temperature"/>
+								<Slider id="temperatureSlider" value="{settings>/models/temperature}" min="0" max="2" step="0.1" enableTickmarks="true"/>
+								
+								<Label text="Top P"/>
+								<Slider id="topPSlider" value="{settings>/models/topP}" min="0" max="1" step="0.05" enableTickmarks="true"/>
+								
+								<Label text="Max Tokens"/>
+								<StepInput id="maxTokensInput" value="{settings>/models/maxTokens}" min="1" max="128000" step="256"/>
+							</f:content>
+						</f:SimpleForm>
+					</IconTabFilter>
+
+					<!-- Theme Tab -->
+					<IconTabFilter text="Theme" icon="sap-icon://palette" key="theme">
+						<f:SimpleForm
+							editable="true"
+							layout="ResponsiveGridLayout"
+							labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="12"
+							emptySpanXL="0" emptySpanL="0" emptySpanM="0" emptySpanS="0"
+							columnsXL="2" columnsL="2" columnsM="1" columnsS="1">
+							<f:content>
+								<core:Title text="Appearance"/>
+								<Label text="Dark Mode"/>
+								<Switch id="darkModeSwitch" state="{settings>/theme/darkMode}" customTextOn="Dark" customTextOff="Light" change=".onDarkModeChange"/>
+
+								<Label text="Accent Color"/>
+								<Select id="accentColorSelect" selectedKey="{settings>/theme/accentColor}">
+									<core:Item key="default" text="Default (Blue)"/>
+									<core:Item key="teal" text="Teal"/>
+									<core:Item key="purple" text="Purple"/>
+									<core:Item key="green" text="Green"/>
+									<core:Item key="orange" text="Orange"/>
+								</Select>
+
+								<Label text="Font Size"/>
+								<Select id="fontSizeSelect" selectedKey="{settings>/theme/fontSize}">
+									<core:Item key="small" text="Small"/>
+									<core:Item key="medium" text="Medium"/>
+									<core:Item key="large" text="Large"/>
+								</Select>
+
+								<Label text="Compact Density"/>
+								<Switch id="compactModeSwitch" state="{settings>/theme/compactMode}" customTextOn="Compact" customTextOff="Cozy"/>
+							</f:content>
+						</f:SimpleForm>
+					</IconTabFilter>
+
+					<!-- Shortcuts Tab -->
+					<IconTabFilter text="Shortcuts" icon="sap-icon://keyboard-and-mouse" key="shortcuts">
+						<VBox class="sapUiSmallMargin">
+							<Toolbar>
+								<Title text="Keyboard Shortcuts" level="H4"/>
+								<ToolbarSpacer/>
+								<Text text="Shortcuts are read-only for now" class="sapUiTinyMarginEnd"/>
+							</Toolbar>
+							<Table id="shortcutsTable" items="{settings>/shortcuts}" mode="None" growing="true" growingThreshold="50">
+								<columns>
+									<Column width="30%">
+										<Text text="Shortcut"/>
+									</Column>
+									<Column width="50%">
+										<Text text="Description"/>
+									</Column>
+									<Column width="20%">
+										<Text text="Category"/>
+									</Column>
+								</columns>
+								<items>
+									<ColumnListItem>
+										<cells>
+											<Text text="{settings>shortcut}" class="sapUiSmallMarginEnd"/>
+											<Text text="{settings>description}"/>
+											<Text text="{settings>category}"/>
+										</cells>
+									</ColumnListItem>
+								</items>
+							</Table>
+						</VBox>
+					</IconTabFilter>
+
+					<!-- Advanced Tab -->
+					<IconTabFilter text="Advanced" icon="sap-icon://action-settings" key="advanced">
+						<f:SimpleForm
+							editable="true"
+							layout="ResponsiveGridLayout"
+							labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="12"
+							emptySpanXL="0" emptySpanL="0" emptySpanM="0" emptySpanS="0"
+							columnsXL="2" columnsL="2" columnsM="1" columnsS="1">
+							<f:content>
+								<core:Title text="Debugging"/>
+								<Label text="Debug Mode"/>
+								<Switch id="debugModeSwitch" state="{settings>/advanced/debugMode}" customTextOn="On" customTextOff="Off"/>
+
+								<Label text="Logging Level"/>
+								<Select id="loggingLevelSelect" selectedKey="{settings>/advanced/loggingLevel}">
+									<core:Item key="error" text="Error"/>
+									<core:Item key="warn" text="Warning"/>
+									<core:Item key="info" text="Info"/>
+									<core:Item key="debug" text="Debug"/>
+									<core:Item key="trace" text="Trace"/>
+								</Select>
+
+								<core:Title text="Cache"/>
+								<Label text="Enable Cache"/>
+								<Switch id="enableCacheSwitch" state="{settings>/advanced/enableCache}" customTextOn="On" customTextOff="Off"/>
+
+								<Label text="Cache Size (MB)"/>
+								<StepInput id="cacheSizeInput" value="{settings>/advanced/cacheSize}" min="10" max="1000" step="10"/>
+
+								<Label text="Cache TTL (minutes)"/>
+								<StepInput id="cacheTTLInput" value="{settings>/advanced/cacheTTL}" min="1" max="1440" step="5"/>
+
+								<Label text=""/>
+								<HBox>
+									<Button
+										id="clearCacheBtn"
+										text="Clear Cache"
+										type="Reject"
+										icon="sap-icon://delete"
+										press=".onClearCache"/>
+									<Text id="cacheStatusText" text="{settings>/advanced/cacheStatus}" class="sapUiSmallMarginBegin sapUiSmallMarginTop"/>
+								</HBox>
+
+								<core:Title text="Performance"/>
+								<Label text="Enable Animations"/>
+								<Switch id="enableAnimationsSwitch" state="{settings>/advanced/enableAnimations}" customTextOn="On" customTextOff="Off"/>
+
+								<Label text="Lazy Loading"/>
+								<Switch id="lazyLoadingSwitch" state="{settings>/advanced/lazyLoading}" customTextOn="On" customTextOff="Off"/>
+							</f:content>
+						</f:SimpleForm>
+					</IconTabFilter>
+				</items>
+			</IconTabBar>
+		</content>
+	</Page>
+</mvc:View>
+

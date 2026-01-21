@@ -1,0 +1,140 @@
+/* =============================================================================
+   nLeanProof - SAP Fiori Design Library Aligned Styles
+   Consistent with nOpenaiServer, nWorkflow, nLaunchpad
+   ============================================================================= */
+
+/* =============================================================================
+   TILE HOVER EFFECT - Same as nLaunchpad
+   ============================================================================= */
+
+.tileHover:hover {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+    transition: all 0.2s;
+}
+
+/* =============================================================================
+   CHAT INTERFACE STYLES - Essential Only
+   ============================================================================= */
+
+.hypershimmyChat {
+    min-height: 400px;
+}
+
+.hypershimmyChatMessages {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Chat Message Bubbles */
+.chatMessageUser {
+    margin: 0.5rem 0;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem 0.75rem 0.25rem 0.75rem;
+    background-color: #0070f2;
+    color: white;
+    max-width: 80%;
+    margin-left: auto;
+}
+
+.chatMessageAssistant {
+    margin: 0.5rem 0;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem 0.75rem 0.75rem 0.25rem;
+    background-color: #f5f5f5;
+    color: #333;
+    max-width: 85%;
+    margin-right: auto;
+    border: 1px solid #e5e5e5;
+}
+
+.chatMessageContent {
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+
+.chatMessageTimestamp {
+    font-size: 0.75rem;
+    color: #888;
+    margin-top: 0.25rem;
+}
+
+.chatMessageUser .chatMessageTimestamp {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.hypershimmyChatInput {
+    border-top: 1px solid #e5e5e5;
+    padding-top: 0.5rem;
+}
+
+/* =============================================================================
+   CODE EDITOR & OUTPUT STYLES
+   ============================================================================= */
+
+.leanOutput {
+    font-family: "Monaco", "Menlo", "Consolas", monospace;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.outputPre {
+    margin: 0;
+    padding: 0.5rem;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.outputSuccess {
+    color: #2e7d32;
+    padding: 0.5rem;
+    font-weight: 600;
+}
+
+.outputError {
+    color: #d32f2f;
+    padding: 0.5rem;
+    font-weight: 600;
+}
+
+.successIcon, .errorIcon {
+    margin-right: 0.5rem;
+}
+
+.diagError {
+    color: #d32f2f;
+    padding: 0.25rem 0.5rem;
+    border-left: 3px solid #d32f2f;
+    margin: 0.25rem 0;
+}
+
+.diagWarning {
+    color: #f57c00;
+    padding: 0.25rem 0.5rem;
+    border-left: 3px solid #f57c00;
+    margin: 0.25rem 0;
+}
+
+.diagInfo {
+    color: #0288d1;
+    padding: 0.25rem 0.5rem;
+    border-left: 3px solid #0288d1;
+    margin: 0.25rem 0;
+}
+
+.typeInfo {
+    padding: 0.5rem;
+    background-color: #f5f5f5;
+    border-radius: 0.25rem;
+    margin-top: 0.5rem;
+}
+
+/* =============================================================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================================================= */
+
+@media (max-width: 600px) {
+    .sapMGT {
+        height: 8rem;
+    }
+}

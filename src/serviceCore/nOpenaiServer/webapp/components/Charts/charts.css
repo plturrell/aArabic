@@ -1,0 +1,154 @@
+/**
+ * Charts Suite Styles
+ */
+
+/* Chart container defaults */
+.chart-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 200px;
+}
+
+/* Tooltip styling */
+.chart-tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 10px 14px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease-out;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    max-width: 250px;
+}
+
+.chart-tooltip strong {
+    color: #fff;
+    display: block;
+    margin-bottom: 4px;
+}
+
+/* Legend styling */
+.chart-legend {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 8px;
+    font-size: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.chart-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.chart-legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+/* Animation for chart elements */
+@keyframes chartFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.chart-animate {
+    animation: chartFadeIn 0.3s ease-out;
+}
+
+/* Radial chart specific */
+.radial-chart {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.radial-chart-value {
+    font-size: 28px;
+    font-weight: bold;
+    color: #333;
+}
+
+.radial-chart-label {
+    font-size: 14px;
+    color: #666;
+    margin-top: 4px;
+}
+
+/* Gauge chart specific */
+.gauge-chart {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Line chart specific */
+.line-chart {
+    position: relative;
+}
+
+.line-chart svg path {
+    transition: stroke-width 0.15s;
+}
+
+.line-chart svg circle:hover {
+    r: 6;
+}
+
+/* Bar chart specific */
+.bar-chart svg rect {
+    transition: opacity 0.15s;
+}
+
+/* Sankey specific */
+.sankey-diagram svg path {
+    transition: opacity 0.15s;
+}
+
+.sankey-diagram svg rect {
+    transition: opacity 0.15s;
+}
+
+/* SAP Fiori theming overrides */
+.sapUiSizeCompact .chart-container {
+    min-height: 180px;
+}
+
+.sapUiSizeCozy .chart-container {
+    min-height: 220px;
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+    .chart-tooltip {
+        background: rgba(255, 255, 255, 0.95);
+        color: #333;
+    }
+    
+    .chart-tooltip strong {
+        color: #000;
+    }
+    
+    .radial-chart-value,
+    .gauge-chart text {
+        fill: #e0e0e0;
+    }
+}
+

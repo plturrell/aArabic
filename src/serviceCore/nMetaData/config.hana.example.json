@@ -1,0 +1,29 @@
+{
+  "database": {
+    "type": "hana",
+    "connection": {
+      "host": "d93a8739-44a8-4845-bef3-8ec724dea2ce.hana.prod-us10.hanacloud.ondemand.com",
+      "port": 443,
+      "user": "DBADMIN",
+      "password": "Initial@1",
+      "schema": "DBADMIN",
+      "use_tls": true,
+      "validate_certificate": true
+    },
+    "pool": {
+      "min_size": 2,
+      "max_size": 10,
+      "acquire_timeout_ms": 5000,
+      "idle_timeout_ms": 300000,
+      "max_lifetime_ms": 1800000,
+      "health_check_interval_ms": 60000
+    }
+  },
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8080
+  },
+  "logging": {
+    "level": "info"
+  }
+}

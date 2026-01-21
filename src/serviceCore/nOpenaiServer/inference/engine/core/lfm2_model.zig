@@ -175,13 +175,13 @@ pub const Lfm2Model = struct {
         );
         errdefer allocator.free(rope_freqs);
 
-        // KV caches
+        // KV caches - one per layer, each storing only 1 layer's worth of data
         var kv_caches = try allocator.alloc(kv_cache.KVCache, config.n_layers);
         errdefer allocator.free(kv_caches);
         for (0..config.n_layers) |i| {
             kv_caches[i] = try kv_cache.KVCache.init(
                 allocator,
-                config.n_layers,
+                1,  // Single layer per cache - NOT n_layers!
                 config.n_kv_heads,
                 config.head_dim,
                 config.max_seq_len,
@@ -231,13 +231,57 @@ pub const Lfm2Model = struct {
         const t_start = std.time.nanoTimestamp();
         var hidden = try self.allocator.alloc(f32, self.config.hidden_size);
         errdefer self.allocator.free(hidden);
+
+        // Debug: Check token_embedding type
+        if (position == 0 and token_id < 10) {
+            const emb_type = switch (self.weights.token_embedding) {
+                .f32 => "f32",
+                .q4_0 => "q4_0",
+                .q4_k => "q4_k",
+                .q6_k => "q6_k",
+            };
+            const emb_len = switch (self.weights.token_embedding) {
+                .f32 => |d| d.len,
+                .q4_0 => |d| d.len,
+                .q4_k => |d| d.len,
+                .q6_k => |d| d.len,
+            };
+            std.debug.print("🔬 forwardToken: token_embedding type={s}, data.len={d}, hidden_size={d}\n", .{ emb_type, emb_len, self.config.hidden_size });
+        }
+
         matrix_ops.get_row(hidden, self.weights.token_embedding, token_id, self.config.hidden_size);
         const t_embed = std.time.nanoTimestamp();
         std.debug.print("   ⏱️  Embedding: {d}ms\n", .{@divFloor(t_embed - t_start, 1_000_000)});
 
+        // Debug: Check embedding output
+        if (position == 0) {
+            var emb_min: f32 = std.math.inf(f32);
+            var emb_max: f32 = -std.math.inf(f32);
+            var emb_nonzero: usize = 0;
+            var emb_nan: usize = 0;
+            for (hidden) |v| {
+                if (std.math.isNan(v)) { emb_nan += 1; continue; }
+                if (v != 0.0) emb_nonzero += 1;
+                if (v < emb_min) emb_min = v;
+                if (v > emb_max) emb_max = v;
+            }
+            std.debug.print("🔍 Embedding[token={d}]: min={d:.4}, max={d:.4}, nonzero={d}/{d}, nan={d}\n", .{ token_id, emb_min, emb_max, emb_nonzero, hidden.len, emb_nan });
+        }
+
         try self.runLayers(&hidden, position);
         const t_layers = std.time.nanoTimestamp();
         std.debug.print("   ⏱️  Layers: {d}ms\n", .{@divFloor(t_layers - t_embed, 1_000_000)});
+
+        // Debug: Check hidden state before logits computation
+        var hidden_min: f32 = std.math.inf(f32);
+        var hidden_max: f32 = -std.math.inf(f32);
+        var hidden_nonzero: usize = 0;
+        for (hidden) |v| {
+            if (v != 0.0) hidden_nonzero += 1;
+            if (v < hidden_min) hidden_min = v;
+            if (v > hidden_max) hidden_max = v;
+        }
+        std.debug.print("🔍 Hidden[final]: min={d:.4}, max={d:.4}, nonzero={d}/{d}\n", .{ hidden_min, hidden_max, hidden_nonzero, hidden.len });
 
         const logits = try self.allocator.alloc(f32, self.config.vocab_size);
         const head_weight: matrix_ops.Weight = if (self.weights.output_tied)
@@ -290,15 +334,21 @@ pub const Lfm2Model = struct {
             try self.applyShortConv(lw, hidden, idx);
             const t_conv = std.time.nanoTimestamp();
             
-            // Check for NaN after conv
+            // Check for NaN and zeros after conv
             if (idx == 0) {
                 var nan_count: usize = 0;
+                var zero_count: usize = 0;
+                var h_min: f32 = std.math.inf(f32);
+                var h_max: f32 = -std.math.inf(f32);
                 for (hidden.*) |v| {
                     if (std.math.isNan(v)) nan_count += 1;
+                    if (v == 0.0) zero_count += 1;
+                    if (!std.math.isNan(v)) {
+                        if (v < h_min) h_min = v;
+                        if (v > h_max) h_max = v;
+                    }
                 }
-                if (nan_count > 0) {
-                    std.debug.print("   ❌ NaN after conv: {d}/{d}\n", .{ nan_count, hidden.len });
-                }
+                std.debug.print("   🔍 After conv: min={d:.4}, max={d:.4}, zeros={d}/{d}, nan={d}\n", .{ h_min, h_max, zero_count, hidden.len, nan_count });
             }
 
             // Optional attention
@@ -322,16 +372,22 @@ pub const Lfm2Model = struct {
             try self.applyFfn(lw, hidden);
             const t_ffn = std.time.nanoTimestamp();
             
-            // Check for NaN after FFN
+            // Check for NaN and zeros after FFN
             if (idx == 0) {
                 var nan_count: usize = 0;
+                var zero_count: usize = 0;
+                var h_min: f32 = std.math.inf(f32);
+                var h_max: f32 = -std.math.inf(f32);
                 for (hidden.*) |v| {
                     if (std.math.isNan(v)) nan_count += 1;
+                    if (v == 0.0) zero_count += 1;
+                    if (!std.math.isNan(v)) {
+                        if (v < h_min) h_min = v;
+                        if (v > h_max) h_max = v;
+                    }
                 }
-                if (nan_count > 0) {
-                    std.debug.print("   ❌ NaN after FFN: {d}/{d}\n", .{ nan_count, hidden.len });
-                }
-                
+                std.debug.print("   🔍 After FFN: min={d:.4}, max={d:.4}, zeros={d}/{d}, nan={d}\n", .{ h_min, h_max, zero_count, hidden.len, nan_count });
+
                 std.debug.print("   ⏱️  Layer {d}: conv={d}ms attn={d}ms ffn={d}ms\n", .{
                     idx,
                     @divFloor(t_conv - t_layer, 1_000_000),
@@ -528,13 +584,26 @@ pub const Lfm2Model = struct {
         try matrix_ops.matmul(gate_out, lw.ffn_gate, normed, ffn, 1, hid, self.allocator, self.pool);
         try matrix_ops.matmul(up_out, lw.ffn_up, normed, ffn, 1, hid, self.allocator, self.pool);
 
-        // SwiGLU: silu(gate) * up
+        // SwiGLU: silu(gate) * up with stability
         var ffn_act = try self.allocator.alloc(f32, ffn);
         defer self.allocator.free(ffn_act);
         for (0..ffn) |i| {
             const g = gate_out[i];
-            const silu = g / (1.0 + @exp(-g));
-            ffn_act[i] = silu * up_out[i];
+            const u = up_out[i];
+
+            // Handle NaN/Inf inputs
+            if (std.math.isNan(g) or std.math.isInf(g) or std.math.isNan(u) or std.math.isInf(u)) {
+                ffn_act[i] = 0.0;
+                continue;
+            }
+
+            // Stable SiLU: clamp input to prevent overflow in exp
+            const g_clamped = std.math.clamp(g, -88.0, 88.0);
+            const silu = g_clamped / (1.0 + @exp(-g_clamped));
+            const result = silu * u;
+
+            // Guard against NaN/Inf output
+            ffn_act[i] = if (std.math.isNan(result) or std.math.isInf(result)) 0.0 else result;
         }
 
         // Down projection back to hidden (weights pre-transposed during load)
@@ -542,9 +611,15 @@ pub const Lfm2Model = struct {
         defer self.allocator.free(down);
         try matrix_ops.matmul(down, lw.ffn_down, ffn_act, hid, 1, ffn, self.allocator, self.pool);
 
-        // Residual add
+        // Residual add with NaN guard
         for (0..hid) |i| {
-            hidden.*[i] = residual[i] + down[i];
+            const r = residual[i];
+            const d = down[i];
+            if (std.math.isNan(r) or std.math.isInf(r) or std.math.isNan(d) or std.math.isInf(d)) {
+                hidden.*[i] = if (!std.math.isNan(r) and !std.math.isInf(r)) r else 0.0;
+            } else {
+                hidden.*[i] = r + d;
+            }
         }
     }
 
@@ -622,8 +697,8 @@ pub const Lfm2Model = struct {
             attention.applyRope(dst, src, position, self.rope_freqs, head_dim);
         }
 
-        // Store into KV cache
-        cache.store(@intCast(layer_idx), k_rope, v);
+        // Store into KV cache (layer 0 since each cache holds only 1 layer)
+        cache.store(0, k_rope, v);
 
         // Attention computation (serial per head)
         const attn_out = try self.allocator.alloc(f32, q_dim_usize);
@@ -655,8 +730,8 @@ pub const Lfm2Model = struct {
                 const end = @min(start + BLOCK, seq_len);
                 const current: u32 = end - start;
 
-                cache.gatherHeadKeys(@intCast(layer_idx), kv_head_idx, start, end, k_block[0 .. @as(usize, current) * head_dim_usize]);
-                cache.gatherHeadValues(@intCast(layer_idx), kv_head_idx, start, end, v_block[0 .. @as(usize, current) * head_dim_usize]);
+                cache.gatherHeadKeys(0, kv_head_idx, start, end, k_block[0 .. @as(usize, current) * head_dim_usize]);
+                cache.gatherHeadValues(0, kv_head_idx, start, end, v_block[0 .. @as(usize, current) * head_dim_usize]);
 
                 // Dot products
                 var local_max: f32 = -std.math.inf(f32);

@@ -1,0 +1,138 @@
+<mvc:View
+	controllerName="llm.server.dashboard.controller.App"
+	xmlns="sap.m"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns:core="sap.ui.core"
+	xmlns:tnt="sap.tnt"
+	displayBlock="true">
+	
+	<Shell>
+		<tnt:ToolPage id="toolPage">
+			
+			<!-- Header -->
+			<tnt:header>
+				<tnt:ToolHeader>
+					<Button 
+						id="hamburgerBtn"
+						icon="sap-icon://menu2" 
+						type="Transparent"
+						press=".onToggleSidebar"
+						tooltip="Toggle Menu"/>
+					<tnt:ToolHeaderUtilitySeparator />
+					<Title text="Nucleus OpenAI Server" level="H4"/>
+					<ToolbarSpacer />
+					<ToggleButton
+						id="themeToggleBtn"
+						icon="sap-icon://light-mode"
+						pressed="false"
+						press=".onThemeToggle"
+						tooltip="Toggle Dark Mode"/>
+					<Button
+						icon="sap-icon://refresh"
+						type="Transparent"
+						press=".onRefresh"
+						tooltip="Refresh"/>
+					<Button
+						icon="sap-icon://action-settings"
+						type="Transparent"
+						press=".onSettings"
+						tooltip="Settings"/>
+					<Button
+						id="notificationBtn"
+						icon="sap-icon://bell"
+						type="Transparent"
+						press=".onNotifications"
+						tooltip="Notifications">
+						<customData>
+							<core:CustomData key="badgeValue" value="0" writeToDom="true"/>
+						</customData>
+					</Button>
+				</tnt:ToolHeader>
+			</tnt:header>
+			
+			<!-- Sidebar Navigation -->
+			<tnt:sideContent>
+				<tnt:SideNavigation 
+					id="sideNavigation"
+					expanded="true"
+					itemSelect=".onNavigationSelect">
+					<tnt:NavigationList>
+						<tnt:NavigationListItem 
+							text="Dashboard" 
+							icon="sap-icon://home"
+							key="main"/>
+						<tnt:NavigationListItem 
+							text="Prompt Testing" 
+							icon="sap-icon://write-new"
+							key="promptTesting"/>
+						<tnt:NavigationListItem 
+							text="mHC Fine-Tuning" 
+							icon="sap-icon://settings"
+							key="mhcTuning"/>
+						<tnt:NavigationListItem
+							text="Agent Orchestration"
+							icon="sap-icon://group"
+							key="orchestration"/>
+						<tnt:NavigationListItem
+							text="Model Versions"
+							icon="sap-icon://tree"
+							key="modelVersions"/>
+						<tnt:NavigationListItem
+							text="Training Dashboard"
+							icon="sap-icon://learning-assistant"
+							key="trainingDashboard"/>
+						<tnt:NavigationListItem
+							text="Model Router"
+							icon="sap-icon://decision"
+							key="modelRouter"/>
+						<tnt:NavigationListItem
+							text="A/B Testing"
+							icon="sap-icon://compare"
+							key="abTesting"/>
+						<tnt:NavigationListItem
+							text="Settings"
+							icon="sap-icon://action-settings"
+							key="settings"/>
+					</tnt:NavigationList>
+				</tnt:SideNavigation>
+			</tnt:sideContent>
+			
+			<!-- Main Content -->
+			<tnt:mainContents>
+				<NavContainer id="navContainer" initialPage="mainPageContent">
+					<pages>
+						<Page id="mainPageContent" showHeader="false">
+							<mvc:XMLView viewName="llm.server.dashboard.view.Main"/>
+						</Page>
+						<Page id="promptTestingPage" showHeader="false">
+							<mvc:XMLView viewName="llm.server.dashboard.view.PromptTesting"/>
+						</Page>
+						<Page id="mhcTuningPage" showHeader="false">
+							<mvc:XMLView viewName="llm.server.dashboard.view.MHCTuning"/>
+						</Page>
+						<Page id="orchestrationPage" showHeader="false">
+							<mvc:XMLView viewName="llm.server.dashboard.view.Orchestration"/>
+						</Page>
+						<Page id="modelVersionsPage" showHeader="false">
+							<mvc:XMLView viewName="llm.server.dashboard.view.ModelVersions"/>
+						</Page>
+						<Page id="trainingDashboardPage" showHeader="false">
+							<mvc:XMLView viewName="llm.server.dashboard.view.TrainingDashboard"/>
+						</Page>
+						<Page id="modelRouterPage" showHeader="false">
+							<mvc:XMLView viewName="llm.server.dashboard.view.ModelRouter"/>
+						</Page>
+						<Page id="abTestingPage" showHeader="false">
+							<mvc:XMLView viewName="llm.server.dashboard.view.ABTesting"/>
+						</Page>
+						<Page id="settingsPage" showHeader="false">
+							<mvc:XMLView viewName="llm.server.dashboard.view.Settings"/>
+						</Page>
+					</pages>
+				</NavContainer>
+			</tnt:mainContents>
+			
+		</tnt:ToolPage>
+	</Shell>
+	
+</mvc:View>

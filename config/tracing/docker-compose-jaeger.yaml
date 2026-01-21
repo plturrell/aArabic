@@ -1,0 +1,126 @@
+# Docker Compose for Jaeger All-in-One
+# Day 7: Quick deployment of distributed tracing infrastructure
+#
+# Usage:
+#   docker-compose -f config/tracing/docker-compose-jaeger.yaml up -d
+#
+# Access Jaeger UI: http://localhost:16686
+
+version: '3.8'
+
+services:
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: llm-server-jaeger
+    environment:
+      # Storage backend
+      - SPAN_STORAGE_TYPE=badger
+      - BADGER_EPHEMERAL=false
+      - BADGER_DIRECTORY_VALUE=/badger/data
+      - BADGER_DIRECTORY_KEY=/badger/key
+      
+      # Performance tuning
+      - COLLECTOR_OTLP_ENABLED=true
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+      
+      # UI configuration
+      - QUERY_BASE_PATH=/jaeger
+      - METRICS_STORAGE_TYPE=prometheus
+    
+    ports:
+      # Jaeger UI
+      - "16686:16686"
+      
+      # OTLP receivers (for OpenTelemetry)
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      
+      # Jaeger native receivers
+      - "14268:14268" # Jaeger HTTP
+      - "14250:14250" # Jaeger gRPC
+      
+      # Legacy protocols
+      - "9411:9411"   # Zipkin
+      - "6831:6831/udp" # Jaeger agent UDP
+      - "6832:6832/udp" # Jaeger agent UDP
+    
+    volumes:
+      - jaeger-badger:/badger
+      - ./jaeger-config.yaml:/etc/jaeger/config.yaml:ro
+    
+    networks:
+      - tracing
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:16686/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    labels:
+      - "com.llm-server.service=tracing"
+      - "com.llm-server.component=jaeger"
+
+  # Prometheus for metrics (optional, complements tracing)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: llm-server-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    
+    ports:
+      - "9090:9090"
+    
+    volumes:
+      - prometheus-data:/prometheus
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    
+    networks:
+      - tracing
+    
+    restart: unless-stopped
+
+  # Grafana for unified observability
+  grafana:
+    image: grafana/grafana:latest
+    container_name: llm-server-grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    
+    ports:
+      - "3000:3000"
+    
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml:ro
+    
+    networks:
+      - tracing
+    
+    restart: unless-stopped
+    
+    depends_on:
+      - jaeger
+      - prometheus
+
+volumes:
+  jaeger-badger:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+
+networks:
+  tracing:
+    driver: bridge
+    name: llm-server-tracing

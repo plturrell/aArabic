@@ -1,0 +1,73 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:f="sap.f">
+
+    <!-- Reusable Workflow Card Fragment -->
+    <f:Card class="sapUiSmallMargin" width="320px">
+        <f:header>
+            <f:cards.Header
+                title="{name}"
+                subtitle="{description}"
+                iconSrc="sap-icon://workflow"
+                iconDisplayShape="Circle"
+                iconBackgroundColor="{= ${status} === 'active' ? 'TileIconColor' : 'Neutral' }"/>
+        </f:header>
+        <f:content>
+            <VBox class="sapUiSmallMargin">
+                <HBox justifyContent="SpaceBetween" alignItems="Center" class="sapUiTinyMarginBottom">
+                    <Label text="{i18n>workflowStatus}"/>
+                    <ObjectStatus
+                        text="{status}"
+                        state="{= ${status} === 'active' ? 'Success' : (${status} === 'draft' ? 'Warning' : 'None') }"
+                        icon="{= ${status} === 'active' ? 'sap-icon://status-positive' : (${status} === 'draft' ? 'sap-icon://status-in-process' : 'sap-icon://status-inactive') }"/>
+                </HBox>
+                
+                <HBox justifyContent="SpaceBetween" alignItems="Center" class="sapUiTinyMarginBottom">
+                    <Label text="{i18n>lastModified}"/>
+                    <Text text="{lastModified}"/>
+                </HBox>
+                
+                <HBox justifyContent="SpaceBetween" alignItems="Center" class="sapUiTinyMarginBottom">
+                    <Label text="{i18n>executionsToday}"/>
+                    <ObjectNumber number="{executionCount}" unit="runs"/>
+                </HBox>
+                
+                <HBox justifyContent="SpaceBetween" alignItems="Center">
+                    <Label text="{i18n>successRate}"/>
+                    <ObjectNumber 
+                        number="{successRate}" 
+                        unit="%" 
+                        state="{= ${successRate} >= 90 ? 'Success' : (${successRate} >= 70 ? 'Warning' : 'Error') }"/>
+                </HBox>
+            </VBox>
+        </f:content>
+        <f:footer>
+            <OverflowToolbar>
+                <ToolbarSpacer/>
+                <Button
+                    icon="sap-icon://edit"
+                    tooltip="{i18n>edit}"
+                    type="Transparent"
+                    press=".onEditWorkflow"/>
+                <Button
+                    icon="sap-icon://play"
+                    tooltip="{i18n>run}"
+                    type="Transparent"
+                    press=".onRunWorkflow"/>
+                <Button
+                    icon="sap-icon://history"
+                    tooltip="{i18n>executionHistory}"
+                    type="Transparent"
+                    press=".onViewWorkflowExecutions"/>
+                <Button
+                    icon="sap-icon://delete"
+                    tooltip="{i18n>delete}"
+                    type="Transparent"
+                    press=".onDeleteWorkflow"/>
+            </OverflowToolbar>
+        </f:footer>
+    </f:Card>
+
+</core:FragmentDefinition>
+

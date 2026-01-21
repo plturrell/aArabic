@@ -1,0 +1,68 @@
+{
+  "version": "1.0",
+  "name": "Simple Document Processing",
+  "description": "A simple workflow that processes documents through validation and storage",
+  "metadata": {
+    "author": "nWorkflow Team",
+    "created": "2026-01-18",
+    "tags": ["document", "processing", "simple"]
+  },
+  "nodes": [
+    {
+      "id": "receive",
+      "type": "trigger",
+      "name": "Receive Document",
+      "config": {
+        "source": "api",
+        "endpoint": "/documents/upload"
+      }
+    },
+    {
+      "id": "validate",
+      "type": "action",
+      "name": "Validate Document",
+      "config": {
+        "rules": ["format_check", "size_check"],
+        "max_size_mb": 10
+      }
+    },
+    {
+      "id": "store",
+      "type": "action",
+      "name": "Store Document",
+      "config": {
+        "storage": "s3",
+        "bucket": "documents"
+      }
+    },
+    {
+      "id": "notify",
+      "type": "action",
+      "name": "Send Notification",
+      "config": {
+        "channel": "email",
+        "template": "document_received"
+      }
+    }
+  ],
+  "edges": [
+    {"from": "receive", "to": "validate"},
+    {"from": "validate", "to": "store"},
+    {"from": "store", "to": "notify"}
+  ],
+  "error_handlers": [
+    {
+      "node": "validate",
+      "on_error": "retry",
+      "retry": {
+        "max_attempts": 3,
+        "backoff": "exponential",
+        "initial_delay_ms": 1000
+      }
+    },
+    {
+      "node": "store",
+      "on_error": "fail"
+    }
+  ]
+}

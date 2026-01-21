@@ -10,12 +10,58 @@ KTO (Kahneman-Tversky Optimization):
 
 Architecture:
 State → Encoder → Titans Transformer → Action/Value Heads → Tool Selection
+
+Day 43: mHC Integration
+- Stability-weighted policy updates
+- Manifold-constrained action selection
+- Policy stability tracking metrics
 """
 
 from collections import Dict, List
 from ..state import OrchestrationState, StateEncoder
 from ..execution import ExecutionStrategy
 from ..registry import ToolRegistry
+
+
+# ============================================================================
+# mHC Stability Tracking for KTO Policy (Day 43)
+# ============================================================================
+
+@value
+struct MHCPolicyConfig:
+    """Configuration for mHC constraints in KTO policy"""
+    var enabled: Bool
+    var manifold_beta: Float32        # Maximum L2 norm bound for policy outputs
+    var stability_threshold: Float32  # Threshold for amplification check [0.9, 1.1]
+    var adaptive_beta: Bool           # Enable adaptive beta based on history
+
+    fn __init__(out self):
+        self.enabled = True
+        self.manifold_beta = 10.0
+        self.stability_threshold = 0.1  # 10% deviation allowed
+        self.adaptive_beta = True
+
+
+@value
+struct PolicyStabilityMetrics:
+    """Stability metrics for KTO policy updates with mHC"""
+    var update_count: Int
+    var norm_before: Float32
+    var norm_after: Float32
+    var amplification_factor: Float32
+    var is_stable: Bool
+    var constraint_violations: Int
+    var avg_stability_score: Float32
+
+    fn __init__(out self, norm_before: Float32, norm_after: Float32):
+        self.update_count = 1
+        self.norm_before = norm_before
+        self.norm_after = norm_after
+        self.amplification_factor = norm_after / norm_before if norm_before > 0 else 1.0
+        # Stable if amplification in [0.9, 1.1] range
+        self.is_stable = self.amplification_factor >= 0.9 and self.amplification_factor <= 1.1
+        self.constraint_violations = 0 if self.is_stable else 1
+        self.avg_stability_score = 1.0 if self.is_stable else 0.5
 
 
 # ============================================================================
@@ -121,47 +167,61 @@ struct TransformerModel:
 struct KTOPolicy:
     """
     KTO-based policy network for tool orchestration
-    
+
     Key Components:
     1. State Encoder: Converts OrchestrationState to embeddings
     2. Titans Transformer: Core reasoning engine (REUSED!)
     3. Action Head: Maps hidden states to tool actions
     4. Value Head: Estimates state value V(s)
-    
+
     KTO Specific:
     - Loss aversion coefficient: λ = 2.25
     - Reference policy for KL regularization
     - Desirable/undesirable experience handling
+
+    Day 43 mHC Integration:
+    - mhc_stability_weight: Weight for stability in policy updates
+    - Manifold-constrained action logits
+    - Policy stability tracking
     """
     var transformer: TransformerModel
     var state_encoder: StateEncoder
     var action_head: ActionHead
     var value_head: ValueHead
     var registry: ToolRegistry
-    
+
     # KTO hyperparameters
     var lambda_loss_aversion: Float32  # λ = 2.25 (standard KTO)
     var reference_policy_ema: Float32  # EMA coefficient for ref policy
     var temperature: Float32  # Sampling temperature
-    
+
+    # Day 43: mHC Integration Fields
+    var mhc_stability_weight: Float32    # Weight for stability penalty in loss
+    var mhc_config: MHCPolicyConfig      # mHC configuration
+    var stability_history: List[Float32] # History of stability scores
+    var total_updates: Int               # Total policy updates
+    var stable_updates: Int              # Updates within stability bounds
+
     fn __init__(
         inout self,
         registry: ToolRegistry,
         d_model: Int = 256,
         n_heads: Int = 8,
-        n_layers: Int = 6
+        n_layers: Int = 6,
+        mhc_stability_weight: Float32 = 0.1
     ):
         """
         Initialize KTO policy network
-        
+
         Args:
             registry: Tool registry for action space
             d_model: Transformer embedding dimension
             n_heads: Number of attention heads
             n_layers: Number of transformer layers
+            mhc_stability_weight: Weight for mHC stability in loss (Day 43)
         """
         self.registry = registry
-        
+
         # Initialize Titans transformer (REUSE!)
         self.transformer = TransformerModel(
             d_model=d_model,
@@ -169,24 +229,31 @@ struct KTOPolicy:
             n_layers=n_layers,
             d_ff=d_model * 4
         )
-        
+
         # State encoding
         self.state_encoder = StateEncoder(
             embedding_dim=d_model,
             max_tools=50
         )
-        
+
         # Output heads
         self.action_head = ActionHead(
             input_dim=d_model,
             num_actions=registry.total_tools
         )
         self.value_head = ValueHead(input_dim=d_model)
-        
+
         # KTO hyperparameters (from paper)
         self.lambda_loss_aversion = 2.25  # Standard value from psychology
         self.reference_policy_ema = 0.99  # Reference policy EMA
         self.temperature = 1.0  # Sampling temperature
+
+        # Day 43: mHC Integration Initialization
+        self.mhc_stability_weight = mhc_stability_weight
+        self.mhc_config = MHCPolicyConfig()
+        self.stability_history = List[Float32]()
+        self.total_updates = 0
+        self.stable_updates = 0
     
     
     # ========================================================================
@@ -341,8 +408,202 @@ struct KTOPolicy:
         
         # Average over all experiences
         return total_loss / Float32(n_desirable + n_undesirable)
-    
-    
+
+
+    # ========================================================================
+    # Day 43: mHC Integration Methods
+    # ========================================================================
+
+    fn compute_kto_loss_with_mhc(
+        inout self,
+        desirable_states: List[OrchestrationState],
+        desirable_actions: List[ToolAction],
+        undesirable_states: List[OrchestrationState],
+        undesirable_actions: List[ToolAction],
+        reference_policy: KTOPolicy
+    ) -> Float32:
+        """
+        Compute KTO loss with mHC stability constraint (Day 43)
+
+        L_KTO_mHC = L_KTO + α * L_stability
+
+        Where:
+        - L_KTO = standard KTO loss
+        - α = mhc_stability_weight
+        - L_stability = penalty for policy distribution instability
+        """
+        # Compute base KTO loss
+        let base_loss = self.compute_kto_loss(
+            desirable_states, desirable_actions,
+            undesirable_states, undesirable_actions,
+            reference_policy
+        )
+
+        if not self.mhc_config.enabled:
+            return base_loss
+
+        # Compute stability penalty
+        let stability_penalty = self._compute_stability_penalty(
+            desirable_states, undesirable_states
+        )
+
+        # Update metrics
+        self.total_updates += 1
+        let is_stable = stability_penalty < self.mhc_config.stability_threshold
+        if is_stable:
+            self.stable_updates += 1
+
+        # Track stability history
+        let stability_score = 1.0 - stability_penalty
+        self.stability_history.append(stability_score)
+
+        # Combined loss: KTO + mHC stability
+        return base_loss + self.mhc_stability_weight * stability_penalty
+
+    fn _compute_stability_penalty(
+        self,
+        desirable_states: List[OrchestrationState],
+        undesirable_states: List[OrchestrationState]
+    ) -> Float32:
+        """
+        Compute stability penalty based on action probability distribution variance
+
+        Measures how much the policy output norms deviate from ideal range
+        """
+        var total_penalty: Float32 = 0.0
+        var count: Int = 0
+
+        # Check desirable states
+        for i in range(len(desirable_states)):
+            let output = self.forward(desirable_states[i])
+            let norm = self._compute_prob_norm(output.action_probs)
+            let penalty = self._norm_deviation_penalty(norm)
+            total_penalty += penalty
+            count += 1
+
+        # Check undesirable states
+        for i in range(len(undesirable_states)):
+            let output = self.forward(undesirable_states[i])
+            let norm = self._compute_prob_norm(output.action_probs)
+            let penalty = self._norm_deviation_penalty(norm)
+            total_penalty += penalty
+            count += 1
+
+        return total_penalty / Float32(count) if count > 0 else 0.0
+
+    fn _norm_deviation_penalty(self, norm: Float32) -> Float32:
+        """Compute penalty for norm deviation from manifold bound"""
+        let beta = self.mhc_config.manifold_beta
+        if norm > beta:
+            # Exceeded bound: quadratic penalty
+            let excess = norm - beta
+            return excess * excess / (beta * beta)
+        else:
+            # Within bound: no penalty
+            return 0.0
+
+    fn _compute_prob_norm(self, probs: List[Float32]) -> Float32:
+        """Compute L2 norm of probability distribution"""
+        var sum_sq: Float32 = 0.0
+        for i in range(len(probs)):
+            sum_sq += probs[i] * probs[i]
+        return sqrt(sum_sq)
+
+    fn select_action_with_stability(
+        self,
+        state: OrchestrationState,
+        greedy: Bool = False
+    ) -> ToolAction:
+        """
+        Select action with mHC stability consideration (Day 43)
+
+        Applies manifold constraints to action logits before selection
+        """
+        var output = self.forward(state)
+
+        # Apply mHC manifold constraints to action logits
+        if self.mhc_config.enabled:
+            output.action_logits = self._apply_manifold_constraints(
+                output.action_logits, self.mhc_config.manifold_beta
+            )
+            # Recompute probabilities after constraint
+            output.action_probs = self._softmax(output.action_logits)
+
+        # Select action index
+        var action_idx: Int
+        if greedy:
+            action_idx = self._argmax(output.action_probs)
+        else:
+            action_idx = self._sample_categorical(output.action_probs)
+
+        # Map action index to tool name
+        let tool_name = self._index_to_tool_name(action_idx)
+
+        # Create action with confidence
+        let confidence = output.action_probs[action_idx] if action_idx < len(output.action_probs) else 0.5
+
+        var action = ToolAction(
+            tool_name=tool_name,
+            strategy=ExecutionStrategy.RL_OPTIMIZED,
+            confidence=confidence
+        )
+        action.expected_value = output.value_estimate
+
+        return action
+
+    fn _apply_manifold_constraints(
+        self,
+        logits: List[Float32],
+        beta: Float32
+    ) -> List[Float32]:
+        """
+        Apply mHC manifold constraints to logits
+        Projects onto L2 ball: ||x||₂ ≤ β
+        """
+        # Compute L2 norm
+        var norm_sq: Float32 = 0.0
+        for i in range(len(logits)):
+            norm_sq += logits[i] * logits[i]
+        let norm = sqrt(norm_sq)
+
+        # Project if exceeds bound
+        if norm > beta:
+            let scale = beta / norm
+            var constrained = List[Float32]()
+            for i in range(len(logits)):
+                constrained.append(logits[i] * scale)
+            return constrained
+        else:
+            return logits
+
+    fn get_stability_metrics(self) -> PolicyStabilityMetrics:
+        """Get current policy stability metrics (Day 43)"""
+        let avg_stability = self._compute_average_stability()
+        var metrics = PolicyStabilityMetrics(
+            norm_before=1.0,
+            norm_after=avg_stability
+        )
+        metrics.update_count = self.total_updates
+        metrics.constraint_violations = self.total_updates - self.stable_updates
+        metrics.avg_stability_score = avg_stability
+        return metrics
+
+    fn _compute_average_stability(self) -> Float32:
+        """Compute average stability score from history"""
+        if len(self.stability_history) == 0:
+            return 1.0
+        var sum: Float32 = 0.0
+        for i in range(len(self.stability_history)):
+            sum += self.stability_history[i]
+        return sum / Float32(len(self.stability_history))
+
+    fn reset_stability_tracking(inout self):
+        """Reset stability tracking metrics"""
+        self.stability_history = List[Float32]()
+        self.total_updates = 0
+        self.stable_updates = 0
+
+
     # ========================================================================
     # Helper Methods
     # ========================================================================
@@ -487,3 +748,13 @@ fn min(a: Int, b: Int) -> Int:
 fn max(a: Float32, b: Float32) -> Float32:
     """Maximum of two floats"""
     return a if a > b else b
+
+fn sqrt(x: Float32) -> Float32:
+    """Square root function (placeholder - use actual math.sqrt)"""
+    # Simplified Newton-Raphson approximation
+    if x <= 0:
+        return 0.0
+    var guess = x / 2.0
+    for _ in range(5):  # 5 iterations for convergence
+        guess = (guess + x / guess) / 2.0
+    return guess

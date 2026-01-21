@@ -33,16 +33,6 @@ routes:
         backend:8000: 1
 
   # AI Services
-  - id: langflow
-    uri: /langflow/*
-    upstream:
-      type: roundrobin
-      nodes:
-        langflow:7860: 1
-    plugins:
-      proxy-rewrite:
-        regex_uri: ["^/langflow/(.*)", "/$1"]
-
   - id: hyperbooklm
     uri: /hyperbooklm/*
     upstream:

@@ -10,19 +10,8 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# 1. Start MarkItDown
-echo -e "${BLUE}[1/4] Starting MarkItDown Service (Port 8005)...${NC}"
-docker-compose -f docker-compose.markitdown.yml up -d
-sleep 3
-if curl -s http://localhost:8005/health > /dev/null 2>&1; then
-    echo -e "${GREEN}✓ MarkItDown ready${NC}"
-else
-    echo -e "${YELLOW}⏳ MarkItDown starting...${NC}"
-fi
-echo ""
-
-# 2. Start Shimmy-AI
-echo -e "${BLUE}[2/4] Starting Shimmy-AI (Port 11435)...${NC}"
+# 1. Start Shimmy-AI
+echo -e "${BLUE}[1/3] Starting Shimmy-AI (Port 11435)...${NC}"
 cd vendor/layerIntelligence/shimmy-ai
 if [ ! -f "target/release/shimmy" ]; then
     echo "Building Shimmy (first time only)..."
@@ -40,8 +29,8 @@ fi
 cd - > /dev/null
 echo ""
 
-# 3. Start Local LLM Service
-echo -e "${BLUE}[3/4] Starting Local LLM Service (Port 8006)...${NC}"
+# 2. Start Local LLM Service
+echo -e "${BLUE}[2/3] Starting Local LLM Service (Port 8006)...${NC}"
 cd src/serviceCore/serviceLocalLLM
 if [ ! -d "venv" ]; then
     echo "Creating virtual environment..."
@@ -64,8 +53,8 @@ fi
 cd - > /dev/null
 echo ""
 
-# 4. Check HyperBookLM
-echo -e "${BLUE}[4/4] Checking HyperBookLM (Port 3000)...${NC}"
+# 3. Check HyperBookLM
+echo -e "${BLUE}[3/3] Checking HyperBookLM (Port 3000)...${NC}"
 if curl -s http://localhost:3000 > /dev/null 2>&1; then
     echo -e "${GREEN}✓ HyperBookLM already running${NC}"
 else
@@ -89,7 +78,6 @@ check_service() {
     fi
 }
 
-check_service "MarkItDown" "http://localhost:8005/health" "8005"
 check_service "Shimmy-AI" "http://localhost:11435/health" "11435"
 check_service "Local LLM" "http://localhost:8006/health" "8006"
 check_service "HyperBookLM" "http://localhost:3000" "3000"
@@ -98,13 +86,10 @@ echo ""
 echo "=========================================="
 echo -e "${GREEN}📚 Quick Test:${NC}"
 echo "------------------------------------------"
-echo "1. Test MarkItDown:"
-echo "   curl http://localhost:8005/health"
-echo ""
-echo "2. Test Shimmy-AI:"
+echo "1. Test Shimmy-AI:"
 echo "   curl http://localhost:11435/v1/models"
 echo ""
-echo "3. Test Complete Pipeline:"
+echo "2. Test Complete Pipeline:"
 echo "   curl -X POST http://localhost:3000/api/doc-to-n8n \\"
 echo "     -F \"file=@docs/documentation/Invoice_Process.md\" \\"
 echo "     -o workflow.json"
@@ -113,7 +98,6 @@ echo "=========================================="
 echo -e "${GREEN}📖 Logs:${NC}"
 echo "   tail -f /tmp/shimmy.log"
 echo "   tail -f /tmp/local-llm.log"
-echo "   docker-compose -f docker-compose.markitdown.yml logs -f"
 echo ""
 echo -e "${GREEN}✅ Local inference stack ready!${NC}"
 echo -e "${YELLOW}💰 Zero external API costs!${NC}"

@@ -1,0 +1,469 @@
+<mvc:View
+	controllerName="llm.server.dashboard.controller.TrainingDashboard"
+	xmlns="sap.m"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns:core="sap.ui.core"
+	xmlns:f="sap.f"
+	xmlns:layout="sap.ui.layout"
+	xmlns:html="http://www.w3.org/1999/xhtml"
+	height="100%">
+
+	<Page id="trainingDashboard" showHeader="true">
+		<!-- Header Section -->
+		<customHeader>
+			<Bar>
+				<contentLeft>
+					<Breadcrumbs>
+						<Link text="Home" press=".onBreadcrumbHome"/>
+						<Link text="Training Dashboard"/>
+					</Breadcrumbs>
+				</contentLeft>
+				<contentMiddle>
+					<Title text="Training Dashboard" level="H1"/>
+				</contentMiddle>
+				<contentRight>
+					<Button
+						icon="sap-icon://refresh"
+						text="Refresh"
+						type="Transparent"
+						press=".onRefreshAll"/>
+				</contentRight>
+			</Bar>
+		</customHeader>
+
+		<content>
+			<layout:VerticalLayout width="100%" class="sapUiSmallMargin">
+
+				<!-- Algorithm Cards Section -->
+				<Panel headerText="Training Algorithms" expandable="true" expanded="true" class="sapUiResponsiveMargin">
+					<content>
+						<layout:Grid defaultSpan="L3 M6 S12" hSpacing="1" vSpacing="1">
+							<!-- SFT Card -->
+							<f:Card class="sapUiSmallMargin">
+								<f:header>
+									<f:headers.Header
+										title="SFT"
+										subtitle="Supervised Fine-Tuning"
+										iconSrc="sap-icon://education"/>
+								</f:header>
+								<f:content>
+									<VBox class="sapUiSmallMargin">
+										<Text text="Traditional supervised learning approach for fine-tuning on labeled instruction-response pairs."/>
+										<ObjectStatus
+											text="No Preferences Required"
+											state="Success"
+											class="sapUiSmallMarginTop"/>
+									</VBox>
+								</f:content>
+							</f:Card>
+
+							<!-- KTO Card -->
+							<f:Card class="sapUiSmallMargin">
+								<f:header>
+									<f:headers.Header
+										title="KTO"
+										subtitle="Kahneman-Tversky Optimization"
+										iconSrc="sap-icon://target-group"/>
+								</f:header>
+								<f:content>
+									<VBox class="sapUiSmallMargin">
+										<Text text="Preference optimization using prospect theory principles for improved alignment."/>
+										<ObjectStatus
+											text="Requires Preferences"
+											state="Warning"
+											icon="sap-icon://favorite"
+											class="sapUiSmallMarginTop"/>
+									</VBox>
+								</f:content>
+							</f:Card>
+
+							<!-- GRPO Card -->
+							<f:Card class="sapUiSmallMargin">
+								<f:header>
+									<f:headers.Header
+										title="GRPO"
+										subtitle="Group Relative Policy Optimization"
+										iconSrc="sap-icon://group"/>
+								</f:header>
+								<f:content>
+									<VBox class="sapUiSmallMargin">
+										<Text text="Policy optimization using group-based comparisons for stable training."/>
+										<ObjectStatus
+											text="Requires Preferences"
+											state="Warning"
+											icon="sap-icon://favorite"
+											class="sapUiSmallMarginTop"/>
+									</VBox>
+								</f:content>
+							</f:Card>
+
+							<!-- DAPO Card -->
+							<f:Card class="sapUiSmallMargin">
+								<f:header>
+									<f:headers.Header
+										title="DAPO"
+										subtitle="Direct Advantage Policy Optimization"
+										iconSrc="sap-icon://trend-up"/>
+								</f:header>
+								<f:content>
+									<VBox class="sapUiSmallMargin">
+										<Text text="Advanced policy optimization with direct advantage estimation for efficient alignment."/>
+										<ObjectStatus
+											text="Requires Preferences"
+											state="Warning"
+											icon="sap-icon://favorite"
+											class="sapUiSmallMarginTop"/>
+									</VBox>
+								</f:content>
+							</f:Card>
+						</layout:Grid>
+					</content>
+				</Panel>
+
+				<!-- Active Training Jobs Panel -->
+				<Panel headerText="Active Training Jobs" expandable="true" expanded="true" class="sapUiResponsiveMargin">
+					<headerToolbar>
+						<Toolbar>
+							<Title text="Active Training Jobs"/>
+							<ToolbarSpacer/>
+							<Button icon="sap-icon://refresh" tooltip="Refresh Jobs" press=".onRefreshJobs"/>
+						</Toolbar>
+					</headerToolbar>
+					<content>
+						<Table
+							id="activeJobsTable"
+							items="{training>/jobs}"
+							noDataText="No active training jobs"
+							mode="None">
+							<columns>
+								<Column width="15%"><Text text="Job ID"/></Column>
+								<Column width="12%"><Text text="Algorithm"/></Column>
+								<Column width="18%"><Text text="Model"/></Column>
+								<Column width="15%"><Text text="Dataset"/></Column>
+								<Column width="12%"><Text text="Status"/></Column>
+								<Column width="15%"><Text text="Progress"/></Column>
+								<Column width="13%"><Text text="Actions"/></Column>
+							</columns>
+							<items>
+								<ColumnListItem>
+									<cells>
+										<Text text="{training>jobId}"/>
+										<Text text="{training>algorithm}"/>
+										<Text text="{training>model}"/>
+										<Text text="{training>dataset}"/>
+										<ObjectStatus
+											text="{training>status}"
+											state="{= ${training>status} === 'running' ? 'Success' : (${training>status} === 'paused' ? 'Warning' : (${training>status} === 'failed' ? 'Error' : 'Information')) }"
+											icon="{= ${training>status} === 'running' ? 'sap-icon://synchronize' : (${training>status} === 'paused' ? 'sap-icon://pause' : (${training>status} === 'failed' ? 'sap-icon://error' : 'sap-icon://pending')) }"/>
+										<ProgressIndicator
+											percentValue="{training>progress}"
+											displayValue="{= ${training>progress} + '%' }"
+											state="{= ${training>status} === 'failed' ? 'Error' : (${training>progress} >= 100 ? 'Success' : 'Information') }"
+											showValue="true"/>
+										<HBox>
+											<Button
+												icon="sap-icon://stop"
+												tooltip="Stop"
+												type="Reject"
+												press=".onStopJob"
+												class="sapUiTinyMarginEnd"/>
+											<Button
+												icon="{= ${training>status} === 'paused' ? 'sap-icon://play' : 'sap-icon://pause' }"
+												tooltip="{= ${training>status} === 'paused' ? 'Resume' : 'Pause' }"
+												type="Attention"
+												press=".onTogglePauseJob"/>
+										</HBox>
+									</cells>
+								</ColumnListItem>
+							</items>
+						</Table>
+					</content>
+				</Panel>
+
+				<!-- KTO Metrics Panel -->
+				<Panel headerText="KTO Metrics" expandable="true" expanded="false" class="sapUiResponsiveMargin">
+					<headerToolbar>
+						<Toolbar>
+							<Title text="KTO Metrics"/>
+							<ToolbarSpacer/>
+							<ObjectStatus
+								text="Live"
+								state="Success"
+								icon="sap-icon://status-positive"
+								visible="{= ${training>/ktoMetrics/isActive} }"/>
+						</Toolbar>
+					</headerToolbar>
+					<content>
+						<layout:Grid defaultSpan="L4 M6 S12" class="sapUiSmallMargin">
+							<!-- Win Rate - Custom Radial Chart -->
+							<VBox alignItems="Center">
+								<Label text="Win Rate" class="sapUiSmallMarginBottom"/>
+								<core:HTML id="winRateChartContainer" content="&lt;div id='winRateChart' style='width:150px;height:150px;'&gt;&lt;/div&gt;"/>
+								<ObjectNumber
+									number="{training>/ktoMetrics/winRate}"
+									unit="%"
+									emphasized="true"
+									state="{= ${training>/ktoMetrics/winRate} >= 60 ? 'Success' : (${training>/ktoMetrics/winRate} >= 45 ? 'Warning' : 'Error') }"
+									class="sapUiSmallMarginTop"/>
+							</VBox>
+
+							<!-- KL Divergence -->
+							<VBox alignItems="Center">
+								<Label text="KL Divergence" class="sapUiSmallMarginBottom"/>
+								<ObjectNumber
+									number="{training>/ktoMetrics/klDivergence}"
+									emphasized="true"
+									state="{= ${training>/ktoMetrics/klDivergence} &lt; 15 ? 'Success' : (${training>/ktoMetrics/klDivergence} &lt; 20 ? 'Warning' : 'Error') }"/>
+								<Text text="{= ${training>/ktoMetrics/klDivergence} &lt; 15 ? 'Optimal' : (${training>/ktoMetrics/klDivergence} &lt; 20 ? 'Acceptable' : 'High - Consider Adjustment') }" class="sapUiTinyMarginTop"/>
+							</VBox>
+
+							<!-- Desirable/Undesirable Ratio -->
+							<VBox alignItems="Center">
+								<Label text="Desirable / Undesirable Ratio" class="sapUiSmallMarginBottom"/>
+								<HBox alignItems="Center">
+									<ObjectNumber
+										number="{training>/ktoMetrics/desirableCount}"
+										state="Success"
+										emphasized="true"/>
+									<Text text=" / " class="sapUiTinyMarginBegin sapUiTinyMarginEnd"/>
+									<ObjectNumber
+										number="{training>/ktoMetrics/undesirableCount}"
+										state="Error"
+										emphasized="true"/>
+								</HBox>
+								<Text text="{= 'Ratio: ' + ${training>/ktoMetrics/ratio} }" class="sapUiTinyMarginTop"/>
+							</VBox>
+
+							<!-- Reference EMA Alpha -->
+							<VBox alignItems="Center">
+								<Label text="Reference EMA Alpha" class="sapUiSmallMarginBottom"/>
+								<ObjectNumber
+									number="{training>/ktoMetrics/refEmaAlpha}"
+									emphasized="true"/>
+								<Text text="Smoothing coefficient" class="sapUiTinyMarginTop"/>
+							</VBox>
+
+							<!-- Policy Loss -->
+							<VBox alignItems="Center">
+								<Label text="Policy Loss" class="sapUiSmallMarginBottom"/>
+								<HBox alignItems="Center">
+									<ObjectNumber
+										number="{training>/ktoMetrics/policyLoss}"
+										emphasized="true"
+										state="{= ${training>/ktoMetrics/policyLossTrend} === 'down' ? 'Success' : (${training>/ktoMetrics/policyLossTrend} === 'up' ? 'Error' : 'None') }"/>
+									<core:Icon
+										src="{= ${training>/ktoMetrics/policyLossTrend} === 'down' ? 'sap-icon://trend-down' : (${training>/ktoMetrics/policyLossTrend} === 'up' ? 'sap-icon://trend-up' : 'sap-icon://less') }"
+										color="{= ${training>/ktoMetrics/policyLossTrend} === 'down' ? '#107e3e' : (${training>/ktoMetrics/policyLossTrend} === 'up' ? '#bb0000' : '#666') }"
+										class="sapUiTinyMarginBegin"/>
+								</HBox>
+								<Text text="Trend" class="sapUiTinyMarginTop"/>
+							</VBox>
+
+							<!-- Value Loss -->
+							<VBox alignItems="Center">
+								<Label text="Value Loss" class="sapUiSmallMarginBottom"/>
+								<ObjectNumber
+									number="{training>/ktoMetrics/valueLoss}"
+									emphasized="true"/>
+							</VBox>
+						</layout:Grid>
+					</content>
+				</Panel>
+
+				<!-- Training Loss Chart -->
+				<Panel headerText="Training Progress" expandable="true" expanded="true" class="sapUiResponsiveMargin">
+					<headerToolbar>
+						<Toolbar>
+							<Title text="Training Loss Curves"/>
+							<ToolbarSpacer/>
+							<SegmentedButton id="chartRangeSelector" selectedKey="all">
+								<items>
+									<SegmentedButtonItem key="100" text="Last 100"/>
+									<SegmentedButtonItem key="500" text="Last 500"/>
+									<SegmentedButtonItem key="all" text="All"/>
+								</items>
+							</SegmentedButton>
+						</Toolbar>
+					</headerToolbar>
+					<content>
+						<core:HTML id="trainingLossChartContainer" content="&lt;div id='trainingLossChart' style='width:100%;height:350px;'&gt;&lt;/div&gt;"/>
+					</content>
+				</Panel>
+
+				<!-- Data Flow Sankey -->
+				<Panel headerText="Training Data Flow" expandable="true" expanded="false" class="sapUiResponsiveMargin">
+					<headerToolbar>
+						<Toolbar>
+							<Title text="Data Pipeline Flow"/>
+							<ToolbarSpacer/>
+							<Button icon="sap-icon://full-screen" tooltip="Fullscreen" press=".onFullscreenSankey"/>
+						</Toolbar>
+					</headerToolbar>
+					<content>
+						<core:HTML id="sankeyChartContainer" content="&lt;div id='sankeyChart' style='width:100%;height:400px;'&gt;&lt;/div&gt;"/>
+					</content>
+				</Panel>
+
+				<!-- Training Experiments Table -->
+				<Panel headerText="Training Experiments" expandable="true" expanded="true" class="sapUiResponsiveMargin">
+					<headerToolbar>
+						<Toolbar>
+							<Title text="Training Experiments"/>
+							<ToolbarSpacer/>
+							<SearchField
+								width="300px"
+								placeholder="Search experiments..."
+								search=".onSearchExperiments"/>
+							<Button icon="sap-icon://refresh" tooltip="Refresh Experiments" press=".onRefreshExperiments"/>
+						</Toolbar>
+					</headerToolbar>
+					<content>
+						<Table
+							id="experimentsTable"
+							items="{training>/experiments}"
+							noDataText="No training experiments found"
+							mode="SingleSelectMaster"
+							selectionChange=".onExperimentSelect">
+							<columns>
+								<Column width="8%"><Text text="ID"/></Column>
+								<Column width="15%"><Text text="Name"/></Column>
+								<Column width="10%"><Text text="Algorithm"/></Column>
+								<Column width="15%"><Text text="Model"/></Column>
+								<Column width="12%"><Text text="Dataset"/></Column>
+								<Column width="10%"><Text text="Status"/></Column>
+								<Column width="10%"><Text text="Created"/></Column>
+								<Column width="8%"><Text text="Duration"/></Column>
+								<Column width="12%"><Text text="Actions"/></Column>
+							</columns>
+							<items>
+								<ColumnListItem type="Active">
+									<cells>
+										<Text text="{training>id}"/>
+										<Text text="{training>name}"/>
+										<Text text="{training>algorithm}"/>
+										<Text text="{training>model}"/>
+										<Text text="{training>dataset}"/>
+										<ObjectStatus
+											text="{training>status}"
+											state="{= ${training>status} === 'completed' ? 'Success' : (${training>status} === 'running' ? 'Information' : (${training>status} === 'failed' ? 'Error' : 'Warning')) }"
+											icon="{= ${training>status} === 'completed' ? 'sap-icon://sys-enter-2' : (${training>status} === 'running' ? 'sap-icon://synchronize' : (${training>status} === 'failed' ? 'sap-icon://error' : 'sap-icon://status-inactive')) }"/>
+										<Text text="{training>created}"/>
+										<Text text="{training>duration}"/>
+										<HBox>
+											<Button
+												icon="sap-icon://inspect"
+												tooltip="View Metrics"
+												type="Transparent"
+												press=".onViewMetrics"
+												class="sapUiTinyMarginEnd"/>
+											<Button
+												icon="sap-icon://compare"
+												tooltip="Compare"
+												type="Transparent"
+												press=".onCompareExperiment"/>
+										</HBox>
+									</cells>
+								</ColumnListItem>
+							</items>
+						</Table>
+					</content>
+				</Panel>
+
+				<!-- Start New Training Panel -->
+				<Panel headerText="Start New Training" expandable="true" expanded="false" class="sapUiResponsiveMargin">
+					<headerToolbar>
+						<Toolbar>
+							<Title text="Start New Training"/>
+							<ToolbarSpacer/>
+							<core:Icon src="sap-icon://add" color="#0854a0"/>
+						</Toolbar>
+					</headerToolbar>
+					<content>
+						<VBox class="sapUiSmallMargin">
+							<MessageStrip
+								text="Configure and start a new training experiment. Select an algorithm, model, and dataset to begin."
+								type="Information"
+								showIcon="true"
+								class="sapUiSmallMarginBottom"/>
+
+							<layout:Grid defaultSpan="L6 M12 S12" class="sapUiSmallMargin">
+								<!-- Algorithm Select -->
+								<VBox class="sapUiSmallMarginBottom">
+									<Label text="Training Algorithm" required="true" class="sapUiSmallMarginBottom"/>
+									<Select
+										id="algorithmSelect"
+										selectedKey="{training>/newTraining/algorithm}"
+										width="100%"
+										change=".onAlgorithmChange">
+										<core:Item key="sft" text="SFT - Supervised Fine-Tuning"/>
+										<core:Item key="kto" text="KTO - Kahneman-Tversky Optimization"/>
+										<core:Item key="grpo" text="GRPO - Group Relative Policy Optimization"/>
+										<core:Item key="dapo" text="DAPO - Direct Advantage Policy Optimization"/>
+									</Select>
+								</VBox>
+
+								<!-- Model Select -->
+								<VBox class="sapUiSmallMarginBottom">
+									<Label text="Target Model" required="true" class="sapUiSmallMarginBottom"/>
+									<Select
+										id="modelSelect"
+										selectedKey="{training>/newTraining/model}"
+										width="100%"
+										items="{training>/availableModels}">
+										<core:Item key="{training>id}" text="{training>name}"/>
+									</Select>
+								</VBox>
+
+								<!-- Dataset Select -->
+								<VBox class="sapUiSmallMarginBottom">
+									<Label text="Training Dataset" required="true" class="sapUiSmallMarginBottom"/>
+									<Select
+										id="datasetSelect"
+										selectedKey="{training>/newTraining/dataset}"
+										width="100%"
+										items="{training>/availableDatasets}">
+										<core:Item key="{training>id}" text="{training>name}"/>
+									</Select>
+								</VBox>
+
+								<!-- Experiment Name -->
+								<VBox class="sapUiSmallMarginBottom">
+									<Label text="Experiment Name" required="true" class="sapUiSmallMarginBottom"/>
+									<Input
+										id="experimentNameInput"
+										value="{training>/newTraining/experimentName}"
+										placeholder="Enter experiment name..."
+										width="100%"/>
+								</VBox>
+							</layout:Grid>
+
+							<!-- Warning for preference-based algorithms -->
+							<MessageStrip
+								text="Selected algorithm requires preference data. Ensure your dataset contains preference annotations."
+								type="Warning"
+								showIcon="true"
+								visible="{= ${training>/newTraining/algorithm} === 'kto' || ${training>/newTraining/algorithm} === 'grpo' || ${training>/newTraining/algorithm} === 'dapo' }"
+								class="sapUiSmallMarginBottom"/>
+
+							<HBox justifyContent="End" class="sapUiMediumMarginTop">
+								<Button
+									text="Reset"
+									icon="sap-icon://reset"
+									type="Transparent"
+									press=".onResetNewTraining"
+									class="sapUiSmallMarginEnd"/>
+								<Button
+									text="Start Training"
+									icon="sap-icon://begin"
+									type="Emphasized"
+									press=".onStartTraining"
+									enabled="{= !!${training>/newTraining/algorithm} &amp;&amp; !!${training>/newTraining/model} &amp;&amp; !!${training>/newTraining/dataset} &amp;&amp; !!${training>/newTraining/experimentName} }"/>
+							</HBox>
+						</VBox>
+					</content>
+				</Panel>
+
+			</layout:VerticalLayout>
+		</content>
+	</Page>
+</mvc:View>

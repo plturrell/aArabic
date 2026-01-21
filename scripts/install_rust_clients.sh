@@ -38,7 +38,6 @@ skipped=0
 
 # CLI binaries to install
 cli_binaries=(
-    "langflow-api-client/target/release/langflow-cli"
     "gitea-api-client/target/release/gitea-cli"
     "git-api-client/target/release/git-cli"
     "postgres-api-client/target/release/postgres-cli"
@@ -54,9 +53,8 @@ cli_binaries=(
     "hyperbook-api-client/target/release/hyperbook-cli"
     "qdrant-api-client/target/release/qdrant-cli"
     "memgraph-api-client/target/release/memgraph-cli"
-    "markitdown-api-client/target/release/markitdown-cli"
     "dragonflydb-api-client/target/release/dragonflydb-cli"
-    "glean-api-client/target/release/glean-cli"
+    "ncode-api-client/target/release/ncode-cli"
     "lean4-api-client/target/release/lean4-cli"
 )
 
@@ -90,7 +88,6 @@ if [ $installed -gt 0 ]; then
     echo ""
     echo "Verify installation:"
     echo "  gitea-cli --version"
-    echo "  langflow-cli --help"
     echo "  postgres-cli --help"
     echo ""
     

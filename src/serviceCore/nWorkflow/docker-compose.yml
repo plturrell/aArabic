@@ -1,0 +1,228 @@
+version: "3.9"
+
+services:
+  # Main nWorkflow application
+  nworkflow:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nworkflow
+    ports:
+      - "8090:8090"
+    environment:
+      - NWORKFLOW_PORT=8090
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=nworkflow
+      - POSTGRES_USER=${POSTGRES_USER:-nworkflow}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-nworkflow_secret}
+      - DRAGONFLY_HOST=dragonfly
+      - DRAGONFLY_PORT=6379
+      - KEYCLOAK_URL=http://keycloak:8080
+      - KEYCLOAK_REALM=nworkflow
+      - KEYCLOAK_CLIENT_ID=nworkflow-api
+      - MARQUEZ_URL=http://marquez:5000
+      - MEMGRAPH_HOST=memgraph
+      - MEMGRAPH_PORT=7687
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+    depends_on:
+      postgres:
+        condition: service_healthy
+      dragonfly:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    networks:
+      - nworkflow-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8090/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # PostgreSQL database for workflow persistence
+  postgres:
+    image: postgres:16-alpine
+    container_name: nworkflow-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=nworkflow
+      - POSTGRES_USER=${POSTGRES_USER:-nworkflow}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-nworkflow_secret}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - nworkflow-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nworkflow} -d nworkflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # DragonflyDB for high-performance caching (Redis-compatible)
+  dragonfly:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly
+    container_name: nworkflow-dragonfly
+    ports:
+      - "6379:6379"
+    ulimits:
+      memlock: -1
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    volumes:
+      - dragonfly-data:/data
+    networks:
+      - nworkflow-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # Keycloak for identity and access management
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: nworkflow-keycloak
+    command: start-dev --import-realm
+    ports:
+      - "8080:8080"
+    environment:
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN:-admin}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      - KC_HEALTH_ENABLED=true
+    volumes:
+      - keycloak-data:/opt/keycloak/data
+      - ./keycloak/realms:/opt/keycloak/data/import:ro
+    networks:
+      - nworkflow-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080;echo -e 'GET /health/ready HTTP/1.1\r\nhost: localhost\r\n\r\n' >&3;timeout 1 cat <&3 | grep -q 'status.*UP'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # Marquez for data lineage tracking
+  marquez:
+    image: marquezproject/marquez:latest
+    container_name: nworkflow-marquez
+    ports:
+      - "5000:5000"
+      - "5001:5001"
+    environment:
+      - MARQUEZ_PORT=5000
+      - MARQUEZ_ADMIN_PORT=5001
+      - POSTGRES_HOST=marquez-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=marquez
+      - POSTGRES_USER=${MARQUEZ_POSTGRES_USER:-marquez}
+      - POSTGRES_PASSWORD=${MARQUEZ_POSTGRES_PASSWORD:-marquez_secret}
+    depends_on:
+      marquez-db:
+        condition: service_healthy
+    networks:
+      - nworkflow-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # PostgreSQL for Marquez metadata
+  marquez-db:
+    image: postgres:14-alpine
+    container_name: nworkflow-marquez-db
+    environment:
+      - POSTGRES_DB=marquez
+      - POSTGRES_USER=${MARQUEZ_POSTGRES_USER:-marquez}
+      - POSTGRES_PASSWORD=${MARQUEZ_POSTGRES_PASSWORD:-marquez_secret}
+    volumes:
+      - marquez-db-data:/var/lib/postgresql/data
+    networks:
+      - nworkflow-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${MARQUEZ_POSTGRES_USER:-marquez} -d marquez"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Memgraph for graph queries (optional)
+  memgraph:
+    image: memgraph/memgraph-platform
+    container_name: nworkflow-memgraph
+    ports:
+      - "7687:7687"   # Bolt protocol
+      - "7474:7474"   # HTTP API
+      - "3000:3000"   # Memgraph Lab UI
+    volumes:
+      - memgraph-data:/var/lib/memgraph
+      - memgraph-log:/var/log/memgraph
+    networks:
+      - nworkflow-network
+    restart: unless-stopped
+    profiles:
+      - graph
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'RETURN 1;' | mgconsole || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Qdrant for vector search (optional)
+  qdrant:
+    image: qdrant/qdrant
+    container_name: nworkflow-qdrant
+    ports:
+      - "6333:6333"   # REST API
+      - "6334:6334"   # gRPC API
+    volumes:
+      - qdrant-data:/qdrant/storage
+    networks:
+      - nworkflow-network
+    restart: unless-stopped
+    profiles:
+      - vector
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:6333/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  nworkflow-network:
+    driver: bridge
+    name: nworkflow-network
+
+volumes:
+  postgres-data:
+    name: nworkflow-postgres-data
+  dragonfly-data:
+    name: nworkflow-dragonfly-data
+  keycloak-data:
+    name: nworkflow-keycloak-data
+  marquez-db-data:
+    name: nworkflow-marquez-db-data
+  memgraph-data:
+    name: nworkflow-memgraph-data
+  memgraph-log:
+    name: nworkflow-memgraph-log
+  qdrant-data:
+    name: nworkflow-qdrant-data
+

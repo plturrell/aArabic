@@ -1,0 +1,35 @@
+<mvc:View
+    controllerName="serviceCore.nWorkflow.controller.Settings"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:f="sap.ui.layout.form">
+    <Page
+        id="settingsPage"
+        title="{i18n>settingsTitle}"
+        showNavButton="true"
+        navButtonPress=".onNavBack">
+        <content>
+            <f:SimpleForm
+                id="settingsForm"
+                editable="true"
+                layout="ResponsiveGridLayout"
+                class="sapUiResponsiveContentPadding">
+                <f:content>
+                    <Label text="{i18n>theme}"/>
+                    <Select id="themeSelect" selectedKey="{/settings/theme}" change=".onThemeChange">
+                        <items>
+                            <core:Item xmlns:core="sap.ui.core" key="sap_horizon" text="Horizon"/>
+                            <core:Item xmlns:core="sap.ui.core" key="sap_horizon_dark" text="Horizon Dark"/>
+                            <core:Item xmlns:core="sap.ui.core" key="sap_fiori_3" text="Fiori 3"/>
+                        </items>
+                    </Select>
+                    <Label text="{i18n>autoSave}"/>
+                    <Switch id="autoSaveSwitch" state="{/settings/autoSave}"/>
+                    <Label text="{i18n>gridSize}"/>
+                    <StepInput id="gridSizeInput" value="{/settings/gridSize}" min="10" max="50" step="5"/>
+                </f:content>
+            </f:SimpleForm>
+        </content>
+    </Page>
+</mvc:View>
+

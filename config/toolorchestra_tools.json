@@ -26,28 +26,239 @@
       "method": "POST"
     },
     {
-      "name": "glean_query_code",
-      "description": "Query code structure using Glean's Angle query language. Find symbols, definitions, references, and analyze code relationships.",
+      "name": "ncode_find_references",
+      "description": "Find all references to a symbol in the codebase using SCIP-based code intelligence.",
       "parameters": {
         "type": "object",
         "properties": {
-          "project_name": {
+          "symbol": {
             "type": "string",
-            "description": "Name of the indexed project"
+            "description": "Symbol name to find references for"
           },
+          "file": {
+            "type": "string",
+            "description": "File path (alternative to symbol - find symbol at position)"
+          },
+          "line": {
+            "type": "integer",
+            "description": "Line number (0-indexed, used with file)"
+          },
+          "character": {
+            "type": "integer",
+            "description": "Character offset (0-indexed, used with file)"
+          }
+        },
+        "required": []
+      },
+      "endpoint": "http://localhost:18003/v1/references",
+      "method": "POST"
+    },
+    {
+      "name": "ncode_find_definition",
+      "description": "Find the definition of a symbol at a given position in the codebase.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "File path"
+          },
+          "line": {
+            "type": "integer",
+            "description": "Line number (0-indexed)"
+          },
+          "character": {
+            "type": "integer",
+            "description": "Character offset (0-indexed)"
+          }
+        },
+        "required": ["file", "line", "character"]
+      },
+      "endpoint": "http://localhost:18003/v1/definition",
+      "method": "POST"
+    },
+    {
+      "name": "ncode_hover",
+      "description": "Get hover information (documentation, type) for a symbol at a given position.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "File path"
+          },
+          "line": {
+            "type": "integer",
+            "description": "Line number (0-indexed)"
+          },
+          "character": {
+            "type": "integer",
+            "description": "Character offset (0-indexed)"
+          }
+        },
+        "required": ["file", "line", "character"]
+      },
+      "endpoint": "http://localhost:18003/v1/hover",
+      "method": "POST"
+    },
+    {
+      "name": "ncode_list_symbols",
+      "description": "List all symbols (functions, classes, variables) in a given file.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "File path to list symbols from"
+          }
+        },
+        "required": ["file"]
+      },
+      "endpoint": "http://localhost:18003/v1/symbols",
+      "method": "POST"
+    },
+    {
+      "name": "ncode_document_symbols",
+      "description": "Get document outline showing hierarchical symbol structure (classes containing methods, etc.).",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "File path to get document symbols from"
+          }
+        },
+        "required": ["file"]
+      },
+      "endpoint": "http://localhost:18003/v1/document-symbols",
+      "method": "POST"
+    },
+    {
+      "name": "ncode_load_index",
+      "description": "Load a SCIP index file into nCode server for querying. Must be done before using other nCode operations.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "index_path": {
+            "type": "string",
+            "description": "Path to SCIP index file (e.g., 'index.scip')"
+          }
+        },
+        "required": ["index_path"]
+      },
+      "endpoint": "http://localhost:18003/v1/index/load",
+      "method": "POST"
+    },
+    {
+      "name": "ncode_health_check",
+      "description": "Check nCode server health, get status, version, and loaded index information.",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      },
+      "endpoint": "http://localhost:18003/health",
+      "method": "GET"
+    },
+    {
+      "name": "ncode_semantic_search",
+      "description": "Search code semantically using Qdrant vector database. Find code by meaning, not just text matching.",
+      "parameters": {
+        "type": "object",
+        "properties": {
           "query": {
             "type": "string",
-            "description": "Angle query (e.g., 'code.Symbol _' for all symbols, 'code.Symbol { kind = \"function\" }' for functions only)"
+            "description": "Natural language query describing what to search for"
+          },
+          "collection": {
+            "type": "string",
+            "description": "Qdrant collection name",
+            "default": "code_symbols"
           },
           "limit": {
             "type": "integer",
-            "description": "Maximum number of results to return",
-            "default": 100
+            "description": "Number of results to return",
+            "default": 10
+          },
+          "filter_language": {
+            "type": "string",
+            "description": "Filter by programming language (e.g., 'typescript', 'python', 'rust')"
+          },
+          "filter_kind": {
+            "type": "string",
+            "description": "Filter by symbol kind (e.g., 'function', 'class', 'variable')"
           }
         },
-        "required": ["project_name", "query"]
+        "required": ["query"]
       },
-      "endpoint": "http://localhost:8011/query",
+      "endpoint": "http://localhost:6333/collections/{collection}/points/search",
+      "method": "POST",
+      "preprocessing": "embed_query"
+    },
+    {
+      "name": "ncode_graph_query",
+      "description": "Query code relationships using Memgraph. Find call chains, dependencies, and code structure.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query_type": {
+            "type": "string",
+            "enum": ["find_callers", "find_callees", "find_dependencies", "custom"],
+            "description": "Type of graph query to perform"
+          },
+          "symbol_name": {
+            "type": "string",
+            "description": "Symbol name to query (for find_callers, find_callees)"
+          },
+          "cypher_query": {
+            "type": "string",
+            "description": "Custom Cypher query (when query_type is 'custom')"
+          },
+          "depth": {
+            "type": "integer",
+            "description": "Depth of traversal for transitive queries",
+            "default": 1
+          }
+        },
+        "required": ["query_type"]
+      },
+      "protocol": "mcp",
+      "mcp_server": "mcp-memgraph",
+      "connection": {
+        "uri": "bolt://localhost:7687",
+        "username": "",
+        "password": ""
+      }
+    },
+    {
+      "name": "ncode_track_lineage",
+      "description": "Track code indexing lineage in Marquez. Record which files were processed and when.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "job_name": {
+            "type": "string",
+            "description": "Name of the indexing job"
+          },
+          "input_files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of source files indexed"
+          },
+          "output_index": {
+            "type": "string",
+            "description": "Path to generated SCIP index"
+          },
+          "namespace": {
+            "type": "string",
+            "description": "Marquez namespace",
+            "default": "ncode"
+          }
+        },
+        "required": ["job_name", "input_files", "output_index"]
+      },
+      "endpoint": "http://localhost:5000/api/v1/jobs/runs",
       "method": "POST"
     },
     {

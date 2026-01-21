@@ -1,0 +1,461 @@
+<mvc:View
+    controllerName="llm.server.dashboard.controller.PromptTesting"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:layout="sap.ui.layout"
+    xmlns:core="sap.ui.core"
+    xmlns:viz="sap.viz.ui5.controls"
+    xmlns:viz.feeds="sap.viz.ui5.controls.common.feeds"
+    xmlns:viz.data="sap.viz.ui5.data"
+    displayBlock="true">
+    
+    <Page
+        id="promptTestingPage"
+        showNavButton="true"
+        navButtonPress=".onNavBack">
+        
+        <customHeader>
+            <Bar>
+                <contentLeft>
+                    <Breadcrumbs>
+                        <Link text="Home" press=".onBreadcrumbHome"/>
+                        <Link text="Prompt Testing"/>
+                    </Breadcrumbs>
+                </contentLeft>
+            </Bar>
+        </customHeader>
+        
+        <content>
+            <VBox class="sapUiSmallMargin">
+                
+                <!-- Quick Test Panel -->
+                <Panel
+                    headerText="Quick Test"
+                    expandable="true"
+                    expanded="true"
+                    class="sapUiResponsiveMargin">
+                    
+                    <MessageStrip
+                        text="Test prompts with different modes to optimize performance. Select a mode to auto-configure model and resources."
+                        type="Information"
+                        showIcon="true"
+                        class="sapUiSmallMarginBottom"/>
+                    
+                    <VBox class="sapUiSmallMarginTop">
+                        <!-- Mode Selection -->
+                        <Label text="Select Prompt Mode:" class="sapUiSmallMarginBottom"/>
+                        <SegmentedButton
+                            id="promptModeSelector"
+                            selectedKey="{test>/selectedMode}"
+                            selectionChange=".onModeChange"
+                            width="100%">
+                            <items>
+                                <SegmentedButtonItem 
+                                    key="Fast" 
+                                    text="Fast" 
+                                    icon="sap-icon://accelerated"/>
+                                <SegmentedButtonItem 
+                                    key="Normal" 
+                                    text="Normal" 
+                                    icon="sap-icon://navigation-right-arrow"/>
+                                <SegmentedButtonItem 
+                                    key="Expert" 
+                                    text="Expert" 
+                                    icon="sap-icon://complete"/>
+                                <SegmentedButtonItem 
+                                    key="Research" 
+                                    text="Research" 
+                                    icon="sap-icon://lab"/>
+                            </items>
+                        </SegmentedButton>
+                        
+                        <!-- Mode Info -->
+                        <HBox class="sapUiSmallMarginTop" visible="{= ${test>/selectedMode} !== ''}">
+                            <VBox class="sapUiSmallMarginEnd" width="50%">
+                                <Label text="Model:" class="sapUiTinyMarginBottom"/>
+                                <ObjectStatus
+                                    text="{test>/modeInfo/model}"
+                                    state="Success"
+                                    icon="sap-icon://retail-store"/>
+                            </VBox>
+                            <VBox class="sapUiSmallMarginEnd" width="25%">
+                                <Label text="Target Latency:" class="sapUiTinyMarginBottom"/>
+                                <Text text="{test>/modeInfo/latency}"/>
+                            </VBox>
+                            <VBox width="25%">
+                                <Label text="Expected TPS:" class="sapUiTinyMarginBottom"/>
+                                <Text text="{test>/modeInfo/tps}"/>
+                            </VBox>
+                        </HBox>
+                        
+                        <!-- Prompt Input -->
+                        <Label text="Prompt:" required="true" class="sapUiSmallMarginTop"/>
+                        <TextArea
+                            id="promptInput"
+                            value="{test>/promptText}"
+                            rows="6"
+                            width="100%"
+                            placeholder="Enter your prompt here..."/>
+                        
+                        <!-- Quick Examples -->
+                        <HBox class="sapUiTinyMarginTop">
+                            <Label text="Examples:" class="sapUiSmallMarginEnd sapUiTinyMarginTop"/>
+                            <Button
+                                text="Simple Math"
+                                press=".onExamplePrompt"
+                                type="Transparent"
+                                class="sapUiTinyMarginEnd"/>
+                            <Button
+                                text="Code Generation"
+                                press=".onExamplePrompt"
+                                type="Transparent"
+                                class="sapUiTinyMarginEnd"/>
+                            <Button
+                                text="Arabic Text"
+                                press=".onExamplePrompt"
+                                type="Transparent"
+                                class="sapUiTinyMarginEnd"/>
+                            <Button
+                                text="Reasoning"
+                                press=".onExamplePrompt"
+                                type="Transparent"/>
+                        </HBox>
+                        
+                        <!-- Advanced Settings (Collapsible) -->
+                        <VBox class="sapUiSmallMarginTop">
+                            <Link
+                                text="Advanced Settings"
+                                press=".onToggleAdvanced"/>
+                            <VBox visible="{test>/showAdvanced}" class="sapUiSmallMarginTop">
+                                <layout:Grid defaultSpan="L4 M6 S12">
+                                    <VBox>
+                                        <Label text="Max Tokens:"/>
+                                        <StepInput
+                                            value="{test>/maxTokens}"
+                                            min="10"
+                                            max="2048"
+                                            step="10"/>
+                                    </VBox>
+                                    <VBox>
+                                        <Label text="Temperature:"/>
+                                        <Slider
+                                            value="{test>/temperature}"
+                                            min="0"
+                                            max="2"
+                                            step="0.1"
+                                            width="100%"
+                                            enableTickmarks="true"/>
+                                        <Label text="{= ${test>/temperature}.toFixed(1) }"/>
+                                    </VBox>
+                                    <VBox>
+                                        <Label text="Stream Response:"/>
+                                        <Switch
+                                            state="{test>/streamEnabled}"
+                                            customTextOn="On"
+                                            customTextOff="Off"/>
+                                    </VBox>
+                                </layout:Grid>
+                            </VBox>
+                        </VBox>
+                        
+                        <!-- Action Buttons -->
+                        <HBox class="sapUiSmallMarginTop">
+                            <Button
+                                text="Test Prompt"
+                                icon="sap-icon://play"
+                                type="Emphasized"
+                                press=".onTestPrompt"
+                                enabled="{= ${test>/promptText} !== '' &amp;&amp; ${test>/selectedMode} !== '' &amp;&amp; !${test>/isLoading} }"/>
+                            <Button
+                                text="Batch Test All Modes"
+                                icon="sap-icon://action"
+                                press=".onBatchTest"
+                                enabled="{= ${test>/promptText} !== '' &amp;&amp; !${test>/isLoading} }"
+                                class="sapUiTinyMarginBegin"/>
+                            <Button
+                                text="Clear"
+                                icon="sap-icon://delete"
+                                press=".onClear"
+                                type="Transparent"
+                                class="sapUiTinyMarginBegin"/>
+                            <ToolbarSpacer/>
+                            <BusyIndicator
+                                visible="{test>/isLoading}"
+                                size="1rem"
+                                class="sapUiTinyMarginTop"/>
+                        </HBox>
+                    </VBox>
+                </Panel>
+                
+                <!-- Response Panel -->
+                <Panel
+                    headerText="Response"
+                    expandable="true"
+                    expanded="true"
+                    visible="{= ${test>/response} !== ''}"
+                    class="sapUiSmallMarginTop">
+                    
+                    <VBox class="sapUiSmallMarginTop">
+                        <!-- Response Text -->
+                        <VBox class="sapUiSmallMarginBottom">
+                            <Label text="Generated Response:" class="sapUiSmallMarginBottom"/>
+                            <TextArea
+                                value="{test>/response}"
+                                rows="10"
+                                width="100%"
+                                editable="false"/>
+                        </VBox>
+                        
+                        <!-- Performance Metrics -->
+                        <Label text="Performance Metrics" class="sapUiSmallMarginBottom"/>
+                        <layout:Grid defaultSpan="L3 M6 S12">
+                            <VBox>
+                                <Label text="Total Latency:" class="sapUiTinyMarginBottom"/>
+                                <ObjectStatus
+                                    text="{test>/metrics/latency_ms} ms"
+                                    state="{= ${test>/metrics/latency_ms} &lt; 150 ? 'Success' : ${test>/metrics/latency_ms} &lt; 300 ? 'Warning' : 'Error' }"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="TTFT:" class="sapUiTinyMarginBottom"/>
+                                <ObjectStatus
+                                    text="{test>/metrics/ttft_ms} ms"
+                                    state="{= ${test>/metrics/ttft_ms} &lt; 50 ? 'Success' : ${test>/metrics/ttft_ms} &lt; 100 ? 'Warning' : 'Error' }"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Throughput:" class="sapUiTinyMarginBottom"/>
+                                <ObjectStatus
+                                    text="{test>/metrics/tokens_per_second} tok/s"
+                                    state="Success"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Cache Hit Rate:" class="sapUiTinyMarginBottom"/>
+                                <ObjectStatus
+                                    text="{= (${test>/metrics/cache_hit_rate} * 100).toFixed(1) + '%' }"
+                                    state="{= ${test>/metrics/cache_hit_rate} &gt; 0.7 ? 'Success' : ${test>/metrics/cache_hit_rate} &gt; 0.5 ? 'Warning' : 'Error' }"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Tokens Generated:" class="sapUiTinyMarginBottom"/>
+                                <Text text="{test>/metrics/tokens_generated}"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Model Used:" class="sapUiTinyMarginBottom"/>
+                                <Text text="{test>/metrics/model_used}"/>
+                            </VBox>
+                        </layout:Grid>
+                        
+                        <!-- Save to History -->
+                        <HBox class="sapUiSmallMarginTop">
+                            <Button
+                                text="Save to History"
+                                icon="sap-icon://save"
+                                press=".onSaveToHistory"
+                                type="Emphasized"/>
+                            <Button
+                                text="Rate Response"
+                                icon="sap-icon://favorite"
+                                press=".onRateResponse"
+                                class="sapUiTinyMarginBegin"/>
+                        </HBox>
+                    </VBox>
+                </Panel>
+                
+                <!-- Batch Test Results Panel -->
+                <Panel
+                    headerText="Batch Test Results"
+                    expandable="true"
+                    expanded="true"
+                    visible="{= ${test>/batchResults/length} &gt; 0 }"
+                    class="sapUiSmallMarginTop">
+                    
+                    <Table
+                        id="batchResultsTable"
+                        items="{test>/batchResults}"
+                        class="sapUiSmallMarginTop">
+                        <columns>
+                            <Column width="15%">
+                                <Text text="Mode"/>
+                            </Column>
+                            <Column width="40%">
+                                <Text text="Response Preview"/>
+                            </Column>
+                            <Column width="15%">
+                                <Text text="Latency"/>
+                            </Column>
+                            <Column width="15%">
+                                <Text text="TPS"/>
+                            </Column>
+                            <Column width="15%">
+                                <Text text="Quality"/>
+                            </Column>
+                        </columns>
+                        <items>
+                            <ColumnListItem>
+                                <cells>
+                                    <ObjectStatus
+                                        text="{test>mode}"
+                                        state="{= ${test>mode} === 'Fast' ? 'Success' : ${test>mode} === 'Normal' ? 'Information' : ${test>mode} === 'Expert' ? 'Warning' : 'None' }"/>
+                                    <Text
+                                        text="{= ${test>response}.substring(0, 80) + '...' }"
+                                        wrapping="true"/>
+                                    <ObjectStatus
+                                        text="{test>metrics/latency_ms} ms"
+                                        state="{= ${test>metrics/latency_ms} &lt; 150 ? 'Success' : ${test>metrics/latency_ms} &lt; 300 ? 'Warning' : 'Error' }"/>
+                                    <Text text="{test>metrics/tokens_per_second} tok/s"/>
+                                    <RatingIndicator
+                                        value="{test>quality_rating}"
+                                        maxValue="5"
+                                        editable="false"/>
+                                </cells>
+                            </ColumnListItem>
+                        </items>
+                    </Table>
+                    
+                    <!-- Comparison Summary -->
+                    <VBox class="sapUiSmallMarginTop">
+                        <Label text="Comparison Summary" class="sapUiSmallMarginBottom"/>
+                        <layout:Grid defaultSpan="L3 M6 S12">
+                            <VBox>
+                                <Label text="Fastest Mode:" class="sapUiTinyMarginBottom"/>
+                                <ObjectStatus
+                                    text="{test>/comparison/fastest_mode}"
+                                    state="Success"
+                                    icon="sap-icon://accelerated"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Average Latency:" class="sapUiTinyMarginBottom"/>
+                                <Text text="{test>/comparison/avg_latency_ms} ms"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Best Quality:" class="sapUiTinyMarginBottom"/>
+                                <ObjectStatus
+                                    text="{test>/comparison/best_quality_mode}"
+                                    state="Warning"
+                                    icon="sap-icon://complete"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Total Cost:" class="sapUiTinyMarginBottom"/>
+                                <Text text="${test>/comparison/total_cost}"/>
+                            </VBox>
+                        </layout:Grid>
+
+                        <!-- T-Account Comparison Button -->
+                        <HBox class="sapUiSmallMarginTop" justifyContent="End">
+                            <Button
+                                text="Open T-Account Comparison"
+                                icon="sap-icon://compare-2"
+                                type="Emphasized"
+                                press=".onComparePrompts"
+                                tooltip="Compare prompts side-by-side in T-Account view"/>
+                        </HBox>
+                    </VBox>
+                </Panel>
+                
+                <!-- History Panel -->
+                <Panel
+                    headerText="Prompt History"
+                    expandable="true"
+                    expanded="false"
+                    class="sapUiSmallMarginTop">
+                    
+                    <Toolbar>
+                        <ToolbarSpacer/>
+                        <SearchField
+                            placeholder="Search prompts..."
+                            search=".onSearchHistory"
+                            width="300px"/>
+                        <ToolbarSeparator/>
+                        <Select
+                            selectedKey="{test>/historyFilter/mode}"
+                            change=".onFilterHistory"
+                            width="150px">
+                            <core:Item key="" text="All Modes"/>
+                            <core:Item key="Fast" text="Fast"/>
+                            <core:Item key="Normal" text="Normal"/>
+                            <core:Item key="Expert" text="Expert"/>
+                            <core:Item key="Research" text="Research"/>
+                        </Select>
+                        <Button
+                            icon="sap-icon://refresh"
+                            press=".onRefreshHistory"
+                            tooltip="Refresh"/>
+                        <Button
+                            icon="sap-icon://download"
+                            press=".onExportHistory"
+                            tooltip="Export to CSV"/>
+                    </Toolbar>
+                    
+                    <Table
+                        id="historyTable"
+                        items="{test>/history}"
+                        growing="true"
+                        growingThreshold="20"
+                        mode="SingleSelectMaster"
+                        selectionChange=".onHistorySelect"
+                        class="sapUiSmallMarginTop">
+                        <columns>
+                            <Column width="8%">
+                                <Text text="Mode"/>
+                            </Column>
+                            <Column width="32%">
+                                <Text text="Prompt"/>
+                            </Column>
+                            <Column width="15%">
+                                <Text text="Model"/>
+                            </Column>
+                            <Column width="10%">
+                                <Text text="Latency"/>
+                            </Column>
+                            <Column width="10%">
+                                <Text text="TPS"/>
+                            </Column>
+                            <Column width="8%">
+                                <Text text="Rating"/>
+                            </Column>
+                            <Column width="12%">
+                                <Text text="Timestamp"/>
+                            </Column>
+                            <Column width="5%" hAlign="Center">
+                                <Text text=""/>
+                            </Column>
+                        </columns>
+                        <items>
+                            <ColumnListItem type="Active">
+                                <cells>
+                                    <ObjectStatus
+                                        text="{test>mode}"
+                                        state="{= ${test>mode} === 'Fast' ? 'Success' : ${test>mode} === 'Normal' ? 'Information' : 'Warning' }"/>
+                                    <Text
+                                        text="{= ${test>prompt_text}.substring(0, 60) + (${test>prompt_text}.length > 60 ? '...' : '') }"
+                                        wrapping="true"/>
+                                    <Text text="{test>model_id}"/>
+                                    <Text text="{test>latency_ms} ms"/>
+                                    <Text text="{test>tokens_per_second} tok/s"/>
+                                    <RatingIndicator
+                                        value="{test>user_rating}"
+                                        maxValue="5"
+                                        editable="false"
+                                        visualMode="Half"/>
+                                    <Text text="{path: 'test>timestamp', type: 'sap.ui.model.type.DateTime', formatOptions: { pattern: 'MM/dd HH:mm' }}"/>
+                                    <Button
+                                        icon="sap-icon://delete"
+                                        type="Transparent"
+                                        press=".onDeletePrompt"
+                                        tooltip="Delete this prompt"/>
+                                </cells>
+                            </ColumnListItem>
+                        </items>
+                    </Table>
+                </Panel>
+                
+            </VBox>
+        </content>
+        
+        <footer>
+            <Toolbar>
+                <ToolbarSpacer/>
+                <Text text="Prompts tested: {test>/totalPrompts} | Avg latency: {test>/avgLatency} ms"/>
+            </Toolbar>
+        </footer>
+        
+    </Page>
+</mvc:View>

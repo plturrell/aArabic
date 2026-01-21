@@ -246,32 +246,6 @@ services:
       - nucleus_internal
     restart: unless-stopped
 
-  langflow:
-    image: langflowai/langflow:latest
-    container_name: ai_nucleus_langflow
-    expose:
-      - "7860"
-    environment:
-      - LANGFLOW_HOST=0.0.0.0
-      - LANGFLOW_PORT=7860
-      - LANGFLOW_AUTO_LOGIN=false
-    volumes:
-      - ./data/langflow:/app/langflow
-    depends_on:
-      memgraph:
-        condition: service_healthy
-      qdrant:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:7860/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 90s
-    networks:
-      - nucleus_internal
-    restart: unless-stopped
-
   # ===========================================================================
   # CONTAINER MANAGEMENT UI
   # ===========================================================================

@@ -1,0 +1,10 @@
+<mvc:View
+    controllerName="nCode.webapp.controller.App"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.f">
+    <FlexibleColumnLayout
+        id="layout"
+        stateChange=".onStateChanged"
+        backgroundDesign="Solid">
+    </FlexibleColumnLayout>
+</mvc:View>

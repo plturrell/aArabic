@@ -7,6 +7,13 @@ from core.lexer.token import Token, TokenKind
 from core.parser.syntax import SyntaxNode, NodeKind
 
 
+struct SyntaxError(Copyable, Movable):
+    var message: String
+
+    fn __init__(out self, message: String):
+        self.message = message
+
+
 struct Parser:
     var tokens: List[Token]
     var index: Int
@@ -14,6 +21,7 @@ struct Parser:
     var tmp_ops: List[String]
     var tmp_precs: List[Int]
     var tmp_right_assoc: List[Bool]
+    var errors: List[SyntaxError]
 
     fn __init__(out self, tokens: List[Token]):
         self.tokens = tokens.copy()
@@ -22,6 +30,10 @@ struct Parser:
         self.tmp_ops = List[String]()
         self.tmp_precs = List[Int]()
         self.tmp_right_assoc = List[Bool]()
+        self.errors = List[SyntaxError]()
+
+    fn has_errors(self) -> Bool:
+        return len(self.errors) > 0
 
     fn is_at_end(self) -> Bool:
         return self.index >= len(self.tokens) or self.tokens[self.index].kind == TokenKind.EOF

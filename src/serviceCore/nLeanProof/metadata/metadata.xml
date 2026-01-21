@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="4.0" xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx">
+  <edmx:DataServices>
+    <Schema Namespace="nLeanProof.Service" xmlns="http://docs.oasis-open.org/odata/ns/edm">
+      
+      <!-- LeanFile Entity: Represents a Lean source file -->
+      <EntityType Name="LeanFile">
+        <Key>
+          <PropertyRef Name="id"/>
+        </Key>
+        <Property Name="id" Type="Edm.String" Nullable="false"/>
+        <Property Name="name" Type="Edm.String" Nullable="false"/>
+        <Property Name="content" Type="Edm.String"/>
+        <Property Name="lastModified" Type="Edm.DateTimeOffset"/>
+      </EntityType>
+      
+      <!-- CompileResult Entity: Represents compilation output -->
+      <EntityType Name="CompileResult">
+        <Key>
+          <PropertyRef Name="id"/>
+        </Key>
+        <Property Name="id" Type="Edm.String" Nullable="false"/>
+        <Property Name="success" Type="Edm.Boolean" Nullable="false"/>
+        <Property Name="stdout" Type="Edm.String"/>
+        <Property Name="stderr" Type="Edm.String"/>
+        <Property Name="diagnostics" Type="Edm.String"/>
+        <Property Name="timestamp" Type="Edm.DateTimeOffset"/>
+      </EntityType>
+      
+      <!-- ChatMessage Entity: Represents a chat interaction -->
+      <EntityType Name="ChatMessage">
+        <Key>
+          <PropertyRef Name="id"/>
+        </Key>
+        <Property Name="id" Type="Edm.String" Nullable="false"/>
+        <Property Name="role" Type="Edm.String" Nullable="false"/>
+        <Property Name="content" Type="Edm.String"/>
+        <Property Name="timestamp" Type="Edm.DateTimeOffset"/>
+      </EntityType>
+      
+      <!-- Entity Container -->
+      <EntityContainer Name="Container">
+        <EntitySet Name="LeanFiles" EntityType="nLeanProof.Service.LeanFile"/>
+        <EntitySet Name="CompileResults" EntityType="nLeanProof.Service.CompileResult"/>
+        <EntitySet Name="ChatMessages" EntityType="nLeanProof.Service.ChatMessage"/>
+      </EntityContainer>
+      
+    </Schema>
+  </edmx:DataServices>
+</edmx:Edmx>
+

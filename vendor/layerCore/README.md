@@ -1,71 +1,31 @@
-# MCP Servers - Layer Core
+# LayerCore MCP Adapters
 
-Model Context Protocol (MCP) servers provide tool and resource capabilities to the AI Nucleus platform.
+LayerCore bundles the infrastructure-facing MCP adapters the platform still relies on after retiring legacy workflow tools. These adapters expose a narrow, audited surface area into core services so agent runtimes (nWorkflow, nOpenaiServer, toolorchestra) can reuse the same primitives.
 
-## Installed MCP Servers
+## Maintained adapters
 
-### 1. **Filesystem MCP** (`./filesystem`)
-- **Purpose:** File system operations and document access
-- **Use Cases:**
-  - Read/write files for invoice processing
-  - Access documentation and templates
-  - Code analysis and manipulation
-- **Integration:** Connect to backend API for document workflows
+| Adapter | Path | Primary capability |
+|---------|------|--------------------|
+| Filesystem | `./filesystem` | Read/write access to project artifacts, build outputs, and generated documentation for automation jobs. |
+| Git | `./git` | Safe repository interactions against the internal Gitea remote (clone, commit, diff, push) used by CI bots and release tooling. |
+| Memory | `./memory` | Conversation/agent scratchpad persisted in Dragonfly/Postgres so long-running orchestration chains can resume contextually. |
+| Postgres | `./postgres` | Parameterized SQL interface into the operational databases (Keycloak, Registry, Gitea, Marquez). Used for inspections, migrations, and health automation. |
 
-### 2. **Git MCP** (`./git`)
-- **Purpose:** Git repository operations
-- **Use Cases:**
-  - Interface with Gitea service
-  - Version control for workflows and configs
-  - Repository management
-- **Integration:** Works with ai_nucleus_gitea service
+All other adapters that previously targeted removed vendors (Langflow, n8n, etc.) have been deleted. New adapters should be added only when there is a concrete first-party consumer and corresponding audit plan.
 
-### 3. **Memory MCP** (`./memory`)
-- **Purpose:** Persistent agent memory
-- **Use Cases:**
-  - Store conversation context
-  - Remember user preferences
-  - Maintain session state
-- **Integration:** Can use Dragonfly or Postgres for storage
+## Usage patterns
 
-### 4. **Postgres MCP** (`./postgres`)
-- **Purpose:** Database operations
-- **Use Cases:**
-  - Query all 5 Postgres databases
-  - Data analysis and reporting
-  - Schema management
-- **Integration:** Connect to:
-  - ai_nucleus_gitea_db
-  - ai_nucleus_keycloak_db
-  - ai_nucleus_n8n_db
-  - ai_nucleus_marquez_db
-  - ai_nucleus_registry_db
-
-## Integration Points
-
-### Backend API Integration
-The backend service can expose MCP tools through its API:
-- File operations via Filesystem MCP
-- Database queries via Postgres MCP
-- Git operations via Git MCP
-
-### n8n Workflows
-MCP tools can be wrapped as n8n custom nodes:
-- Filesystem operations in document workflows
-- Database queries in automation flows
-- Git operations for deployment workflows
-
-### Langflow Integration
-MCP resources can be used as Langflow components:
-- Memory for conversation persistence
-- Postgres for data retrieval
-- Filesystem for document loading
+1. **Service automation** – backend jobs and nWorkflow plans call the MCP adapters through `rust_cli_adapter.py`, ensuring a consistent auth/logging surface.
+2. **Operational tooling** – maintenance scripts (e.g., registry migrations, database integrity checks) invoke the same adapters instead of using bespoke shell commands.
+3. **Agent runtimes** – when exposing MCPs directly to external agent hosts, point them to these adapters to guarantee parity with production automation.
 
 ## Configuration
 
-MCP servers can be configured via environment variables in docker-compose.yml or integrated directly into the backend service.
+- Environment variables for connection strings live in the root `.env*` files and are injected via Docker Compose.
+- Adapter-specific policies (e.g., paths accessible by Filesystem MCP) are defined next to each adapter in this directory; update them when changing directory structure.
 
-## Source
-- Repository: https://github.com/modelcontextprotocol/servers
-- License: MIT
-- Version: Latest (Jan 2026)
+## Contribution notes
+
+1. Prefer extending existing adapters over adding new ones.
+2. Document every new command or endpoint in this README so consumers know what is supported.
+3. When deprecating an adapter, remove it here, delete the underlying code, and update any orchestration scripts that referenced it.

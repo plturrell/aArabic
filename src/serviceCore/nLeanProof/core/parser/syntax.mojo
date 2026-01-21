@@ -31,11 +31,22 @@ struct NodeKind(ImplicitlyCopyable, Copyable, Movable):
     comptime ERROR = NodeKind(13)
 
 
-@fieldwise_init
 struct SyntaxNode(Copyable, Movable):
     var kind: NodeKind
     var value: String
     var children: List[SyntaxNode]
+
+    fn __init__(out self, kind: NodeKind, value: String, owned children: List[SyntaxNode]):
+        self.kind = kind
+        self.value = value
+        self.children = children^
+
+    fn __copyinit__(out self, other: SyntaxNode):
+        self.kind = other.kind
+        self.value = other.value
+        self.children = List[SyntaxNode]()
+        for i in range(len(other.children)):
+            self.children.append(other.children[i].copy())
 
 
 fn node_kind_name(kind: NodeKind) -> String:
@@ -69,10 +80,18 @@ fn node_kind_name(kind: NodeKind) -> String:
         return "error"
 
 
-@fieldwise_init
 struct Task(Copyable, Movable):
     var kind: Int  # 0=open, 1=close, 2=space
     var node: SyntaxNode
+
+    fn __init__(out self, kind: Int, node: SyntaxNode):
+        self.kind = kind
+        self.node = node^
+
+    fn __copyinit__(out self, other: Task):
+        self.kind = other.kind
+        self.node = other.node.copy()
+
 
 
 fn node_to_string(root: SyntaxNode) -> String:

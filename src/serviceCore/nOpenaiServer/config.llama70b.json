@@ -1,0 +1,40 @@
+{
+    "host": "0.0.0.0",
+    "port": 11434,
+    "num_workers": 4,
+    "max_request_bytes": 16777216,
+    "response_buffer_size": 131072,
+    "connection_timeout_ms": 60000,
+    "request_timeout_ms": 300000,
+    "model_path": "/Users/user/Documents/arabic_folder/layerModels/Llama-3.3-70B-Instruct-Q4_K_M.gguf",
+    "model_id": "meta-llama/Llama-3.3-70B-Instruct",
+    "model_dir": "/Users/user/Documents/arabic_folder/layerModels",
+    "default_max_tokens": 2048,
+    "default_temperature": 0.6,
+    "debug_enabled": false,
+    "log_requests": true,
+    
+    "tiering": {
+        "enabled": true,
+        "max_ram_mb": 24576,
+        "max_ssd_mb": 65536,
+        "ssd_path": "/Users/user/Documents/arabic_folder/layerModels/.cache/tiering",
+        "enable_compression": true,
+        "enable_distributed": false
+    },
+    
+    "inference": {
+        "context_length": 8192,
+        "batch_size": 512,
+        "threads": 8,
+        "gpu_layers": 0,
+        "mmap": true,
+        "mlock": false
+    },
+    
+    "rate_limit": {
+        "requests_per_sec": 10,
+        "burst": 20
+    }
+}
+

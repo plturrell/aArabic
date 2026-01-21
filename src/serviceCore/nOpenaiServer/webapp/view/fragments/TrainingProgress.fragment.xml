@@ -1,0 +1,350 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:layout="sap.ui.layout"
+    xmlns:f="sap.f"
+    xmlns:card="sap.f.cards">
+
+    <Panel
+        id="trainingProgressPanel"
+        headerText="Training Progress"
+        expandable="true"
+        expanded="{training>/panelExpanded}"
+        class="sapUiResponsiveMargin">
+        
+        <headerToolbar>
+            <OverflowToolbar>
+                <Title text="Training Progress"/>
+                <ToolbarSpacer/>
+                <ObjectStatus
+                    text="{training>/activeExperiment/status}"
+                    state="{= ${training>/activeExperiment/status} === 'running' ? 'Success' : 
+                            (${training>/activeExperiment/status} === 'completed' ? 'Information' : 
+                            (${training>/activeExperiment/status} === 'failed' ? 'Error' : 
+                            (${training>/activeExperiment/status} === 'paused' ? 'Warning' : 'None'))) }"
+                    icon="{= ${training>/activeExperiment/status} === 'running' ? 'sap-icon://synchronize' : 
+                           (${training>/activeExperiment/status} === 'completed' ? 'sap-icon://sys-enter-2' : 
+                           (${training>/activeExperiment/status} === 'failed' ? 'sap-icon://error' : 
+                           (${training>/activeExperiment/status} === 'paused' ? 'sap-icon://pause' : 'sap-icon://status-inactive'))) }"/>
+            </OverflowToolbar>
+        </headerToolbar>
+        
+        <content>
+            <!-- No Active Training State -->
+            <VBox 
+                visible="{= !${training>/activeExperiment/id} }"
+                alignItems="Center"
+                class="sapUiMediumMargin">
+                <core:Icon 
+                    src="sap-icon://education" 
+                    size="3rem" 
+                    color="#bbb"
+                    class="sapUiSmallMarginBottom"/>
+                <Text 
+                    text="No active training experiments" 
+                    class="sapUiSmallMarginBottom"/>
+                <Text 
+                    text="Start a new experiment from the Fine-Tuning page"
+                    class="sapUiTinyMarginBottom"/>
+            </VBox>
+            
+            <!-- Active Training Content -->
+            <VBox 
+                visible="{= !!${training>/activeExperiment/id} }"
+                class="sapUiSmallMargin">
+                
+                <!-- Experiment Info Header -->
+                <HBox justifyContent="SpaceBetween" alignItems="Center" class="sapUiSmallMarginBottom">
+                    <VBox>
+                        <Title text="{training>/activeExperiment/name}" level="H4"/>
+                        <HBox alignItems="Center">
+                            <Label text="Algorithm:" class="sapUiTinyMarginEnd"/>
+                            <Text text="{training>/activeExperiment/algorithm}" class="sapUiSmallMarginEnd"/>
+                            <Label text="Model:" class="sapUiTinyMarginEnd"/>
+                            <Text text="{training>/activeExperiment/model}"/>
+                        </HBox>
+                    </VBox>
+                    <ObjectStatus
+                        text="{training>/activeExperiment/status}"
+                        state="{= ${training>/activeExperiment/status} === 'running' ? 'Success' : 
+                                (${training>/activeExperiment/status} === 'completed' ? 'Information' : 
+                                (${training>/activeExperiment/status} === 'failed' ? 'Error' : 'Warning')) }"
+                        inverted="true"/>
+                </HBox>
+                
+                <!-- Overall Progress Bar -->
+                <VBox class="sapUiSmallMarginBottom">
+                    <Label text="Overall Progress" class="sapUiTinyMarginBottom"/>
+                    <ProgressIndicator
+                        percentValue="{training>/activeExperiment/progress}"
+                        displayValue="{= ${training>/activeExperiment/progress} + '%' }"
+                        state="{= ${training>/activeExperiment/status} === 'failed' ? 'Error' : 
+                                (${training>/activeExperiment/progress} >= 100 ? 'Success' : 'Information') }"
+                        showValue="true"/>
+                </VBox>
+                
+                <!-- Current Metrics Grid -->
+                <layout:Grid defaultSpan="L4 M6 S12" class="sapUiSmallMarginBottom">
+                    
+                    <!-- Step/Epoch Progress -->
+                    <VBox>
+                        <Label text="Step / Epoch" class="sapUiTinyMarginBottom"/>
+                        <HBox alignItems="End">
+                            <ObjectNumber 
+                                number="{training>/activeExperiment/currentStep}"
+                                emphasized="true"/>
+                            <Text text="{= ' / ' + ${training>/activeExperiment/totalSteps} }" class="sapUiTinyMarginBegin"/>
+                        </HBox>
+                        <Text text="{= 'Epoch ' + ${training>/activeExperiment/currentEpoch} + ' of ' + ${training>/activeExperiment/totalEpochs} }"/>
+                    </VBox>
+                    
+                    <!-- Loss with Trend -->
+                    <VBox>
+                        <Label text="Loss" class="sapUiTinyMarginBottom"/>
+                        <HBox alignItems="Center">
+                            <ObjectNumber 
+                                number="{training>/activeExperiment/loss}"
+                                emphasized="true"
+                                state="{= ${training>/activeExperiment/lossTrend} === 'down' ? 'Success' : 
+                                        (${training>/activeExperiment/lossTrend} === 'up' ? 'Error' : 'None') }"/>
+                            <core:Icon 
+                                src="{= ${training>/activeExperiment/lossTrend} === 'down' ? 'sap-icon://trend-down' : 
+                                      (${training>/activeExperiment/lossTrend} === 'up' ? 'sap-icon://trend-up' : 'sap-icon://less') }"
+                                color="{= ${training>/activeExperiment/lossTrend} === 'down' ? '#107e3e' : 
+                                        (${training>/activeExperiment/lossTrend} === 'up' ? '#bb0000' : '#666') }"
+                                class="sapUiTinyMarginBegin"/>
+                        </HBox>
+                    </VBox>
+                    
+                    <!-- Accuracy with Trend -->
+                    <VBox>
+                        <Label text="Accuracy" class="sapUiTinyMarginBottom"/>
+                        <HBox alignItems="Center">
+                            <ObjectNumber 
+                                number="{training>/activeExperiment/accuracy}"
+                                unit="%"
+                                emphasized="true"
+                                state="{= ${training>/activeExperiment/accuracyTrend} === 'up' ? 'Success' : 
+                                        (${training>/activeExperiment/accuracyTrend} === 'down' ? 'Error' : 'None') }"/>
+                            <core:Icon 
+                                src="{= ${training>/activeExperiment/accuracyTrend} === 'up' ? 'sap-icon://trend-up' : 
+                                      (${training>/activeExperiment/accuracyTrend} === 'down' ? 'sap-icon://trend-down' : 'sap-icon://less') }"
+                                color="{= ${training>/activeExperiment/accuracyTrend} === 'up' ? '#107e3e' : 
+                                        (${training>/activeExperiment/accuracyTrend} === 'down' ? '#bb0000' : '#666') }"
+                                class="sapUiTinyMarginBegin"/>
+                        </HBox>
+                    </VBox>
+                    
+                    <!-- Learning Rate -->
+                    <VBox>
+                        <Label text="Learning Rate" class="sapUiTinyMarginBottom"/>
+                        <ObjectNumber 
+                            number="{training>/activeExperiment/learningRate}"
+                            emphasized="true"/>
+                    </VBox>
+                    
+                    <!-- Tokens Processed -->
+                    <VBox>
+                        <Label text="Tokens Processed" class="sapUiTinyMarginBottom"/>
+                        <ObjectNumber 
+                            number="{training>/activeExperiment/tokensProcessed}"
+                            emphasized="true"/>
+                    </VBox>
+                    
+                    <!-- Time Elapsed / Remaining -->
+                    <VBox>
+                        <Label text="Time" class="sapUiTinyMarginBottom"/>
+                        <Text text="{= ${training>/activeExperiment/timeElapsed} + ' elapsed' }"/>
+                        <Text text="{= ${training>/activeExperiment/timeRemaining} + ' remaining' }"/>
+                    </VBox>
+                </layout:Grid>
+
+                <!-- Real-time Metrics Chart Placeholder -->
+                <Panel
+                    headerText="Metrics Chart"
+                    expandable="true"
+                    expanded="false"
+                    visible="{= ${training>/activeExperiment/status} === 'running' || ${training>/activeExperiment/status} === 'paused' }"
+                    class="sapUiSmallMarginBottom">
+                    <content>
+                        <VBox class="sapUiSmallMargin" alignItems="Center">
+                            <MessageStrip
+                                text="Real-time metrics visualization will be displayed here"
+                                type="Information"
+                                showIcon="true"
+                                class="sapUiSmallMarginBottom"/>
+                            <HBox justifyContent="SpaceAround" width="100%">
+                                <VBox alignItems="Center">
+                                    <Label text="Loss History"/>
+                                    <ObjectNumber
+                                        number="{training>/activeExperiment/lossHistory/length}"
+                                        unit="samples"
+                                        state="Information"/>
+                                </VBox>
+                                <VBox alignItems="Center">
+                                    <Label text="Accuracy History"/>
+                                    <ObjectNumber
+                                        number="{training>/activeExperiment/accuracyHistory/length}"
+                                        unit="samples"
+                                        state="Success"/>
+                                </VBox>
+                                <VBox alignItems="Center">
+                                    <Label text="LR History"/>
+                                    <ObjectNumber
+                                        number="{training>/activeExperiment/lrHistory/length}"
+                                        unit="samples"
+                                        state="Warning"/>
+                                </VBox>
+                            </HBox>
+                        </VBox>
+                    </content>
+                </Panel>
+
+                <!-- Control Buttons - Running State -->
+                <OverflowToolbar
+                    visible="{= ${training>/activeExperiment/status} === 'running' }"
+                    class="sapUiSmallMarginTop">
+                    <ToolbarSpacer/>
+                    <Button
+                        text="Pause"
+                        icon="sap-icon://pause"
+                        type="Attention"
+                        press=".onPauseTraining"/>
+                    <Button
+                        text="Stop"
+                        icon="sap-icon://stop"
+                        type="Reject"
+                        press=".onStopTraining"/>
+                    <Button
+                        text="View Logs"
+                        icon="sap-icon://sys-monitor"
+                        type="Transparent"
+                        press=".onViewTrainingLogs"/>
+                </OverflowToolbar>
+
+                <!-- Control Buttons - Paused State -->
+                <OverflowToolbar
+                    visible="{= ${training>/activeExperiment/status} === 'paused' }"
+                    class="sapUiSmallMarginTop">
+                    <ToolbarSpacer/>
+                    <Button
+                        text="Resume"
+                        icon="sap-icon://play"
+                        type="Accept"
+                        press=".onResumeTraining"/>
+                    <Button
+                        text="Stop"
+                        icon="sap-icon://stop"
+                        type="Reject"
+                        press=".onStopTraining"/>
+                    <Button
+                        text="View Logs"
+                        icon="sap-icon://sys-monitor"
+                        type="Transparent"
+                        press=".onViewTrainingLogs"/>
+                </OverflowToolbar>
+
+                <!-- Completed State Summary -->
+                <VBox
+                    visible="{= ${training>/activeExperiment/status} === 'completed' }"
+                    class="sapUiSmallMarginTop">
+                    <MessageStrip
+                        text="Training completed successfully!"
+                        type="Success"
+                        showIcon="true"
+                        class="sapUiSmallMarginBottom"/>
+                    <layout:Grid defaultSpan="L4 M6 S12">
+                        <VBox>
+                            <Label text="Final Loss"/>
+                            <ObjectNumber
+                                number="{training>/activeExperiment/finalLoss}"
+                                emphasized="true"
+                                state="Success"/>
+                        </VBox>
+                        <VBox>
+                            <Label text="Final Accuracy"/>
+                            <ObjectNumber
+                                number="{training>/activeExperiment/finalAccuracy}"
+                                unit="%"
+                                emphasized="true"
+                                state="Success"/>
+                        </VBox>
+                        <VBox>
+                            <Label text="Total Duration"/>
+                            <Text text="{training>/activeExperiment/totalDuration}"/>
+                        </VBox>
+                    </layout:Grid>
+                    <OverflowToolbar class="sapUiSmallMarginTop">
+                        <ToolbarSpacer/>
+                        <Button
+                            text="View Results"
+                            icon="sap-icon://display"
+                            type="Emphasized"
+                            press=".onViewTrainingResults"/>
+                        <Button
+                            text="View Logs"
+                            icon="sap-icon://sys-monitor"
+                            type="Transparent"
+                            press=".onViewTrainingLogs"/>
+                        <Button
+                            text="Dismiss"
+                            icon="sap-icon://decline"
+                            type="Transparent"
+                            press=".onDismissTraining"/>
+                    </OverflowToolbar>
+                </VBox>
+
+                <!-- Failed State Info -->
+                <VBox
+                    visible="{= ${training>/activeExperiment/status} === 'failed' }"
+                    class="sapUiSmallMarginTop">
+                    <MessageStrip
+                        text="{= 'Training failed: ' + ${training>/activeExperiment/errorMessage} }"
+                        type="Error"
+                        showIcon="true"
+                        class="sapUiSmallMarginBottom"/>
+                    <layout:Grid defaultSpan="L4 M6 S12">
+                        <VBox>
+                            <Label text="Failed at Step"/>
+                            <ObjectNumber
+                                number="{training>/activeExperiment/failedAtStep}"
+                                emphasized="true"
+                                state="Error"/>
+                        </VBox>
+                        <VBox>
+                            <Label text="Last Loss"/>
+                            <ObjectNumber
+                                number="{training>/activeExperiment/loss}"
+                                emphasized="true"/>
+                        </VBox>
+                        <VBox>
+                            <Label text="Duration Before Failure"/>
+                            <Text text="{training>/activeExperiment/timeElapsed}"/>
+                        </VBox>
+                    </layout:Grid>
+                    <OverflowToolbar class="sapUiSmallMarginTop">
+                        <ToolbarSpacer/>
+                        <Button
+                            text="Retry"
+                            icon="sap-icon://refresh"
+                            type="Accept"
+                            press=".onRetryTraining"/>
+                        <Button
+                            text="View Logs"
+                            icon="sap-icon://sys-monitor"
+                            type="Emphasized"
+                            press=".onViewTrainingLogs"/>
+                        <Button
+                            text="Dismiss"
+                            icon="sap-icon://decline"
+                            type="Transparent"
+                            press=".onDismissTraining"/>
+                    </OverflowToolbar>
+                </VBox>
+
+            </VBox>
+        </content>
+    </Panel>
+
+</core:FragmentDefinition>
+

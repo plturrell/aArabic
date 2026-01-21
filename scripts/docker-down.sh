@@ -13,7 +13,6 @@ echo ""
 
 # Stop services in reverse order
 services=(
-    "markitdown"
     "embedding"
     "qdrant"
     "core"

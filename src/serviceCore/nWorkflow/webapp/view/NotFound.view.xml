@@ -1,0 +1,20 @@
+<mvc:View
+    controllerName="serviceCore.nWorkflow.controller.NotFound"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m">
+    <MessagePage
+        id="notFoundPage"
+        title="{i18n>notFoundTitle}"
+        text="{i18n>notFoundText}"
+        description="{i18n>notFoundDescription}"
+        icon="sap-icon://document"
+        showNavButton="true"
+        navButtonPress=".onNavToHome">
+        <customDescription>
+            <Link
+                text="{i18n>backToDashboard}"
+                press=".onNavToHome"/>
+        </customDescription>
+    </MessagePage>
+</mvc:View>
+

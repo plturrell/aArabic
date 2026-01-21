@@ -35,7 +35,6 @@ struct FeatureArtifacts {
     rust_code: String,
     lean4_proofs: String,
     scip_spec: String,
-    langflow_workflow: String,
     n8n_workflow: String,
 }
 
@@ -102,7 +101,6 @@ async fn commit_to_gitea(
         ("src/lib.rs", req.artifacts.rust_code.as_str()),
         ("proofs/feature.lean", req.artifacts.lean4_proofs.as_str()),
         ("specs/scip.json", req.artifacts.scip_spec.as_str()),
-        ("workflows/langflow.json", req.artifacts.langflow_workflow.as_str()),
         ("workflows/n8n.json", req.artifacts.n8n_workflow.as_str()),
     ];
 

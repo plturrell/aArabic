@@ -13,10 +13,32 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("threading/thread_pool.zig"),
     });
 
-    // GGUF loader module
+    // mHC Configuration module (must come before modules that use it)
+    const mhc_configuration_module = b.createModule(.{
+        .root_source_file = b.path("core/mhc_configuration.zig"),
+    });
+
+    // mHC Constraints module (must come before modules that use it)
+    const mhc_constraints_module = b.createModule(.{
+        .root_source_file = b.path("core/mhc_constraints.zig"),
+    });
+
+    // GGUF loader module (without mhc_parser dependency initially)
     const gguf_module = b.createModule(.{
         .root_source_file = b.path("core/gguf_loader.zig"),
     });
+    gguf_module.addImport("mhc_configuration", mhc_configuration_module);
+    gguf_module.addImport("mhc_constraints", mhc_constraints_module);
+
+    // GGUF mHC Parser module (internal helper for gguf_loader)
+    const gguf_mhc_parser_module = b.createModule(.{
+        .root_source_file = b.path("core/gguf_mhc_parser.zig"),
+    });
+    gguf_mhc_parser_module.addImport("mhc_constraints", mhc_constraints_module);
+    gguf_mhc_parser_module.addImport("gguf_loader", gguf_module);
+
+    // Add mhc_parser to gguf_loader now that it's defined
+    gguf_module.addImport("gguf_mhc_parser", gguf_mhc_parser_module);
 
     // Quantization common module (must come first!)
     const quant_common_module = b.createModule(.{
@@ -49,6 +71,8 @@ pub fn build(b: *std.Build) void {
     matrix_ops_module.addImport("thread_pool", thread_pool_module);
     matrix_ops_module.addImport("q4_k", q4_k_module);
     matrix_ops_module.addImport("q6_k", q6_k_module);
+    matrix_ops_module.addImport("mhc_configuration", mhc_configuration_module);
+    matrix_ops_module.addImport("mhc_constraints", mhc_constraints_module);
 
     // Compute interface module (Step 4)
     const compute_module = b.createModule(.{
@@ -116,6 +140,8 @@ pub fn build(b: *std.Build) void {
     transformer_module.addImport("feed_forward", feed_forward_module);
     transformer_module.addImport("kv_cache", kv_cache_module);
     transformer_module.addImport("thread_pool", thread_pool_module);
+    transformer_module.addImport("mhc_configuration", mhc_configuration_module);
+    transformer_module.addImport("mhc_constraints", mhc_constraints_module);
 
     // Llama Model module
     const llama_model_module = b.createModule(.{
@@ -325,26 +351,27 @@ pub fn build(b: *std.Build) void {
     inference_lib.root_module.addImport("lfm2_model", lfm2_model_module);
     b.installArtifact(inference_lib);
 
-    const test_mojo_bridge = b.addExecutable(.{
-        .name = "test_mojo_bridge",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("mojo_bridge.zig"),
-            .target = target,
-            .optimize = optimize,
-        }),
-    });
-    test_mojo_bridge.root_module.addImport("huggingface_loader", huggingface_loader_module);
-    test_mojo_bridge.root_module.addImport("hf_to_llama_bridge", hf_to_llama_bridge_module);
-    test_mojo_bridge.root_module.addImport("llama_model", llama_model_module);
-    test_mojo_bridge.root_module.addImport("gguf_model_loader", gguf_model_loader_module);
-    test_mojo_bridge.root_module.addImport("lfm2_model", lfm2_model_module);
-    b.installArtifact(test_mojo_bridge);
-
-    const run_test_mojo_bridge = b.addRunArtifact(test_mojo_bridge);
-    run_test_mojo_bridge.step.dependOn(b.getInstallStep());
-
-    const test_mojo_bridge_step = b.step("test-mojo-bridge", "Test Mojo bridge C API");
-    test_mojo_bridge_step.dependOn(&run_test_mojo_bridge.step);
+    // Note: mojo_bridge.zig is a library module without main(), used only via inference lib
+    // const test_mojo_bridge = b.addExecutable(.{
+    //     .name = "test_mojo_bridge",
+    //     .root_module = b.createModule(.{
+    //         .root_source_file = b.path("mojo_bridge.zig"),
+    //         .target = target,
+    //         .optimize = optimize,
+    //     }),
+    // });
+    // test_mojo_bridge.root_module.addImport("huggingface_loader", huggingface_loader_module);
+    // test_mojo_bridge.root_module.addImport("hf_to_llama_bridge", hf_to_llama_bridge_module);
+    // test_mojo_bridge.root_module.addImport("llama_model", llama_model_module);
+    // test_mojo_bridge.root_module.addImport("gguf_model_loader", gguf_model_loader_module);
+    // test_mojo_bridge.root_module.addImport("lfm2_model", lfm2_model_module);
+    // b.installArtifact(test_mojo_bridge);
+    //
+    // const run_test_mojo_bridge = b.addRunArtifact(test_mojo_bridge);
+    // run_test_mojo_bridge.step.dependOn(b.getInstallStep());
+    //
+    // const test_mojo_bridge_step = b.step("test-mojo-bridge", "Test Mojo bridge C API");
+    // test_mojo_bridge_step.dependOn(&run_test_mojo_bridge.step);
 
     // ========================================================================
     // CLI Executable (Day 9)

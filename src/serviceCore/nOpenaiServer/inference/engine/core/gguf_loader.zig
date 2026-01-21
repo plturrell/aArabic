@@ -1,10 +1,17 @@
 const std = @import("std");
 const mem = std.mem;
 const fs = std.fs;
+const mhc_config = @import("mhc_configuration");
+const mhc_constraints = @import("mhc_constraints");
+// Note: Avoid importing transformer to prevent circular dependencies
+// const transformer = @import("transformer");
+const mhc_parser = @import("gguf_mhc_parser");
 
-/// GGUF v3 File Loader
+/// GGUF v3 File Loader with mHC Metadata Support
 /// Implements the GGUF format specification for loading GGML models
 /// Reference: https://github.com/ggerganov/ggml/blob/master/docs/gguf.md
+/// 
+/// Day 38: Enhanced with automatic mHC configuration detection and loading
 
 // ============================================================================
 // Constants
@@ -43,8 +50,98 @@ pub const Architecture = enum {
     Mistral,
     Phi,
     Gemma,
+    Qwen,
     Unknown,
+
+    /// Check if this architecture can use the Llama-style loader
+    /// Many architectures share the same transformer structure
+    pub fn isLlamaCompatible(self: Architecture) bool {
+        return switch (self) {
+            .Llama, .Mistral, .Phi, .Gemma, .Qwen => true,
+            .Lfm2, .Unknown => false,
+        };
+    }
 };
+
+/// Detect architecture from GGUF general.architecture string
+/// Maps various model family names to our Architecture enum
+pub fn detectArchitecture(arch_str: []const u8) Architecture {
+    // Convert to lowercase for case-insensitive matching
+    var lower_buf: [64]u8 = undefined;
+    const len = @min(arch_str.len, lower_buf.len);
+    for (0..len) |i| {
+        lower_buf[i] = std.ascii.toLower(arch_str[i]);
+    }
+    const lower = lower_buf[0..len];
+
+    // Llama family (including CodeLlama, Llama2, Llama3, etc.)
+    if (mem.startsWith(u8, lower, "llama") or mem.eql(u8, lower, "llama")) {
+        return .Llama;
+    }
+
+    // LFM2 (Liquid Foundation Model 2)
+    if (mem.startsWith(u8, lower, "lfm2") or mem.eql(u8, lower, "lfm2")) {
+        return .Lfm2;
+    }
+
+    // Mistral family
+    if (mem.startsWith(u8, lower, "mistral") or mem.eql(u8, lower, "mistral")) {
+        return .Mistral;
+    }
+
+    // Phi family (phi, phi2, phi3, phi-3, phi3.5, etc.)
+    if (mem.startsWith(u8, lower, "phi")) {
+        return .Phi;
+    }
+
+    // Gemma family (gemma, gemma2, etc.)
+    if (mem.startsWith(u8, lower, "gemma")) {
+        return .Gemma;
+    }
+
+    // Qwen family (qwen, qwen2, qwen2.5, etc.)
+    if (mem.startsWith(u8, lower, "qwen")) {
+        return .Qwen;
+    }
+
+    // Falcon - uses similar architecture to Llama
+    if (mem.startsWith(u8, lower, "falcon")) {
+        return .Llama;
+    }
+
+    // StarCoder/StarChat - uses similar architecture
+    if (mem.startsWith(u8, lower, "starcoder") or mem.startsWith(u8, lower, "starchat")) {
+        return .Llama;
+    }
+
+    // Yi models - Llama-compatible
+    if (mem.startsWith(u8, lower, "yi")) {
+        return .Llama;
+    }
+
+    // DeepSeek - Llama-compatible
+    if (mem.startsWith(u8, lower, "deepseek")) {
+        return .Llama;
+    }
+
+    // InternLM - Llama-compatible
+    if (mem.startsWith(u8, lower, "internlm")) {
+        return .Llama;
+    }
+
+    // Baichuan - Llama-compatible
+    if (mem.startsWith(u8, lower, "baichuan")) {
+        return .Llama;
+    }
+
+    // Granite (IBM) - Llama-compatible
+    if (mem.startsWith(u8, lower, "granite")) {
+        return .Llama;
+    }
+
+    std.debug.print("   ⚠️  Unknown architecture: \"{s}\", treating as Llama-compatible\n", .{arch_str});
+    return .Llama; // Default to Llama for unknown architectures (most are compatible)
+}
 
 pub const MetadataValueType = enum(u32) {
     UInt8 = 0,
@@ -102,6 +199,7 @@ pub const TensorInfo = struct {
             .Q5_1 => 24, // 32 values per block: 2+2 + 4 + 16
             .Q8_0 => 34, // 32 values per block: 2 + 32
             .Q4_K => 144, // 256 values per block: 2+2+12+128
+            .Q6_K => 210, // 256 values per block: 128 ql + 64 qh + 16 scales + 2 d
             else => 4, // Default to f32 size
         };
     }
@@ -110,7 +208,7 @@ pub const TensorInfo = struct {
         const elem_count = self.size();
         const block_size: usize = switch (self.quant_type) {
             .Q4_0, .Q4_1, .Q5_0, .Q5_1, .Q8_0 => 32,
-            .Q4_K => 256,
+            .Q4_K, .Q6_K => 256,
             else => 1,
         };
 
@@ -120,6 +218,7 @@ pub const TensorInfo = struct {
 };
 
 pub const ModelMetadata = struct {
+    // Standard metadata
     architecture: Architecture,
     vocab_size: u32,
     n_layers: u32,
@@ -131,6 +230,13 @@ pub const ModelMetadata = struct {
     rope_theta: f32,
     rms_norm_eps: f32,
     conv_kernel: u32,
+    
+    // NEW Day 38: mHC metadata
+    mhc_enabled: bool = false,
+    mhc_version: ?[]const u8 = null,
+    mhc_description: ?[]const u8 = null,
+    mhc_config: ?mhc_constraints.MHCConfig = null,
+    mhc_transformer_config: ?mhc_config.MHCTransformerConfig = null,
 
     pub fn default() ModelMetadata {
         return .{
@@ -145,7 +251,155 @@ pub const ModelMetadata = struct {
             .rope_theta = 10000.0,
             .rms_norm_eps = 1e-5,
             .conv_kernel = 3,
+            // mHC fields default to disabled/null
+            .mhc_enabled = false,
+            .mhc_version = null,
+            .mhc_description = null,
+            .mhc_config = null,
+            .mhc_transformer_config = null,
         };
+    }
+    
+    pub fn hasMHC(self: *const ModelMetadata) bool {
+        return self.mhc_enabled and self.mhc_config != null;
+    }
+    
+    pub fn getMHCConfig(self: *const ModelMetadata) ?mhc_constraints.MHCConfig {
+        if (!self.mhc_enabled) return null;
+        return self.mhc_config;
+    }
+};
+
+// ============================================================================
+// Day 38: mHC Metadata Detection and Loading
+// ============================================================================
+
+pub const MHCDetectionSource = enum {
+    None,       // No mHC metadata found
+    Explicit,   // Explicit mhc.enabled flag
+    Heuristic,  // Inferred from mhc.* keys
+};
+
+pub const MHCDetectionResult = struct {
+    detected: bool,
+    confidence: f32,  // [0.0, 1.0]
+    source: MHCDetectionSource,
+    mhc_key_count: u32,  // Number of mhc.* keys found
+};
+
+/// Temporary storage for mHC metadata during parsing
+pub const MHCMetadataBuilder = struct {
+    // Detection
+    has_enabled_key: bool = false,
+    enabled_value: bool = false,
+    mhc_key_count: u32 = 0,
+    
+    // Core config
+    version: ?[]const u8 = null,
+    description: ?[]const u8 = null,
+    sinkhorn_iterations: ?u32 = null,
+    manifold_epsilon: ?f32 = null,
+    stability_threshold: ?f32 = null,
+    manifold_beta: ?f32 = null,
+    manifold_type: ?[]const u8 = null,
+    early_stopping: ?bool = null,
+    
+    // Transformer config
+    attention_enabled: ?bool = null,
+    ffn_enabled: ?bool = null,
+    residual_enabled: ?bool = null,
+    layer_range_start: ?u32 = null,
+    layer_range_end: ?u32 = null,
+    
+    pub fn init() MHCMetadataBuilder {
+        return .{};
+    }
+    
+    pub fn recordKey(self: *MHCMetadataBuilder, key: []const u8) void {
+        if (mem.startsWith(u8, key, "mhc.")) {
+            self.mhc_key_count += 1;
+        }
+    }
+    
+    pub fn detectMHC(self: *const MHCMetadataBuilder) MHCDetectionResult {
+        // Level 1: Explicit flag
+        if (self.has_enabled_key) {
+            return .{
+                .detected = self.enabled_value,
+                .confidence = 1.0,
+                .source = .Explicit,
+                .mhc_key_count = self.mhc_key_count,
+            };
+        }
+        
+        // Level 2: Heuristic (any mhc.* keys)
+        if (self.mhc_key_count > 0) {
+            const confidence: f32 = if (self.mhc_key_count >= 3) 0.9 else 0.5;
+            return .{
+                .detected = true,
+                .confidence = confidence,
+                .source = .Heuristic,
+                .mhc_key_count = self.mhc_key_count,
+            };
+        }
+        
+        // Level 3: No mHC metadata
+        return .{
+            .detected = false,
+            .confidence = 1.0,
+            .source = .None,
+            .mhc_key_count = 0,
+        };
+    }
+    
+    pub fn buildMHCConfig(self: *const MHCMetadataBuilder) mhc_constraints.MHCConfig {
+        return .{
+            .enabled = true,  // Already detected
+            .sinkhorn_iterations = self.sinkhorn_iterations orelse 10,
+            .manifold_epsilon = self.manifold_epsilon orelse 1e-6,
+            .stability_threshold = self.stability_threshold orelse 1e-4,
+            .manifold_beta = self.manifold_beta orelse 10.0,
+            .log_stability_metrics = false,
+            .layer_range = null,  // Set via transformer config
+            .early_stopping = self.early_stopping orelse true,
+        };
+    }
+    
+    pub fn buildTransformerConfig(
+        self: *const MHCMetadataBuilder,
+        core_config: mhc_constraints.MHCConfig,
+    ) mhc_config.MHCTransformerConfig {
+        var config = mhc_config.MHCTransformerConfig{
+            .enabled = true,
+            .attention_enabled = self.attention_enabled orelse true,
+            .ffn_enabled = self.ffn_enabled orelse true,
+            .residual_enabled = self.residual_enabled orelse false,
+            .layer_range = null,
+            .core = .{
+                .enabled = core_config.enabled,
+                .sinkhorn_iterations = core_config.sinkhorn_iterations,
+                .manifold_epsilon = core_config.manifold_epsilon,
+                .stability_threshold = core_config.stability_threshold,
+                .manifold_beta = core_config.manifold_beta,
+                .log_stability_metrics = core_config.log_stability_metrics,
+                .early_stopping = core_config.early_stopping,
+            },
+            .attention_stability_threshold = 1e-4,
+            .ffn_stability_threshold = 1e-4,
+            .residual_stability_threshold = 1e-4,
+            .abort_on_instability = false,
+            .stability_callback = null,
+        };
+
+        // Set layer range if both start and end are present
+        if (self.layer_range_start != null and self.layer_range_end != null) {
+            config.layer_range = .{
+                .start = self.layer_range_start.?,
+                .end = self.layer_range_end.?,
+            };
+        }
+
+        return config;
     }
 };
 
@@ -157,6 +411,7 @@ pub const GGUFModel = struct {
     tensors: []TensorInfo,
     vocab_tokens: [][]u8,
     vocab_scores: []f32,
+    tensor_data_offset: u64, // Base offset where tensor data starts (after header/metadata/tensor info, aligned to 32 bytes)
 
     pub fn load(allocator: mem.Allocator, path: []const u8) !GGUFModel {
         std.debug.print("\n📂 Loading GGUF model: {s}\n", .{path});
@@ -212,6 +467,10 @@ pub const GGUFModel = struct {
         // Parse tensor metadata
         const tensors = try parseTensorMetadata(allocator, file, header.tensor_count);
 
+        // Calculate tensor data offset (current position aligned to 32 bytes)
+        const current_pos = try file.getPos();
+        const tensor_data_offset = (current_pos + 31) & ~@as(u64, 31);
+
         std.debug.print("\n✅ GGUF model loaded successfully!\n", .{});
         std.debug.print("═══════════════════════════════════════════════════════════════════════\n\n", .{});
 
@@ -223,6 +482,7 @@ pub const GGUFModel = struct {
             .tensors = tensors,
             .vocab_tokens = try vocab_tokens.toOwnedSlice(allocator),
             .vocab_scores = try vocab_scores.toOwnedSlice(allocator),
+            .tensor_data_offset = tensor_data_offset,
         };
     }
 
@@ -270,13 +530,31 @@ pub const GGUFModel = struct {
         // Allocate buffer for tensor data
         const data = try self.allocator.alloc(u8, data_size);
 
-        // Seek to tensor data offset and read
-        try self.file.seekTo(tensor.offset);
+        // Seek to tensor data: base offset + tensor's relative offset
+        const absolute_offset = self.tensor_data_offset + tensor.offset;
+
+        // Debug: Print tensor data loading info
+        if (tensor_idx < 3 or std.mem.eql(u8, tensor.name, "token_embd.weight")) {
+            std.debug.print("📥 getTensorData: {s} idx={d} base={d} rel={d} abs={d} size={d} quant={s}\n", .{
+                tensor.name, tensor_idx, self.tensor_data_offset, tensor.offset, absolute_offset, data_size, @tagName(tensor.quant_type),
+            });
+        }
+
+        try self.file.seekTo(absolute_offset);
         const bytes_read = try self.file.read(data);
 
         if (bytes_read != data_size) {
             self.allocator.free(data);
             return error.IncompleteTensorData;
+        }
+
+        // Debug: Print first few bytes
+        if (tensor_idx < 3 or std.mem.eql(u8, tensor.name, "token_embd.weight")) {
+            std.debug.print("   First 16 bytes: ", .{});
+            for (data[0..@min(16, data.len)]) |b| {
+                std.debug.print("{x:0>2} ", .{b});
+            }
+            std.debug.print("\n", .{});
         }
 
         return data;
@@ -313,6 +591,9 @@ fn parseMetadata(
     std.debug.print("\n📋 Parsing metadata ({d} keys)...\n", .{count});
 
     var metadata = ModelMetadata.default();
+    
+    // Day 38: mHC metadata builder
+    var mhc_builder = MHCMetadataBuilder.init();
 
     for (0..count) |i| {
         _ = i;
@@ -330,8 +611,19 @@ fn parseMetadata(
         var value_type: u32 = undefined;
         _ = try file.read(mem.asBytes(&value_type));
 
-        // Parse value based on type
-        try parseMetadataValue(allocator, file, key_name, @enumFromInt(value_type), &metadata, vocab_tokens, vocab_scores);
+        // Day 38: Check if this is an mHC key
+        if (mem.startsWith(u8, key_name, "mhc.")) {
+            try mhc_parser.parseMHCMetadataKey(
+                allocator,
+                file,
+                key_name,
+                @enumFromInt(value_type),
+                &mhc_builder,
+            );
+        } else {
+            // Parse standard metadata value
+            try parseMetadataValue(allocator, file, key_name, @enumFromInt(value_type), &metadata, vocab_tokens, vocab_scores);
+        }
     }
 
     // If vocab tokens were loaded, trust their size for vocab_size to stay aligned.
@@ -340,6 +632,10 @@ fn parseMetadata(
     }
 
     std.debug.print("✅ Metadata parsed\n", .{});
+    
+    // Day 38: Finalize mHC metadata
+    try mhc_parser.finalizeMHCMetadata(&mhc_builder, &metadata, allocator);
+    
     return metadata;
 }
 
@@ -376,13 +672,9 @@ fn parseMetadataValue(
                 const buf = try allocator.alloc(u8, str_len);
                 defer allocator.free(buf);
                 _ = try file.read(buf);
-                if (mem.eql(u8, buf, "llama") or mem.eql(u8, buf, "LLaMA")) {
-                    metadata.architecture = .Llama;
-                } else if (mem.eql(u8, buf, "lfm2") or mem.eql(u8, buf, "LFM2")) {
-                    metadata.architecture = .Lfm2;
-                } else {
-                    metadata.architecture = .Unknown;
-                }
+                // Detect architecture from GGUF metadata
+                metadata.architecture = detectArchitecture(buf);
+                std.debug.print("   Architecture detected: {s} (from \"{s}\")\n", .{ @tagName(metadata.architecture), buf });
             } else {
                 // Skip string content for keys we do not explicitly parse
                 try file.seekBy(@intCast(str_len));
@@ -452,6 +744,7 @@ fn skipMetadataValue(file: fs.File, value_type: MetadataValueType) !void {
 }
 
 fn updateMetadataU32(key: []const u8, value: u32, metadata: *ModelMetadata) void {
+    // llama.* keys
     if (mem.eql(u8, key, "llama.vocab_size")) {
         metadata.vocab_size = value;
     } else if (mem.eql(u8, key, "llama.block_count")) {
@@ -466,6 +759,67 @@ fn updateMetadataU32(key: []const u8, value: u32, metadata: *ModelMetadata) void
         metadata.intermediate_size = value;
     } else if (mem.eql(u8, key, "llama.context_length")) {
         metadata.max_seq_len = value;
+    // phi3.* keys (Phi-3 models)
+    } else if (mem.eql(u8, key, "phi3.vocab_size")) {
+        metadata.vocab_size = value;
+    } else if (mem.eql(u8, key, "phi3.block_count")) {
+        metadata.n_layers = value;
+    } else if (mem.eql(u8, key, "phi3.attention.head_count")) {
+        metadata.n_heads = value;
+    } else if (mem.eql(u8, key, "phi3.attention.head_count_kv")) {
+        metadata.n_kv_heads = value;
+    } else if (mem.eql(u8, key, "phi3.embedding_length")) {
+        metadata.hidden_size = value;
+    } else if (mem.eql(u8, key, "phi3.feed_forward_length")) {
+        metadata.intermediate_size = value;
+    } else if (mem.eql(u8, key, "phi3.context_length")) {
+        metadata.max_seq_len = value;
+    // qwen2.* keys (Qwen models)
+    } else if (mem.eql(u8, key, "qwen2.vocab_size")) {
+        metadata.vocab_size = value;
+    } else if (mem.eql(u8, key, "qwen2.block_count")) {
+        metadata.n_layers = value;
+    } else if (mem.eql(u8, key, "qwen2.attention.head_count")) {
+        metadata.n_heads = value;
+    } else if (mem.eql(u8, key, "qwen2.attention.head_count_kv")) {
+        metadata.n_kv_heads = value;
+    } else if (mem.eql(u8, key, "qwen2.embedding_length")) {
+        metadata.hidden_size = value;
+    } else if (mem.eql(u8, key, "qwen2.feed_forward_length")) {
+        metadata.intermediate_size = value;
+    } else if (mem.eql(u8, key, "qwen2.context_length")) {
+        metadata.max_seq_len = value;
+    // gemma.* keys (Gemma models)
+    } else if (mem.eql(u8, key, "gemma.vocab_size")) {
+        metadata.vocab_size = value;
+    } else if (mem.eql(u8, key, "gemma.block_count")) {
+        metadata.n_layers = value;
+    } else if (mem.eql(u8, key, "gemma.attention.head_count")) {
+        metadata.n_heads = value;
+    } else if (mem.eql(u8, key, "gemma.attention.head_count_kv")) {
+        metadata.n_kv_heads = value;
+    } else if (mem.eql(u8, key, "gemma.embedding_length")) {
+        metadata.hidden_size = value;
+    } else if (mem.eql(u8, key, "gemma.feed_forward_length")) {
+        metadata.intermediate_size = value;
+    } else if (mem.eql(u8, key, "gemma.context_length")) {
+        metadata.max_seq_len = value;
+    // mistral.* keys (Mistral models)
+    } else if (mem.eql(u8, key, "mistral.vocab_size")) {
+        metadata.vocab_size = value;
+    } else if (mem.eql(u8, key, "mistral.block_count")) {
+        metadata.n_layers = value;
+    } else if (mem.eql(u8, key, "mistral.attention.head_count")) {
+        metadata.n_heads = value;
+    } else if (mem.eql(u8, key, "mistral.attention.head_count_kv")) {
+        metadata.n_kv_heads = value;
+    } else if (mem.eql(u8, key, "mistral.embedding_length")) {
+        metadata.hidden_size = value;
+    } else if (mem.eql(u8, key, "mistral.feed_forward_length")) {
+        metadata.intermediate_size = value;
+    } else if (mem.eql(u8, key, "mistral.context_length")) {
+        metadata.max_seq_len = value;
+    // lfm2.* keys
     } else if (mem.eql(u8, key, "lfm2.vocab_size")) {
         metadata.vocab_size = value;
     } else if (mem.eql(u8, key, "lfm2.block_count")) {
@@ -487,10 +841,32 @@ fn updateMetadataU32(key: []const u8, value: u32, metadata: *ModelMetadata) void
 
 fn updateMetadataU64(key: []const u8, value: u64, metadata: *ModelMetadata) void {
     // Handle u64 values (cast to u32 where appropriate)
+    // llama.*
     if (mem.eql(u8, key, "llama.vocab_size")) {
         metadata.vocab_size = @intCast(value);
     } else if (mem.eql(u8, key, "llama.context_length")) {
         metadata.max_seq_len = @intCast(value);
+    // phi3.*
+    } else if (mem.eql(u8, key, "phi3.vocab_size")) {
+        metadata.vocab_size = @intCast(value);
+    } else if (mem.eql(u8, key, "phi3.context_length")) {
+        metadata.max_seq_len = @intCast(value);
+    // qwen2.*
+    } else if (mem.eql(u8, key, "qwen2.vocab_size")) {
+        metadata.vocab_size = @intCast(value);
+    } else if (mem.eql(u8, key, "qwen2.context_length")) {
+        metadata.max_seq_len = @intCast(value);
+    // gemma.*
+    } else if (mem.eql(u8, key, "gemma.vocab_size")) {
+        metadata.vocab_size = @intCast(value);
+    } else if (mem.eql(u8, key, "gemma.context_length")) {
+        metadata.max_seq_len = @intCast(value);
+    // mistral.*
+    } else if (mem.eql(u8, key, "mistral.vocab_size")) {
+        metadata.vocab_size = @intCast(value);
+    } else if (mem.eql(u8, key, "mistral.context_length")) {
+        metadata.max_seq_len = @intCast(value);
+    // lfm2.*
     } else if (mem.eql(u8, key, "lfm2.vocab_size")) {
         metadata.vocab_size = @intCast(value);
     } else if (mem.eql(u8, key, "lfm2.context_length")) {
@@ -499,8 +875,32 @@ fn updateMetadataU64(key: []const u8, value: u64, metadata: *ModelMetadata) void
 }
 
 fn updateMetadataF32(key: []const u8, value: f32, metadata: *ModelMetadata) void {
+    // llama.*
     if (mem.eql(u8, key, "llama.rope.freq_base")) {
         metadata.rope_theta = value;
+    } else if (mem.eql(u8, key, "llama.attention.layer_norm_rms_epsilon")) {
+        metadata.rms_norm_eps = value;
+    // phi3.*
+    } else if (mem.eql(u8, key, "phi3.rope.freq_base")) {
+        metadata.rope_theta = value;
+    } else if (mem.eql(u8, key, "phi3.attention.layer_norm_rms_epsilon")) {
+        metadata.rms_norm_eps = value;
+    // qwen2.*
+    } else if (mem.eql(u8, key, "qwen2.rope.freq_base")) {
+        metadata.rope_theta = value;
+    } else if (mem.eql(u8, key, "qwen2.attention.layer_norm_rms_epsilon")) {
+        metadata.rms_norm_eps = value;
+    // gemma.*
+    } else if (mem.eql(u8, key, "gemma.rope.freq_base")) {
+        metadata.rope_theta = value;
+    } else if (mem.eql(u8, key, "gemma.attention.layer_norm_rms_epsilon")) {
+        metadata.rms_norm_eps = value;
+    // mistral.*
+    } else if (mem.eql(u8, key, "mistral.rope.freq_base")) {
+        metadata.rope_theta = value;
+    } else if (mem.eql(u8, key, "mistral.attention.layer_norm_rms_epsilon")) {
+        metadata.rms_norm_eps = value;
+    // lfm2.*
     } else if (mem.eql(u8, key, "lfm2.rope.freq_base")) {
         metadata.rope_theta = value;
     } else if (mem.eql(u8, key, "lfm2.attention.layer_norm_rms_epsilon")) {

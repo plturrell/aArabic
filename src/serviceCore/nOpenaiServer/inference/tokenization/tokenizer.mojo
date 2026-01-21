@@ -3,7 +3,6 @@ BPE Tokenizer - Byte-Pair Encoding Tokenizer for LLM Inference
 Fast tokenization with SIMD string processing
 """
 
-from python import Python, PythonObject
 from collections import Dict, List
 from memory import memcpy
 
@@ -102,26 +101,55 @@ struct BPETokenizer:
         print("✅ Tokenizer loaded")
     
     fn load_from_file(inout self, vocab_path: String) raises:
-        """Load tokenizer from external vocabulary file"""
+        """Load tokenizer from external vocabulary file (JSON format)"""
         print(f"📚 Loading tokenizer from {vocab_path}...")
-        
-        var py = Python.import_module("builtins")
-        var json = Python.import_module("json")
-        
-        # Load vocabulary
-        var file = py.open(vocab_path, "r")
-        var vocab_data = json.load(file)
-        file.close()
-        
-        # Build vocabulary
-        for item in vocab_data:
-            var token = String(item["token"])
-            var token_id = int(item["id"])
-            self.vocab.token_to_id[token] = token_id
-            self.vocab.id_to_token[token_id] = token
-            self.vocab.vocab_size = max(self.vocab.vocab_size, token_id + 1)
-        
-        print(f"✅ Loaded {self.vocab.vocab_size} tokens")
+
+        # Read file content
+        with open(vocab_path, "r") as f:
+            var content = f.read()
+
+        # Parse JSON array manually - expects format: [{"token": "...", "id": N}, ...]
+        var pos = 0
+        var token_count = 0
+
+        while pos < len(content):
+            # Find next "token" key
+            var token_start = content.find('"token":', pos)
+            if token_start == -1:
+                break
+
+            # Extract token value
+            var value_start = content.find('"', token_start + 8)
+            if value_start == -1:
+                break
+            var value_end = content.find('"', value_start + 1)
+            if value_end == -1:
+                break
+            var token = content[value_start + 1:value_end]
+
+            # Find "id" key
+            var id_start = content.find('"id":', value_end)
+            if id_start == -1:
+                break
+
+            # Extract id value (number)
+            var num_start = id_start + 5
+            while num_start < len(content) and (content[num_start] == ' ' or content[num_start] == ':'):
+                num_start += 1
+            var num_end = num_start
+            while num_end < len(content) and content[num_end].isdigit():
+                num_end += 1
+
+            if num_end > num_start:
+                var token_id = int(content[num_start:num_end])
+                self.vocab.token_to_id[token] = token_id
+                self.vocab.id_to_token[token_id] = token
+                self.vocab.vocab_size = max(self.vocab.vocab_size, token_id + 1)
+                token_count += 1
+
+            pos = num_end
+
+        print(f"✅ Loaded {token_count} tokens (vocab size: {self.vocab.vocab_size})")
     
     fn encode(self, text: String) -> List[Int]:
         """
