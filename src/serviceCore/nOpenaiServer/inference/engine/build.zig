@@ -98,6 +98,55 @@ pub fn build(b: *std.Build) void {
     backend_metal_module.addImport("gguf_loader", gguf_module);
     backend_metal_module.addImport("matrix_ops", matrix_ops_module);
 
+    // CUDA Bindings module (GPU Foundation)
+    const cuda_bindings_module = b.createModule(.{
+        .root_source_file = b.path("cuda/cuda_bindings.zig"),
+    });
+
+    // CUDA Memory module
+    const cuda_memory_module = b.createModule(.{
+        .root_source_file = b.path("cuda/cuda_memory.zig"),
+    });
+    cuda_memory_module.addImport("cuda_bindings", cuda_bindings_module);
+
+    // CUDA Streams module
+    const cuda_streams_module = b.createModule(.{
+        .root_source_file = b.path("cuda/cuda_streams.zig"),
+    });
+    cuda_streams_module.addImport("cuda_bindings", cuda_bindings_module);
+
+    // CUDA Context module
+    const cuda_context_module = b.createModule(.{
+        .root_source_file = b.path("cuda/cuda_context.zig"),
+    });
+    cuda_context_module.addImport("cuda_bindings", cuda_bindings_module);
+
+    // cuBLAS Bindings module (Tensor Core acceleration)
+    const cublas_bindings_module = b.createModule(.{
+        .root_source_file = b.path("cuda/cublas_bindings.zig"),
+    });
+
+    // Dequantization Bindings module (GPU dequant for Tensor Core input)
+    const dequant_bindings_module = b.createModule(.{
+        .root_source_file = b.path("cuda/dequant_bindings.zig"),
+    });
+    dequant_bindings_module.addImport("cuda_bindings", cuda_bindings_module);
+    dequant_bindings_module.addImport("gguf_loader", gguf_module);
+
+    // CUDA Backend module (Step 6 - T4 GPU support)
+    const backend_cuda_module = b.createModule(.{
+        .root_source_file = b.path("core/backend_cuda.zig"),
+    });
+    backend_cuda_module.addImport("compute", compute_module);
+    backend_cuda_module.addImport("gguf_loader", gguf_module);
+    backend_cuda_module.addImport("matrix_ops", matrix_ops_module);
+    backend_cuda_module.addImport("cuda_bindings", cuda_bindings_module);
+    backend_cuda_module.addImport("cuda_memory", cuda_memory_module);
+    backend_cuda_module.addImport("cuda_streams", cuda_streams_module);
+    backend_cuda_module.addImport("cuda_context", cuda_context_module);
+    backend_cuda_module.addImport("cublas_bindings", cublas_bindings_module);
+    backend_cuda_module.addImport("dequant_bindings", dequant_bindings_module);
+
     // Q8_0 quantization module (Day 13)
     const q8_0_module = b.createModule(.{
         .root_source_file = b.path("quantization/q8_0.zig"),
@@ -157,6 +206,7 @@ pub fn build(b: *std.Build) void {
     llama_model_module.addImport("compute", compute_module);
     llama_model_module.addImport("backend_cpu", backend_cpu_module);
     llama_model_module.addImport("backend_metal", backend_metal_module);
+    llama_model_module.addImport("backend_cuda", backend_cuda_module);
 
     // LFM2 Model module
     const lfm2_model_module = b.createModule(.{

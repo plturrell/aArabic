@@ -767,6 +767,7 @@ pub const GGUFModelLoader = struct {
             const w_down = try self.loadTensorWeight(model, w_down_name, config.embed_dim * config.ffn_dim);
 
             layer_weights[layer_idx] = transformer.TransformerWeights{
+                .allocator = self.allocator,
                 .attn_norm = attn_norm,
                 .wq = wq,
                 .wk = wk,
@@ -786,6 +787,7 @@ pub const GGUFModelLoader = struct {
         std.debug.print("   Memory usage (approx): {d} MB\n", .{mem.total_mb});
 
         return llama.LlamaWeights{
+            .allocator = self.allocator,
             .token_embedding = token_embedding,
             .output_norm = output_norm,
             .output_weight = output_weight,
@@ -1181,19 +1183,34 @@ pub const GGUFModelLoader = struct {
         };
 
         for (0..config.n_layers) |layer_idx| {
-            var layer_prefix_buf: [64]u8 = undefined;
-            const layer_prefix = std.fmt.bufPrint(&layer_prefix_buf, "blk.{d}", .{layer_idx}) catch @panic("Failed to print layer prefix");
+            var tensor_name_buf: [128]u8 = undefined;
 
-            const attn_norm_tensor = model.getTensor(layer_prefix ++ ".attn_norm.weight") orelse @panic("attn_norm.weight not found");
-            const wq_tensor = model.getTensor(layer_prefix ++ ".attn_q.weight") orelse @panic("attn_q.weight not found");
-            const wk_tensor = model.getTensor(layer_prefix ++ ".attn_k.weight") orelse @panic("attn_k.weight not found");
-            const wv_tensor = model.getTensor(layer_prefix ++ ".attn_v.weight") orelse @panic("attn_v.weight not found");
-            const wo_tensor = model.getTensor(layer_prefix ++ ".attn_output.weight") orelse @panic("attn_output.weight not found");
+            const attn_norm_name = std.fmt.bufPrint(&tensor_name_buf, "blk.{d}.attn_norm.weight", .{layer_idx}) catch @panic("Failed to format tensor name");
+            const attn_norm_tensor = model.getTensor(attn_norm_name) orelse @panic("attn_norm.weight not found");
 
-            const ffn_norm_tensor = model.getTensor(layer_prefix ++ ".ffn_norm.weight") orelse @panic("ffn_norm.weight not found");
-            const w_gate_tensor = model.getTensor(layer_prefix ++ ".ffn_gate.weight") orelse @panic("ffn_gate.weight not found");
-            const w_up_tensor = model.getTensor(layer_prefix ++ ".ffn_up.weight") orelse @panic("ffn_up.weight not found");
-            const w_down_tensor = model.getTensor(layer_prefix ++ ".ffn_down.weight") orelse @panic("ffn_down.weight not found");
+            const wq_name = std.fmt.bufPrint(&tensor_name_buf, "blk.{d}.attn_q.weight", .{layer_idx}) catch @panic("Failed to format tensor name");
+            const wq_tensor = model.getTensor(wq_name) orelse @panic("attn_q.weight not found");
+
+            const wk_name = std.fmt.bufPrint(&tensor_name_buf, "blk.{d}.attn_k.weight", .{layer_idx}) catch @panic("Failed to format tensor name");
+            const wk_tensor = model.getTensor(wk_name) orelse @panic("attn_k.weight not found");
+
+            const wv_name = std.fmt.bufPrint(&tensor_name_buf, "blk.{d}.attn_v.weight", .{layer_idx}) catch @panic("Failed to format tensor name");
+            const wv_tensor = model.getTensor(wv_name) orelse @panic("attn_v.weight not found");
+
+            const wo_name = std.fmt.bufPrint(&tensor_name_buf, "blk.{d}.attn_output.weight", .{layer_idx}) catch @panic("Failed to format tensor name");
+            const wo_tensor = model.getTensor(wo_name) orelse @panic("attn_output.weight not found");
+
+            const ffn_norm_name = std.fmt.bufPrint(&tensor_name_buf, "blk.{d}.ffn_norm.weight", .{layer_idx}) catch @panic("Failed to format tensor name");
+            const ffn_norm_tensor = model.getTensor(ffn_norm_name) orelse @panic("ffn_norm.weight not found");
+
+            const w_gate_name = std.fmt.bufPrint(&tensor_name_buf, "blk.{d}.ffn_gate.weight", .{layer_idx}) catch @panic("Failed to format tensor name");
+            const w_gate_tensor = model.getTensor(w_gate_name) orelse @panic("ffn_gate.weight not found");
+
+            const w_up_name = std.fmt.bufPrint(&tensor_name_buf, "blk.{d}.ffn_up.weight", .{layer_idx}) catch @panic("Failed to format tensor name");
+            const w_up_tensor = model.getTensor(w_up_name) orelse @panic("ffn_up.weight not found");
+
+            const w_down_name = std.fmt.bufPrint(&tensor_name_buf, "blk.{d}.ffn_down.weight", .{layer_idx}) catch @panic("Failed to format tensor name");
+            const w_down_tensor = model.getTensor(w_down_name) orelse @panic("ffn_down.weight not found");
 
             weights_bytes += attn_norm_tensor.size() * @sizeOf(f32); // Norms are always f32
             weights_bytes += ffn_norm_tensor.size() * @sizeOf(f32); // Norms are always f32

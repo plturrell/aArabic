@@ -27,6 +27,12 @@ pub const ExtractionPipeline = @import("pipeline/extraction_pipeline.zig");
 /// Semantic document index (BM25 full-text + vector similarity)
 pub const SemanticIndex = @import("search/semantic_index.zig");
 
+/// AI Core integration for SAP AI Core deployments
+pub const AICoreConfig = @import("aicore/aicore_config.zig");
+
+/// Serving template generator for AI Core YAML templates
+pub const ServingTemplateGenerator = @import("aicore/serving_template_generator.zig");
+
 /// Integration version information
 pub const version = struct {
     pub const major = 1;

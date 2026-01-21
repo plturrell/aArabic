@@ -119,3 +119,10 @@ htmlcov/
 .windsurf/rules/snyk_rules.md
 # Zig build cache
 **/.zig-cache/
+
+# Compiled static libraries
+*.a
+
+# Tokenizer files
+vendor/layerModels/**/*.model
+vendor/layerModels/**/*.json
