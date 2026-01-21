@@ -754,9 +754,382 @@ ORDER BY PROCEDURE_NAME;
 COMMIT;
 
 -- ============================================================================
--- SCHEMA SUMMARY
+-- DAY 21: MODEL ROUTER DATA MODEL (Week 5, Monday)
 -- ============================================================================
--- Tables Created: 7 new tables
+
+DROP TABLE IF EXISTS AGENT_MODEL_ASSIGNMENTS;
+DROP TABLE IF EXISTS ROUTING_DECISIONS;
+
+-- Agent Model Assignments Table
+CREATE COLUMN TABLE AGENT_MODEL_ASSIGNMENTS (
+    ASSIGNMENT_ID VARCHAR(36) PRIMARY KEY,
+    
+    -- Agent Information
+    AGENT_ID VARCHAR(100) NOT NULL,
+    AGENT_NAME VARCHAR(200),
+    AGENT_TYPE VARCHAR(50),  -- 'inference', 'tool', 'orchestrator'
+    AGENT_CAPABILITIES_JSON NCLOB,  -- JSON array of capabilities
+    
+    -- Model Assignment
+    MODEL_ID VARCHAR(100) NOT NULL,
+    MODEL_NAME VARCHAR(200),
+    MODEL_CAPABILITIES_JSON NCLOB,  -- JSON array of model capabilities
+    
+    -- Capability Matching
+    MATCH_SCORE DECIMAL(5,2) NOT NULL CHECK (MATCH_SCORE >= 0.0 AND MATCH_SCORE <= 100.0),
+    CAPABILITY_OVERLAP_JSON NCLOB,  -- JSON array of matching capabilities
+    
+    -- Assignment Status
+    STATUS VARCHAR(20) DEFAULT 'ACTIVE' 
+        CHECK (STATUS IN ('ACTIVE', 'INACTIVE', 'TESTING', 'OVERRIDDEN')),
+    
+    -- Assignment Strategy
+    ASSIGNMENT_METHOD VARCHAR(20) DEFAULT 'AUTO' 
+        CHECK (ASSIGNMENT_METHOD IN ('AUTO', 'MANUAL', 'FALLBACK')),
+    
+    -- Performance Weights (for routing decisions)
+    PERFORMANCE_WEIGHT DECIMAL(3,2) DEFAULT 1.0 
+        CHECK (PERFORMANCE_WEIGHT >= 0.0 AND PERFORMANCE_WEIGHT <= 1.0),
+    CAPABILITY_WEIGHT DECIMAL(3,2) DEFAULT 1.0 
+        CHECK (CAPABILITY_WEIGHT >= 0.0 AND CAPABILITY_WEIGHT <= 1.0),
+    
+    -- Assignment Metadata
+    ASSIGNED_BY VARCHAR(100),
+    ASSIGNED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    LAST_UPDATED TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    NOTES VARCHAR(1000),
+    
+    -- Performance Tracking
+    TOTAL_REQUESTS INTEGER DEFAULT 0,
+    SUCCESSFUL_REQUESTS INTEGER DEFAULT 0,
+    FAILED_REQUESTS INTEGER DEFAULT 0,
+    AVG_LATENCY_MS INTEGER,
+    LAST_USED_AT TIMESTAMP,
+    
+    CONSTRAINT UQ_AGENT_MODEL UNIQUE (AGENT_ID, MODEL_ID)
+);
+
+CREATE INDEX IDX_AMA_AGENT ON AGENT_MODEL_ASSIGNMENTS(AGENT_ID);
+CREATE INDEX IDX_AMA_MODEL ON AGENT_MODEL_ASSIGNMENTS(MODEL_ID);
+CREATE INDEX IDX_AMA_STATUS ON AGENT_MODEL_ASSIGNMENTS(STATUS);
+CREATE INDEX IDX_AMA_SCORE ON AGENT_MODEL_ASSIGNMENTS(MATCH_SCORE);
+CREATE INDEX IDX_AMA_METHOD ON AGENT_MODEL_ASSIGNMENTS(ASSIGNMENT_METHOD);
+CREATE INDEX IDX_AMA_ASSIGNED ON AGENT_MODEL_ASSIGNMENTS(ASSIGNED_AT);
+
+COMMENT ON TABLE AGENT_MODEL_ASSIGNMENTS IS 'Day 21: Agent-to-model assignment mappings with capability scoring';
+
+-- Routing Decisions Table
+CREATE COLUMN TABLE ROUTING_DECISIONS (
+    DECISION_ID VARCHAR(36) PRIMARY KEY,
+    
+    -- Request Context
+    REQUEST_ID VARCHAR(36),
+    TIMESTAMP TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Task Information
+    TASK_TYPE VARCHAR(50) NOT NULL,  -- 'coding', 'math', 'reasoning', 'arabic', 'general'
+    TASK_DESCRIPTION VARCHAR(1000),
+    CONTEXT_LENGTH INTEGER,
+    PROMPT_PREVIEW VARCHAR(500),
+    
+    -- Routing Decision
+    SELECTED_AGENT_ID VARCHAR(100) NOT NULL,
+    SELECTED_MODEL_ID VARCHAR(100) NOT NULL,
+    ASSIGNMENT_ID VARCHAR(36),  -- Reference to AGENT_MODEL_ASSIGNMENTS
+    
+    -- Scoring Details
+    CAPABILITY_SCORE DECIMAL(5,2) CHECK (CAPABILITY_SCORE >= 0.0 AND CAPABILITY_SCORE <= 100.0),
+    PERFORMANCE_SCORE DECIMAL(5,2) CHECK (PERFORMANCE_SCORE >= 0.0 AND PERFORMANCE_SCORE <= 100.0),
+    COMPOSITE_SCORE DECIMAL(5,2) CHECK (COMPOSITE_SCORE >= 0.0 AND COMPOSITE_SCORE <= 100.0),
+    
+    -- Routing Strategy Used
+    STRATEGY VARCHAR(20) DEFAULT 'balanced' 
+        CHECK (STRATEGY IN ('balanced', 'speed', 'quality', 'cost')),
+    
+    -- Alternative Candidates (JSON)
+    RUNNER_UPS_JSON NCLOB,  -- JSON array of alternate agent-model pairs with scores
+    
+    -- Execution Results
+    SUCCESS BOOLEAN,
+    LATENCY_MS INTEGER,
+    TOKENS_GENERATED INTEGER,
+    ERROR_MESSAGE VARCHAR(1000),
+    
+    -- Feedback Loop
+    USER_RATING INTEGER CHECK (USER_RATING BETWEEN 1 AND 5),
+    USER_FEEDBACK VARCHAR(1000),
+    
+    -- Cost Tracking
+    ESTIMATED_COST DECIMAL(10,6),
+    ACTUAL_COST DECIMAL(10,6),
+    
+    -- Fallback Information
+    IS_FALLBACK BOOLEAN DEFAULT FALSE,
+    FALLBACK_REASON VARCHAR(500),
+    PRIMARY_FAILURE_REASON VARCHAR(500),
+    
+    CONSTRAINT FK_ASSIGNMENT FOREIGN KEY (ASSIGNMENT_ID) 
+        REFERENCES AGENT_MODEL_ASSIGNMENTS(ASSIGNMENT_ID) ON DELETE SET NULL
+);
+
+CREATE INDEX IDX_RD_AGENT ON ROUTING_DECISIONS(SELECTED_AGENT_ID);
+CREATE INDEX IDX_RD_MODEL ON ROUTING_DECISIONS(SELECTED_MODEL_ID);
+CREATE INDEX IDX_RD_TASK_TYPE ON ROUTING_DECISIONS(TASK_TYPE);
+CREATE INDEX IDX_RD_TIMESTAMP ON ROUTING_DECISIONS(TIMESTAMP);
+CREATE INDEX IDX_RD_SUCCESS ON ROUTING_DECISIONS(SUCCESS);
+CREATE INDEX IDX_RD_STRATEGY ON ROUTING_DECISIONS(STRATEGY);
+CREATE INDEX IDX_RD_FALLBACK ON ROUTING_DECISIONS(IS_FALLBACK);
+CREATE INDEX IDX_RD_ASSIGNMENT ON ROUTING_DECISIONS(ASSIGNMENT_ID);
+CREATE INDEX IDX_RD_REQUEST ON ROUTING_DECISIONS(REQUEST_ID);
+
+COMMENT ON TABLE ROUTING_DECISIONS IS 'Day 21: Routing decision history with task types and performance tracking';
+
+-- ============================================================================
+-- DAY 21: VIEWS FOR ROUTING ANALYTICS
+-- ============================================================================
+
+-- View: Current Agent Assignments Summary
+CREATE VIEW V_AGENT_ASSIGNMENTS_SUMMARY AS
+SELECT 
+    AGENT_ID,
+    AGENT_NAME,
+    AGENT_TYPE,
+    COUNT(*) as TOTAL_MODELS_ASSIGNED,
+    COUNT(CASE WHEN STATUS = 'ACTIVE' THEN 1 END) as ACTIVE_ASSIGNMENTS,
+    AVG(MATCH_SCORE) as AVG_MATCH_SCORE,
+    SUM(TOTAL_REQUESTS) as TOTAL_REQUESTS,
+    SUM(SUCCESSFUL_REQUESTS) as SUCCESSFUL_REQUESTS,
+    CASE 
+        WHEN SUM(TOTAL_REQUESTS) > 0 
+        THEN (SUM(SUCCESSFUL_REQUESTS) * 100.0 / SUM(TOTAL_REQUESTS))
+        ELSE 0 
+    END as SUCCESS_RATE_PERCENT,
+    AVG(AVG_LATENCY_MS) as AVG_LATENCY_MS,
+    MAX(LAST_USED_AT) as LAST_USED_AT
+FROM AGENT_MODEL_ASSIGNMENTS
+GROUP BY AGENT_ID, AGENT_NAME, AGENT_TYPE;
+
+-- View: Model Assignment Performance
+CREATE VIEW V_MODEL_ASSIGNMENT_PERFORMANCE AS
+SELECT 
+    MODEL_ID,
+    MODEL_NAME,
+    COUNT(DISTINCT AGENT_ID) as ASSIGNED_TO_AGENTS,
+    COUNT(*) as TOTAL_ASSIGNMENTS,
+    AVG(MATCH_SCORE) as AVG_MATCH_SCORE,
+    SUM(TOTAL_REQUESTS) as TOTAL_REQUESTS,
+    SUM(SUCCESSFUL_REQUESTS) as SUCCESSFUL_REQUESTS,
+    CASE 
+        WHEN SUM(TOTAL_REQUESTS) > 0 
+        THEN (SUM(SUCCESSFUL_REQUESTS) * 100.0 / SUM(TOTAL_REQUESTS))
+        ELSE 0 
+    END as SUCCESS_RATE_PERCENT,
+    AVG(AVG_LATENCY_MS) as AVG_LATENCY_MS
+FROM AGENT_MODEL_ASSIGNMENTS
+WHERE STATUS = 'ACTIVE'
+GROUP BY MODEL_ID, MODEL_NAME;
+
+-- View: Routing Decision Analytics (Last 24 Hours)
+CREATE VIEW V_ROUTING_ANALYTICS_24H AS
+SELECT 
+    TASK_TYPE,
+    STRATEGY,
+    COUNT(*) as TOTAL_DECISIONS,
+    COUNT(CASE WHEN SUCCESS = TRUE THEN 1 END) as SUCCESSFUL_DECISIONS,
+    COUNT(CASE WHEN IS_FALLBACK = TRUE THEN 1 END) as FALLBACK_COUNT,
+    CASE 
+        WHEN COUNT(*) > 0 
+        THEN (COUNT(CASE WHEN SUCCESS = TRUE THEN 1 END) * 100.0 / COUNT(*))
+        ELSE 0 
+    END as SUCCESS_RATE_PERCENT,
+    CASE 
+        WHEN COUNT(*) > 0 
+        THEN (COUNT(CASE WHEN IS_FALLBACK = TRUE THEN 1 END) * 100.0 / COUNT(*))
+        ELSE 0 
+    END as FALLBACK_RATE_PERCENT,
+    AVG(LATENCY_MS) as AVG_LATENCY_MS,
+    AVG(COMPOSITE_SCORE) as AVG_COMPOSITE_SCORE,
+    AVG(ACTUAL_COST) as AVG_COST
+FROM ROUTING_DECISIONS
+WHERE TIMESTAMP > ADD_HOURS(CURRENT_TIMESTAMP, -24)
+GROUP BY TASK_TYPE, STRATEGY;
+
+-- View: Top Performing Agent-Model Pairs
+CREATE VIEW V_TOP_AGENT_MODEL_PAIRS AS
+SELECT 
+    a.AGENT_ID,
+    a.AGENT_NAME,
+    a.MODEL_ID,
+    a.MODEL_NAME,
+    a.MATCH_SCORE,
+    a.TOTAL_REQUESTS,
+    a.SUCCESSFUL_REQUESTS,
+    CASE 
+        WHEN a.TOTAL_REQUESTS > 0 
+        THEN (a.SUCCESSFUL_REQUESTS * 100.0 / a.TOTAL_REQUESTS)
+        ELSE 0 
+    END as SUCCESS_RATE_PERCENT,
+    a.AVG_LATENCY_MS,
+    a.STATUS,
+    COUNT(r.DECISION_ID) as RECENT_USES_24H
+FROM AGENT_MODEL_ASSIGNMENTS a
+LEFT JOIN ROUTING_DECISIONS r 
+    ON a.AGENT_ID = r.SELECTED_AGENT_ID 
+    AND a.MODEL_ID = r.SELECTED_MODEL_ID
+    AND r.TIMESTAMP > ADD_HOURS(CURRENT_TIMESTAMP, -24)
+WHERE a.STATUS = 'ACTIVE'
+GROUP BY 
+    a.AGENT_ID, a.AGENT_NAME, a.MODEL_ID, a.MODEL_NAME,
+    a.MATCH_SCORE, a.TOTAL_REQUESTS, a.SUCCESSFUL_REQUESTS, 
+    a.AVG_LATENCY_MS, a.STATUS
+ORDER BY SUCCESS_RATE_PERCENT DESC, AVG_LATENCY_MS ASC;
+
+-- ============================================================================
+-- DAY 21: STORED PROCEDURES FOR ROUTING
+-- ============================================================================
+
+-- Procedure: Auto-assign models to agents based on capabilities
+CREATE OR REPLACE PROCEDURE SP_AUTO_ASSIGN_MODELS()
+LANGUAGE SQLSCRIPT AS
+BEGIN
+    -- This is a placeholder for the auto-assignment algorithm
+    -- Will be implemented in capability_scorer.zig and auto_assign.zig
+    -- The procedure will be called from the Zig backend after scoring
+    
+    -- For now, just log the call
+    INSERT INTO AUDIT_LOG (
+        AUDIT_ID, USER_ID, ACTION, ENTITY_TYPE, TIMESTAMP
+    ) VALUES (
+        SYSUUID, 'system', 'AUTO_ASSIGN', 'AGENT_MODEL_ASSIGNMENTS', CURRENT_TIMESTAMP
+    );
+END;
+
+-- Procedure: Update assignment performance metrics
+CREATE OR REPLACE PROCEDURE SP_UPDATE_ASSIGNMENT_METRICS(
+    IN p_assignment_id VARCHAR(36),
+    IN p_success BOOLEAN,
+    IN p_latency_ms INTEGER
+)
+LANGUAGE SQLSCRIPT AS
+BEGIN
+    DECLARE current_total INTEGER;
+    DECLARE current_successful INTEGER;
+    DECLARE current_avg_latency INTEGER;
+    DECLARE new_avg_latency INTEGER;
+    
+    -- Get current metrics
+    SELECT TOTAL_REQUESTS, SUCCESSFUL_REQUESTS, AVG_LATENCY_MS
+    INTO current_total, current_successful, current_avg_latency
+    FROM AGENT_MODEL_ASSIGNMENTS
+    WHERE ASSIGNMENT_ID = :p_assignment_id;
+    
+    -- Calculate new metrics
+    IF p_success = TRUE THEN
+        current_successful := current_successful + 1;
+    END IF;
+    
+    current_total := current_total + 1;
+    
+    -- Calculate rolling average latency
+    IF current_avg_latency IS NULL THEN
+        new_avg_latency := p_latency_ms;
+    ELSE
+        new_avg_latency := ((current_avg_latency * (current_total - 1)) + p_latency_ms) / current_total;
+    END IF;
+    
+    -- Update assignment
+    UPDATE AGENT_MODEL_ASSIGNMENTS
+    SET TOTAL_REQUESTS = current_total,
+        SUCCESSFUL_REQUESTS = current_successful,
+        AVG_LATENCY_MS = new_avg_latency,
+        LAST_USED_AT = CURRENT_TIMESTAMP,
+        LAST_UPDATED = CURRENT_TIMESTAMP
+    WHERE ASSIGNMENT_ID = :p_assignment_id;
+END;
+
+-- Procedure: Get routing recommendation
+CREATE OR REPLACE PROCEDURE SP_GET_ROUTING_RECOMMENDATION(
+    IN p_task_type VARCHAR(50),
+    IN p_strategy VARCHAR(20),
+    OUT o_agent_id VARCHAR(100),
+    OUT o_model_id VARCHAR(100),
+    OUT o_assignment_id VARCHAR(36),
+    OUT o_score DECIMAL(5,2)
+)
+LANGUAGE SQLSCRIPT AS
+BEGIN
+    -- Select best agent-model pair based on strategy
+    IF p_strategy = 'speed' THEN
+        -- Prioritize latency
+        SELECT AGENT_ID, MODEL_ID, ASSIGNMENT_ID, MATCH_SCORE
+        INTO o_agent_id, o_model_id, o_assignment_id, o_score
+        FROM AGENT_MODEL_ASSIGNMENTS
+        WHERE STATUS = 'ACTIVE'
+        ORDER BY AVG_LATENCY_MS ASC, MATCH_SCORE DESC
+        LIMIT 1;
+    ELSEIF p_strategy = 'quality' THEN
+        -- Prioritize match score and success rate
+        SELECT AGENT_ID, MODEL_ID, ASSIGNMENT_ID, MATCH_SCORE
+        INTO o_agent_id, o_model_id, o_assignment_id, o_score
+        FROM AGENT_MODEL_ASSIGNMENTS
+        WHERE STATUS = 'ACTIVE'
+          AND TOTAL_REQUESTS > 0
+        ORDER BY (SUCCESSFUL_REQUESTS * 100.0 / TOTAL_REQUESTS) DESC, MATCH_SCORE DESC
+        LIMIT 1;
+    ELSE
+        -- Balanced strategy (default)
+        SELECT AGENT_ID, MODEL_ID, ASSIGNMENT_ID, MATCH_SCORE
+        INTO o_agent_id, o_model_id, o_assignment_id, o_score
+        FROM AGENT_MODEL_ASSIGNMENTS
+        WHERE STATUS = 'ACTIVE'
+        ORDER BY (MATCH_SCORE * 0.6 + 
+                 CASE WHEN TOTAL_REQUESTS > 0 
+                      THEN (SUCCESSFUL_REQUESTS * 100.0 / TOTAL_REQUESTS) * 0.4 
+                      ELSE 0 END) DESC
+        LIMIT 1;
+    END IF;
+END;
+
+-- ============================================================================
+-- DAY 21: GRANT PERMISSIONS
+-- ============================================================================
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON AGENT_MODEL_ASSIGNMENTS TO NUCLEUS_APP;
+GRANT SELECT, INSERT, UPDATE ON ROUTING_DECISIONS TO NUCLEUS_APP;
+GRANT SELECT ON V_AGENT_ASSIGNMENTS_SUMMARY TO NUCLEUS_APP;
+GRANT SELECT ON V_MODEL_ASSIGNMENT_PERFORMANCE TO NUCLEUS_APP;
+GRANT SELECT ON V_ROUTING_ANALYTICS_24H TO NUCLEUS_APP;
+GRANT SELECT ON V_TOP_AGENT_MODEL_PAIRS TO NUCLEUS_APP;
+GRANT EXECUTE ON SP_AUTO_ASSIGN_MODELS TO NUCLEUS_APP;
+GRANT EXECUTE ON SP_UPDATE_ASSIGNMENT_METRICS TO NUCLEUS_APP;
+GRANT EXECUTE ON SP_GET_ROUTING_RECOMMENDATION TO NUCLEUS_APP;
+
+-- ============================================================================
+-- DAY 21: SEED DATA FOR TESTING
+-- ============================================================================
+
+-- Insert sample agent-model assignments for testing
+INSERT INTO AGENT_MODEL_ASSIGNMENTS (
+    ASSIGNMENT_ID, AGENT_ID, AGENT_NAME, AGENT_TYPE, MODEL_ID, MODEL_NAME,
+    MATCH_SCORE, STATUS, ASSIGNMENT_METHOD, ASSIGNED_BY
+) VALUES 
+(
+    'ama_001', 'agent_gpu_1', 'GPU Inference Agent 1', 'inference',
+    'llama3-70b', 'LLaMA 3 70B', 95.0, 'ACTIVE', 'AUTO', 'system'
+),
+(
+    'ama_002', 'agent_gpu_2', 'GPU Inference Agent 2', 'inference',
+    'mistral-7b', 'Mistral 7B', 88.5, 'ACTIVE', 'AUTO', 'system'
+),
+(
+    'ama_003', 'agent_cpu_1', 'CPU Inference Agent 1', 'inference',
+    'tinyllama-1b', 'TinyLLaMA 1.1B', 75.0, 'ACTIVE', 'AUTO', 'system'
+);
+
+-- ============================================================================
+-- SCHEMA SUMMARY (UPDATED)
+-- ============================================================================
+-- Tables Created: 11 new tables
 --   1. MODEL_CONFIGURATIONS (18 columns) - Model inference parameters
 --   2. USER_SETTINGS (24 columns) - User application settings
 --   3. NOTIFICATIONS (15 columns) - System notifications
@@ -766,12 +1139,13 @@ COMMIT;
 --   7. TRAINING_EXPERIMENTS (25 columns) - Training job metadata
 --   8. TRAINING_EXPERIMENT_COMPARISONS (27 columns) - Experiment A vs B comparisons
 --   9. AUDIT_LOG (12 columns) - Audit trail for all operations
+--   10. AGENT_MODEL_ASSIGNMENTS (21 columns) - Day 21: Agent-model assignments
+--   11. ROUTING_DECISIONS (24 columns) - Day 21: Routing decision history
 --
--- Indexes Created: 25 indexes
--- Views Created: 4 views
--- Procedures Created: 3 stored procedures
+-- Indexes Created: 40 indexes
+-- Views Created: 8 views
+-- Procedures Created: 6 stored procedures
 -- Triggers Created: 2 triggers
 --
--- Total New SQL: ~400 lines
--- Combined with existing: 695 lines total schema
+-- Day 21 Complete: Router Data Model implemented
 -- ============================================================================
