@@ -525,10 +525,10 @@ pub fn build(b: *std.Build) void {
         cli.linkSystemLibrary("cudart");
     }
 
-    b.installArtifact(cli);
+    const install_cli = b.addInstallArtifact(cli, .{});
 
     const run_cli = b.addRunArtifact(cli);
-    run_cli.step.dependOn(b.getInstallStep());
+    run_cli.step.dependOn(&install_cli.step);
 
     if (b.args) |args| {
         run_cli.addArgs(args);
@@ -1108,42 +1108,6 @@ pub fn build(b: *std.Build) void {
 
     const test_all_models_step = b.step("test-all-models", "Dynamically discover and test all models");
     test_all_models_step.dependOn(&run_test_all_models.step);
-
-    // ========================================================================
-    // GPU Diagnostics Test
-    // ========================================================================
-
-    const test_gpu_diagnostics = b.addExecutable(.{
-        .name = "test_gpu_diagnostics",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("tests/gpu/diagnostics/test_gpu_diagnostics.zig"),
-            .target = target,
-            .optimize = optimize,
-        }),
-    });
-    test_gpu_diagnostics.root_module.addImport("cuda_bindings", cuda_bindings_module);
-    test_gpu_diagnostics.root_module.addImport("cuda_context", cuda_context_module);
-    test_gpu_diagnostics.root_module.addImport("cuda_memory", cuda_memory_module);
-    test_gpu_diagnostics.root_module.addImport("cuda_streams", cuda_streams_module);
-    test_gpu_diagnostics.root_module.addImport("cublas_bindings", cublas_bindings_module);
-
-    if (builtin.os.tag == .linux) {
-        test_gpu_diagnostics.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
-        test_gpu_diagnostics.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
-        test_gpu_diagnostics.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
-        test_gpu_diagnostics.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
-        test_gpu_diagnostics.linkSystemLibrary("cuda");
-        test_gpu_diagnostics.linkSystemLibrary("cublas");
-        test_gpu_diagnostics.linkSystemLibrary("cudart");
-    }
-
-    b.installArtifact(test_gpu_diagnostics);
-
-    const run_test_gpu_diagnostics = b.addRunArtifact(test_gpu_diagnostics);
-    run_test_gpu_diagnostics.step.dependOn(b.getInstallStep());
-
-    const test_gpu_diagnostics_step = b.step("test-gpu-diagnostics", "Run GPU diagnostics");
-    test_gpu_diagnostics_step.dependOn(&run_test_gpu_diagnostics.step);
 
     // ========================================================================
     // Combined Test

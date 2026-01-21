@@ -106,6 +106,87 @@ pub const Weight = union(enum) {
 };
 
 // ============================================================================
+// Dequantization
+// ============================================================================
+
+/// Dequantize raw quantized data to f32 output buffer
+/// Used by GPU backends that need CPU-side dequantization before transfer
+pub fn dequantize(
+    output: []f32,
+    data: []const u8,
+    quant_type: gguf_loader.QuantizationType,
+    count: usize,
+) void {
+    _ = count; // Reserved for validation
+
+    switch (quant_type) {
+        .Q4_K => {
+            const block_size: usize = 256;
+            const block_bytes: usize = @sizeOf(q4_k.BlockQ4_K);
+            const num_blocks = output.len / block_size;
+
+            for (0..num_blocks) |bi| {
+                const block_ptr = @as(*const q4_k.BlockQ4_K, @ptrCast(@alignCast(&data[bi * block_bytes])));
+                const out_start = bi * block_size;
+                q4_k.dequantizeBlock(output[out_start .. out_start + block_size], block_ptr);
+            }
+        },
+        .Q6_K => {
+            const block_size: usize = 256;
+            const block_bytes: usize = @sizeOf(q6_k.BlockQ6_K);
+            const num_blocks = output.len / block_size;
+
+            for (0..num_blocks) |bi| {
+                const block_ptr = @as(*const q6_k.BlockQ6_K, @ptrCast(@alignCast(&data[bi * block_bytes])));
+                const out_start = bi * block_size;
+                q6_k.dequantizeBlock(output[out_start .. out_start + block_size], block_ptr);
+            }
+        },
+        .Q4_0 => {
+            // Q4_0: 32 values per block, 18 bytes per block (2 bytes scale + 16 bytes quants)
+            const block_size: usize = 32;
+            const block_bytes: usize = 18;
+            const num_blocks = output.len / block_size;
+
+            for (0..num_blocks) |bi| {
+                const block_offset = bi * block_bytes;
+                // Scale is stored as f16 (2 bytes)
+                const scale_bytes = data[block_offset .. block_offset + 2];
+                const scale_u16 = @as(u16, scale_bytes[0]) | (@as(u16, scale_bytes[1]) << 8);
+                const scale_f16: f16 = @bitCast(scale_u16);
+                const scale: f32 = @floatCast(scale_f16);
+
+                // Dequantize 32 values from 16 bytes (4 bits each)
+                for (0..16) |j| {
+                    const quant_byte = data[block_offset + 2 + j];
+                    const q0 = @as(i8, @intCast(quant_byte & 0x0F)) - 8;
+                    const q1 = @as(i8, @intCast(quant_byte >> 4)) - 8;
+                    const out_start = bi * block_size;
+                    output[out_start + j * 2] = @as(f32, @floatFromInt(q0)) * scale;
+                    output[out_start + j * 2 + 1] = @as(f32, @floatFromInt(q1)) * scale;
+                }
+            }
+        },
+        .F32 => {
+            // Direct copy from f32 data
+            const src = @as([*]const f32, @ptrCast(@alignCast(data.ptr)))[0..output.len];
+            @memcpy(output, src);
+        },
+        .F16 => {
+            // Convert from f16 to f32
+            const src = @as([*]const f16, @ptrCast(@alignCast(data.ptr)))[0..output.len];
+            for (0..output.len) |i| {
+                output[i] = @floatCast(src[i]);
+            }
+        },
+        else => {
+            // Unsupported quantization type - fill with zeros
+            @memset(output, 0.0);
+        },
+    }
+}
+
+// ============================================================================
 // Helpers
 // ============================================================================
 

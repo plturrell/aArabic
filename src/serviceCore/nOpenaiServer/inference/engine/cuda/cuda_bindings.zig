@@ -35,25 +35,26 @@ pub const cudaMemcpyDefault: c_int = 4;
 // ============================================================================
 
 /// Get the number of CUDA-capable devices
-pub extern "cuda" fn cudaGetDeviceCount(count: *c_int) c_int;
+pub extern "cudart" fn cudaGetDeviceCount(count: *c_int) c_int;
 
 /// Set the current CUDA device
-pub extern "cuda" fn cudaSetDevice(device: c_int) c_int;
+pub extern "cudart" fn cudaSetDevice(device: c_int) c_int;
 
 /// Get the current CUDA device
-pub extern "cuda" fn cudaGetDevice(device: *c_int) c_int;
+pub extern "cudart" fn cudaGetDevice(device: *c_int) c_int;
 
 /// Reset the current CUDA device
-pub extern "cuda" fn cudaDeviceReset() c_int;
+pub extern "cudart" fn cudaDeviceReset() c_int;
 
 /// Synchronize the current device
-pub extern "cuda" fn cudaDeviceSynchronize() c_int;
+pub extern "cudart" fn cudaDeviceSynchronize() c_int;
 
 // ============================================================================
 // Device Properties
 // ============================================================================
 
-/// CUDA device properties structure
+/// CUDA device properties structure - CUDA 12.x compatible
+/// Must be large enough to hold all fields written by cudaGetDeviceProperties
 pub const CudaDeviceProp = extern struct {
     name: [256]u8,
     uuid: [16]u8,
@@ -132,35 +133,54 @@ pub const CudaDeviceProp = extern struct {
     sharedMemPerBlockOptin: usize,
     pageableMemoryAccessUsesHostPageTables: c_int,
     directManagedMemAccessFromHost: c_int,
+    // CUDA 12.x additional fields
+    maxBlocksPerMultiProcessor: c_int,
+    accessPolicyMaxWindowSize: c_int,
+    reservedSharedMemPerBlock: usize,
+    hostRegisterSupported: c_int,
+    sparseCudaArraySupported: c_int,
+    hostRegisterReadOnlySupported: c_int,
+    timelineSemaphoreInteropSupported: c_int,
+    memoryPoolsSupported: c_int,
+    gpuDirectRDMASupported: c_int,
+    gpuDirectRDMAFlushWritesOptions: c_uint,
+    gpuDirectRDMAWritesOrdering: c_int,
+    memoryPoolSupportedHandleTypes: c_uint,
+    deferredMappingCudaArraySupported: c_int,
+    ipcEventSupported: c_int,
+    clusterLaunch: c_int,
+    unifiedFunctionPointers: c_int,
+    // Reserved padding for future CUDA versions (512 bytes extra)
+    _reserved: [512]u8,
 };
 
 /// Get device properties
-pub extern "cuda" fn cudaGetDeviceProperties(prop: *CudaDeviceProp, device: c_int) c_int;
+pub extern "cudart" fn cudaGetDeviceProperties(prop: *CudaDeviceProp, device: c_int) c_int;
 
 // ============================================================================
 // Memory Management
 // ============================================================================
 
 /// Allocate memory on the device
-pub extern "cuda" fn cudaMalloc(ptr: **anyopaque, size: usize) c_int;
+pub extern "cudart" fn cudaMalloc(ptr: **anyopaque, size: usize) c_int;
 
 /// Free memory on the device
-pub extern "cuda" fn cudaFree(ptr: *anyopaque) c_int;
+pub extern "cudart" fn cudaFree(ptr: *anyopaque) c_int;
 
 /// Allocate pinned host memory (page-locked)
-pub extern "cuda" fn cudaMallocHost(ptr: **anyopaque, size: usize) c_int;
+pub extern "cudart" fn cudaMallocHost(ptr: **anyopaque, size: usize) c_int;
 
 /// Free pinned host memory
-pub extern "cuda" fn cudaFreeHost(ptr: *anyopaque) c_int;
+pub extern "cudart" fn cudaFreeHost(ptr: *anyopaque) c_int;
 
 /// Get free and total device memory
-pub extern "cuda" fn cudaMemGetInfo(free: *usize, total: *usize) c_int;
+pub extern "cudart" fn cudaMemGetInfo(free: *usize, total: *usize) c_int;
 
 /// Copy memory between host and device
-pub extern "cuda" fn cudaMemcpy(dst: *anyopaque, src: *const anyopaque, size: usize, kind: c_int) c_int;
+pub extern "cudart" fn cudaMemcpy(dst: *anyopaque, src: *const anyopaque, size: usize, kind: c_int) c_int;
 
 /// Asynchronous memory copy
-pub extern "cuda" fn cudaMemcpyAsync(
+pub extern "cudart" fn cudaMemcpyAsync(
     dst: *anyopaque,
     src: *const anyopaque,
     size: usize,
@@ -169,39 +189,39 @@ pub extern "cuda" fn cudaMemcpyAsync(
 ) c_int;
 
 /// Set device memory to a value
-pub extern "cuda" fn cudaMemset(ptr: *anyopaque, value: c_int, size: usize) c_int;
+pub extern "cudart" fn cudaMemset(ptr: *anyopaque, value: c_int, size: usize) c_int;
 
 /// Asynchronous memset
-pub extern "cuda" fn cudaMemsetAsync(ptr: *anyopaque, value: c_int, size: usize, stream: ?*anyopaque) c_int;
+pub extern "cudart" fn cudaMemsetAsync(ptr: *anyopaque, value: c_int, size: usize, stream: ?*anyopaque) c_int;
 
 // ============================================================================
 // Stream Management
 // ============================================================================
 
 /// Create a CUDA stream
-pub extern "cuda" fn cudaStreamCreate(stream: **anyopaque) c_int;
+pub extern "cudart" fn cudaStreamCreate(stream: **anyopaque) c_int;
 
 /// Create a CUDA stream with flags
-pub extern "cuda" fn cudaStreamCreateWithFlags(stream: **anyopaque, flags: c_uint) c_int;
+pub extern "cudart" fn cudaStreamCreateWithFlags(stream: **anyopaque, flags: c_uint) c_int;
 
 /// Destroy a CUDA stream
-pub extern "cuda" fn cudaStreamDestroy(stream: *anyopaque) c_int;
+pub extern "cudart" fn cudaStreamDestroy(stream: *anyopaque) c_int;
 
 /// Synchronize a CUDA stream
-pub extern "cuda" fn cudaStreamSynchronize(stream: *anyopaque) c_int;
+pub extern "cudart" fn cudaStreamSynchronize(stream: *anyopaque) c_int;
 
 /// Query stream status
-pub extern "cuda" fn cudaStreamQuery(stream: *anyopaque) c_int;
+pub extern "cudart" fn cudaStreamQuery(stream: *anyopaque) c_int;
 
 // Stream flags
 pub const cudaStreamDefault: c_uint = 0x00;
 pub const cudaStreamNonBlocking: c_uint = 0x01;
 
 /// Create stream with priority
-pub extern "cuda" fn cudaStreamCreateWithPriority(stream: **anyopaque, flags: c_uint, priority: c_int) c_int;
+pub extern "cudart" fn cudaStreamCreateWithPriority(stream: **anyopaque, flags: c_uint, priority: c_int) c_int;
 
 /// Make stream wait for event
-pub extern "cuda" fn cudaStreamWaitEvent(stream: *anyopaque, event: *anyopaque, flags: c_uint) c_int;
+pub extern "cudart" fn cudaStreamWaitEvent(stream: *anyopaque, event: *anyopaque, flags: c_uint) c_int;
 
 // Error code for operations not ready
 pub const cudaErrorNotReady: c_int = 600;
@@ -211,25 +231,25 @@ pub const cudaErrorNotReady: c_int = 600;
 // ============================================================================
 
 /// Create a CUDA event
-pub extern "cuda" fn cudaEventCreate(event: **anyopaque) c_int;
+pub extern "cudart" fn cudaEventCreate(event: **anyopaque) c_int;
 
 /// Create a CUDA event with flags
-pub extern "cuda" fn cudaEventCreateWithFlags(event: **anyopaque, flags: c_uint) c_int;
+pub extern "cudart" fn cudaEventCreateWithFlags(event: **anyopaque, flags: c_uint) c_int;
 
 /// Destroy a CUDA event
-pub extern "cuda" fn cudaEventDestroy(event: *anyopaque) c_int;
+pub extern "cudart" fn cudaEventDestroy(event: *anyopaque) c_int;
 
 /// Record an event in a stream
-pub extern "cuda" fn cudaEventRecord(event: *anyopaque, stream: *anyopaque) c_int;
+pub extern "cudart" fn cudaEventRecord(event: *anyopaque, stream: *anyopaque) c_int;
 
 /// Synchronize on an event
-pub extern "cuda" fn cudaEventSynchronize(event: *anyopaque) c_int;
+pub extern "cudart" fn cudaEventSynchronize(event: *anyopaque) c_int;
 
 /// Query event status
-pub extern "cuda" fn cudaEventQuery(event: *anyopaque) c_int;
+pub extern "cudart" fn cudaEventQuery(event: *anyopaque) c_int;
 
 /// Calculate elapsed time between two events
-pub extern "cuda" fn cudaEventElapsedTime(ms: *f32, start: *anyopaque, end: *anyopaque) c_int;
+pub extern "cudart" fn cudaEventElapsedTime(ms: *f32, start: *anyopaque, end: *anyopaque) c_int;
 
 // Event flags
 pub const cudaEventDefault: c_uint = 0x00;
@@ -241,16 +261,16 @@ pub const cudaEventDisableTiming: c_uint = 0x02;
 // ============================================================================
 
 /// Get the last CUDA error
-pub extern "cuda" fn cudaGetLastError() c_int;
+pub extern "cudart" fn cudaGetLastError() c_int;
 
 /// Peek at the last CUDA error (doesn't clear it)
-pub extern "cuda" fn cudaPeekAtLastError() c_int;
+pub extern "cudart" fn cudaPeekAtLastError() c_int;
 
 /// Get error string from error code
-pub extern "cuda" fn cudaGetErrorString(err: c_int) [*:0]const u8;
+pub extern "cudart" fn cudaGetErrorString(err: c_int) [*:0]const u8;
 
 /// Get error name from error code
-pub extern "cuda" fn cudaGetErrorName(err: c_int) [*:0]const u8;
+pub extern "cudart" fn cudaGetErrorName(err: c_int) [*:0]const u8;
 
 // ============================================================================
 // Helper Functions

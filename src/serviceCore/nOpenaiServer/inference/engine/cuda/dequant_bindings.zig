@@ -34,46 +34,82 @@ pub const Q6_K_BLOCK_SIZE: usize = 256;
 pub const Q6_K_BLOCK_BYTES: usize = 210;
 
 // ============================================================================
-// FFI Declarations (link against libdequant_kernels.so)
+// Dequant Kernel Stubs (until Mojo kernels are compiled)
 // ============================================================================
+// These stubs allow the build to succeed without the Mojo dequant library.
+// When the Mojo kernels are available, these can be replaced with extern declarations.
 
-/// Dequantize Q4_0 blocks to FP16
-/// Returns 0 on success, non-zero on error
-pub extern "dequant_kernels" fn mojo_dequant_q4_0_fp16(
+/// Stub: Dequantize Q4_0 blocks to FP16
+/// Returns -1 (not implemented) - caller should use CPU fallback
+pub fn mojo_dequant_q4_0_fp16(
     input: [*]const u8,
     output: [*]f16,
     num_blocks: i32,
     stream: ?*anyopaque,
-) i32;
+) i32 {
+    _ = input;
+    _ = output;
+    _ = num_blocks;
+    _ = stream;
+    return -1; // Not implemented - use CPU fallback
+}
 
-/// Dequantize Q8_0 blocks to FP16
-pub extern "dequant_kernels" fn mojo_dequant_q8_0_fp16(
+/// Stub: Dequantize Q8_0 blocks to FP16
+pub fn mojo_dequant_q8_0_fp16(
     input: [*]const u8,
     output: [*]f16,
     num_blocks: i32,
     stream: ?*anyopaque,
-) i32;
+) i32 {
+    _ = input;
+    _ = output;
+    _ = num_blocks;
+    _ = stream;
+    return -1; // Not implemented - use CPU fallback
+}
 
-/// Dequantize Q4_K blocks to FP16
-pub extern "dequant_kernels" fn mojo_dequant_q4_k_fp16(
+/// Stub: Dequantize Q4_K blocks to FP16
+pub fn mojo_dequant_q4_k_fp16(
     input: [*]const u8,
     output: [*]f16,
     num_blocks: i32,
     stream: ?*anyopaque,
-) i32;
+) i32 {
+    _ = input;
+    _ = output;
+    _ = num_blocks;
+    _ = stream;
+    return -1; // Not implemented - use CPU fallback
+}
 
 /// Get output buffer size in FP16 elements
 /// quant_type: 2=Q4_0, 8=Q8_0, 12=Q4_K
-pub extern "dequant_kernels" fn mojo_dequant_get_output_size(
+pub fn mojo_dequant_get_output_size(
     quant_type: i32,
     num_blocks: i32,
-) i32;
+) i32 {
+    const block_size: i32 = switch (quant_type) {
+        2 => @intCast(Q4_0_BLOCK_SIZE),
+        8 => @intCast(Q8_0_BLOCK_SIZE),
+        12 => @intCast(Q4_K_BLOCK_SIZE),
+        else => 32,
+    };
+    return num_blocks * block_size;
+}
 
 /// Get input buffer size in bytes
-pub extern "dequant_kernels" fn mojo_dequant_get_input_size(
+pub fn mojo_dequant_get_input_size(
     quant_type: i32,
     num_blocks: i32,
-) i32;
+) i32 {
+    const block_bytes: i32 = switch (quant_type) {
+        2 => @intCast(Q4_0_BLOCK_BYTES),
+        8 => @intCast(Q8_0_BLOCK_BYTES),
+        12 => @intCast(Q4_K_BLOCK_BYTES),
+        else => 18,
+    };
+    return num_blocks * block_bytes;
+}
 
 // ============================================================================
 // Quantization Type Enum (matches GGUF)

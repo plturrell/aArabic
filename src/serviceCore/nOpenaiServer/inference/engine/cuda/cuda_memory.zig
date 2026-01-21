@@ -370,6 +370,34 @@ pub fn setDeviceMemory(device_ptr: *anyopaque, value: u8, size: usize) !void {
 }
 
 // ============================================================================
+// Standalone Allocation Functions (for backend_cuda compatibility)
+// ============================================================================
+
+/// Allocate device memory and return as a slice (for backend compatibility)
+/// Note: The returned slice's .ptr points to GPU memory
+pub fn allocDevice(allocator: std.mem.Allocator, size: usize) ![]u8 {
+    _ = allocator; // Not needed for GPU allocation
+    var ptr: *anyopaque = undefined;
+    try cuda.checkCudaError(
+        cuda.cudaMalloc(@ptrCast(&ptr), size),
+        "allocDevice"
+    );
+    // Create a slice pointing to GPU memory
+    // Note: This slice should NOT be dereferenced on the CPU side
+    return @as([*]u8, @ptrCast(ptr))[0..size];
+}
+
+/// Free device memory from a slice
+pub fn freeDevice(ptr: []u8) void {
+    cuda.checkCudaError(
+        cuda.cudaFree(@ptrCast(ptr.ptr)),
+        "freeDevice"
+    ) catch |err| {
+        std.debug.print("Warning: Failed to free device memory: {}\n", .{err});
+    };
+}
+
+// ============================================================================
 // Allocation Tracker (for debugging)
 // ============================================================================
 

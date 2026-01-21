@@ -45,16 +45,31 @@ pub const CudaBackend = struct {
     pub fn init(allocator: std.mem.Allocator) !compute.ComputeBackend {
         log.info("⚡ Initializing CUDA Backend (NVIDIA GPU)...", .{});
 
+        // Debug: print before first CUDA call
+        std.debug.print("DEBUG: About to call cudaGetDeviceCount...\n", .{});
+
+        // Debug: print the function pointer address
+        const fn_ptr = @intFromPtr(&cuda_bindings.cudaGetDeviceCount);
+        std.debug.print("DEBUG: cudaGetDeviceCount function pointer: 0x{x}\n", .{fn_ptr});
+
         // Initialize CUDA context
         var device_count: c_int = 0;
+        std.debug.print("DEBUG: Calling cudaGetDeviceCount now...\n", .{});
         const count_result = cuda_bindings.cudaGetDeviceCount(&device_count);
+
+        std.debug.print("DEBUG: cudaGetDeviceCount returned {d}, device_count={d}\n", .{ count_result, device_count });
+
         if (count_result != cuda_bindings.cudaSuccess or device_count == 0) {
             return error.NoCudaDevices;
         }
 
         // Use first CUDA device (can be made configurable)
         const device_id: i32 = 0;
+
+        std.debug.print("DEBUG: About to call cudaSetDevice({d})...\n", .{device_id});
         const set_result = cuda_bindings.cudaSetDevice(device_id);
+        std.debug.print("DEBUG: cudaSetDevice returned {d}\n", .{set_result});
+
         if (set_result != cuda_bindings.cudaSuccess) {
             return error.CudaSetDeviceFailed;
         }
@@ -159,12 +174,14 @@ pub const CudaBackend = struct {
 
     fn copyToDevice(ctx: *anyopaque, dest: []u8, src: []const u8) !void {
         _ = ctx;
-        try cuda_memory.copyHostToDevice(dest, src);
+        // dest.ptr points to GPU memory, src is host data
+        try cuda_memory.copyHostToDevice(@ptrCast(dest.ptr), src);
     }
 
     fn copyFromDevice(ctx: *anyopaque, dest: []u8, src: []const u8) !void {
         _ = ctx;
-        try cuda_memory.copyDeviceToHost(dest, src);
+        // src.ptr points to GPU memory, copy to dest host buffer
+        try cuda_memory.copyDeviceToHost(dest, @ptrCast(src.ptr), src.len);
     }
 
     fn matmul(
@@ -224,7 +241,8 @@ pub const CudaBackend = struct {
             }
         } else {
             // FP32/FP16 path: direct GPU matmul
-            const a_fp32 = std.mem.bytesAsSlice(f32, @constCast(a_data));
+            const a_bytes = @constCast(a_data);
+            const a_fp32: []const f32 = @alignCast(std.mem.bytesAsSlice(f32, a_bytes));
             if (use_tensor_cores) {
                 try self.gpuMatmulFp16TensorCore(c, a_fp32, b, m, n, k);
             } else {
@@ -248,8 +266,8 @@ pub const CudaBackend = struct {
         const gpu_c = self.gpu_buffer_c.?;
 
         // Copy inputs to GPU
-        try cuda_memory.copyHostToDevice(gpu_a[0..size_a], std.mem.sliceAsBytes(a));
-        try cuda_memory.copyHostToDevice(gpu_b[0..size_b], std.mem.sliceAsBytes(b));
+        try cuda_memory.copyHostToDevice(@ptrCast(gpu_a.ptr), std.mem.sliceAsBytes(a));
+        try cuda_memory.copyHostToDevice(@ptrCast(gpu_b.ptr), std.mem.sliceAsBytes(b));
 
         // Execute cuBLAS SGEMM on GPU
         const a_ptr: [*]const f32 = @ptrCast(@alignCast(gpu_a.ptr));
@@ -260,7 +278,7 @@ pub const CudaBackend = struct {
 
         // Synchronize and copy result back
         _ = cuda_bindings.cudaDeviceSynchronize();
-        try cuda_memory.copyDeviceToHost(std.mem.sliceAsBytes(c), gpu_c[0..size_c]);
+        try cuda_memory.copyDeviceToHost(std.mem.sliceAsBytes(c), @ptrCast(gpu_c.ptr), size_c);
     }
 
     /// GPU matrix multiplication using FP16 Tensor Cores via cublasGemmEx
@@ -296,8 +314,8 @@ pub const CudaBackend = struct {
         }
 
         // Copy FP16 inputs to GPU
-        try cuda_memory.copyHostToDevice(gpu_a[0..size_a_fp16], std.mem.sliceAsBytes(a_fp16));
-        try cuda_memory.copyHostToDevice(gpu_b[0..size_b_fp16], std.mem.sliceAsBytes(b_fp16));
+        try cuda_memory.copyHostToDevice(@ptrCast(gpu_a.ptr), std.mem.sliceAsBytes(a_fp16));
+        try cuda_memory.copyHostToDevice(@ptrCast(gpu_b.ptr), std.mem.sliceAsBytes(b_fp16));
 
         // Execute cuBLAS GemmEx with Tensor Cores (FP16 input, FP32 output)
         try self.cublas_ctx.gemmEx_fp16(
@@ -312,7 +330,7 @@ pub const CudaBackend = struct {
 
         // Synchronize and copy FP32 result back
         _ = cuda_bindings.cudaDeviceSynchronize();
-        try cuda_memory.copyDeviceToHost(std.mem.sliceAsBytes(c), gpu_c[0..size_c_fp32]);
+        try cuda_memory.copyDeviceToHost(std.mem.sliceAsBytes(c), @ptrCast(gpu_c.ptr), size_c_fp32);
     }
 
     /// GPU matrix multiplication using FP16 Tensor Cores with raw FP16 pointers
@@ -329,7 +347,7 @@ pub const CudaBackend = struct {
         const gpu_c = self.gpu_buffer_c.?;
 
         // Copy B (FP16) to GPU - A is already on GPU from dequant kernel
-        try cuda_memory.copyHostToDevice(gpu_b[0..size_b_fp16], @as([*]const u8, @ptrCast(b_fp16))[0..size_b_fp16]);
+        try cuda_memory.copyHostToDevice(@ptrCast(gpu_b.ptr), @as([*]const u8, @ptrCast(b_fp16))[0..size_b_fp16]);
 
         // Execute cuBLAS GemmEx with Tensor Cores
         // A is already on GPU (from dequant), B copied, C is output
@@ -345,7 +363,7 @@ pub const CudaBackend = struct {
 
         // Synchronize and copy FP32 result back
         _ = cuda_bindings.cudaDeviceSynchronize();
-        try cuda_memory.copyDeviceToHost(std.mem.sliceAsBytes(c), gpu_c[0..size_c_fp32]);
+        try cuda_memory.copyDeviceToHost(std.mem.sliceAsBytes(c), @ptrCast(gpu_c.ptr), size_c_fp32);
     }
 
     /// Check if dimensions are optimal for Tensor Core usage

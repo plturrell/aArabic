@@ -82,12 +82,12 @@ pub extern "cublas" fn cublasSgemm_v2(
     n: c_int,
     k: c_int,
     alpha: *const f32,
-    A: *const f32,
+    A: [*]const f32,
     lda: c_int,
-    B: *const f32,
+    B: [*]const f32,
     ldb: c_int,
     beta: *const f32,
-    C: *f32,
+    C: [*]f32,
     ldc: c_int,
 ) cublasStatus_t;
 
@@ -101,12 +101,12 @@ pub extern "cublas" fn cublasHgemm(
     n: c_int,
     k: c_int,
     alpha: *const f16,
-    A: *const f16,
+    A: [*]const f16,
     lda: c_int,
-    B: *const f16,
+    B: [*]const f16,
     ldb: c_int,
     beta: *const f16,
-    C: *f16,
+    C: [*]f16,
     ldc: c_int,
 ) cublasStatus_t;
 
