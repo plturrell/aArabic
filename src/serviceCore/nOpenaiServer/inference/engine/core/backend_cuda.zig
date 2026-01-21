@@ -193,9 +193,12 @@ pub const CudaBackend = struct {
 
         // Decide whether to use Tensor Cores (FP16) or standard FP32 path
         // Tensor Cores are ~8x faster but require FP16 and work best with aligned dimensions
+        const tensor_core_optimal = isTensorCoreOptimal(m, n, k);
         const use_tensor_cores = self.has_tensor_cores and
             self.fp16_supported and
-            isTensorCoreOptimal(m, n, k);
+            tensor_core_optimal;
+
+        log.debug("🎛️ MATMUL: m={} n={} k={} type={} has_tc={} fp16={} tc_optimal={} use_tc={}", .{ m, n, k, @intFromEnum(a_type), self.has_tensor_cores, self.fp16_supported, tensor_core_optimal, use_tensor_cores });
 
         // For quantized weights, we need to dequantize first
         // Use GPU dequantization for supported quant types (Q4_0, Q8_0, Q4_K)
