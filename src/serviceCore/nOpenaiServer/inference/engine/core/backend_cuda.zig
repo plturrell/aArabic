@@ -201,37 +201,48 @@ pub const CudaBackend = struct {
         log.info("🎛️ MATMUL: m={} n={} k={} type={} has_tc={} fp16={} tc_optimal={} use_tc={}", .{ m, n, k, @intFromEnum(a_type), self.has_tensor_cores, self.fp16_supported, tensor_core_optimal, use_tensor_cores });
 
         // For quantized weights, we need to dequantize first
-        // Use GPU dequantization for supported quant types (Q4_0, Q8_0, Q4_K)
+        // Use GPU dequantization for supported quant types (Q4_0, Q8_0, Q4_K, Q6_K)
         if (a_type != .F32 and a_type != .F16) {
-            // Check if we can use GPU dequantization (Tensor Core path)
+            // Check if we can use GPU dequantization
             const quant_type = dequant.QuantType.fromGguf(a_type);
 
-            // Try GPU dequant path first (fastest), fall back to CPU dequant if not available
+            // Try GPU dequant path REGARDLESS of Tensor Core alignment
+            // GPU dequant + GPU matmul (even FP32) is much faster than CPU
             var gpu_dequant_success = false;
-            if (use_tensor_cores and quant_type != null) {
-                // GPU dequantization + FP16 Tensor Core matmul
-                // This is the fastest path: dequant on GPU → FP16 → Tensor Core GEMM
+            if (quant_type != null) {
                 const num_elements = m * k;
                 const num_blocks = dequant.DequantContext.calculateNumBlocks(quant_type.?, num_elements);
 
-                log.debug("🔧 GPU DEQUANT: Attempting m={} k={} n={} blocks={} quant={}", .{ m, k, n, num_blocks, @intFromEnum(quant_type.?) });
+                log.info("🔧 GPU DEQUANT: Attempting m={} k={} n={} blocks={} quant={}", .{ m, k, n, num_blocks, @intFromEnum(quant_type.?) });
 
                 if (self.dequant_ctx.dequant(a_data.ptr, quant_type.?, num_blocks)) |a_fp16| {
-                    // GPU dequant succeeded - use Tensor Core path
-                    log.debug("✅ GPU DEQUANT: Success! Using Tensor Core path", .{});
-                    const b_fp16 = try self.allocator.alloc(f16, k * n);
-                    defer self.allocator.free(b_fp16);
-                    for (b, 0..) |val, i| {
-                        b_fp16[i] = @floatCast(val);
+                    // GPU dequant succeeded - choose best matmul path
+                    if (use_tensor_cores) {
+                        log.info("✅ GPU DEQUANT: Success! Using Tensor Core FP16 path", .{});
+                        const b_fp16 = try self.allocator.alloc(f16, k * n);
+                        defer self.allocator.free(b_fp16);
+                        for (b, 0..) |val, i| {
+                            b_fp16[i] = @floatCast(val);
+                        }
+                        try self.gpuMatmulFp16TensorCoreRaw(c, a_fp16, b_fp16.ptr, m, n, k);
+                    } else {
+                        // FP32 GPU matmul - still much faster than CPU for large matrices
+                        log.info("✅ GPU DEQUANT: Success! Using GPU FP32 path (n={} not optimal for TC)", .{n});
+                        // Convert FP16 dequant output to FP32 for matmul
+                        const a_fp32 = try self.allocator.alloc(f32, m * k);
+                        defer self.allocator.free(a_fp32);
+                        for (0..m * k) |i| {
+                            a_fp32[i] = @floatCast(a_fp16[i]);
+                        }
+                        try self.gpuMatmulFp32(c, a_fp32, b, m, n, k);
                     }
-                    try self.gpuMatmulFp16TensorCoreRaw(c, a_fp16, b_fp16.ptr, m, n, k);
                     gpu_dequant_success = true;
                 } else |err| {
                     // GPU dequant failed, fall through to CPU path
                     log.info("❌ GPU DEQUANT: Failed with error: {}, falling back to CPU", .{err});
                 }
             } else {
-                log.info("⏭️ GPU DEQUANT: Skipped (tensor_cores={} quant_type={?})", .{ use_tensor_cores, quant_type });
+                log.info("⏭️ GPU DEQUANT: Skipped (unsupported quant type={})", .{@intFromEnum(a_type)});
             }
 
             if (!gpu_dequant_success) {
