@@ -198,7 +198,7 @@ pub const CudaBackend = struct {
             self.fp16_supported and
             tensor_core_optimal;
 
-        log.debug("🎛️ MATMUL: m={} n={} k={} type={} has_tc={} fp16={} tc_optimal={} use_tc={}", .{ m, n, k, @intFromEnum(a_type), self.has_tensor_cores, self.fp16_supported, tensor_core_optimal, use_tensor_cores });
+        log.info("🎛️ MATMUL: m={} n={} k={} type={} has_tc={} fp16={} tc_optimal={} use_tc={}", .{ m, n, k, @intFromEnum(a_type), self.has_tensor_cores, self.fp16_supported, tensor_core_optimal, use_tensor_cores });
 
         // For quantized weights, we need to dequantize first
         // Use GPU dequantization for supported quant types (Q4_0, Q8_0, Q4_K)
@@ -228,15 +228,15 @@ pub const CudaBackend = struct {
                     gpu_dequant_success = true;
                 } else |err| {
                     // GPU dequant failed, fall through to CPU path
-                    log.debug("❌ GPU DEQUANT: Failed with error: {}, falling back to CPU", .{err});
+                    log.info("❌ GPU DEQUANT: Failed with error: {}, falling back to CPU", .{err});
                 }
             } else {
-                log.debug("⏭️ GPU DEQUANT: Skipped (tensor_cores={} quant_type={?})", .{ use_tensor_cores, quant_type });
+                log.info("⏭️ GPU DEQUANT: Skipped (tensor_cores={} quant_type={?})", .{ use_tensor_cores, quant_type });
             }
 
             if (!gpu_dequant_success) {
                 // Fallback: dequantize on CPU, then GPU matmul
-                log.debug("🐢 CPU FALLBACK: Dequantizing on CPU for m={} k={}", .{ m, k });
+                log.info("🐢 CPU FALLBACK: Dequantizing on CPU for m={} k={}", .{ m, k });
                 const a_fp32 = try self.allocator.alloc(f32, m * k);
                 defer self.allocator.free(a_fp32);
 
