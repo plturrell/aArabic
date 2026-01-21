@@ -101,14 +101,9 @@ pub const SAPObjectStore = struct {
     }
 
     fn hmacSha256(key: []const u8, data: []const u8) [32]u8 {
-        // Simplified HMAC placeholder - real impl needs proper HMAC
-        var pad: [64]u8 = undefined;
-        @memset(&pad, 0x36);
-        for (key, 0..) |b, i| if (i < 64) { pad[i] ^= b; };
-        var h = std.crypto.hash.sha2.Sha256.init(.{});
-        h.update(&pad);
-        h.update(data);
-        return h.finalResult();
+        var mac: [32]u8 = undefined;
+        std.crypto.auth.hmac.sha2.HmacSha256.create(&mac, data, key);
+        return mac;
     }
 
     fn generateAuthHeader(self: *const Self, alloc: std.mem.Allocator, method: []const u8, path: []const u8, ts: []const u8) ![]u8 {

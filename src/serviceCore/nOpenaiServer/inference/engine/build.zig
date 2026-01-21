@@ -147,6 +147,26 @@ pub fn build(b: *std.Build) void {
     backend_cuda_module.addImport("cublas_bindings", cublas_bindings_module);
     backend_cuda_module.addImport("dequant_bindings", dequant_bindings_module);
 
+    // ========================================================================
+    // AI Core Integration Modules (Phase 3)
+    // ========================================================================
+
+    // AI Core Health module
+    const aicore_health_module = b.createModule(.{
+        .root_source_file = b.path("health/aicore_health.zig"),
+    });
+
+    // AI Core Config module
+    const aicore_config_module = b.createModule(.{
+        .root_source_file = b.path("integrations/aicore/aicore_config.zig"),
+    });
+
+    // Serving Template Generator module
+    const serving_template_module = b.createModule(.{
+        .root_source_file = b.path("integrations/aicore/serving_template_generator.zig"),
+    });
+    serving_template_module.addImport("aicore_config", aicore_config_module);
+
     // Q8_0 quantization module (Day 13)
     const q8_0_module = b.createModule(.{
         .root_source_file = b.path("quantization/q8_0.zig"),
@@ -399,6 +419,10 @@ pub fn build(b: *std.Build) void {
     inference_lib.root_module.addImport("llama_model", llama_model_module);
     inference_lib.root_module.addImport("gguf_model_loader", gguf_model_loader_module);
     inference_lib.root_module.addImport("lfm2_model", lfm2_model_module);
+    // AI Core integration modules (Phase 3)
+    inference_lib.root_module.addImport("aicore_health", aicore_health_module);
+    inference_lib.root_module.addImport("aicore_config", aicore_config_module);
+    inference_lib.root_module.addImport("serving_template", serving_template_module);
     b.installArtifact(inference_lib);
 
     // Note: mojo_bridge.zig is a library module without main(), used only via inference lib
