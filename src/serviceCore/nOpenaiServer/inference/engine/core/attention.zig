@@ -2,6 +2,8 @@ const std = @import("std");
 const matrix_ops = @import("matrix_ops");
 const kv_cache = @import("kv_cache");
 const thread_pool = @import("thread_pool");
+const compute = @import("compute");
+const gguf = @import("gguf_loader");
 
 /// Multi-head self-attention with KV caching for Llama models
 /// Implements scaled dot-product attention with RoPE position encoding
@@ -24,9 +26,38 @@ pub const AttentionWeights = struct {
     wo: matrix_ops.Weight,  // Output projection [embed_dim, n_heads * head_dim]
 };
 
-// ============================================================================ 
+/// Backend parameters for GPU matmul operations
+pub const BackendParams = struct {
+    data: []const u8,
+    quant_type: gguf.QuantizationType,
+};
+
+/// Convert a matrix_ops.Weight to backend parameters (data pointer and quantization type)
+/// for use with ComputeBackend.matmul()
+pub fn weightToBackendParams(weight: matrix_ops.Weight) BackendParams {
+    return switch (weight) {
+        .f32 => |data| BackendParams{
+            .data = std.mem.sliceAsBytes(data),
+            .quant_type = .F32,
+        },
+        .q4_0 => |data| BackendParams{
+            .data = data,
+            .quant_type = .Q4_0,
+        },
+        .q4_k => |data| BackendParams{
+            .data = data,
+            .quant_type = .Q4_K,
+        },
+        .q6_k => |data| BackendParams{
+            .data = data,
+            .quant_type = .Q6_K,
+        },
+    };
+}
+
+// ============================================================================
 // RoPE (Rotary Position Embedding)
-// ============================================================================ 
+// ============================================================================
 
 /// Precompute RoPE frequencies for position encoding
 pub fn precomputeRopeFreqs(
@@ -325,9 +356,249 @@ pub fn computeAttention(
     try matrix_ops.matmul(output, weights.wo, attn_output, embed_dim, 1, q_dim, allocator, pool);
 }
 
-// ============================================================================ 
+/// Compute self-attention for a single token using GPU backend
+/// Uses ComputeBackend.matmul() for GPU-accelerated matrix operations
+pub fn computeAttentionGpu(
+    allocator: std.mem.Allocator,
+    output: []f32,
+    input: []const f32,
+    weights: AttentionWeights,
+    cache: *kv_cache.KVCache,
+    layer: u32,
+    position: u32,
+    config: AttentionConfig,
+    rope_freqs: []const f32,
+    pool: ?*thread_pool.ThreadPool,
+    backend: compute.ComputeBackend,
+) !void {
+    const embed_dim = input.len;
+    const q_dim = config.n_heads * config.head_dim;
+    const kv_dim = config.n_kv_heads * config.head_dim;
+    const head_dim = config.head_dim;
+
+    // Allocate workspace for projections
+    const q = try allocator.alloc(f32, q_dim);
+    defer allocator.free(q);
+    const k = try allocator.alloc(f32, kv_dim);
+    defer allocator.free(k);
+    const v = try allocator.alloc(f32, kv_dim);
+    defer allocator.free(v);
+
+    // Project to Q, K, V using GPU backend
+    const wq_params = weightToBackendParams(weights.wq);
+    const wk_params = weightToBackendParams(weights.wk);
+    const wv_params = weightToBackendParams(weights.wv);
+
+    try backend.matmul(q, wq_params.data, wq_params.quant_type, input, q_dim, 1, embed_dim);
+    try backend.matmul(k, wk_params.data, wk_params.quant_type, input, kv_dim, 1, embed_dim);
+    try backend.matmul(v, wv_params.data, wv_params.quant_type, input, kv_dim, 1, embed_dim);
+
+    // Apply RoPE to Q and K
+    const q_rope = try allocator.alloc(f32, q_dim);
+    defer allocator.free(q_rope);
+    const k_rope = try allocator.alloc(f32, kv_dim);
+    defer allocator.free(k_rope);
+
+    // Apply RoPE (Parallelize if needed, but fast enough serial for single token)
+    for (0..config.n_heads) |h| {
+        const q_head = q[h * head_dim .. (h + 1) * head_dim];
+        const q_rope_head = q_rope[h * head_dim .. (h + 1) * head_dim];
+        applyRope(q_rope_head, q_head, position, rope_freqs, head_dim);
+    }
+
+    for (0..config.n_kv_heads) |h| {
+        const k_head = k[h * head_dim .. (h + 1) * head_dim];
+        const k_rope_head = k_rope[h * head_dim .. (h + 1) * head_dim];
+        applyRope(k_rope_head, k_head, position, rope_freqs, head_dim);
+    }
+
+    // Store K and V in cache
+    cache.store(layer, k_rope, v);
+
+    // Prepare for attention computation
+    const attn_output = try allocator.alloc(f32, q_dim);
+    defer allocator.free(attn_output);
+
+    const seq_len = cache.getSequenceLength();
+    const BLOCK_SIZE = 128;
+    const scale = 1.0 / @sqrt(@as(f32, @floatFromInt(head_dim)));
+
+    // Define Head Context for parallel execution
+    const HeadContext = struct {
+        head_idx: usize,
+        q_rope: []const f32,
+        cache: *kv_cache.KVCache,
+        layer: u32,
+        attn_output: []f32,
+        allocator: std.mem.Allocator,
+        config: AttentionConfig,
+        seq_len: u32,
+        scale: f32,
+    };
+
+    const compute_head = struct {
+        fn run(ctx: *anyopaque) void {
+            const context = @as(*HeadContext, @ptrCast(@alignCast(ctx)));
+            const h = context.head_idx;
+            const head_dim_local = context.config.head_dim;
+
+            // Allocate thread-local buffers (small)
+            const k_block = context.allocator.alloc(f32, BLOCK_SIZE * head_dim_local) catch return;
+            defer context.allocator.free(k_block);
+
+            const v_block = context.allocator.alloc(f32, BLOCK_SIZE * head_dim_local) catch return;
+            defer context.allocator.free(v_block);
+
+            const scores = context.allocator.alloc(f32, BLOCK_SIZE) catch return;
+            defer context.allocator.free(scores);
+
+            // Get query for this head
+            const q_head = context.q_rope[h * head_dim_local .. (h + 1) * head_dim_local];
+
+            // Map to KV head (GQA)
+            const kv_head_idx = h * context.config.n_kv_heads / context.config.n_heads;
+
+            // Online Softmax State
+            var max_score: f32 = -std.math.inf(f32);
+            var sum_exp: f32 = 0.0;
+
+            // Output accumulator for this head
+            const out_head = context.attn_output[h * head_dim_local .. (h + 1) * head_dim_local];
+            @memset(out_head, 0.0);
+
+            // Loop over blocks
+            var start_pos: u32 = 0;
+            while (start_pos < context.seq_len) {
+                const end_pos = @min(start_pos + BLOCK_SIZE, context.seq_len);
+                const current_block_size = end_pos - start_pos;
+
+                // 1. Gather K and V for this block
+                context.cache.gatherHeadKeys(context.layer, @intCast(kv_head_idx), start_pos, end_pos, k_block);
+                context.cache.gatherHeadValues(context.layer, @intCast(kv_head_idx), start_pos, end_pos, v_block);
+
+                // 2. Compute Scores: S = Q . K^T
+                const Vec = @Vector(8, f32);
+
+                for (0..current_block_size) |b_idx| {
+                    var dot: f32 = 0.0;
+                    var vec_dot: Vec = @splat(0.0);
+
+                    const k_ptr = k_block[b_idx * head_dim_local .. (b_idx + 1) * head_dim_local];
+
+                    var d: usize = 0;
+                    while (d + 8 <= head_dim_local) : (d += 8) {
+                        const vq = @as(Vec, q_head[d..][0..8].*);
+                        const vk = @as(Vec, k_ptr[d..][0..8].*);
+                        vec_dot += vq * vk;
+                    }
+                    dot = @reduce(.Add, vec_dot);
+                    while (d < head_dim_local) : (d += 1) {
+                        dot += q_head[d] * k_ptr[d];
+                    }
+
+                    scores[b_idx] = dot * context.scale;
+                }
+
+                // 3. Online Softmax Update
+                var local_max: f32 = -std.math.inf(f32);
+                for (scores[0..current_block_size]) |s| {
+                    if (s > local_max) local_max = s;
+                }
+
+                const new_max = @max(max_score, local_max);
+                const factor_old = @exp(max_score - new_max);
+                _ = @exp(local_max - new_max);
+
+                // Rescale accumulator
+                for (out_head) |*val| {
+                    val.* *= factor_old;
+                }
+                sum_exp *= factor_old;
+
+                // Accumulate new block
+                for (0..current_block_size) |b_idx| {
+                    const score = scores[b_idx];
+                    const weight = @exp(score - new_max);
+                    sum_exp += weight;
+
+                    const v_ptr = v_block[b_idx * head_dim_local .. (b_idx + 1) * head_dim_local];
+
+                    // Vectorized accumulation: out += weight * v
+                    const vec_w: Vec = @splat(weight);
+                    var d: usize = 0;
+                    while (d + 8 <= head_dim_local) : (d += 8) {
+                        var vec_o = @as(Vec, out_head[d..][0..8].*);
+                        const vec_v = @as(Vec, v_ptr[d..][0..8].*);
+                        vec_o += vec_w * vec_v;
+                        out_head[d..][0..8].* = vec_o;
+                    }
+                    while (d < head_dim_local) : (d += 1) {
+                        out_head[d] += weight * v_ptr[d];
+                    }
+                }
+
+                max_score = new_max;
+                start_pos += BLOCK_SIZE;
+            }
+
+            // Final normalization
+            if (sum_exp > 0.0) {
+                const inv_sum = 1.0 / sum_exp;
+                matrix_ops.vec_scale(out_head, out_head, inv_sum);
+            }
+        }
+    }.run;
+
+    // Execute heads in parallel
+    if (pool) |tp| {
+        var contexts = try allocator.alloc(HeadContext, config.n_heads);
+        defer allocator.free(contexts);
+
+        for (0..config.n_heads) |h| {
+            contexts[h] = HeadContext{
+                .head_idx = h,
+                .q_rope = q_rope,
+                .cache = cache,
+                .layer = layer,
+                .attn_output = attn_output,
+                .allocator = allocator,
+                .config = config,
+                .seq_len = seq_len,
+                .scale = scale,
+            };
+
+            try tp.submit(.{
+                .work_fn = compute_head,
+                .context = &contexts[h],
+            });
+        }
+        tp.waitAll();
+    } else {
+        // Serial fallback
+        for (0..config.n_heads) |h| {
+            var ctx = HeadContext{
+                .head_idx = h,
+                .q_rope = q_rope,
+                .cache = cache,
+                .layer = layer,
+                .attn_output = attn_output,
+                .allocator = allocator,
+                .config = config,
+                .seq_len = seq_len,
+                .scale = scale,
+            };
+            compute_head(&ctx);
+        }
+    }
+
+    // Project back to embed_dim using GPU backend
+    const wo_params = weightToBackendParams(weights.wo);
+    try backend.matmul(output, wo_params.data, wo_params.quant_type, attn_output, embed_dim, 1, q_dim);
+}
+
+// ============================================================================
 // Testing
-// ============================================================================ 
+// ============================================================================
 
 pub fn test_attention(allocator: std.mem.Allocator) !void {
     std.debug.print("\n🧪 Testing Attention\n", .{});
