@@ -198,7 +198,8 @@ pub const CudaBackend = struct {
             self.fp16_supported and
             tensor_core_optimal;
 
-        log.info("🎛️ MATMUL: m={} n={} k={} type={} has_tc={} fp16={} tc_optimal={} use_tc={}", .{ m, n, k, @intFromEnum(a_type), self.has_tensor_cores, self.fp16_supported, tensor_core_optimal, use_tensor_cores });
+        // Debug logging disabled for performance - uncomment for debugging
+        // log.debug("🎛️ MATMUL: m={} n={} k={} type={} tc={}", .{ m, n, k, @intFromEnum(a_type), use_tensor_cores });
 
         // For quantized weights, we need to dequantize first
         // Use GPU dequantization for supported quant types (Q4_0, Q8_0, Q4_K, Q6_K)
@@ -213,16 +214,8 @@ pub const CudaBackend = struct {
                 const num_elements = m * k;
                 const num_blocks = dequant.DequantContext.calculateNumBlocks(quant_type.?, num_elements);
 
-                log.info("🔧 GPU DEQUANT: Attempting m={} k={} n={} blocks={} quant={}", .{ m, k, n, num_blocks, @intFromEnum(quant_type.?) });
-
                 if (self.dequant_ctx.dequant(a_data.ptr, quant_type.?, num_blocks)) |a_fp16| {
                     // GPU dequant succeeded - use FP16 matmul (works even with non-optimal dims)
-                    // cuBLAS GemmEx handles non-aligned dimensions, just less efficiently
-                    if (use_tensor_cores) {
-                        log.info("✅ GPU DEQUANT: Success! Using Tensor Core FP16 path (optimal)", .{});
-                    } else {
-                        log.info("✅ GPU DEQUANT: Success! Using GPU FP16 path (n={} not optimal but still faster)", .{n});
-                    }
                     // Convert B to FP16 on CPU (small, fast) then use GPU FP16 matmul
                     const b_fp16 = try self.allocator.alloc(f16, k * n);
                     defer self.allocator.free(b_fp16);
@@ -233,15 +226,13 @@ pub const CudaBackend = struct {
                     gpu_dequant_success = true;
                 } else |err| {
                     // GPU dequant failed, fall through to CPU path
-                    log.info("❌ GPU DEQUANT: Failed with error: {}, falling back to CPU", .{err});
+                    log.warn("GPU dequant failed: {}, using CPU fallback", .{err});
                 }
-            } else {
-                log.info("⏭️ GPU DEQUANT: Skipped (unsupported quant type={})", .{@intFromEnum(a_type)});
             }
 
             if (!gpu_dequant_success) {
                 // Fallback: dequantize on CPU, then GPU matmul
-                log.info("🐢 CPU FALLBACK: Dequantizing on CPU for m={} k={}", .{ m, k });
+                log.warn("CPU dequant fallback for m={} k={}", .{ m, k });
                 const a_fp32 = try self.allocator.alloc(f32, m * k);
                 defer self.allocator.free(a_fp32);
 

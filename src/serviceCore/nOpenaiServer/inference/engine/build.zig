@@ -1131,6 +1131,44 @@ pub fn build(b: *std.Build) void {
     test_all_models_step.dependOn(&run_test_all_models.step);
 
     // ========================================================================
+    // GPU Dequant Kernels Test
+    // ========================================================================
+
+    const test_dequant_kernels = b.addExecutable(.{
+        .name = "test_dequant_kernels",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("cuda/test_dequant_kernels.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    test_dequant_kernels.root_module.addImport("dequant_bindings", dequant_bindings_module);
+    test_dequant_kernels.root_module.addImport("cuda_bindings", cuda_bindings_module);
+    test_dequant_kernels.root_module.addImport("gguf_loader", gguf_module);
+
+    // Link CUDA libraries for GPU tests
+    if (builtin.os.tag == .linux) {
+        test_dequant_kernels.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+        test_dequant_kernels.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+        test_dequant_kernels.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+        test_dequant_kernels.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+        test_dequant_kernels.linkSystemLibrary("cuda");
+        test_dequant_kernels.linkSystemLibrary("cudart");
+        // Link dequant kernels library
+        test_dequant_kernels.root_module.addLibraryPath(b.path("cuda/kernels"));
+        test_dequant_kernels.root_module.addRPath(b.path("cuda/kernels"));
+        test_dequant_kernels.linkSystemLibrary("dequant_kernels");
+    }
+
+    b.installArtifact(test_dequant_kernels);
+
+    const run_test_dequant_kernels = b.addRunArtifact(test_dequant_kernels);
+    run_test_dequant_kernels.step.dependOn(b.getInstallStep());
+
+    const test_dequant_kernels_step = b.step("test-dequant-kernels", "Run GPU dequant kernel tests");
+    test_dequant_kernels_step.dependOn(&run_test_dequant_kernels.step);
+
+    // ========================================================================
     // Combined Test
     // ========================================================================
 
