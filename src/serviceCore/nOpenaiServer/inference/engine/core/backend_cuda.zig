@@ -228,7 +228,7 @@ pub const CudaBackend = struct {
                     log.debug("❌ GPU DEQUANT: Failed with error: {}, falling back to CPU", .{err});
                 }
             } else {
-                log.debug("⏭️ GPU DEQUANT: Skipped (tensor_cores={} quant_type={})", .{ use_tensor_cores, quant_type });
+                log.debug("⏭️ GPU DEQUANT: Skipped (tensor_cores={} quant_type={?})", .{ use_tensor_cores, quant_type });
             }
 
             if (!gpu_dequant_success) {
