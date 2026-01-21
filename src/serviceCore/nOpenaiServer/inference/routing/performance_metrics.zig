@@ -251,15 +251,15 @@ pub const PerformanceTracker = struct {
         }
         
         // Sort latencies for percentile calculation
-        var sorted = try allocator.dupe(f32, self.global_latencies.items);
+        const sorted = try allocator.dupe(f32, self.global_latencies.items);
         defer allocator.free(sorted);
+        
         std.mem.sort(f32, sorted, {}, comptime std.sort.asc(f32));
         
-        // Calculate statistics
-        var sum: f64 = 0.0;
-        var min: f32 = sorted[0];
-        var max: f32 = sorted[sorted.len - 1];
+        const min: f32 = sorted[0];
+        const max: f32 = sorted[sorted.len - 1];
         
+        var sum: f64 = 0.0;
         for (sorted) |lat| {
             sum += lat;
         }
@@ -326,7 +326,8 @@ pub const PerformanceTracker = struct {
         
         // Return top N
         const result_len = @min(limit, performances.items.len);
-        return performances.toOwnedSlice()[0..result_len];
+        const owned = try performances.toOwnedSlice();
+        return owned[0..result_len];
     }
     
     pub const ModelPerformance = struct {

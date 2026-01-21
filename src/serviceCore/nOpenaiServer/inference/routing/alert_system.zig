@@ -20,14 +20,14 @@ const SuccessRateMetric = performance_metrics.SuccessRateMetric;
 pub const AlertSeverity = enum {
     info,
     warning,
-    error,
+    @"error",
     critical,
     
     pub fn toString(self: AlertSeverity) []const u8 {
         return switch (self) {
             .info => "INFO",
             .warning => "WARNING",
-            .error => "ERROR",
+            .@"error" => "ERROR",
             .critical => "CRITICAL",
         };
     }
@@ -434,7 +434,7 @@ pub const AlertManager = struct {
     
     /// Clear resolved alerts
     pub fn clearResolvedAlerts(self: *AlertManager) void {
-        var i: usize = 0;
+        const i: usize = 0;
         while (i < self.active_alerts.items.len) {
             // For now, clear all active alerts
             // In production, check if condition still exists
@@ -515,7 +515,7 @@ test "AlertManager: latency threshold checking" {
         try tracker.recordDecision(decision);
     }
     
-    var thresholds = AlertThresholds{};
+    const thresholds = AlertThresholds{};
     var manager = AlertManager.init(allocator, &tracker, thresholds, 100);
     defer manager.deinit();
     
@@ -546,7 +546,7 @@ test "AlertManager: success rate threshold checking" {
         try tracker.recordDecision(decision);
     }
     
-    var thresholds = AlertThresholds{};
+    const thresholds = AlertThresholds{};
     var manager = AlertManager.init(allocator, &tracker, thresholds, 100);
     defer manager.deinit();
     
@@ -572,7 +572,7 @@ test "AlertManager: cooldown mechanism" {
     var tracker = PerformanceTracker.init(allocator, 100);
     defer tracker.deinit();
     
-    var thresholds = AlertThresholds{};
+    const thresholds = AlertThresholds{};
     var manager = AlertManager.init(allocator, &tracker, thresholds, 100);
     defer manager.deinit();
     
