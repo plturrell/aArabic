@@ -211,8 +211,11 @@ pub const CudaBackend = struct {
                 const num_elements = m * k;
                 const num_blocks = dequant.DequantContext.calculateNumBlocks(quant_type.?, num_elements);
 
+                log.debug("🔧 GPU DEQUANT: Attempting m={} k={} n={} blocks={} quant={}", .{ m, k, n, num_blocks, @intFromEnum(quant_type.?) });
+
                 if (self.dequant_ctx.dequant(a_data.ptr, quant_type.?, num_blocks)) |a_fp16| {
                     // GPU dequant succeeded - use Tensor Core path
+                    log.debug("✅ GPU DEQUANT: Success! Using Tensor Core path", .{});
                     const b_fp16 = try self.allocator.alloc(f16, k * n);
                     defer self.allocator.free(b_fp16);
                     for (b, 0..) |val, i| {
@@ -220,13 +223,17 @@ pub const CudaBackend = struct {
                     }
                     try self.gpuMatmulFp16TensorCoreRaw(c, a_fp16, b_fp16.ptr, m, n, k);
                     gpu_dequant_success = true;
-                } else |_| {
-                    // GPU dequant not available (stubs return error), fall through to CPU path
+                } else |err| {
+                    // GPU dequant failed, fall through to CPU path
+                    log.debug("❌ GPU DEQUANT: Failed with error: {}, falling back to CPU", .{err});
                 }
+            } else {
+                log.debug("⏭️ GPU DEQUANT: Skipped (tensor_cores={} quant_type={})", .{ use_tensor_cores, quant_type });
             }
 
             if (!gpu_dequant_success) {
                 // Fallback: dequantize on CPU, then GPU matmul
+                log.debug("🐢 CPU FALLBACK: Dequantizing on CPU for m={} k={}", .{ m, k });
                 const a_fp32 = try self.allocator.alloc(f32, m * k);
                 defer self.allocator.free(a_fp32);
 
