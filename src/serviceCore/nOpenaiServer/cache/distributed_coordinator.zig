@@ -1,146 +1,133 @@
 // ============================================================================
-// Distributed Cache Coordinator - Day 56 Implementation
+// Distributed Cache Coordinator - Day 57 Implementation
 // ============================================================================
-// Purpose: Coordinate distributed caching across multiple nodes
+// Purpose: Multi-node cache implementation with replication
 // Week: Week 12 (Days 56-60) - Distributed Caching
 // Phase: Month 4 - HANA Integration & Scalability
 // ============================================================================
 
 const std = @import("std");
+const Allocator = std.mem.Allocator;
 
 // ============================================================================
-// CACHE NODE TYPES
+// CACHE NODE
 // ============================================================================
 
-/// Cache node information
+/// Cache node status
+pub const NodeStatus = enum {
+    healthy,
+    degraded,
+    down,
+};
+
+/// Cache node in the distributed cluster
 pub const CacheNode = struct {
-    node_id: []const u8,
+    id: []const u8,
     host: []const u8,
     port: u16,
     status: NodeStatus,
     last_heartbeat: i64,
-    cache_size: u64,
-    max_cache_size: u64,
-    cpu_usage: f32,
-    memory_usage: f32,
+    stored_keys: u64,
+    memory_used_mb: f32,
+    hit_rate: f32,
     
-    pub const NodeStatus = enum {
-        active,
-        degraded,
-        failed,
-        
-        pub fn toString(self: NodeStatus) []const u8 {
-            return switch (self) {
-                .active => "ACTIVE",
-                .degraded => "DEGRADED",
-                .failed => "FAILED",
-            };
-        }
-    };
-    
-    pub fn init(allocator: std.mem.Allocator, node_id: []const u8, host: []const u8, port: u16) !CacheNode {
+    pub fn init(
+        allocator: Allocator,
+        id: []const u8,
+        host: []const u8,
+        port: u16,
+    ) !CacheNode {
         return .{
-            .node_id = try allocator.dupe(u8, node_id),
+            .id = try allocator.dupe(u8, id),
             .host = try allocator.dupe(u8, host),
             .port = port,
-            .status = .active,
+            .status = .healthy,
             .last_heartbeat = std.time.milliTimestamp(),
-            .cache_size = 0,
-            .max_cache_size = 1024 * 1024 * 1024, // 1GB default
-            .cpu_usage = 0.0,
-            .memory_usage = 0.0,
+            .stored_keys = 0,
+            .memory_used_mb = 0.0,
+            .hit_rate = 0.0,
         };
     }
     
-    pub fn deinit(self: *CacheNode, allocator: std.mem.Allocator) void {
-        allocator.free(self.node_id);
+    pub fn deinit(self: *CacheNode, allocator: Allocator) void {
+        allocator.free(self.id);
         allocator.free(self.host);
     }
     
-    pub fn isHealthy(self: *const CacheNode) bool {
-        const now = std.time.milliTimestamp();
-        const heartbeat_timeout = 30_000; // 30 seconds
+    pub fn updateHeartbeat(self: *CacheNode) void {
+        self.last_heartbeat = std.time.milliTimestamp();
         
-        return self.status == .active and 
-               (now - self.last_heartbeat) < heartbeat_timeout;
+        // Update status based on heartbeat age
+        const age_ms = std.time.milliTimestamp() - self.last_heartbeat;
+        if (age_ms > 60000) { // 60 seconds
+            self.status = NodeStatus.down;
+        } else if (age_ms > 30000) { // 30 seconds
+            self.status = NodeStatus.degraded;
+        } else {
+            self.status = NodeStatus.healthy;
+        }
     }
     
-    pub fn getUtilization(self: *const CacheNode) f32 {
-        if (self.max_cache_size == 0) return 0.0;
-        return @as(f32, @floatFromInt(self.cache_size)) / 
-               @as(f32, @floatFromInt(self.max_cache_size));
+    pub fn isHealthy(self: *const CacheNode) bool {
+        return self.status == NodeStatus.healthy;
     }
 };
 
-/// Cache entry with replication metadata
+// ============================================================================
+// CACHE ENTRY
+// ============================================================================
+
+/// Versioned cache entry with replication metadata
 pub const CacheEntry = struct {
     key: []const u8,
     value: []const u8,
     version: u64,
-    timestamp: i64,
-    primary_node: []const u8,
-    replica_nodes: std.ArrayList([]const u8),
+    created_at: i64,
+    expires_at: i64,
+    replicated_nodes: [][]const u8,
     
     pub fn init(
-        allocator: std.mem.Allocator,
+        allocator: Allocator,
         key: []const u8,
         value: []const u8,
-        primary_node: []const u8,
+        ttl_ms: i64,
     ) !CacheEntry {
+        const now = std.time.milliTimestamp();
+        
         return .{
             .key = try allocator.dupe(u8, key),
             .value = try allocator.dupe(u8, value),
             .version = 1,
-            .timestamp = std.time.milliTimestamp(),
-            .primary_node = try allocator.dupe(u8, primary_node),
-            .replica_nodes = std.ArrayList([]const u8).init(allocator),
+            .created_at = now,
+            .expires_at = now + ttl_ms,
+            .replicated_nodes = try allocator.alloc([]const u8, 0),
         };
     }
     
-    pub fn deinit(self: *CacheEntry, allocator: std.mem.Allocator) void {
+    pub fn deinit(self: *CacheEntry, allocator: Allocator) void {
         allocator.free(self.key);
         allocator.free(self.value);
-        allocator.free(self.primary_node);
-        for (self.replica_nodes.items) |node| {
-            allocator.free(node);
+        for (self.replicated_nodes) |node_id| {
+            allocator.free(node_id);
         }
-        self.replica_nodes.deinit();
+        allocator.free(self.replicated_nodes);
     }
-};
-
-// ============================================================================
-// CONSISTENCY PROTOCOL
-// ============================================================================
-
-/// Consistency strategy for distributed cache
-pub const ConsistencyStrategy = enum {
-    eventual, // Eventual consistency (fastest writes)
-    strong,   // Strong consistency (slower writes)
-    quorum,   // Quorum-based consistency (balanced)
     
-    pub fn toString(self: ConsistencyStrategy) []const u8 {
-        return switch (self) {
-            .eventual => "EVENTUAL",
-            .strong => "STRONG",
-            .quorum => "QUORUM",
-        };
+    pub fn isExpired(self: *const CacheEntry) bool {
+        return std.time.milliTimestamp() > self.expires_at;
     }
-};
-
-/// Replication configuration
-pub const ReplicationConfig = struct {
-    replication_factor: u32, // Number of replicas (default: 3)
-    consistency_strategy: ConsistencyStrategy,
-    sync_timeout_ms: u32, // Timeout for sync replication (default: 100ms)
-    async_replication: bool, // Enable async replication
     
-    pub fn init() ReplicationConfig {
-        return .{
-            .replication_factor = 3,
-            .consistency_strategy = .eventual,
-            .sync_timeout_ms = 100,
-            .async_replication = true,
-        };
+    pub fn addReplicatedNode(self: *CacheEntry, allocator: Allocator, node_id: []const u8) !void {
+        const new_len = self.replicated_nodes.len + 1;
+        const new_nodes = try allocator.alloc([]const u8, new_len);
+        
+        for (self.replicated_nodes, 0..) |old_node, i| {
+            new_nodes[i] = old_node;
+        }
+        new_nodes[new_len - 1] = try allocator.dupe(u8, node_id);
+        
+        allocator.free(self.replicated_nodes);
+        self.replicated_nodes = new_nodes;
     }
 };
 
@@ -148,413 +135,485 @@ pub const ReplicationConfig = struct {
 // DISTRIBUTED COORDINATOR
 // ============================================================================
 
+/// Configuration for distributed cache
+pub const DistributedCacheConfig = struct {
+    replication_factor: u32 = 2, // Replicate to N nodes
+    consistency_level: ConsistencyLevel = .eventual,
+    heartbeat_interval_ms: u64 = 5000,
+    node_timeout_ms: u64 = 30000,
+    max_nodes: u32 = 10,
+};
+
+/// Consistency level for cache operations
+pub const ConsistencyLevel = enum {
+    eventual, // Write to primary, async replicate
+    quorum, // Write to majority before ack
+    strong, // Write to all replicas before ack
+};
+
+/// Distributed cache coordinator
 pub const DistributedCoordinator = struct {
-    allocator: std.mem.Allocator,
-    
-    // Node registry
+    allocator: Allocator,
+    config: DistributedCacheConfig,
     nodes: std.ArrayList(CacheNode),
-    node_map: std.StringHashMap(usize), // node_id -> index in nodes
+    cache: std.StringHashMap(CacheEntry),
+    mutex: std.Thread.Mutex,
     
-    // Cache metadata
-    cache_map: std.StringHashMap(CacheEntry),
-    
-    // Configuration
-    config: ReplicationConfig,
-    
-    // Statistics
-    total_writes: u64,
-    total_reads: u64,
-    replication_successes: u64,
-    replication_failures: u64,
-    
-    pub fn init(allocator: std.mem.Allocator, config: ReplicationConfig) DistributedCoordinator {
-        return .{
+    pub fn init(allocator: Allocator, config: DistributedCacheConfig) !*DistributedCoordinator {
+        const coordinator = try allocator.create(DistributedCoordinator);
+        coordinator.* = .{
             .allocator = allocator,
-            .nodes = std.ArrayList(CacheNode).init(allocator),
-            .node_map = std.StringHashMap(usize).init(allocator),
-            .cache_map = std.StringHashMap(CacheEntry).init(allocator),
             .config = config,
-            .total_writes = 0,
-            .total_reads = 0,
-            .replication_successes = 0,
-            .replication_failures = 0,
+            .nodes = std.ArrayList(CacheNode).init(allocator),
+            .cache = std.StringHashMap(CacheEntry).init(allocator),
+            .mutex = .{},
         };
+        return coordinator;
     }
     
     pub fn deinit(self: *DistributedCoordinator) void {
+        // Clean up nodes
         for (self.nodes.items) |*node| {
             node.deinit(self.allocator);
         }
         self.nodes.deinit();
         
-        var cache_iter = self.cache_map.iterator();
-        while (cache_iter.next()) |entry| {
-            var value = entry.value_ptr;
-            value.deinit(self.allocator);
+        // Clean up cache entries
+        var it = self.cache.iterator();
+        while (it.next()) |entry| {
+            var mutable_entry = entry.value_ptr.*;
+            mutable_entry.deinit(self.allocator);
         }
-        self.cache_map.deinit();
+        self.cache.deinit();
         
-        self.node_map.deinit();
+        self.allocator.destroy(self);
     }
     
-    /// Register a new cache node
-    pub fn registerNode(self: *DistributedCoordinator, node: CacheNode) !void {
-        const index = self.nodes.items.len;
-        try self.nodes.append(node);
-        try self.node_map.put(node.node_id, index);
-    }
+    // ========================================================================
+    // NODE MANAGEMENT
+    // ========================================================================
     
-    /// Unregister a cache node
-    pub fn unregisterNode(self: *DistributedCoordinator, node_id: []const u8) !void {
-        if (self.node_map.get(node_id)) |index| {
-            var node = &self.nodes.items[index];
-            node.status = .failed;
-            
-            // TODO: Trigger rebalancing and re-replication
-        }
-    }
-    
-    /// Update node heartbeat
-    pub fn updateHeartbeat(
+    /// Register a new cache node in the cluster
+    pub fn registerNode(
         self: *DistributedCoordinator,
-        node_id: []const u8,
-        cpu_usage: f32,
-        memory_usage: f32,
-        cache_size: u64,
+        id: []const u8,
+        host: []const u8,
+        port: u16,
     ) !void {
-        if (self.node_map.get(node_id)) |index| {
-            var node = &self.nodes.items[index];
-            node.last_heartbeat = std.time.milliTimestamp();
-            node.cpu_usage = cpu_usage;
-            node.memory_usage = memory_usage;
-            node.cache_size = cache_size;
-            
-            // Update status based on health
-            if (node.cpu_usage > 0.9 or node.memory_usage > 0.9) {
-                node.status = .degraded;
-            } else {
-                node.status = .active;
-            }
-        }
-    }
-    
-    /// Get healthy nodes
-    pub fn getHealthyNodes(self: *const DistributedCoordinator, allocator: std.mem.Allocator) ![]const *const CacheNode {
-        var healthy = std.ArrayList(*const CacheNode).init(allocator);
+        self.mutex.lock();
+        defer self.mutex.unlock();
         
+        if (self.nodes.items.len >= self.config.max_nodes) {
+            return error.MaxNodesReached;
+        }
+        
+        // Check if node already exists
         for (self.nodes.items) |*node| {
-            if (node.isHealthy()) {
-                try healthy.append(node);
+            if (std.mem.eql(u8, node.id, id)) {
+                node.updateHeartbeat();
+                return;
             }
         }
         
-        return healthy.toOwnedSlice();
+        // Add new node
+        const node = try CacheNode.init(self.allocator, id, host, port);
+        try self.nodes.append(node);
+        
+        std.log.info("Registered cache node: {s} at {s}:{d}", .{ id, host, port });
     }
     
-    /// Select primary node for a key (consistent hashing)
-    pub fn selectPrimaryNode(self: *const DistributedCoordinator, key: []const u8) !*const CacheNode {
-        if (self.nodes.items.len == 0) return error.NoNodesAvailable;
+    /// Remove a node from the cluster
+    pub fn removeNode(self: *DistributedCoordinator, id: []const u8) !void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
         
-        // Simple hash-based selection (consistent hashing would be better)
-        var hash: u32 = 0;
-        for (key) |byte| {
-            hash = hash *% 31 +% byte;
-        }
-        
-        // Find first healthy node starting from hash position
-        const start_idx = hash % @as(u32, @intCast(self.nodes.items.len));
-        var idx: usize = start_idx;
-        
-        while (true) {
-            const node = &self.nodes.items[idx];
-            if (node.isHealthy()) {
-                return node;
-            }
-            
-            idx = (idx + 1) % self.nodes.items.len;
-            if (idx == start_idx) {
-                return error.NoHealthyNodes;
+        for (self.nodes.items, 0..) |*node, i| {
+            if (std.mem.eql(u8, node.id, id)) {
+                node.deinit(self.allocator);
+                _ = self.nodes.orderedRemove(i);
+                std.log.info("Removed cache node: {s}", .{id});
+                return;
             }
         }
+        
+        return error.NodeNotFound;
     }
     
-    /// Select replica nodes for a key
-    pub fn selectReplicaNodes(
-        self: *const DistributedCoordinator,
+    /// Get healthy nodes for replication
+    fn getHealthyNodes(self: *DistributedCoordinator) []CacheNode {
+        var healthy = std.ArrayList(CacheNode).init(self.allocator);
+        
+        for (self.nodes.items) |node| {
+            if (node.isHealthy()) {
+                healthy.append(node) catch continue;
+            }
+        }
+        
+        return healthy.toOwnedSlice() catch &[_]CacheNode{};
+    }
+    
+    /// Select N nodes for replication using consistent hashing
+    fn selectReplicationNodes(
+        self: *DistributedCoordinator,
         key: []const u8,
-        primary_node: *const CacheNode,
-        allocator: std.mem.Allocator,
-    ) ![]const *const CacheNode {
-        _ = key; // unused but kept for future consistent hashing
+        count: u32,
+    ) ![]CacheNode {
+        const healthy = self.getHealthyNodes();
+        defer self.allocator.free(healthy);
         
-        var replicas = std.ArrayList(*const CacheNode).init(allocator);
-        
-        const needed_replicas = self.config.replication_factor - 1; // -1 for primary
-        if (needed_replicas == 0) return try replicas.toOwnedSlice();
-        
-        // Find healthy nodes that are not the primary
-        for (self.nodes.items) |*node| {
-            if (node.isHealthy() and 
-                !std.mem.eql(u8, node.node_id, primary_node.node_id)) {
-                try replicas.append(node);
-                if (replicas.items.len >= needed_replicas) break;
-            }
+        if (healthy.len == 0) {
+            return error.NoHealthyNodes;
         }
         
-        return try replicas.toOwnedSlice();
+        // Use hash of key to consistently select nodes
+        const hash = std.hash.Wyhash.hash(0, key);
+        const start_idx = hash % healthy.len;
+        
+        const actual_count = @min(count, @as(u32, @intCast(healthy.len)));
+        var selected = try self.allocator.alloc(CacheNode, actual_count);
+        
+        var i: u32 = 0;
+        while (i < actual_count) : (i += 1) {
+            const idx = (start_idx + i) % healthy.len;
+            selected[i] = healthy[idx];
+        }
+        
+        return selected;
     }
     
-    /// Write to distributed cache
-    pub fn write(
+    // ========================================================================
+    // CACHE OPERATIONS WITH REPLICATION
+    // ========================================================================
+    
+    /// Write to cache with replication
+    pub fn put(
         self: *DistributedCoordinator,
         key: []const u8,
         value: []const u8,
+        ttl_ms: i64,
     ) !void {
-        self.total_writes += 1;
-        
-        // Select primary node
-        const primary = try self.selectPrimaryNode(key);
+        self.mutex.lock();
+        defer self.mutex.unlock();
         
         // Create cache entry
-        var entry = try CacheEntry.init(self.allocator, key, value, primary.node_id);
+        const entry = try CacheEntry.init(self.allocator, key, value, ttl_ms);
         
-        // Select replica nodes
-        const replicas = try self.selectReplicaNodes(key, primary, self.allocator);
-        defer self.allocator.free(replicas);
-        
-        // Add replicas to entry
-        for (replicas) |replica| {
-            const replica_id = try self.allocator.dupe(u8, replica.node_id);
-            try entry.replica_nodes.append(replica_id);
+        // Store locally (primary)
+        const gop = try self.cache.getOrPut(key);
+        if (gop.found_existing) {
+            var old_entry = gop.value_ptr.*;
+            old_entry.deinit(self.allocator);
         }
+        gop.value_ptr.* = entry;
         
-        // Store metadata
-        try self.cache_map.put(key, entry);
+        // Select nodes for replication
+        const replication_nodes = try self.selectReplicationNodes(
+            key,
+            self.config.replication_factor,
+        );
+        defer self.allocator.free(replication_nodes);
         
-        // Perform replication based on consistency strategy
-        switch (self.config.consistency_strategy) {
+        // Replicate based on consistency level
+        switch (self.config.consistency_level) {
             .eventual => {
-                // Async replication - return immediately
-                // TODO: Queue replication requests
-                self.replication_successes += 1;
-            },
-            .strong => {
-                // Sync replication to all replicas
-                // TODO: Wait for all replicas to acknowledge
-                self.replication_successes += 1;
+                // Fire and forget (async replication)
+                for (replication_nodes) |node| {
+                    replicateToNodeAsync(self, node, key, value, ttl_ms) catch {
+                        std.log.warn("Async replication failed to node {s}", .{node.id});
+                    };
+                }
             },
             .quorum => {
-                // Wait for majority acknowledgment
-                // TODO: Wait for (replication_factor / 2) + 1 acks
-                self.replication_successes += 1;
+                // Wait for majority
+                const required = (replication_nodes.len / 2) + 1;
+                var successful: u32 = 1; // Primary write succeeded
+                
+                for (replication_nodes) |node| {
+                    if (replicateToNode(self, node, key, value, ttl_ms)) {
+                        successful += 1;
+                        if (successful >= required) break;
+                    } else |_| {}
+                }
+                
+                if (successful < required) {
+                    return error.QuorumNotReached;
+                }
+            },
+            .strong => {
+                // Wait for all replicas
+                for (replication_nodes) |node| {
+                    try replicateToNode(self, node, key, value, ttl_ms);
+                }
             },
         }
+        
+        std.log.debug("Cached key '{s}' with {d} replicas", .{ key, replication_nodes.len });
     }
     
-    /// Read from distributed cache
-    pub fn read(self: *DistributedCoordinator, key: []const u8) !?[]const u8 {
-        self.total_reads += 1;
+    /// Read from cache with load distribution
+    pub fn get(self: *DistributedCoordinator, key: []const u8) !?[]const u8 {
+        self.mutex.lock();
+        defer self.mutex.unlock();
         
-        if (self.cache_map.get(key)) |entry| {
-            // Check if primary node is healthy
-            if (self.node_map.get(entry.primary_node)) |idx| {
-                const primary = &self.nodes.items[idx];
-                if (primary.isHealthy()) {
-                    return entry.value;
-                }
+        // Try local cache first
+        if (self.cache.get(key)) |entry| {
+            if (!entry.isExpired()) {
+                return try self.allocator.dupe(u8, entry.value);
+            } else {
+                // Remove expired entry
+                var mutable_entry = entry;
+                mutable_entry.deinit(self.allocator);
+                _ = self.cache.remove(key);
             }
-            
-            // Try replica nodes
-            for (entry.replica_nodes.items) |replica_id| {
-                if (self.node_map.get(replica_id)) |idx| {
-                    const replica = &self.nodes.items[idx];
-                    if (replica.isHealthy()) {
-                        return entry.value;
-                    }
-                }
-            }
-            
-            // All nodes failed
-            return error.AllNodesFailed;
         }
         
+        // If not found locally, return null
+        // (Read repair from replicas would be implemented here in production)
         return null;
     }
     
     /// Invalidate cache entry across all nodes
     pub fn invalidate(self: *DistributedCoordinator, key: []const u8) !void {
-        if (self.cache_map.getPtr(key)) |entry_ptr| {
-            entry_ptr.deinit(self.allocator);
-            _ = self.cache_map.remove(key);
-            
-            // TODO: Send invalidation broadcast to all nodes
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        
+        // Remove from local cache
+        if (self.cache.fetchRemove(key)) |kv| {
+            var entry = kv.value;
+            entry.deinit(self.allocator);
         }
+        
+        // Broadcast invalidation to all nodes
+        for (self.nodes.items) |node| {
+            invalidateOnNode(self, node, key) catch |err| {
+                std.log.warn("Failed to invalidate key '{s}' on node {s}: {}", .{ key, node.id, err });
+            };
+        }
+        
+        std.log.debug("Invalidated key '{s}' across cluster", .{key});
     }
     
-    /// Get coordinator statistics
-    pub fn getStatistics(self: *const DistributedCoordinator) Statistics {
+    // ========================================================================
+    // REPLICATION OPERATIONS
+    // ========================================================================
+    
+    /// Replicate cache entry to specific node (synchronous)
+    fn replicateToNode(
+        self: *DistributedCoordinator,
+        node: CacheNode,
+        key: []const u8,
+        value: []const u8,
+        ttl_ms: i64,
+    ) !void {
+        _ = self; // Used for future HTTP implementation
+        _ = key; // Will be used in HTTP body
+        _ = value; // Will be used in HTTP body
+        _ = ttl_ms; // Will be used in HTTP body
+        
+        // Real implementation would use HTTP POST to node
+        // POST http://{node.host}:{node.port}/cache/replicate
+        // Body: { "key": "...", "value": "...", "ttl_ms": 300000 }
+        
+        // For now, simulate successful replication
+        std.log.debug("Replicated to node {s}", .{node.id});
+    }
+    
+    /// Replicate cache entry to specific node (asynchronous)
+    fn replicateToNodeAsync(
+        self: *DistributedCoordinator,
+        node: CacheNode,
+        key: []const u8,
+        value: []const u8,
+        ttl_ms: i64,
+    ) !void {
+        _ = self; // Used for future async implementation
+        _ = key; // Will be used in async call
+        _ = value; // Will be used in async call
+        _ = ttl_ms; // Will be used in async call
+        
+        // Real implementation would spawn thread or use event loop
+        // For now, just log the async attempt
+        std.log.debug("Async replication scheduled for node {s}", .{node.id});
+    }
+    
+    /// Read cache entry from specific node
+    fn readFromNode(
+        self: *DistributedCoordinator,
+        node: CacheNode,
+        key: []const u8,
+    ) ![]const u8 {
+        _ = self;
+        _ = node;
+        _ = key;
+        
+        // Real implementation would use HTTP GET from node
+        // GET http://{node.host}:{node.port}/cache/get/{key}
+        
+        return error.NotFoundOnNode;
+    }
+    
+    /// Invalidate cache entry on specific node
+    fn invalidateOnNode(
+        self: *DistributedCoordinator,
+        node: CacheNode,
+        key: []const u8,
+    ) !void {
+        _ = self; // Used for future HTTP implementation
+        _ = key; // Will be used in HTTP DELETE
+        
+        // Real implementation would use HTTP DELETE
+        // DELETE http://{node.host}:{node.port}/cache/invalidate/{key}
+        
+        std.log.debug("Invalidated on node {s}", .{node.id});
+    }
+    
+    // ========================================================================
+    // MONITORING
+    // ========================================================================
+    
+    /// Get cluster statistics
+    pub fn getClusterStats(self: *DistributedCoordinator) ClusterStats {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        
         var healthy_count: u32 = 0;
-        var total_cache_size: u64 = 0;
+        var total_keys: u64 = 0;
+        var total_memory: f32 = 0.0;
         
-        for (self.nodes.items) |*node| {
-            if (node.isHealthy()) {
-                healthy_count += 1;
-                total_cache_size += node.cache_size;
-            }
+        for (self.nodes.items) |node| {
+            if (node.isHealthy()) healthy_count += 1;
+            total_keys += node.stored_keys;
+            total_memory += node.memory_used_mb;
         }
-        
-        const replication_success_rate = if (self.total_writes > 0)
-            @as(f32, @floatFromInt(self.replication_successes)) / 
-            @as(f32, @floatFromInt(self.total_writes))
-        else
-            0.0;
         
         return .{
             .total_nodes = @intCast(self.nodes.items.len),
             .healthy_nodes = healthy_count,
-            .total_cache_entries = @intCast(self.cache_map.count()),
-            .total_cache_size = total_cache_size,
-            .total_writes = self.total_writes,
-            .total_reads = self.total_reads,
-            .replication_success_rate = replication_success_rate,
+            .total_keys = total_keys + self.cache.count(),
+            .total_memory_mb = total_memory,
+            .local_keys = @intCast(self.cache.count()),
         };
     }
-    
-    pub const Statistics = struct {
-        total_nodes: u32,
-        healthy_nodes: u32,
-        total_cache_entries: u32,
-        total_cache_size: u64,
-        total_writes: u64,
-        total_reads: u64,
-        replication_success_rate: f32,
-    };
+};
+
+/// Cluster statistics
+pub const ClusterStats = struct {
+    total_nodes: u32,
+    healthy_nodes: u32,
+    total_keys: u64,
+    total_memory_mb: f32,
+    local_keys: u32,
 };
 
 // ============================================================================
 // UNIT TESTS
 // ============================================================================
 
-test "CacheNode: initialization and health check" {
+test "CacheNode: initialization and cleanup" {
     const allocator = std.testing.allocator;
     
-    var node = try CacheNode.init(allocator, "node-1", "localhost", 8080);
+    var node = try CacheNode.init(allocator, "node-1", "localhost", 6379);
     defer node.deinit(allocator);
     
+    try std.testing.expectEqualStrings("node-1", node.id);
+    try std.testing.expectEqualStrings("localhost", node.host);
+    try std.testing.expectEqual(@as(u16, 6379), node.port);
     try std.testing.expect(node.isHealthy());
-    try std.testing.expectEqual(CacheNode.NodeStatus.active, node.status);
 }
 
-test "CacheNode: utilization calculation" {
+test "CacheEntry: creation and expiration" {
     const allocator = std.testing.allocator;
     
-    var node = try CacheNode.init(allocator, "node-1", "localhost", 8080);
-    defer node.deinit(allocator);
+    var entry = try CacheEntry.init(allocator, "key1", "value1", 1000);
+    defer entry.deinit(allocator);
     
-    node.cache_size = 512 * 1024 * 1024; // 512MB
-    node.max_cache_size = 1024 * 1024 * 1024; // 1GB
-    
-    const util = node.getUtilization();
-    try std.testing.expectApproxEqAbs(@as(f32, 0.5), util, 0.01); // 50% ±1%
+    try std.testing.expectEqualStrings("key1", entry.key);
+    try std.testing.expectEqualStrings("value1", entry.value);
+    try std.testing.expectEqual(@as(u64, 1), entry.version);
+    try std.testing.expect(!entry.isExpired()); // Should not be expired immediately
 }
 
 test "DistributedCoordinator: node registration" {
     const allocator = std.testing.allocator;
     
-    const config = ReplicationConfig.init();
-    var coordinator = DistributedCoordinator.init(allocator, config);
+    const config = DistributedCacheConfig{
+        .replication_factor = 2,
+        .consistency_level = .eventual,
+    };
+    
+    const coordinator = try DistributedCoordinator.init(allocator, config);
     defer coordinator.deinit();
     
-    const node1 = try CacheNode.init(allocator, "node-1", "localhost", 8080);
-    const node2 = try CacheNode.init(allocator, "node-2", "localhost", 8081);
+    try coordinator.registerNode("node-1", "localhost", 6379);
+    try coordinator.registerNode("node-2", "localhost", 6380);
     
-    try coordinator.registerNode(node1);
-    try coordinator.registerNode(node2);
-    
-    try std.testing.expectEqual(@as(usize, 2), coordinator.nodes.items.len);
+    const stats = coordinator.getClusterStats();
+    try std.testing.expectEqual(@as(u32, 2), stats.total_nodes);
+    try std.testing.expectEqual(@as(u32, 2), stats.healthy_nodes);
 }
 
-test "DistributedCoordinator: write and read" {
+test "DistributedCoordinator: cache put and get" {
     const allocator = std.testing.allocator;
     
-    var config = ReplicationConfig.init();
-    config.replication_factor = 2;
+    const config = DistributedCacheConfig{
+        .replication_factor = 2,
+        .consistency_level = .eventual,
+    };
     
-    var coordinator = DistributedCoordinator.init(allocator, config);
+    const coordinator = try DistributedCoordinator.init(allocator, config);
     defer coordinator.deinit();
     
     // Register nodes
-    const node1 = try CacheNode.init(allocator, "node-1", "localhost", 8080);
-    const node2 = try CacheNode.init(allocator, "node-2", "localhost", 8081);
+    try coordinator.registerNode("node-1", "localhost", 6379);
+    try coordinator.registerNode("node-2", "localhost", 6380);
     
-    try coordinator.registerNode(node1);
-    try coordinator.registerNode(node2);
+    // Put value
+    try coordinator.put("test-key", "test-value", 300000);
     
-    // Write
-    try coordinator.write("test-key", "test-value");
-    
-    // Read
-    const value = try coordinator.read("test-key");
+    // Get value
+    const value = try coordinator.get("test-key");
     try std.testing.expect(value != null);
-    try std.testing.expectEqualStrings("test-value", value.?);
     
-    // Check statistics
-    const stats = coordinator.getStatistics();
-    try std.testing.expectEqual(@as(u64, 1), stats.total_writes);
-    try std.testing.expectEqual(@as(u64, 1), stats.total_reads);
-}
-
-test "DistributedCoordinator: primary node selection" {
-    const allocator = std.testing.allocator;
+    if (value) |v| {
+        defer allocator.free(v);
+        try std.testing.expectEqualStrings("test-value", v);
+    }
     
-    const config = ReplicationConfig.init();
-    var coordinator = DistributedCoordinator.init(allocator, config);
-    defer coordinator.deinit();
-    
-    const node1 = try CacheNode.init(allocator, "node-1", "localhost", 8080);
-    const node2 = try CacheNode.init(allocator, "node-2", "localhost", 8081);
-    
-    try coordinator.registerNode(node1);
-    try coordinator.registerNode(node2);
-    
-    const primary = try coordinator.selectPrimaryNode("some-key");
-    try std.testing.expect(primary.isHealthy());
-}
-
-test "DistributedCoordinator: heartbeat updates" {
-    const allocator = std.testing.allocator;
-    
-    const config = ReplicationConfig.init();
-    var coordinator = DistributedCoordinator.init(allocator, config);
-    defer coordinator.deinit();
-    
-    const node = try CacheNode.init(allocator, "node-1", "localhost", 8080);
-    try coordinator.registerNode(node);
-    
-    // Update heartbeat with high resource usage
-    try coordinator.updateHeartbeat("node-1", 0.95, 0.85, 500_000_000);
-    
-    const updated_node = &coordinator.nodes.items[0];
-    try std.testing.expectEqual(CacheNode.NodeStatus.degraded, updated_node.status);
+    // Check stats
+    const stats = coordinator.getClusterStats();
+    try std.testing.expectEqual(@as(u32, 1), stats.local_keys);
 }
 
 test "DistributedCoordinator: cache invalidation" {
     const allocator = std.testing.allocator;
     
-    const config = ReplicationConfig.init();
-    var coordinator = DistributedCoordinator.init(allocator, config);
+    const config = DistributedCacheConfig{};
+    const coordinator = try DistributedCoordinator.init(allocator, config);
     defer coordinator.deinit();
     
-    const node = try CacheNode.init(allocator, "node-1", "localhost", 8080);
-    try coordinator.registerNode(node);
+    try coordinator.registerNode("node-1", "localhost", 6379);
     
-    // Write
-    try coordinator.write("test-key", "test-value");
+    // Put and invalidate
+    try coordinator.put("key1", "value1", 300000);
+    try coordinator.invalidate("key1");
     
-    // Invalidate
-    try coordinator.invalidate("test-key");
-    
-    // Read should return null
-    const value = try coordinator.read("test-key");
+    // Should not be found
+    const value = try coordinator.get("key1");
     try std.testing.expect(value == null);
+}
+
+test "DistributedCoordinator: cluster stats" {
+    const allocator = std.testing.allocator;
+    
+    const config = DistributedCacheConfig{};
+    const coordinator = try DistributedCoordinator.init(allocator, config);
+    defer coordinator.deinit();
+    
+    try coordinator.registerNode("node-1", "localhost", 6379);
+    try coordinator.registerNode("node-2", "localhost", 6380);
+    try coordinator.registerNode("node-3", "localhost", 6381);
+    
+    const stats = coordinator.getClusterStats();
+    try std.testing.expectEqual(@as(u32, 3), stats.total_nodes);
+    try std.testing.expectEqual(@as(u32, 3), stats.healthy_nodes);
 }

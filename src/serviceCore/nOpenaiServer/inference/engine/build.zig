@@ -174,6 +174,31 @@ pub fn build(b: *std.Build) void {
     backend_cuda_module.addImport("cublas_bindings", cublas_bindings_module);
     backend_cuda_module.addImport("dequant_bindings", dequant_bindings_module);
 
+    // GPU Tensor module (FP16 tensors living on GPU)
+    const gpu_tensor_module = b.createModule(.{
+        .root_source_file = b.path("cuda/gpu_tensor.zig"),
+    });
+    gpu_tensor_module.addImport("cuda_bindings", cuda_bindings_module);
+
+    // GPU Weight Cache module (pre-loads weights to GPU)
+    const gpu_weight_cache_module = b.createModule(.{
+        .root_source_file = b.path("cuda/gpu_weight_cache.zig"),
+    });
+    gpu_weight_cache_module.addImport("cuda_bindings", cuda_bindings_module);
+    gpu_weight_cache_module.addImport("gpu_tensor", gpu_tensor_module);
+    gpu_weight_cache_module.addImport("dequant_bindings", dequant_bindings_module);
+    gpu_weight_cache_module.addImport("gguf_loader", gguf_module);
+    gpu_weight_cache_module.addImport("matrix_ops", matrix_ops_module);
+
+    // GPU Inference module (GPU-native forward pass)
+    const gpu_inference_module = b.createModule(.{
+        .root_source_file = b.path("cuda/gpu_inference.zig"),
+    });
+    gpu_inference_module.addImport("cuda_bindings", cuda_bindings_module);
+    gpu_inference_module.addImport("cublas_bindings", cublas_bindings_module);
+    gpu_inference_module.addImport("gpu_tensor", gpu_tensor_module);
+    gpu_inference_module.addImport("gpu_weight_cache", gpu_weight_cache_module);
+
     // ========================================================================
     // AI Core Integration Modules (Phase 3)
     // ========================================================================
@@ -1183,6 +1208,52 @@ pub fn build(b: *std.Build) void {
 
     const test_dequant_kernels_step = b.step("test-dequant-kernels", "Run GPU dequant kernel tests");
     test_dequant_kernels_step.dependOn(&run_test_dequant_kernels.step);
+
+    // ========================================================================
+    // GPU Inference Benchmark (500 tok/s target)
+    // ========================================================================
+
+    const bench_gpu_inference = b.addExecutable(.{
+        .name = "bench_gpu_inference",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("cuda/bench_gpu_inference.zig"),
+            .target = target,
+            .optimize = .ReleaseFast, // Always optimize for benchmarks
+        }),
+    });
+    bench_gpu_inference.root_module.addImport("gpu_inference", gpu_inference_module);
+    bench_gpu_inference.root_module.addImport("gpu_weight_cache", gpu_weight_cache_module);
+    bench_gpu_inference.root_module.addImport("gpu_tensor", gpu_tensor_module);
+    bench_gpu_inference.root_module.addImport("cuda_bindings", cuda_bindings_module);
+    bench_gpu_inference.root_module.addImport("cublas_bindings", cublas_bindings_module);
+    bench_gpu_inference.root_module.addImport("dequant_bindings", dequant_bindings_module);
+    bench_gpu_inference.root_module.addImport("gguf_loader", gguf_module);
+
+    // Link CUDA libraries
+    if (builtin.os.tag == .linux) {
+        bench_gpu_inference.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+        bench_gpu_inference.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+        bench_gpu_inference.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+        bench_gpu_inference.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+        bench_gpu_inference.linkSystemLibrary("cuda");
+        bench_gpu_inference.linkSystemLibrary("cublas");
+        bench_gpu_inference.linkSystemLibrary("cudart");
+        // Link dequant kernels library
+        bench_gpu_inference.root_module.addLibraryPath(b.path("cuda/kernels"));
+        bench_gpu_inference.root_module.addRPath(b.path("cuda/kernels"));
+        bench_gpu_inference.linkSystemLibrary("dequant_kernels");
+    }
+
+    b.installArtifact(bench_gpu_inference);
+
+    const run_bench_gpu_inference = b.addRunArtifact(bench_gpu_inference);
+    run_bench_gpu_inference.step.dependOn(b.getInstallStep());
+    if (b.args) |args| {
+        run_bench_gpu_inference.addArgs(args);
+    }
+
+    const bench_gpu_inference_step = b.step("bench-gpu", "Run GPU inference benchmark (target: 500 tok/s)");
+    bench_gpu_inference_step.dependOn(&run_bench_gpu_inference.step);
 
     // ========================================================================
     // Combined Test
