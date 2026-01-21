@@ -123,8 +123,8 @@ test "cuda_streams: basic event creation" {
 
 test "cuda_streams: event with flags" {
     const allocator = testing.allocator;
-    const cuda = @import("cuda_bindings.zig");
-    
+    const cuda = @import("cuda_bindings");
+
     var event = CudaEvent.initWithFlags(allocator, cuda.cudaEventDefault) catch |err| {
         if (err == error.CudaError) {
             std.debug.print("Test skipped: No GPU available\n", .{});

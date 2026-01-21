@@ -9,6 +9,7 @@ const thread_pool = @import("thread_pool");
 const compute = @import("compute");
 const backend_cpu = @import("backend_cpu");
 const backend_metal = @import("backend_metal");
+const backend_cuda = @import("backend_cuda");
 
 var log_enabled: ?bool = null;
 
@@ -140,12 +141,20 @@ pub const LlamaModel = struct {
         log("   Thread pool: {d} threads\n", .{pool.config.num_threads});
 
         // Initialize Backend
-        const is_macos = @import("builtin").os.tag == .macos;
+        const builtin = @import("builtin");
+        const is_macos = builtin.os.tag == .macos;
+        const is_linux = builtin.os.tag == .linux;
         const backend: compute.ComputeBackend = blk: {
             if (is_macos) {
                 // Try Metal first on macOS
                 break :blk backend_metal.MetalBackend.init(allocator) catch |err| {
                     std.debug.print("Metal backend initialization failed: {s}. Falling back to CPU.\n", .{@errorName(err)});
+                    break :blk try backend_cpu.CpuBackend.init(allocator, pool);
+                };
+            } else if (is_linux) {
+                // Try CUDA first on Linux (T4/A100/H100 support)
+                break :blk backend_cuda.CudaBackend.init(allocator) catch |err| {
+                    std.debug.print("CUDA backend initialization failed: {s}. Falling back to CPU.\n", .{@errorName(err)});
                     break :blk try backend_cpu.CpuBackend.init(allocator, pool);
                 };
             } else {

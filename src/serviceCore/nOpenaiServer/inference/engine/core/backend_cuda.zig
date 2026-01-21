@@ -86,12 +86,11 @@ pub const CudaBackend = struct {
             has_tensor_cores,
         });
 
-        // Create CUDA context
-        const context = try allocator.create(cuda_context.CudaContext);
-        context.* = try cuda_context.CudaContext.init(allocator, device_id);
+        // Create CUDA context (init returns a pointer)
+        const context = try cuda_context.CudaContext.init(allocator, device_id);
 
         // Create default stream
-        const stream = try cuda_streams.CudaStream.init();
+        const stream = try cuda_streams.CudaStream.init(allocator);
 
         // Initialize cuBLAS with Tensor Core support
         log.info("⚡ Initializing cuBLAS (Tensor Cores: {})...", .{has_tensor_cores});

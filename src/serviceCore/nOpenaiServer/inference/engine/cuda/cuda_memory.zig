@@ -9,8 +9,8 @@
 // - Allocation tracking and leak detection
 
 const std = @import("std");
-const cuda = @import("cuda_bindings.zig");
-const CudaContext = @import("cuda_context.zig").CudaContext;
+const cuda = @import("cuda_bindings");
+const CudaContext = @import("cuda_context").CudaContext;
 
 // ============================================================================
 // Device Memory Allocation

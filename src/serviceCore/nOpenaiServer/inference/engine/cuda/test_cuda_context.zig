@@ -3,8 +3,8 @@
 
 const std = @import("std");
 const testing = std.testing;
-const CudaContext = @import("cuda_context.zig").CudaContext;
-const cuda_context = @import("cuda_context.zig");
+const CudaContext = @import("cuda_context").CudaContext;
+const cuda_context = @import("cuda_context");
 
 test "cuda_context: initialization with device 0" {
     std.debug.print("\n=== Testing CUDA Context Initialization ===\n", .{});

@@ -9,11 +9,11 @@
 // - T4-specific optimizations
 
 const std = @import("std");
-const cuda = @import("cuda_bindings.zig");
-const nvidia_smi = @import("nvidia_smi.zig");
-const CudaContext = @import("cuda_context.zig").CudaContext;
-const cuda_memory = @import("cuda_memory.zig");
-const cuda_streams = @import("cuda_streams.zig");
+const cuda = @import("cuda_bindings");
+const nvidia_smi = @import("nvidia_smi");
+const CudaContext = @import("cuda_context").CudaContext;
+const cuda_memory = @import("cuda_memory");
+const cuda_streams = @import("cuda_streams");
 
 // Re-export common types for convenience
 pub const DeviceMemory = cuda_memory.DeviceMemory;

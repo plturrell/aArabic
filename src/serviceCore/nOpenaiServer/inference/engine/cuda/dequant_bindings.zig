@@ -11,7 +11,7 @@
 // 4. Result in FP32 for numerical stability
 
 const std = @import("std");
-const cuda = @import("cuda_bindings.zig");
+const cuda = @import("cuda_bindings");
 
 // ============================================================================
 // Quantization Constants (matching GGUF spec)

@@ -5,8 +5,8 @@
 
 const std = @import("std");
 const testing = std.testing;
-const cublas = @import("cublas_bindings.zig");
-const cuda = @import("cuda_bindings.zig");
+const cublas = @import("cublas_bindings");
+const cuda = @import("cuda_bindings");
 
 // ============================================================================
 // Helper Functions

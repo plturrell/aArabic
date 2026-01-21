@@ -7,7 +7,7 @@
 // Provides: GEMM operations with Tensor Core support via cublasGemmEx
 
 const std = @import("std");
-const cuda = @import("cuda_bindings.zig");
+const cuda = @import("cuda_bindings");
 
 // ============================================================================
 // cuBLAS Types and Constants

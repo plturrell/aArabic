@@ -5,7 +5,7 @@
 // including device selection, property querying, and memory monitoring.
 
 const std = @import("std");
-const cuda = @import("cuda_bindings.zig");
+const cuda = @import("cuda_bindings");
 
 // ============================================================================
 // Device Properties

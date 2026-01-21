@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
@@ -125,6 +126,7 @@ pub fn build(b: *std.Build) void {
     const cublas_bindings_module = b.createModule(.{
         .root_source_file = b.path("cuda/cublas_bindings.zig"),
     });
+    cublas_bindings_module.addImport("cuda_bindings", cuda_bindings_module);
 
     // Dequantization Bindings module (GPU dequant for Tensor Core input)
     const dequant_bindings_module = b.createModule(.{
@@ -132,6 +134,21 @@ pub fn build(b: *std.Build) void {
     });
     dequant_bindings_module.addImport("cuda_bindings", cuda_bindings_module);
     dequant_bindings_module.addImport("gguf_loader", gguf_module);
+
+    // NVIDIA SMI module (GPU detection and monitoring)
+    const nvidia_smi_module = b.createModule(.{
+        .root_source_file = b.path("cuda/nvidia_smi.zig"),
+    });
+
+    // CUDA Manager module (unified GPU management interface)
+    const cuda_manager_module = b.createModule(.{
+        .root_source_file = b.path("cuda/cuda_manager.zig"),
+    });
+    cuda_manager_module.addImport("cuda_bindings", cuda_bindings_module);
+    cuda_manager_module.addImport("nvidia_smi", nvidia_smi_module);
+    cuda_manager_module.addImport("cuda_context", cuda_context_module);
+    cuda_manager_module.addImport("cuda_memory", cuda_memory_module);
+    cuda_manager_module.addImport("cuda_streams", cuda_streams_module);
 
     // CUDA Backend module (Step 6 - T4 GPU support)
     const backend_cuda_module = b.createModule(.{
@@ -372,6 +389,18 @@ pub fn build(b: *std.Build) void {
         }),
     });
     test_hf_to_llama.root_module.addImport("hf_to_llama_bridge", hf_to_llama_bridge_module);
+
+    // Link CUDA libraries for tests that use CUDA-enabled modules (via llama_model -> backend_cuda)
+    if (builtin.os.tag == .linux) {
+        test_hf_to_llama.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+        test_hf_to_llama.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+        test_hf_to_llama.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+        test_hf_to_llama.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+        test_hf_to_llama.linkSystemLibrary("cuda");
+        test_hf_to_llama.linkSystemLibrary("cublas");
+        test_hf_to_llama.linkSystemLibrary("cudart");
+    }
+
     b.installArtifact(test_hf_to_llama);
 
     const run_test_hf_to_llama = b.addRunArtifact(test_hf_to_llama);
@@ -423,6 +452,18 @@ pub fn build(b: *std.Build) void {
     inference_lib.root_module.addImport("aicore_health", aicore_health_module);
     inference_lib.root_module.addImport("aicore_config", aicore_config_module);
     inference_lib.root_module.addImport("serving_template", serving_template_module);
+
+    // CUDA library linking for inference library (GPU acceleration)
+    if (target.result.os.tag == .linux) {
+        inference_lib.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+        inference_lib.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+        inference_lib.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+        inference_lib.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+        inference_lib.linkSystemLibrary("cuda");
+        inference_lib.linkSystemLibrary("cublas");
+        inference_lib.linkSystemLibrary("cudart");
+    }
+
     b.installArtifact(inference_lib);
 
     // Note: mojo_bridge.zig is a library module without main(), used only via inference lib
@@ -470,6 +511,18 @@ pub fn build(b: *std.Build) void {
     if (target.result.os.tag == .macos) {
         cli.linkFramework("Metal");
         cli.linkFramework("Foundation");
+    }
+
+    // CUDA library linking for Linux GPU support (T4/A100/H100)
+    if (target.result.os.tag == .linux) {
+        // Link CUDA libraries for GPU acceleration
+        cli.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+        cli.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+        cli.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+        cli.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+        cli.linkSystemLibrary("cuda");
+        cli.linkSystemLibrary("cublas");
+        cli.linkSystemLibrary("cudart");
     }
 
     b.installArtifact(cli);
@@ -586,6 +639,18 @@ pub fn build(b: *std.Build) void {
         }),
     });
     test_day5.root_module.addImport("llama_model", llama_model_module);
+
+    // Link CUDA libraries for tests that use CUDA-enabled modules (via llama_model -> backend_cuda)
+    if (builtin.os.tag == .linux) {
+        test_day5.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+        test_day5.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+        test_day5.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+        test_day5.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+        test_day5.linkSystemLibrary("cuda");
+        test_day5.linkSystemLibrary("cublas");
+        test_day5.linkSystemLibrary("cudart");
+    }
+
     b.installArtifact(test_day5);
 
     const run_test_day5 = b.addRunArtifact(test_day5);
@@ -608,6 +673,18 @@ pub fn build(b: *std.Build) void {
     });
     test_day6.root_module.addImport("gguf_model_loader", gguf_model_loader_module);
     test_day6.root_module.addImport("llama_model", llama_model_module);
+
+    // Link CUDA libraries for tests that use CUDA-enabled modules (via llama_model -> backend_cuda)
+    if (builtin.os.tag == .linux) {
+        test_day6.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+        test_day6.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+        test_day6.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+        test_day6.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+        test_day6.linkSystemLibrary("cuda");
+        test_day6.linkSystemLibrary("cublas");
+        test_day6.linkSystemLibrary("cudart");
+    }
+
     b.installArtifact(test_day6);
 
     const run_test_day6 = b.addRunArtifact(test_day6);
@@ -634,6 +711,18 @@ pub fn build(b: *std.Build) void {
     test_day7.root_module.addImport("transformer", transformer_module);
     test_day7.root_module.addImport("tokenizer", tokenizer_module);
     test_day7.root_module.addImport("matrix_ops", matrix_ops_module);
+
+    // Link CUDA libraries for tests that use CUDA-enabled modules (via llama_model -> backend_cuda)
+    if (builtin.os.tag == .linux) {
+        test_day7.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+        test_day7.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+        test_day7.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+        test_day7.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+        test_day7.linkSystemLibrary("cuda");
+        test_day7.linkSystemLibrary("cublas");
+        test_day7.linkSystemLibrary("cudart");
+    }
+
     b.installArtifact(test_day7);
 
     const run_test_day7 = b.addRunArtifact(test_day7);
@@ -1019,6 +1108,42 @@ pub fn build(b: *std.Build) void {
 
     const test_all_models_step = b.step("test-all-models", "Dynamically discover and test all models");
     test_all_models_step.dependOn(&run_test_all_models.step);
+
+    // ========================================================================
+    // GPU Diagnostics Test
+    // ========================================================================
+
+    const test_gpu_diagnostics = b.addExecutable(.{
+        .name = "test_gpu_diagnostics",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("tests/gpu/diagnostics/test_gpu_diagnostics.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    test_gpu_diagnostics.root_module.addImport("cuda_bindings", cuda_bindings_module);
+    test_gpu_diagnostics.root_module.addImport("cuda_context", cuda_context_module);
+    test_gpu_diagnostics.root_module.addImport("cuda_memory", cuda_memory_module);
+    test_gpu_diagnostics.root_module.addImport("cuda_streams", cuda_streams_module);
+    test_gpu_diagnostics.root_module.addImport("cublas_bindings", cublas_bindings_module);
+
+    if (builtin.os.tag == .linux) {
+        test_gpu_diagnostics.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+        test_gpu_diagnostics.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+        test_gpu_diagnostics.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+        test_gpu_diagnostics.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+        test_gpu_diagnostics.linkSystemLibrary("cuda");
+        test_gpu_diagnostics.linkSystemLibrary("cublas");
+        test_gpu_diagnostics.linkSystemLibrary("cudart");
+    }
+
+    b.installArtifact(test_gpu_diagnostics);
+
+    const run_test_gpu_diagnostics = b.addRunArtifact(test_gpu_diagnostics);
+    run_test_gpu_diagnostics.step.dependOn(b.getInstallStep());
+
+    const test_gpu_diagnostics_step = b.step("test-gpu-diagnostics", "Run GPU diagnostics");
+    test_gpu_diagnostics_step.dependOn(&run_test_gpu_diagnostics.step);
 
     // ========================================================================
     // Combined Test
