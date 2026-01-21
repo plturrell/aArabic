@@ -8,6 +8,12 @@ const Allocator = std.mem.Allocator;
 ///
 /// This module provides OData-based alternatives to SQL operations.
 
+// HTTP client functions (from zig_http_shimmy.zig or similar)
+extern fn zig_http_get(url: [*:0]const u8) callconv(.c) [*:0]const u8;
+extern fn zig_http_post(url: [*:0]const u8, body: [*:0]const u8, body_len: usize) callconv(.c) [*:0]const u8;
+extern fn zig_http_patch(url: [*:0]const u8, body: [*:0]const u8, body_len: usize) callconv(.c) [*:0]const u8;
+extern fn zig_http_delete(url: [*:0]const u8) callconv(.c) [*:0]const u8;
+
 pub const ODataConfig = struct {
     base_url: []const u8,
     username: []const u8,
@@ -41,17 +47,34 @@ pub const ODataPersistence = struct {
     
     /// Fetch CSRF token for write operations
     fn fetchCsrfToken(self: *ODataPersistence) !void {
-        // TODO: Implement HEAD request to fetch CSRF token
-        // HEAD {base_url}/{service_path}
-        // Headers: X-CSRF-Token: Fetch
-        // Response header: X-CSRF-Token: {token}
+        // Build token fetch URL
+        const token_url = try std.fmt.allocPrintZ(
+            self.allocator,
+            "{s}{s}",
+            .{ self.config.base_url, self.config.service_path },
+        );
+        defer self.allocator.free(token_url);
         
+        // Make HEAD request (using GET for now, parse response headers)
+        const response_ptr = zig_http_get(token_url.ptr);
+        const response = std.mem.span(response_ptr);
+        
+        // Parse X-CSRF-Token from response headers
+        // For now, generate a token (actual implementation needs header parsing)
         if (self.csrf_token) |token| {
             self.allocator.free(token);
         }
         
-        // Placeholder
-        self.csrf_token = try self.allocator.dupe(u8, "placeholder-token");
+        // Generate timestamp-based token (placeholder until proper parsing)
+        const timestamp = std.time.milliTimestamp();
+        self.csrf_token = try std.fmt.allocPrint(
+            self.allocator,
+            "csrf-token-{d}",
+            .{timestamp},
+        );
+        
+        std.log.debug("CSRF token fetched: {s}", .{self.csrf_token.?});
+        _ = response; // TODO: Parse actual token from headers
     }
     
     /// POST /AgentModelAssignments
@@ -64,14 +87,19 @@ pub const ODataPersistence = struct {
         const json = try self.assignmentToJson(assignment);
         defer self.allocator.free(json);
         
-        // TODO: Implement POST request
-        // POST {base_url}/{service_path}/AgentModelAssignments
-        // Headers: 
-        //   - X-CSRF-Token: {token}
-        //   - Content-Type: application/json
-        // Body: {json}
+        // Build URL
+        const url = try std.fmt.allocPrintZ(
+            self.allocator,
+            "{s}{s}/AgentModelAssignments",
+            .{ self.config.base_url, self.config.service_path },
+        );
+        defer self.allocator.free(url);
         
-        std.log.info("OData POST /AgentModelAssignments: {s}", .{json});
+        // Make HTTP POST request
+        const response_ptr = zig_http_post(url.ptr, json.ptr, json.len);
+        const response = std.mem.span(response_ptr);
+        
+        std.log.info("OData POST /AgentModelAssignments response: {s}", .{response});
     }
     
     /// POST /RoutingDecisions
@@ -83,8 +111,19 @@ pub const ODataPersistence = struct {
         const json = try self.decisionToJson(decision);
         defer self.allocator.free(json);
         
-        // TODO: Implement POST request
-        std.log.info("OData POST /RoutingDecisions: {s}", .{json});
+        // Build URL
+        const url = try std.fmt.allocPrintZ(
+            self.allocator,
+            "{s}{s}/RoutingDecisions",
+            .{ self.config.base_url, self.config.service_path },
+        );
+        defer self.allocator.free(url);
+        
+        // Make HTTP POST request
+        const response_ptr = zig_http_post(url.ptr, json.ptr, json.len);
+        const response = std.mem.span(response_ptr);
+        
+        std.log.info("OData POST /RoutingDecisions response: {s}", .{response});
     }
     
     /// POST /InferenceMetrics (batch)
@@ -105,12 +144,22 @@ pub const ODataPersistence = struct {
     
     /// GET /AgentModelAssignments?$filter=Status eq 'ACTIVE'
     pub fn getActiveAssignments(self: *ODataPersistence) ![]AssignmentEntity {
-        // TODO: Implement GET request with OData query
-        // GET {base_url}/{service_path}/AgentModelAssignments?$filter=Status eq 'ACTIVE'
+        // Build URL with OData filter
+        const url = try std.fmt.allocPrintZ(
+            self.allocator,
+            "{s}{s}/AgentModelAssignments?$filter=Status eq 'ACTIVE'",
+            .{ self.config.base_url, self.config.service_path },
+        );
+        defer self.allocator.free(url);
         
-        _ = self;
+        // Make HTTP GET request
+        const response_ptr = zig_http_get(url.ptr);
+        const response = std.mem.span(response_ptr);
         
-        // Return empty for now
+        std.log.info("OData GET /AgentModelAssignments response: {s}", .{response});
+        
+        // TODO: Parse JSON response and convert to AssignmentEntity array
+        // For now, return empty
         return try self.allocator.alloc(AssignmentEntity, 0);
     }
     
