@@ -17,15 +17,6 @@ sap.ui.define([
 
     return Controller.extend("llm.server.dashboard.controller.ModelRouter", {
 
-        // Mock model data for fallback
-        _mockModels: [
-            { id: "gpt-5", name: "GPT-5", capabilities: ["coding", "reasoning", "creative", "tool_use"], quality: 95, provider: "OpenAI" },
-            { id: "claude-3-opus", name: "Claude 3 Opus", capabilities: ["reasoning", "creative", "long_context"], quality: 92, provider: "Anthropic" },
-            { id: "deepseek-coder-33b", name: "DeepSeek Coder 33B", capabilities: ["coding"], quality: 88, provider: "DeepSeek" },
-            { id: "Qwen2.5-Math-72B", name: "Qwen 2.5 Math 72B", capabilities: ["math", "reasoning"], quality: 90, provider: "Alibaba" },
-            { id: "lfm2.5-1.2b-q4_0", name: "LFM 2.5 1.2B Q4", capabilities: ["fast_inference"], quality: 75, provider: "Local" }
-        ],
-
         onInit: function () {
             // Initialize models
             this._initializeModels();
@@ -117,18 +108,19 @@ sap.ui.define([
                 .then(response => response.json())
                 .then(data => {
                     var models = data.models || [];
-                    if (models.length === 0) {
-                        console.log("ℹ️ No models from backend, using mock data");
-                        models = that._mockModels;
-                    } else {
-                        console.log(`✅ Loaded ${models.length} models from backend`);
-                    }
+                    console.log(`✅ Loaded ${models.length} models from backend`);
                     oViewModel.setProperty("/models", models);
                     that._updateStatistics();
+                    
+                    // Update fallback model if models are available
+                    if (models.length > 0 && !oViewModel.getProperty("/routingConfig/fallbackModel")) {
+                        oViewModel.setProperty("/routingConfig/fallbackModel", models[0].id);
+                    }
                 })
                 .catch(error => {
                     console.error("Failed to load models:", error);
-                    oViewModel.setProperty("/models", that._mockModels);
+                    MessageBox.warning("Failed to load models. Please configure models in the system.");
+                    oViewModel.setProperty("/models", []);
                     that._updateStatistics();
                 });
         },
@@ -765,11 +757,18 @@ sap.ui.define([
         _simulateLiveMetrics: function() {
             var oViewModel = this.getView().getModel();
             var currentMetrics = oViewModel.getProperty("/liveMetrics");
+            var models = oViewModel.getProperty("/models") || [];
+
+            // Use actual loaded models for simulation
+            var selectedModel = "Unknown";
+            if (models.length > 0) {
+                selectedModel = models[Math.floor(Math.random() * models.length)].name;
+            }
 
             // Simulate incremental updates
             var newDecision = {
                 taskType: ['coding', 'reasoning', 'creative', 'math'][Math.floor(Math.random() * 4)],
-                selectedModel: this._mockModels[Math.floor(Math.random() * this._mockModels.length)].name,
+                selectedModel: selectedModel,
                 score: Math.floor(Math.random() * 30) + 70,
                 latency: Math.floor(Math.random() * 500) + 100,
                 success: Math.random() > 0.1,
