@@ -58,7 +58,8 @@ sap.ui.define([
                 routingConfig: {
                     autoAssignEnabled: true,
                     preferQuality: true,
-                    fallbackModel: "lfm2.5-1.2b-q4_0"
+                    fallbackModel: "lfm2.5-1.2b-q4_0",
+                    strategy: "balanced" // Day 25: greedy, optimal, or balanced
                 },
                 metricsConfig: {
                     autoRefresh: true,
@@ -136,17 +137,44 @@ sap.ui.define([
             var that = this;
             var oViewModel = this.getView().getModel();
             
-            fetch('http://localhost:8080/api/v1/agent-model-assignments')
-                .then(response => response.json())
+            // Day 25: Use Day 24 API endpoint with pagination
+            fetch('http://localhost:8080/api/v1/model-router/assignments?page=1&page_size=100&status=ACTIVE')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('API request failed: ' + response.status);
+                    }
+                    return response.json();
+                })
                 .then(data => {
-                    var assignments = data.assignments || [];
-                    console.log(`✅ Loaded ${assignments.length} agent-model assignments`);
-                    oViewModel.setProperty("/assignments", assignments);
-                    that._updateStatistics();
-                    that._buildNetworkGraphData();
+                    if (data.success) {
+                        // Convert API format to UI format
+                        var assignments = data.assignments.map(function(a) {
+                            return {
+                                assignmentId: a.assignment_id,
+                                agentId: a.agent_id,
+                                agentName: a.agent_name,
+                                agentType: "inference",
+                                modelId: a.model_id,
+                                modelName: a.model_name,
+                                matchScore: Math.round(a.match_score),
+                                status: a.status.toLowerCase(),
+                                assignmentMethod: a.assignment_method,
+                                totalRequests: a.total_requests || 0,
+                                successfulRequests: a.successful_requests || 0,
+                                avgLatencyMs: a.avg_latency_ms
+                            };
+                        });
+                        
+                        console.log(`✅ Loaded ${assignments.length} assignments from Day 24 API`);
+                        oViewModel.setProperty("/assignments", assignments);
+                        that._updateStatistics();
+                        that._buildNetworkGraphData();
+                    } else {
+                        throw new Error('API returned success=false');
+                    }
                 })
                 .catch(error => {
-                    console.error("Failed to load assignments, loading agents instead:", error);
+                    console.error("Failed to load assignments from Day 24 API, loading agents instead:", error);
                     that._loadAgentsAndBuildAssignments();
                 });
         },
@@ -222,6 +250,66 @@ sap.ui.define([
         onAutoAssignAll: function() {
             var that = this;
             var oViewModel = this.getView().getModel();
+            
+            // Get strategy from routing config (default to 'balanced')
+            var strategy = oViewModel.getProperty("/routingConfig/strategy") || "balanced";
+
+            // Call Day 24 API endpoint
+            fetch('http://localhost:8080/api/v1/model-router/auto-assign-all', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ strategy: strategy })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('API request failed: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Update assignments with API response
+                    var apiAssignments = data.assignments.map(function(a) {
+                        return {
+                            agentId: a.agent_id,
+                            agentName: a.agent_name,
+                            agentType: "inference", // Default type
+                            modelId: a.model_id,
+                            modelName: a.model_name,
+                            matchScore: Math.round(a.match_score),
+                            status: "assigned",
+                            assignmentMethod: a.assignment_method,
+                            capabilityOverlap: a.capability_overlap || [],
+                            missingRequired: a.missing_required || []
+                        };
+                    });
+                    
+                    oViewModel.setProperty("/assignments", apiAssignments);
+                    that._updateStatistics();
+                    that._buildNetworkGraphData();
+                    
+                    MessageToast.show(
+                        `Auto-assigned ${data.total_assignments} agents | ` +
+                        `Avg Score: ${Math.round(data.avg_match_score)} | ` +
+                        `Strategy: ${data.strategy}`
+                    );
+                } else {
+                    MessageBox.error("Auto-assignment failed: " + (data.message || "Unknown error"));
+                }
+            })
+            .catch(error => {
+                console.error("Auto-assign API call failed, falling back to local algorithm:", error);
+                // Fallback to local algorithm
+                that._autoAssignAllLocal();
+            });
+        },
+        
+        _autoAssignAllLocal: function() {
+            // Original local algorithm as fallback
+            var that = this;
+            var oViewModel = this.getView().getModel();
             var assignments = oViewModel.getProperty("/assignments") || [];
             var models = oViewModel.getProperty("/models") || [];
 
@@ -256,7 +344,7 @@ sap.ui.define([
             this._updateStatistics();
             this._buildNetworkGraphData();
 
-            MessageToast.show(`Auto-assigned ${updatedCount} agents to optimal models`);
+            MessageToast.show(`Auto-assigned ${updatedCount} agents (local fallback)`);
         },
 
         onAutoAssignAgent: function(oEvent) {
@@ -647,7 +735,7 @@ sap.ui.define([
             var that = this;
             var oViewModel = this.getView().getModel();
 
-            // Fetch from API or use simulated data
+            // Day 25: Fetch from Day 24 stats API endpoint
             fetch('http://localhost:8080/api/v1/model-router/stats')
                 .then(response => response.json())
                 .then(data => {
