@@ -66,7 +66,7 @@ echo ""
 
 # Step 4: Create remote directory structure
 print_step "Step 4: Creating remote directory structure..."
-brev shell "$BREV_INSTANCE" -- "mkdir -p $REMOTE_PROJECT_ROOT/vendor"
+brev shell "$BREV_INSTANCE" "mkdir -p $REMOTE_PROJECT_ROOT/vendor"
 if [ $? -eq 0 ]; then
     print_success "Remote directories created"
 else
@@ -96,7 +96,7 @@ echo ""
 # Step 6: Verify on remote
 print_step "Step 6: Verifying files on remote instance..."
 echo ""
-brev shell "$BREV_INSTANCE" -- "ls -lh $REMOTE_PROJECT_ROOT/vendor/layerModels/"
+brev shell "$BREV_INSTANCE" "ls -lh $REMOTE_PROJECT_ROOT/vendor/layerModels/"
 echo ""
 
 print_success "Model copy complete!"
