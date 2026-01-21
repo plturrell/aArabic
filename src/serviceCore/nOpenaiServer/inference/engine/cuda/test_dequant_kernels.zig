@@ -102,9 +102,18 @@ fn testQuantTypeFromGGUF() !void {
     try expect(q6_k != null, "Q6_K conversion should succeed");
     try expect(q6_k.? == .Q6_K, "Q6_K should match");
 
-    // Test F32 (not quantized)
+    // Test F32 and F16 (not quantized but supported to indicate no-dequant path)
     const f32_type = dequant.QuantType.fromGguf(gguf.QuantizationType.F32);
-    try expect(f32_type == null, "F32 should return null");
+    try expect(f32_type != null, "F32 should return .F32");
+    try expect(f32_type.? == .F32, "F32 should match");
+
+    const f16_type = dequant.QuantType.fromGguf(gguf.QuantizationType.F16);
+    try expect(f16_type != null, "F16 should return .F16");
+    try expect(f16_type.? == .F16, "F16 should match");
+
+    // Test unsupported types
+    const q4_1_type = dequant.QuantType.fromGguf(gguf.QuantizationType.Q4_1);
+    try expect(q4_1_type == null, "Q4_1 should return null (unsupported)");
 
     std.debug.print("✅ QuantType conversion works correctly\n", .{});
 }
