@@ -1,6 +1,8 @@
 const std = @import("std");
 const matrix_ops = @import("matrix_ops");
 const thread_pool = @import("thread_pool");
+const compute = @import("compute");
+const gguf = @import("gguf_loader");
 
 /// Feed-forward network (MLP) for Llama models
 /// Implements SwiGLU activation: FFN(x) = (Swish(xW_gate) ⊙ xW_up)W_down
@@ -79,6 +81,58 @@ pub fn computeFFNWorkspace(
     
     // Down projection
     try matrix_ops.matmul(output, weights.w_down, gated, embed_dim, 1, ffn_dim, allocator, pool);
+}
+
+// ============================================================================
+// GPU Backend Support
+// ============================================================================
+
+/// Helper to extract weight data and quantization type from a Weight union
+fn weightToBackendParams(weight: matrix_ops.Weight) struct { data: []const u8, quant_type: gguf.QuantizationType } {
+    return switch (weight) {
+        .f32 => |data| .{ .data = std.mem.sliceAsBytes(data), .quant_type = .F32 },
+        .q4_0 => |data| .{ .data = data, .quant_type = .Q4_0 },
+        .q4_k => |data| .{ .data = data, .quant_type = .Q4_K },
+        .q6_k => |data| .{ .data = data, .quant_type = .Q6_K },
+    };
+}
+
+/// Compute feed-forward network with SwiGLU activation using GPU backend
+/// Uses backend.matmul() for accelerated matrix operations
+pub fn computeFFNGpu(
+    allocator: std.mem.Allocator,
+    output: []f32,
+    input: []const f32,
+    weights: FFNWeights,
+    ffn_dim: u32,
+    backend: compute.ComputeBackend,
+) !void {
+    const embed_dim = input.len;
+
+    // Allocate intermediate buffers
+    const gate = try allocator.alloc(f32, ffn_dim);
+    defer allocator.free(gate);
+    const up = try allocator.alloc(f32, ffn_dim);
+    defer allocator.free(up);
+    const gated = try allocator.alloc(f32, ffn_dim);
+    defer allocator.free(gated);
+
+    // Gate projection: gate = x * W_gate
+    // W_gate is [ffn_dim, embed_dim]
+    const gate_params = weightToBackendParams(weights.w_gate);
+    try backend.matmul(gate, gate_params.data, gate_params.quant_type, input, ffn_dim, 1, embed_dim);
+
+    // Up projection: up = x * W_up
+    const up_params = weightToBackendParams(weights.w_up);
+    try backend.matmul(up, up_params.data, up_params.quant_type, input, ffn_dim, 1, embed_dim);
+
+    // Apply SwiGLU: gated = SiLU(gate) ⊙ up
+    // Keep using CPU for this simple elementwise operation
+    matrix_ops.swiglu(gated, gate, up);
+
+    // Down projection: output = gated * W_down
+    const down_params = weightToBackendParams(weights.w_down);
+    try backend.matmul(output, down_params.data, down_params.quant_type, gated, embed_dim, 1, ffn_dim);
 }
 
 // ============================================================================

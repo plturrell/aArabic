@@ -261,7 +261,7 @@ pub const LlamaModel = struct {
         defer self.allocator.free(layer_output);
 
         for (0..self.config.n_layers) |layer_idx| {
-            try transformer.computeTransformerLayer(
+            try transformer.computeTransformerLayerGpu(
                 self.allocator,
                 layer_output,
                 hidden,
@@ -271,6 +271,7 @@ pub const LlamaModel = struct {
                 position,
                 layer_config,
                 self.rope_freqs,
+                self.backend,
             );
 
             // Copy output to hidden for next layer
@@ -357,7 +358,7 @@ pub const LlamaModel = struct {
         };
 
         for (0..self.config.n_layers) |layer_idx| {
-            try transformer.computeTransformerLayer(
+            try transformer.computeTransformerLayerGpu(
                 self.allocator,
                 layer_output,
                 hidden,
@@ -367,6 +368,7 @@ pub const LlamaModel = struct {
                 position,
                 layer_config,
                 self.rope_freqs,
+                self.backend,
             );
 
             // Debug: check hidden state after first and last layer

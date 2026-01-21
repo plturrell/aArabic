@@ -219,6 +219,8 @@ pub fn build(b: *std.Build) void {
     attention_module.addImport("matrix_ops", matrix_ops_module);
     attention_module.addImport("kv_cache", kv_cache_module);
     attention_module.addImport("thread_pool", thread_pool_module);
+    attention_module.addImport("compute", compute_module);
+    attention_module.addImport("gguf_loader", gguf_module);
 
     // Feed-Forward module
     const feed_forward_module = b.createModule(.{
@@ -226,6 +228,8 @@ pub fn build(b: *std.Build) void {
     });
     feed_forward_module.addImport("matrix_ops", matrix_ops_module);
     feed_forward_module.addImport("thread_pool", thread_pool_module);
+    feed_forward_module.addImport("compute", compute_module);
+    feed_forward_module.addImport("gguf_loader", gguf_module);
 
     // Transformer module
     const transformer_module = b.createModule(.{
@@ -238,6 +242,7 @@ pub fn build(b: *std.Build) void {
     transformer_module.addImport("thread_pool", thread_pool_module);
     transformer_module.addImport("mhc_configuration", mhc_configuration_module);
     transformer_module.addImport("mhc_constraints", mhc_constraints_module);
+    transformer_module.addImport("compute", compute_module);
 
     // Llama Model module
     const llama_model_module = b.createModule(.{

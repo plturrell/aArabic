@@ -5,6 +5,7 @@ const feed_forward = @import("feed_forward");
 const kv_cache = @import("kv_cache");
 const mhc_config = @import("mhc_configuration");
 const mhc_constraints = @import("mhc_constraints");
+const compute = @import("compute");
 
 /// Complete Transformer layer for Llama models with mHC integration
 /// Architecture: RMSNorm → Attention → [mHC] → Residual → RMSNorm → FFN → [mHC] → Residual
@@ -581,6 +582,104 @@ pub fn computeTransformerLayer(
     }
 
     // 6. Final residual connection
+    matrix_ops.vec_add(output, residual1, ffn_out);
+
+    // 7. Optional: Apply mHC to final residual (for deep instability)
+    if (config.mhc_config.enabled and
+        config.mhc_config.residual_enabled and
+        shouldApplyMHC(layer, config.mhc_config.layer_range)) {
+        try applyMHCToResidual(output, layer, config);
+    }
+}
+
+/// Compute a single transformer layer using GPU backend for matmul operations
+/// Uses ComputeBackend.matmul() for GPU-accelerated attention and FFN
+pub fn computeTransformerLayerGpu(
+    allocator: std.mem.Allocator,
+    output: []f32,
+    input: []const f32,
+    weights: TransformerWeights,
+    cache: *kv_cache.KVCache,
+    layer: u32,
+    position: u32,
+    config: TransformerConfig,
+    rope_freqs: []const f32,
+    backend: compute.ComputeBackend,
+) !void {
+    const embed_dim = config.embed_dim;
+
+    // Workspace buffers
+    const normed = try allocator.alloc(f32, embed_dim);
+    defer allocator.free(normed);
+    const attn_out = try allocator.alloc(f32, embed_dim);
+    defer allocator.free(attn_out);
+    const residual1 = try allocator.alloc(f32, embed_dim);
+    defer allocator.free(residual1);
+    const ffn_out = try allocator.alloc(f32, embed_dim);
+    defer allocator.free(ffn_out);
+
+    // 1. Pre-attention RMS norm (CPU - fast enough)
+    matrix_ops.rms_norm(normed, input, weights.attn_norm, config.rms_norm_eps);
+
+    // 2. Self-attention using GPU backend
+    const attn_config = attention.AttentionConfig{
+        .n_heads = config.n_heads,
+        .n_kv_heads = config.n_kv_heads,
+        .head_dim = config.head_dim,
+        .rope_theta = config.rope_theta,
+    };
+
+    const attn_weights = attention.AttentionWeights{
+        .wq = weights.wq,
+        .wk = weights.wk,
+        .wv = weights.wv,
+        .wo = weights.wo,
+    };
+
+    try attention.computeAttentionGpu(
+        allocator,
+        attn_out,
+        normed,
+        attn_weights,
+        cache,
+        layer,
+        position,
+        attn_config,
+        rope_freqs,
+        null, // No thread pool for now
+        backend,
+    );
+
+    // 2b. Apply mHC to attention output (if enabled)
+    if (config.mhc_config.enabled and
+        config.mhc_config.attention_enabled and
+        shouldApplyMHC(layer, config.mhc_config.layer_range)) {
+        try applyMHCToAttention(attn_out, layer, config);
+    }
+
+    // 3. Residual connection (CPU - fast enough)
+    matrix_ops.vec_add(residual1, input, attn_out);
+
+    // 4. Pre-FFN RMS norm (CPU - fast enough)
+    matrix_ops.rms_norm(normed, residual1, weights.ffn_norm, config.rms_norm_eps);
+
+    // 5. Feed-forward network using GPU backend
+    const ffn_weights = feed_forward.FFNWeights{
+        .w_gate = weights.w_gate,
+        .w_up = weights.w_up,
+        .w_down = weights.w_down,
+    };
+
+    try feed_forward.computeFFNGpu(allocator, ffn_out, normed, ffn_weights, config.ffn_dim, backend);
+
+    // 5b. Apply mHC to FFN output (if enabled)
+    if (config.mhc_config.enabled and
+        config.mhc_config.ffn_enabled and
+        shouldApplyMHC(layer, config.mhc_config.layer_range)) {
+        try applyMHCToFFN(ffn_out, layer, config);
+    }
+
+    // 6. Final residual connection (CPU - fast enough)
     matrix_ops.vec_add(output, residual1, ffn_out);
 
     // 7. Optional: Apply mHC to final residual (for deep instability)

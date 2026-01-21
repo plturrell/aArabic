@@ -145,6 +145,54 @@ pub fn batchTransformerLayer(
     );
 }
 
+/// Process batch through a transformer layer using GPU backend
+/// Uses ComputeBackend for accelerated matmul operations
+pub fn batchTransformerLayerGpu(
+    allocator: std.mem.Allocator,
+    batch_state: *BatchState,
+    batch_size: usize,
+    layer_weights: transformer.TransformerWeights,
+    kv_caches: []kv_cache.KVCache,
+    layer_idx: u32,
+    positions: []const u32,
+    config: transformer.TransformerConfig,
+    rope_freqs: []const f32,
+    backend: compute.ComputeBackend,
+) !void {
+    const embed_dim = config.embed_dim;
+
+    // Process each token in batch sequentially
+    // (Parallel processing would require more complex KV cache management)
+    for (0..batch_size) |batch_idx| {
+        const input_start = batch_idx * embed_dim;
+        const input = batch_state.batch_embeddings[input_start .. input_start + embed_dim];
+
+        const output_start = batch_idx * embed_dim;
+        const output = batch_state.batch_output[output_start .. output_start + embed_dim];
+
+        // Process single token through transformer using GPU backend
+        try transformer.computeTransformerLayerGpu(
+            allocator,
+            output,
+            input,
+            layer_weights,
+            &kv_caches[batch_idx],
+            layer_idx,
+            positions[batch_idx],
+            config,
+            rope_freqs,
+            backend,
+        );
+    }
+
+    // Copy output back to embeddings for next layer
+    const total_size = batch_size * embed_dim;
+    @memcpy(
+        batch_state.batch_embeddings[0..total_size],
+        batch_state.batch_output[0..total_size],
+    );
+}
+
 /// Apply final normalization to batch
 pub fn batchFinalNorm(
     batch_state: *BatchState,
@@ -305,7 +353,7 @@ pub const BatchLlamaModel = struct {
         };
 
         for (0..config.n_layers) |layer_idx| {
-            try batchTransformerLayer(
+            try batchTransformerLayerGpu(
                 self.model.allocator,
                 &self.batch_state,
                 batch_size,
@@ -315,6 +363,7 @@ pub const BatchLlamaModel = struct {
                 positions,
                 layer_config,
                 self.model.rope_freqs,
+                self.model.backend,
             );
         }
 
