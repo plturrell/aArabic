@@ -275,7 +275,7 @@ pub const AutoAssigner = struct {
             
             // Create assignment decision
             if (best_model) |model| {
-                if (best_result) |result| {
+                if (best_result) |*result| {
                     defer result.deinit();
                     
                     const decision = AssignmentDecision{
@@ -313,7 +313,7 @@ pub const AutoAssigner = struct {
         const models = self.model_registry.getAllModels();
         
         // Track model usage counts
-        var model_usage = std.AutoHashMap([]const u8, u32).init(self.allocator);
+        var model_usage = std.StringHashMap(u32).init(self.allocator);
         defer model_usage.deinit();
         
         for (models) |model| {
@@ -350,7 +350,7 @@ pub const AutoAssigner = struct {
             }
             
             if (best_model) |model| {
-                if (best_result) |result| {
+                if (best_result) |*result| {
                     defer result.deinit();
                     
                     // Update usage count
@@ -555,7 +555,7 @@ test "AutoAssigner: balanced assignment" {
     try std.testing.expectEqual(@as(usize, 3), decisions.items.len);
     
     // Verify model distribution (should spread across different models)
-    var model_counts = std.AutoHashMap([]const u8, u32).init(allocator);
+    var model_counts = std.StringHashMap(u32).init(allocator);
     defer model_counts.deinit();
     
     for (decisions.items) |decision| {
