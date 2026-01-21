@@ -416,6 +416,10 @@ pub fn build(b: *std.Build) void {
         test_hf_to_llama.linkSystemLibrary("cuda");
         test_hf_to_llama.linkSystemLibrary("cublas");
         test_hf_to_llama.linkSystemLibrary("cudart");
+        // Link dequant kernels for GPU dequantization
+        test_hf_to_llama.root_module.addLibraryPath(b.path("cuda/kernels"));
+        test_hf_to_llama.root_module.addRPath(b.path("cuda/kernels"));
+        test_hf_to_llama.linkSystemLibrary("dequant_kernels");
     }
 
     b.installArtifact(test_hf_to_llama);
@@ -670,6 +674,10 @@ pub fn build(b: *std.Build) void {
         test_day5.linkSystemLibrary("cuda");
         test_day5.linkSystemLibrary("cublas");
         test_day5.linkSystemLibrary("cudart");
+        // Link dequant kernels for GPU dequantization
+        test_day5.root_module.addLibraryPath(b.path("cuda/kernels"));
+        test_day5.root_module.addRPath(b.path("cuda/kernels"));
+        test_day5.linkSystemLibrary("dequant_kernels");
     }
 
     b.installArtifact(test_day5);
@@ -704,6 +712,10 @@ pub fn build(b: *std.Build) void {
         test_day6.linkSystemLibrary("cuda");
         test_day6.linkSystemLibrary("cublas");
         test_day6.linkSystemLibrary("cudart");
+        // Link dequant kernels for GPU dequantization
+        test_day6.root_module.addLibraryPath(b.path("cuda/kernels"));
+        test_day6.root_module.addRPath(b.path("cuda/kernels"));
+        test_day6.linkSystemLibrary("dequant_kernels");
     }
 
     b.installArtifact(test_day6);
@@ -742,6 +754,10 @@ pub fn build(b: *std.Build) void {
         test_day7.linkSystemLibrary("cuda");
         test_day7.linkSystemLibrary("cublas");
         test_day7.linkSystemLibrary("cudart");
+        // Link dequant kernels for GPU dequantization
+        test_day7.root_module.addLibraryPath(b.path("cuda/kernels"));
+        test_day7.root_module.addRPath(b.path("cuda/kernels"));
+        test_day7.linkSystemLibrary("dequant_kernels");
     }
 
     b.installArtifact(test_day7);
