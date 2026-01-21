@@ -9,6 +9,8 @@
 const std = @import("std");
 const auto_assign = @import("auto_assign.zig");
 const capability_scorer = @import("capability_scorer.zig");
+const HanaClient = @import("../../hana/core/client.zig").HanaClient;
+const hana_queries = @import("../../hana/core/queries.zig");
 
 // Type aliases
 const AgentRegistry = auto_assign.AgentRegistry;
@@ -112,6 +114,7 @@ pub const RouterApiHandler = struct {
     allocator: std.mem.Allocator,
     agent_registry: *AgentRegistry,
     model_registry: *ModelRegistry,
+    hana_client: ?*HanaClient,
     
     pub fn init(
         allocator: std.mem.Allocator,
@@ -122,6 +125,21 @@ pub const RouterApiHandler = struct {
             .allocator = allocator,
             .agent_registry = agent_registry,
             .model_registry = model_registry,
+            .hana_client = null,
+        };
+    }
+    
+    pub fn initWithHana(
+        allocator: std.mem.Allocator,
+        agent_registry: *AgentRegistry,
+        model_registry: *ModelRegistry,
+        hana_client: *HanaClient,
+    ) RouterApiHandler {
+        return .{
+            .allocator = allocator,
+            .agent_registry = agent_registry,
+            .model_registry = model_registry,
+            .hana_client = hana_client,
         };
     }
     
@@ -153,9 +171,27 @@ pub const RouterApiHandler = struct {
         else
             0.0;
         
-        // TODO: Store assignments in HANA database
-        // This would be implemented with actual database connection
-        // For now, we return the decisions
+        // Store assignments in HANA database
+        if (self.hana_client) |client| {
+            for (decisions.items) |decision| {
+                const assignment = hana_queries.Assignment{
+                    .id = try hana_queries.generateAssignmentId(self.allocator),
+                    .agent_id = decision.agent_id,
+                    .model_id = decision.model_id,
+                    .match_score = decision.match_score,
+                    .status = "ACTIVE",
+                    .assignment_method = decision.assignment_method.toString(),
+                    .capabilities_json = "{}",
+                    .created_at = std.time.milliTimestamp(),
+                    .updated_at = std.time.milliTimestamp(),
+                };
+                defer self.allocator.free(assignment.id);
+                
+                hana_queries.saveAssignment(client, assignment) catch |err| {
+                    std.log.warn("Failed to save assignment to HANA: {}", .{err});
+                };
+            }
+        }
         
         // Get current timestamp
         const timestamp = try self.getCurrentTimestamp();
@@ -177,10 +213,43 @@ pub const RouterApiHandler = struct {
     ) !GetAssignmentsResponse {
         _ = self;
         
-        // TODO: Query assignments from HANA database
-        // For now, return empty list
+        // Query assignments from HANA database
+        var total_count: u32 = 0;
+        var assignments_list = std.ArrayList(AssignmentRecord).init(self.allocator);
+        defer assignments_list.deinit();
         
-        const total_count: u32 = 0;
+        if (self.hana_client) |client| {
+            const hana_assignments = hana_queries.getActiveAssignments(client, self.allocator) catch |err| {
+                std.log.warn("Failed to query assignments from HANA: {}", .{err});
+                &[_]hana_queries.Assignment{};
+            };
+            defer self.allocator.free(hana_assignments);
+            
+            total_count = @intCast(hana_assignments.len);
+            
+            // Convert HANA assignments to AssignmentRecords
+            for (hana_assignments) |ha| {
+                const record = AssignmentRecord{
+                    .assignment_id = ha.id,
+                    .agent_id = ha.agent_id,
+                    .agent_name = ha.agent_id, // TODO: Lookup actual name
+                    .model_id = ha.model_id,
+                    .model_name = ha.model_id, // TODO: Lookup actual name
+                    .match_score = ha.match_score,
+                    .status = ha.status,
+                    .assignment_method = ha.assignment_method,
+                    .assigned_by = "system",
+                    .assigned_at = try self.formatTimestamp(ha.created_at),
+                    .last_updated = try self.formatTimestamp(ha.updated_at),
+                    .total_requests = 0, // TODO: Query from metrics
+                    .successful_requests = 0, // TODO: Query from metrics
+                    .avg_latency_ms = null, // TODO: Query from metrics
+                };
+                try assignments_list.append(record);
+            }
+        }
+        
+        const assignments_owned = try assignments_list.toOwnedSlice();
         const total_pages: u32 = if (query.page_size > 0)
             (total_count + query.page_size - 1) / query.page_size
         else
@@ -188,7 +257,7 @@ pub const RouterApiHandler = struct {
         
         return GetAssignmentsResponse{
             .success = true,
-            .assignments = &[_]AssignmentRecord{},
+            .assignments = if (assignments_owned.len > 0) assignments_owned else &[_]AssignmentRecord{},
             .total_count = total_count,
             .page = query.page,
             .page_size = query.page_size,
@@ -278,9 +347,30 @@ pub const RouterApiHandler = struct {
     
     // Helper function to get current timestamp
     fn getCurrentTimestamp(self: *RouterApiHandler) ![]const u8 {
-        _ = self;
-        // Placeholder - would use actual timestamp in production
-        return "2026-01-21T19:40:00Z";
+        const timestamp_ms = std.time.milliTimestamp();
+        return try self.formatTimestamp(timestamp_ms);
+    }
+    
+    // Helper function to format timestamp
+    fn formatTimestamp(self: *RouterApiHandler, timestamp_ms: i64) ![]const u8 {
+        // Convert milliseconds to ISO 8601 format
+        const seconds = @divFloor(timestamp_ms, 1000);
+        const tm = std.time.epoch.EpochSeconds{ .secs = @intCast(seconds) };
+        const day_seconds = tm.getDaySeconds();
+        const year_day = tm.getYearDay();
+        
+        return try std.fmt.allocPrint(
+            self.allocator,
+            "{d:0>4}-{d:0>2}-{d:0>2}T{d:0>2}:{d:0>2}:{d:0>2}Z",
+            .{
+                year_day.year,
+                year_day.month.numeric(),
+                year_day.day_index + 1,
+                day_seconds.getHoursIntoDay(),
+                day_seconds.getMinutesIntoHour(),
+                day_seconds.getSecondsIntoMinute(),
+            },
+        );
     }
 };
 

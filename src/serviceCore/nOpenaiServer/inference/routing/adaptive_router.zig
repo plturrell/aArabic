@@ -10,6 +10,8 @@ const std = @import("std");
 const capability_scorer = @import("capability_scorer.zig");
 const auto_assign = @import("auto_assign.zig");
 const performance_metrics = @import("performance_metrics.zig");
+const HanaClient = @import("../../hana/core/client.zig").HanaClient;
+const hana_queries = @import("../../hana/core/queries.zig");
 
 // Type aliases
 const ModelCapabilityProfile = capability_scorer.ModelCapabilityProfile;
@@ -158,6 +160,7 @@ pub const AdaptiveAutoAssigner = struct {
     adaptive_scorer: AdaptiveScorer,
     agent_registry: *auto_assign.AgentRegistry,
     model_registry: *auto_assign.ModelRegistry,
+    hana_client: ?*HanaClient,
     
     pub fn init(
         allocator: std.mem.Allocator,
@@ -171,6 +174,24 @@ pub const AdaptiveAutoAssigner = struct {
             .adaptive_scorer = AdaptiveScorer.init(allocator, performance_tracker, config),
             .agent_registry = agent_registry,
             .model_registry = model_registry,
+            .hana_client = null,
+        };
+    }
+    
+    pub fn initWithHana(
+        allocator: std.mem.Allocator,
+        agent_registry: *auto_assign.AgentRegistry,
+        model_registry: *auto_assign.ModelRegistry,
+        performance_tracker: *PerformanceTracker,
+        config: AdaptiveScorer.AdaptiveConfig,
+        hana_client: *HanaClient,
+    ) AdaptiveAutoAssigner {
+        return .{
+            .allocator = allocator,
+            .adaptive_scorer = AdaptiveScorer.init(allocator, performance_tracker, config),
+            .agent_registry = agent_registry,
+            .model_registry = model_registry,
+            .hana_client = hana_client,
         };
     }
     
@@ -222,6 +243,33 @@ pub const AdaptiveAutoAssigner = struct {
                     };
                     
                     try decisions.append(decision);
+                    
+                    // Persist routing decision to HANA
+                    if (self.hana_client) |client| {
+                        const routing_decision = hana_queries.RoutingDecision{
+                            .id = try hana_queries.generateDecisionId(self.allocator),
+                            .request_id = try std.fmt.allocPrint(self.allocator, "adaptive_{d}", .{std.time.milliTimestamp()}),
+                            .task_type = "adaptive_assignment",
+                            .agent_id = agent.agent_id,
+                            .model_id = model.model_id,
+                            .capability_score = result.capability_score,
+                            .performance_score = result.performance_score,
+                            .composite_score = result.performance_score,
+                            .strategy_used = "adaptive",
+                            .latency_ms = if (result.avg_latency_ms) |lat| @as(i32, @intFromFloat(lat)) else 0,
+                            .success = true,
+                            .fallback_used = false,
+                            .timestamp = std.time.milliTimestamp(),
+                        };
+                        defer {
+                            self.allocator.free(routing_decision.id);
+                            self.allocator.free(routing_decision.request_id);
+                        }
+                        
+                        hana_queries.saveRoutingDecision(client, routing_decision) catch |err| {
+                            std.log.warn("Failed to save routing decision to HANA: {}", .{err});
+                        };
+                    }
                 }
             }
         }
