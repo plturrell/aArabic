@@ -64,8 +64,19 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
 fi
 echo ""
 
-# Step 4: Copy models using brev copy
-print_step "Step 4: Copying models (this may take several minutes...)"
+# Step 4: Create remote directory structure
+print_step "Step 4: Creating remote directory structure..."
+brev shell "$BREV_INSTANCE" -- "mkdir -p $REMOTE_PROJECT_ROOT/vendor"
+if [ $? -eq 0 ]; then
+    print_success "Remote directories created"
+else
+    print_error "Failed to create remote directories"
+    exit 1
+fi
+echo ""
+
+# Step 5: Copy models using brev copy
+print_step "Step 5: Copying models (this may take several minutes...)"
 echo ""
 
 cd "$LOCAL_PROJECT_ROOT"
@@ -82,8 +93,8 @@ else
 fi
 echo ""
 
-# Step 5: Verify on remote
-print_step "Step 5: Verifying files on remote instance..."
+# Step 6: Verify on remote
+print_step "Step 6: Verifying files on remote instance..."
 echo ""
 brev shell "$BREV_INSTANCE" -- "ls -lh $REMOTE_PROJECT_ROOT/vendor/layerModels/"
 echo ""
