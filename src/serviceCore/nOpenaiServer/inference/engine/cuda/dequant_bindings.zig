@@ -34,52 +34,89 @@ pub const Q6_K_BLOCK_SIZE: usize = 256;
 pub const Q6_K_BLOCK_BYTES: usize = 210;
 
 // ============================================================================
-// Dequant Kernel Stubs (until Mojo kernels are compiled)
+// External CUDA Dequantization Kernels (from libdequant_kernels.so)
 // ============================================================================
-// These stubs allow the build to succeed without the Mojo dequant library.
-// When the Mojo kernels are available, these can be replaced with extern declarations.
+// These link against the compiled CUDA kernels in cuda/kernels/libdequant_kernels.so
+// The kernels are compiled with nvcc from dequant_kernels.cu
+//
+// Build the library: cd cuda/kernels && make
+// The library must be in LD_LIBRARY_PATH or the same directory as the executable
 
-/// Stub: Dequantize Q4_0 blocks to FP16
-/// Returns -1 (not implemented) - caller should use CPU fallback
+/// Dequantize Q4_0 blocks to FP16 on GPU
+/// Format: 18 bytes -> 32 FP16 values per block
+/// Returns 0 on success, -1 on error
+pub extern "dequant_kernels" fn dequant_q4_0_fp16(
+    input: [*]const u8,
+    output: [*]f16,
+    num_blocks: c_int,
+    stream: ?*anyopaque,
+) c_int;
+
+/// Dequantize Q8_0 blocks to FP16 on GPU
+/// Format: 36 bytes -> 32 FP16 values per block
+pub extern "dequant_kernels" fn dequant_q8_0_fp16(
+    input: [*]const u8,
+    output: [*]f16,
+    num_blocks: c_int,
+    stream: ?*anyopaque,
+) c_int;
+
+/// Dequantize Q4_K blocks to FP16 on GPU
+/// Format: 144 bytes -> 256 FP16 values per block
+pub extern "dequant_kernels" fn dequant_q4_k_fp16(
+    input: [*]const u8,
+    output: [*]f16,
+    num_blocks: c_int,
+    stream: ?*anyopaque,
+) c_int;
+
+/// Dequantize Q6_K blocks to FP16 on GPU
+/// Format: 210 bytes -> 256 FP16 values per block
+pub extern "dequant_kernels" fn dequant_q6_k_fp16(
+    input: [*]const u8,
+    output: [*]f16,
+    num_blocks: c_int,
+    stream: ?*anyopaque,
+) c_int;
+
+// ============================================================================
+// Wrapper functions with Zig-friendly names (for backwards compatibility)
+// ============================================================================
+
 pub fn mojo_dequant_q4_0_fp16(
     input: [*]const u8,
     output: [*]f16,
     num_blocks: i32,
     stream: ?*anyopaque,
 ) i32 {
-    _ = input;
-    _ = output;
-    _ = num_blocks;
-    _ = stream;
-    return -1; // Not implemented - use CPU fallback
+    return dequant_q4_0_fp16(input, output, num_blocks, stream);
 }
 
-/// Stub: Dequantize Q8_0 blocks to FP16
 pub fn mojo_dequant_q8_0_fp16(
     input: [*]const u8,
     output: [*]f16,
     num_blocks: i32,
     stream: ?*anyopaque,
 ) i32 {
-    _ = input;
-    _ = output;
-    _ = num_blocks;
-    _ = stream;
-    return -1; // Not implemented - use CPU fallback
+    return dequant_q8_0_fp16(input, output, num_blocks, stream);
 }
 
-/// Stub: Dequantize Q4_K blocks to FP16
 pub fn mojo_dequant_q4_k_fp16(
     input: [*]const u8,
     output: [*]f16,
     num_blocks: i32,
     stream: ?*anyopaque,
 ) i32 {
-    _ = input;
-    _ = output;
-    _ = num_blocks;
-    _ = stream;
-    return -1; // Not implemented - use CPU fallback
+    return dequant_q4_k_fp16(input, output, num_blocks, stream);
+}
+
+pub fn mojo_dequant_q6_k_fp16(
+    input: [*]const u8,
+    output: [*]f16,
+    num_blocks: i32,
+    stream: ?*anyopaque,
+) i32 {
+    return dequant_q6_k_fp16(input, output, num_blocks, stream);
 }
 
 /// Get output buffer size in FP16 elements
@@ -168,9 +205,12 @@ pub const QuantType = enum(i32) {
 
 pub const DequantContext = struct {
     stream: ?*anyopaque,
-    // Reusable GPU buffers for dequantized output
+    // Reusable GPU buffers for dequantized output (FP16)
     fp16_buffer: ?[*]f16,
     fp16_buffer_size: usize,
+    // Reusable GPU buffer for quantized input (u8)
+    input_buffer: ?[*]u8,
+    input_buffer_size: usize,
 
     const Self = @This();
 
@@ -179,6 +219,8 @@ pub const DequantContext = struct {
             .stream = stream,
             .fp16_buffer = null,
             .fp16_buffer_size = 0,
+            .input_buffer = null,
+            .input_buffer_size = 0,
         };
     }
 
@@ -188,9 +230,14 @@ pub const DequantContext = struct {
             self.fp16_buffer = null;
             self.fp16_buffer_size = 0;
         }
+        if (self.input_buffer) |buf| {
+            _ = cuda.cudaFree(@ptrCast(buf));
+            self.input_buffer = null;
+            self.input_buffer_size = 0;
+        }
     }
 
-    /// Ensure FP16 buffer is large enough
+    /// Ensure FP16 output buffer is large enough
     pub fn ensureBuffer(self: *Self, num_elements: usize) !void {
         if (self.fp16_buffer_size >= num_elements) return;
 
@@ -203,19 +250,60 @@ pub const DequantContext = struct {
         var ptr: *anyopaque = undefined;
         try cuda.checkCudaError(
             cuda.cudaMalloc(&ptr, num_elements * @sizeOf(f16)),
-            "DequantContext buffer alloc",
+            "DequantContext FP16 buffer alloc",
         );
         self.fp16_buffer = @ptrCast(@alignCast(ptr));
         self.fp16_buffer_size = num_elements;
     }
 
+    /// Ensure input buffer is large enough for quantized data
+    pub fn ensureInputBuffer(self: *Self, num_bytes: usize) !void {
+        if (self.input_buffer_size >= num_bytes) return;
+
+        // Free old buffer if exists
+        if (self.input_buffer) |buf| {
+            _ = cuda.cudaFree(@ptrCast(buf));
+        }
+
+        // Allocate new buffer
+        var ptr: *anyopaque = undefined;
+        try cuda.checkCudaError(
+            cuda.cudaMalloc(&ptr, num_bytes),
+            "DequantContext input buffer alloc",
+        );
+        self.input_buffer = @ptrCast(@alignCast(ptr));
+        self.input_buffer_size = num_bytes;
+    }
+
+    /// Copy quantized data from host to GPU and return GPU pointer
+    fn copyInputToGpu(self: *Self, host_input: [*]const u8, num_bytes: usize) ![*]const u8 {
+        try self.ensureInputBuffer(num_bytes);
+
+        // Copy host -> device
+        try cuda.checkCudaError(
+            cuda.cudaMemcpy(
+                @ptrCast(self.input_buffer.?),
+                @ptrCast(host_input),
+                num_bytes,
+                cuda.cudaMemcpyHostToDevice,
+            ),
+            "DequantContext host->device copy",
+        );
+
+        return self.input_buffer.?;
+    }
+
     /// Dequantize Q4_0 data to FP16 on GPU
-    pub fn dequantQ4_0(self: *Self, input: [*]const u8, num_blocks: usize) ![*]f16 {
+    /// Input is HOST memory - will be copied to GPU first
+    pub fn dequantQ4_0(self: *Self, host_input: [*]const u8, num_blocks: usize) ![*]f16 {
         const num_elements = num_blocks * Q4_0_BLOCK_SIZE;
+        const input_bytes = num_blocks * Q4_0_BLOCK_BYTES;
+
         try self.ensureBuffer(num_elements);
+        const gpu_input = try self.copyInputToGpu(host_input, input_bytes);
 
         const result = mojo_dequant_q4_0_fp16(
-            input,
+            gpu_input,
             self.fp16_buffer.?,
             @intCast(num_blocks),
             self.stream,
@@ -226,12 +314,16 @@ pub const DequantContext = struct {
     }
 
     /// Dequantize Q8_0 data to FP16 on GPU
-    pub fn dequantQ8_0(self: *Self, input: [*]const u8, num_blocks: usize) ![*]f16 {
+    /// Input is HOST memory - will be copied to GPU first
+    pub fn dequantQ8_0(self: *Self, host_input: [*]const u8, num_blocks: usize) ![*]f16 {
         const num_elements = num_blocks * Q8_0_BLOCK_SIZE;
+        const input_bytes = num_blocks * Q8_0_BLOCK_BYTES;
+
         try self.ensureBuffer(num_elements);
+        const gpu_input = try self.copyInputToGpu(host_input, input_bytes);
 
         const result = mojo_dequant_q8_0_fp16(
-            input,
+            gpu_input,
             self.fp16_buffer.?,
             @intCast(num_blocks),
             self.stream,
@@ -242,12 +334,36 @@ pub const DequantContext = struct {
     }
 
     /// Dequantize Q4_K data to FP16 on GPU
-    pub fn dequantQ4_K(self: *Self, input: [*]const u8, num_blocks: usize) ![*]f16 {
+    /// Input is HOST memory - will be copied to GPU first
+    pub fn dequantQ4_K(self: *Self, host_input: [*]const u8, num_blocks: usize) ![*]f16 {
         const num_elements = num_blocks * Q4_K_BLOCK_SIZE;
+        const input_bytes = num_blocks * Q4_K_BLOCK_BYTES;
+
         try self.ensureBuffer(num_elements);
+        const gpu_input = try self.copyInputToGpu(host_input, input_bytes);
 
         const result = mojo_dequant_q4_k_fp16(
-            input,
+            gpu_input,
+            self.fp16_buffer.?,
+            @intCast(num_blocks),
+            self.stream,
+        );
+        if (result != 0) return error.DequantKernelFailed;
+
+        return self.fp16_buffer.?;
+    }
+
+    /// Dequantize Q6_K data to FP16 on GPU
+    /// Input is HOST memory - will be copied to GPU first
+    pub fn dequantQ6_K(self: *Self, host_input: [*]const u8, num_blocks: usize) ![*]f16 {
+        const num_elements = num_blocks * Q6_K_BLOCK_SIZE;
+        const input_bytes = num_blocks * Q6_K_BLOCK_BYTES;
+
+        try self.ensureBuffer(num_elements);
+        const gpu_input = try self.copyInputToGpu(host_input, input_bytes);
+
+        const result = mojo_dequant_q6_k_fp16(
+            gpu_input,
             self.fp16_buffer.?,
             @intCast(num_blocks),
             self.stream,
@@ -258,11 +374,13 @@ pub const DequantContext = struct {
     }
 
     /// Generic dequantization dispatcher based on QuantType
-    pub fn dequant(self: *Self, input: [*]const u8, quant_type: QuantType, num_blocks: usize) ![*]f16 {
+    /// Input is HOST memory - will be copied to GPU first
+    pub fn dequant(self: *Self, host_input: [*]const u8, quant_type: QuantType, num_blocks: usize) ![*]f16 {
         return switch (quant_type) {
-            .Q4_0 => self.dequantQ4_0(input, num_blocks),
-            .Q8_0 => self.dequantQ8_0(input, num_blocks),
-            .Q4_K => self.dequantQ4_K(input, num_blocks),
+            .Q4_0 => self.dequantQ4_0(host_input, num_blocks),
+            .Q8_0 => self.dequantQ8_0(host_input, num_blocks),
+            .Q4_K => self.dequantQ4_K(host_input, num_blocks),
+            .Q6_K => self.dequantQ6_K(host_input, num_blocks),
             else => error.UnsupportedQuantType,
         };
     }

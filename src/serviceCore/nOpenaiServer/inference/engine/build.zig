@@ -102,7 +102,15 @@ pub fn build(b: *std.Build) void {
     // CUDA Bindings module (GPU Foundation)
     const cuda_bindings_module = b.createModule(.{
         .root_source_file = b.path("cuda/cuda_bindings.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true, // Required for @cImport
     });
+    // Add CUDA include paths for @cImport to find cuda_runtime_api.h
+    cuda_bindings_module.addIncludePath(.{ .cwd_relative = "/usr/local/cuda/include" });
+    cuda_bindings_module.addIncludePath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/include" });
+    cuda_bindings_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+    cuda_bindings_module.linkSystemLibrary("cudart", .{});
 
     // CUDA Memory module
     const cuda_memory_module = b.createModule(.{
@@ -129,6 +137,8 @@ pub fn build(b: *std.Build) void {
     cublas_bindings_module.addImport("cuda_bindings", cuda_bindings_module);
 
     // Dequantization Bindings module (GPU dequant for Tensor Core input)
+    // NOTE: Library linking is done at the executable level, not the module level
+    // because modules don't have a known target at this point
     const dequant_bindings_module = b.createModule(.{
         .root_source_file = b.path("cuda/dequant_bindings.zig"),
     });
@@ -279,6 +289,8 @@ pub fn build(b: *std.Build) void {
     batch_processor_module.addImport("transformer", transformer_module);
     batch_processor_module.addImport("matrix_ops", matrix_ops_module);
     batch_processor_module.addImport("kv_cache", kv_cache_module);
+    batch_processor_module.addImport("compute", compute_module);
+    batch_processor_module.addImport("gguf_loader", gguf_module);
 
     // Performance module (Day 8)
     const performance_module = b.createModule(.{
@@ -523,6 +535,10 @@ pub fn build(b: *std.Build) void {
         cli.linkSystemLibrary("cuda");
         cli.linkSystemLibrary("cublas");
         cli.linkSystemLibrary("cudart");
+        // Link dequant kernels for GPU dequantization
+        cli.root_module.addLibraryPath(b.path("cuda/kernels"));
+        cli.root_module.addRPath(b.path("cuda/kernels"));
+        cli.linkSystemLibrary("dequant_kernels");
     }
 
     const install_cli = b.addInstallArtifact(cli, .{});

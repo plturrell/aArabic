@@ -45,17 +45,11 @@ pub const CudaBackend = struct {
     pub fn init(allocator: std.mem.Allocator) !compute.ComputeBackend {
         log.info("⚡ Initializing CUDA Backend (NVIDIA GPU)...", .{});
 
-        // Debug: print before first CUDA call
-        std.debug.print("DEBUG: About to call cudaGetDeviceCount...\n", .{});
-
-        // Debug: print the function pointer address
-        const fn_ptr = @intFromPtr(&cuda_bindings.cudaGetDeviceCount);
-        std.debug.print("DEBUG: cudaGetDeviceCount function pointer: 0x{x}\n", .{fn_ptr});
-
         // Initialize CUDA context
         var device_count: c_int = 0;
-        std.debug.print("DEBUG: Calling cudaGetDeviceCount now...\n", .{});
+        std.debug.print("DEBUG: Calling cudaGetDeviceCount...\n", .{});
         const count_result = cuda_bindings.cudaGetDeviceCount(&device_count);
+        std.debug.print("DEBUG: cudaGetDeviceCount returned: {d}, count={d}\n", .{ count_result, device_count });
 
         std.debug.print("DEBUG: cudaGetDeviceCount returned {d}, device_count={d}\n", .{ count_result, device_count });
 
@@ -156,8 +150,9 @@ pub const CudaBackend = struct {
         self.cublas_ctx.deinit();
 
         self.stream.deinit();
+        // Note: CudaContext.deinit() internally calls allocator.destroy(self),
+        // so we don't need to call self.allocator.destroy(self.context) separately
         self.context.deinit();
-        self.allocator.destroy(self.context);
         self.allocator.destroy(self);
         log.info("CUDA Backend deinitialized", .{});
     }
@@ -207,23 +202,30 @@ pub const CudaBackend = struct {
         if (a_type != .F32 and a_type != .F16) {
             // Check if we can use GPU dequantization (Tensor Core path)
             const quant_type = dequant.QuantType.fromGguf(a_type);
+
+            // Try GPU dequant path first (fastest), fall back to CPU dequant if not available
+            var gpu_dequant_success = false;
             if (use_tensor_cores and quant_type != null) {
                 // GPU dequantization + FP16 Tensor Core matmul
                 // This is the fastest path: dequant on GPU → FP16 → Tensor Core GEMM
                 const num_elements = m * k;
                 const num_blocks = dequant.DequantContext.calculateNumBlocks(quant_type.?, num_elements);
-                const a_fp16 = try self.dequant_ctx.dequant(a_data.ptr, quant_type.?, num_blocks);
 
-                // Convert B from FP32 to FP16 for Tensor Core path
-                const b_fp16 = try self.allocator.alloc(f16, k * n);
-                defer self.allocator.free(b_fp16);
-                for (b, 0..) |val, i| {
-                    b_fp16[i] = @floatCast(val);
+                if (self.dequant_ctx.dequant(a_data.ptr, quant_type.?, num_blocks)) |a_fp16| {
+                    // GPU dequant succeeded - use Tensor Core path
+                    const b_fp16 = try self.allocator.alloc(f16, k * n);
+                    defer self.allocator.free(b_fp16);
+                    for (b, 0..) |val, i| {
+                        b_fp16[i] = @floatCast(val);
+                    }
+                    try self.gpuMatmulFp16TensorCoreRaw(c, a_fp16, b_fp16.ptr, m, n, k);
+                    gpu_dequant_success = true;
+                } else |_| {
+                    // GPU dequant not available (stubs return error), fall through to CPU path
                 }
+            }
 
-                // Execute FP16 Tensor Core GEMM
-                try self.gpuMatmulFp16TensorCoreRaw(c, a_fp16, b_fp16.ptr, m, n, k);
-            } else {
+            if (!gpu_dequant_success) {
                 // Fallback: dequantize on CPU, then GPU matmul
                 const a_fp32 = try self.allocator.alloc(f32, m * k);
                 defer self.allocator.free(a_fp32);

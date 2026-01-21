@@ -3,6 +3,8 @@ const llama = @import("llama_model");
 const transformer = @import("transformer");
 const matrix_ops = @import("matrix_ops");
 const kv_cache = @import("kv_cache");
+const compute = @import("compute");
+const gguf = @import("gguf_loader");
 
 /// Batch Processing for Efficient Multi-Token Inference
 /// Processes multiple tokens in parallel to reduce overhead
@@ -82,20 +84,19 @@ pub const BatchState = struct {
 // ============================================================================
 
 /// Process multiple tokens through embedding layer
+/// Handles both f32 and quantized embeddings
 pub fn batchGetEmbeddings(
     batch_state: *BatchState,
     token_ids: []const u32,
-    token_embedding: []const f32,
+    token_embedding: matrix_ops.Weight,
     embed_dim: usize,
 ) void {
     for (token_ids, 0..) |token_id, i| {
-        const embed_start = token_id * embed_dim;
-        const token_embed = token_embedding[embed_start .. embed_start + embed_dim];
-
         const output_start = i * embed_dim;
         const output = batch_state.batch_embeddings[output_start .. output_start + embed_dim];
 
-        @memcpy(output, token_embed);
+        // Use get_row which handles dequantization for quantized weights
+        matrix_ops.get_row(output, token_embedding, token_id, embed_dim);
     }
 }
 
@@ -163,17 +164,42 @@ pub fn batchFinalNorm(
     }
 }
 
-/// Project batch to vocabulary
+/// Project batch to vocabulary (handles quantized output weights)
+/// Uses GPU backend for acceleration when available
 pub fn batchOutputProjection(
     allocator: std.mem.Allocator,
     batch_state: *BatchState,
     batch_size: usize,
-    output_weight: []const f32,
+    output_weight: matrix_ops.Weight,
     embed_dim: usize,
     vocab_size: usize,
+    backend: compute.ComputeBackend,
 ) ![]f32 {
     // Allocate output logits for all batch items
     const total_logits = try allocator.alloc(f32, batch_size * vocab_size);
+
+    // Extract weight data and type from Weight union for backend interface
+    var w_ptr: []const u8 = undefined;
+    var w_type: gguf.QuantizationType = undefined;
+
+    switch (output_weight) {
+        .f32 => |data| {
+            w_ptr = std.mem.sliceAsBytes(data);
+            w_type = .F32;
+        },
+        .q4_0 => |data| {
+            w_ptr = data;
+            w_type = .Q4_0;
+        },
+        .q4_k => |data| {
+            w_ptr = data;
+            w_type = .Q4_K;
+        },
+        .q6_k => |data| {
+            w_ptr = data;
+            w_type = .Q6_K;
+        },
+    }
 
     for (0..batch_size) |batch_idx| {
         const input_start = batch_idx * embed_dim;
@@ -182,16 +208,8 @@ pub fn batchOutputProjection(
         const logits_start = batch_idx * vocab_size;
         const logits = total_logits[logits_start .. logits_start + vocab_size];
 
-        try matrix_ops.matmul_f32(
-            logits,
-            input,
-            output_weight,
-            1,
-            embed_dim,
-            vocab_size,
-            allocator,
-            null,
-        );
+        // Use backend.matmul for GPU acceleration (cuBLAS + Tensor Cores)
+        try backend.matmul(logits, w_ptr, w_type, input, vocab_size, 1, embed_dim);
     }
 
     return total_logits;
@@ -267,11 +285,11 @@ pub const BatchLlamaModel = struct {
         const batch_size = token_ids.len;
         const config = self.model.config;
 
-        // Get embeddings for all tokens
+        // Get embeddings for all tokens (handles quantized weights)
         batchGetEmbeddings(
             &self.batch_state,
             token_ids,
-            self.model.weights.token_embedding.f32,
+            self.model.weights.token_embedding,
             config.embed_dim,
         );
 
@@ -309,14 +327,15 @@ pub const BatchLlamaModel = struct {
             config.rms_norm_eps,
         );
 
-        // Project to vocabulary
+        // Project to vocabulary using GPU backend (cuBLAS + Tensor Cores)
         const logits = try batchOutputProjection(
             self.model.allocator,
             &self.batch_state,
             batch_size,
-            self.model.weights.output_weight.f32,
+            self.model.weights.output_weight,
             config.embed_dim,
             config.vocab_size,
+            self.model.backend,
         );
 
         return logits;
@@ -404,12 +423,14 @@ pub fn test_batch_processor(allocator: std.mem.Allocator) !void {
         defer batch_state.deinit();
 
         // Create dummy embeddings
-        const token_embedding = try allocator.alloc(f32, 100 * 64);
-        defer allocator.free(token_embedding);
-        @memset(token_embedding, 1.0);
+        const token_embedding_data = try allocator.alloc(f32, 100 * 64);
+        defer allocator.free(token_embedding_data);
+        @memset(token_embedding_data, 1.0);
 
         const token_ids = [_]u32{ 5, 10, 15 };
 
+        // Wrap as Weight.f32 for the function call
+        const token_embedding = matrix_ops.Weight{ .f32 = token_embedding_data };
         batchGetEmbeddings(&batch_state, &token_ids, token_embedding, 64);
 
         // Verify embeddings were copied
