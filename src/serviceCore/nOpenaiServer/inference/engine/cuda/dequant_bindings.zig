@@ -13,6 +13,8 @@
 const std = @import("std");
 const cuda = @import("cuda_bindings");
 
+const log = std.log.scoped(.dequant);
+
 // ============================================================================
 // Quantization Constants (matching GGUF spec)
 // ============================================================================
@@ -339,8 +341,12 @@ pub const DequantContext = struct {
         const num_elements = num_blocks * Q4_K_BLOCK_SIZE;
         const input_bytes = num_blocks * Q4_K_BLOCK_BYTES;
 
+        log.debug("🔶 Q4_K dequant: blocks={} elements={} bytes={}", .{ num_blocks, num_elements, input_bytes });
+
         try self.ensureBuffer(num_elements);
         const gpu_input = try self.copyInputToGpu(host_input, input_bytes);
+
+        log.debug("🔶 Q4_K calling kernel: gpu_input={*} fp16_buf={*}", .{ gpu_input, self.fp16_buffer.? });
 
         const result = mojo_dequant_q4_k_fp16(
             gpu_input,
@@ -348,7 +354,13 @@ pub const DequantContext = struct {
             @intCast(num_blocks),
             self.stream,
         );
-        if (result != 0) return error.DequantKernelFailed;
+
+        log.debug("🔶 Q4_K kernel returned: {}", .{result});
+
+        if (result != 0) {
+            log.err("❌ Q4_K kernel failed with code: {}", .{result});
+            return error.DequantKernelFailed;
+        }
 
         return self.fp16_buffer.?;
     }
@@ -359,8 +371,12 @@ pub const DequantContext = struct {
         const num_elements = num_blocks * Q6_K_BLOCK_SIZE;
         const input_bytes = num_blocks * Q6_K_BLOCK_BYTES;
 
+        log.debug("🔷 Q6_K dequant: blocks={} elements={} bytes={}", .{ num_blocks, num_elements, input_bytes });
+
         try self.ensureBuffer(num_elements);
         const gpu_input = try self.copyInputToGpu(host_input, input_bytes);
+
+        log.debug("🔷 Q6_K calling kernel: gpu_input={*} fp16_buf={*}", .{ gpu_input, self.fp16_buffer.? });
 
         const result = mojo_dequant_q6_k_fp16(
             gpu_input,
@@ -368,7 +384,13 @@ pub const DequantContext = struct {
             @intCast(num_blocks),
             self.stream,
         );
-        if (result != 0) return error.DequantKernelFailed;
+
+        log.debug("🔷 Q6_K kernel returned: {}", .{result});
+
+        if (result != 0) {
+            log.err("❌ Q6_K kernel failed with code: {}", .{result});
+            return error.DequantKernelFailed;
+        }
 
         return self.fp16_buffer.?;
     }
