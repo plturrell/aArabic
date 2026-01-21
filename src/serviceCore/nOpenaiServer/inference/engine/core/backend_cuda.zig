@@ -216,26 +216,20 @@ pub const CudaBackend = struct {
                 log.info("🔧 GPU DEQUANT: Attempting m={} k={} n={} blocks={} quant={}", .{ m, k, n, num_blocks, @intFromEnum(quant_type.?) });
 
                 if (self.dequant_ctx.dequant(a_data.ptr, quant_type.?, num_blocks)) |a_fp16| {
-                    // GPU dequant succeeded - choose best matmul path
+                    // GPU dequant succeeded - use FP16 matmul (works even with non-optimal dims)
+                    // cuBLAS GemmEx handles non-aligned dimensions, just less efficiently
                     if (use_tensor_cores) {
-                        log.info("✅ GPU DEQUANT: Success! Using Tensor Core FP16 path", .{});
-                        const b_fp16 = try self.allocator.alloc(f16, k * n);
-                        defer self.allocator.free(b_fp16);
-                        for (b, 0..) |val, i| {
-                            b_fp16[i] = @floatCast(val);
-                        }
-                        try self.gpuMatmulFp16TensorCoreRaw(c, a_fp16, b_fp16.ptr, m, n, k);
+                        log.info("✅ GPU DEQUANT: Success! Using Tensor Core FP16 path (optimal)", .{});
                     } else {
-                        // FP32 GPU matmul - still much faster than CPU for large matrices
-                        log.info("✅ GPU DEQUANT: Success! Using GPU FP32 path (n={} not optimal for TC)", .{n});
-                        // Convert FP16 dequant output to FP32 for matmul
-                        const a_fp32 = try self.allocator.alloc(f32, m * k);
-                        defer self.allocator.free(a_fp32);
-                        for (0..m * k) |i| {
-                            a_fp32[i] = @floatCast(a_fp16[i]);
-                        }
-                        try self.gpuMatmulFp32(c, a_fp32, b, m, n, k);
+                        log.info("✅ GPU DEQUANT: Success! Using GPU FP16 path (n={} not optimal but still faster)", .{n});
                     }
+                    // Convert B to FP16 on CPU (small, fast) then use GPU FP16 matmul
+                    const b_fp16 = try self.allocator.alloc(f16, k * n);
+                    defer self.allocator.free(b_fp16);
+                    for (b, 0..) |val, i| {
+                        b_fp16[i] = @floatCast(val);
+                    }
+                    try self.gpuMatmulFp16TensorCoreRaw(c, a_fp16, b_fp16.ptr, m, n, k);
                     gpu_dequant_success = true;
                 } else |err| {
                     // GPU dequant failed, fall through to CPU path
