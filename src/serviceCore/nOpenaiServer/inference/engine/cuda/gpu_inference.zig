@@ -302,13 +302,17 @@ pub const GpuInference = struct {
             // up = normed @ W_up
             try self.gpuMatmul(&self.ffn_up, &self.scratch1, &layer.w_up, 1, self.hidden_dim, self.embed_dim);
 
-            // SiLU activation and elementwise multiply: ffn_gate = silu(gate) * up
+            // SiLU activation and elementwise multiply: scratch2 = silu(gate) * up
+            // NOTE: Cannot use ffn_gate as both input and output (race condition)
             try transformer_kernels.siluMul(
-                &self.ffn_gate,  // output (reuse gate buffer)
+                &self.scratch2,  // output (use scratch buffer to avoid race condition)
                 &self.ffn_gate,  // gate input
                 &self.ffn_up,    // up input
                 self.stream,
             );
+
+            // Copy result back to ffn_gate for the down projection
+            try self.copyTensor(&self.ffn_gate, &self.scratch2);
 
             // down = activated @ W_down
             try self.gpuMatmul(&self.ffn_out, &self.ffn_gate, &layer.w_down, 1, self.embed_dim, self.hidden_dim);
@@ -517,11 +521,11 @@ pub const GpuInference = struct {
             // up = normed @ W_up
             try self.gpuMatmul(&self.ffn_up, &self.scratch1, &layer.w_up, M, self.hidden_dim, self.embed_dim);
 
-            // SiLU + multiply
-            try transformer_kernels.siluMul(&self.ffn_gate, &self.ffn_gate, &self.ffn_up, self.stream);
+            // SiLU + multiply (use scratch2 to avoid race condition with in-place operation)
+            try transformer_kernels.siluMul(&self.scratch2, &self.ffn_gate, &self.ffn_up, self.stream);
 
-            // down = activated @ W_down
-            try self.gpuMatmul(&self.ffn_out, &self.ffn_gate, &layer.w_down, M, self.embed_dim, self.hidden_dim);
+            // down = activated @ W_down (use scratch2 as input)
+            try self.gpuMatmul(&self.ffn_out, &self.scratch2, &layer.w_down, M, self.embed_dim, self.hidden_dim);
 
             // Add residual
             try transformer_kernels.vectorAdd(&self.hidden_state, &self.ffn_out, &self.residual, self.stream);
