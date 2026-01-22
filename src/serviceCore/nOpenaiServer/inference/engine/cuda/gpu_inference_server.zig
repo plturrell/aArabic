@@ -105,8 +105,8 @@ pub const GpuInferenceServer = struct {
     
     pub fn deinit(self: *Self) void {
         self.gpu_engine.deinit();
-        self.request_queue.deinit();
-        self.active_batch.deinit();
+        self.request_queue.deinit(self.allocator);
+        self.active_batch.deinit(self.allocator);
     }
     
     /// Submit a new inference request (thread-safe)
@@ -163,7 +163,7 @@ pub const GpuInferenceServer = struct {
         while (i < self.request_queue.items.len and filled < self.config.batch_size) {
             const req = &self.request_queue.items[i];
             if (!req.is_complete) {
-                self.active_batch.append(req) catch break;
+                self.active_batch.append(self.allocator, req) catch break;
                 filled += 1;
             }
             i += 1;
@@ -203,8 +203,9 @@ pub const GpuInferenceServer = struct {
 
         // Sample next tokens for each request
         var tokens_generated: u32 = 0;
-        const logits_data = try logits.downloadToHost(self.allocator);
+        const logits_data = try self.allocator.alloc(f32, batch_size * self.config.vocab_size);
         defer self.allocator.free(logits_data);
+        try logits.copyToHostF32(logits_data);
 
         const vocab_size = self.config.vocab_size;
         for (self.active_batch.items, 0..) |req, i| {

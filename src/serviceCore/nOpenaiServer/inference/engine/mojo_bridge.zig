@@ -517,10 +517,13 @@ export fn inference_unload() void {
 
 var gpu_server: ?*GpuInferenceServer = null;
 var gpu_weight_cache: ?*GpuWeightCache = null;
+var gpu_gguf_model: ?*gguf.GGUFModel = null;
 
 const GpuInferenceServer = @import("gpu_inference_server").GpuInferenceServer;
+const InferenceRequest = @import("gpu_inference_server").InferenceRequest;
 const GpuWeightCache = @import("gpu_weight_cache").GpuWeightCache;
 const ServerConfig = @import("gpu_inference_server").ServerConfig;
+const gguf = @import("gguf_loader");
 
 /// Initialize GPU inference server with batched processing
 /// Returns 0 on success, -1 on error
@@ -534,11 +537,16 @@ export fn inference_init_gpu_server(
     std.debug.print("   Batch size: {}\n", .{batch_size});
 
     // Load model to get config
-    var loader = gguf_loader.GGUFModelLoader.init(allocator, .OnTheFly);
-    const model = loader.loadGGUF(path) catch |err| {
+    gpu_gguf_model = allocator.create(gguf.GGUFModel) catch |err| {
+        std.debug.print("❌ Failed to allocate model: {}\n", .{err});
+        return -1;
+    };
+    gpu_gguf_model.?.* = gguf.GGUFModel.load(allocator, path) catch |err| {
         std.debug.print("❌ Failed to load model: {}\n", .{err});
         return -1;
     };
+    const model = gpu_gguf_model.?;
+    const meta = model.metadata;
 
     // Initialize weight cache
     gpu_weight_cache = allocator.create(GpuWeightCache) catch |err| {
@@ -547,32 +555,27 @@ export fn inference_init_gpu_server(
     };
     gpu_weight_cache.?.* = GpuWeightCache.init(
         allocator,
-        model.config.embed_dim,
-        model.config.hidden_dim,
-        model.config.n_heads,
-        model.config.n_kv_heads,
-        model.config.vocab_size,
-        model.config.n_layers,
+        model,
+        meta.n_layers,
+        meta.vocab_size,
+        meta.embed_dim,
+        meta.hidden_dim,
+        meta.n_heads,
+        meta.n_kv_heads,
     ) catch |err| {
         std.debug.print("❌ Failed to init weight cache: {}\n", .{err});
-        return -1;
-    };
-
-    // Load weights to GPU
-    gpu_weight_cache.?.loadFromGGUF(&model) catch |err| {
-        std.debug.print("❌ Failed to load weights: {}\n", .{err});
         return -1;
     };
 
     // Initialize server
     const config = ServerConfig{
         .batch_size = batch_size,
-        .embed_dim = model.config.embed_dim,
-        .hidden_dim = model.config.hidden_dim,
-        .n_heads = model.config.n_heads,
-        .n_kv_heads = model.config.n_kv_heads,
-        .vocab_size = model.config.vocab_size,
-        .n_layers = model.config.n_layers,
+        .embed_dim = meta.embed_dim,
+        .hidden_dim = meta.hidden_dim,
+        .n_heads = meta.n_heads,
+        .n_kv_heads = meta.n_kv_heads,
+        .vocab_size = meta.vocab_size,
+        .n_layers = meta.n_layers,
     };
 
     gpu_server = allocator.create(GpuInferenceServer) catch |err| {
@@ -602,7 +605,7 @@ export fn inference_submit_gpu_request(
 ) i64 {
     const server = gpu_server orelse return -1;
 
-    const request = GpuInferenceServer.InferenceRequest{
+    const request = InferenceRequest{
         .id = @intCast(std.time.nanoTimestamp()),
         .token_ids = token_ids[0..token_count],
         .max_new_tokens = max_new_tokens,
@@ -654,6 +657,11 @@ export fn inference_shutdown_gpu_server() void {
         cache.deinit();
         allocator.destroy(cache);
         gpu_weight_cache = null;
+    }
+    if (gpu_gguf_model) |model| {
+        model.deinit();
+        allocator.destroy(model);
+        gpu_gguf_model = null;
     }
     std.debug.print("✅ GPU server shutdown\n", .{});
 }

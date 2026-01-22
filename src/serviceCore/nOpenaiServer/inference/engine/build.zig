@@ -206,6 +206,7 @@ pub fn build(b: *std.Build) void {
     gpu_inference_server_module.addImport("cuda_bindings", cuda_bindings_module);
     gpu_inference_server_module.addImport("gpu_inference", gpu_inference_module);
     gpu_inference_server_module.addImport("gpu_weight_cache", gpu_weight_cache_module);
+    gpu_inference_server_module.addImport("gpu_tensor", gpu_tensor_module);
 
     // ========================================================================
     // AI Core Integration Modules (Phase 3)
@@ -516,6 +517,7 @@ pub fn build(b: *std.Build) void {
     inference_lib.root_module.addImport("dequant_bindings", dequant_bindings_module);
     inference_lib.root_module.addImport("cuda_bindings", cuda_bindings_module);
     inference_lib.root_module.addImport("cublas_bindings", cublas_bindings_module);
+    inference_lib.root_module.addImport("gguf_loader", gguf_module);
 
     // CUDA library linking for inference library (GPU acceleration)
     if (target.result.os.tag == .linux) {
