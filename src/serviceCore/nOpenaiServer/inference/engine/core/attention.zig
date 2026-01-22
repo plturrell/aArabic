@@ -79,11 +79,7 @@ fn computeScaledFreq(
     return switch (config.type) {
         .none => base_freq,
         
-        .linear => {
-            // Linear RoPE scaling: uniformly scale all frequencies
-            // Effective for moderate extensions (2-4x)
-            base_freq / config.factor
-        },
+        .linear => base_freq / config.factor,
         
         .dynamic => {
             // Dynamic NTK-aware scaling (Code Llama style)
