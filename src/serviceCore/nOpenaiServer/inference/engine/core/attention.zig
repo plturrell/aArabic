@@ -81,51 +81,51 @@ fn computeScaledFreq(
         
         .linear => base_freq / config.factor,
         
-        .dynamic => {
+        .dynamic => blk: {
             // Dynamic NTK-aware scaling (Code Llama style)
             // Only applies scaling beyond original context window
             if (position < config.original_max_position_embeddings) {
-                return base_freq;
+                break :blk base_freq;
             }
-            
+
             // Scale factor based on sequence length ratio
             // scale = (current_length / original_length) ^ (dim / (dim - 2))
             const length_ratio = pos_f / original_max;
             const dim_f = @as(f32, @floatFromInt(head_dim));
-            const dim_idx_f = @as(f32, @floatFromInt(dim_idx));
-            
+            _ = dim_idx; // unused in dynamic scaling
+
             // NTK-aware interpolation exponent
             const exponent = dim_f / (dim_f - 2.0);
             const ntk_scale = std.math.pow(f32, length_ratio, exponent);
-            
-            base_freq / ntk_scale
+
+            break :blk base_freq / ntk_scale;
         },
-        
-        .yarn => {
+
+        .yarn => blk: {
             // YaRN (Yet another RoPE extensioN method)
             // Most sophisticated, interpolates between low and high frequency dimensions
             if (position < config.original_max_position_embeddings) {
-                return base_freq;
+                break :blk base_freq;
             }
-            
+
             const dim_f = @as(f32, @floatFromInt(head_dim));
             const dim_idx_f = @as(f32, @floatFromInt(dim_idx * 2));
-            
+
             // YaRN parameters with defaults
             const attn_factor = config.attention_factor orelse 1.0;
             const beta_fast = config.beta_fast orelse 32.0;
             const beta_slow = config.beta_slow orelse 1.0;
-            
+
             // Compute interpolation ramp based on dimension position
             // Low frequencies (high wavelengths) get more scaling
             // High frequencies (low wavelengths) get less scaling
             const ramp = (dim_idx_f / dim_f - beta_fast) / (beta_slow - beta_fast);
             const ramp_clamped = @max(0.0, @min(1.0, ramp));
-            
+
             // Interpolate scale factor between 1.0 (no scaling) and config.factor
             const scale = config.factor * ramp_clamped + 1.0 * (1.0 - ramp_clamped);
-            
-            base_freq / (scale * attn_factor)
+
+            break :blk base_freq / (scale * attn_factor);
         },
     };
 }
