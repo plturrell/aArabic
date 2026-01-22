@@ -510,3 +510,150 @@ export fn inference_get_info(
 export fn inference_unload() void {
     inference_unload_v2(&default_model_id_c);
 }
+
+// ============================================================================
+// GPU Batched Inference Server API (High-throughput: 15,000+ tok/s)
+// ============================================================================
+
+var gpu_server: ?*GpuInferenceServer = null;
+var gpu_weight_cache: ?*GpuWeightCache = null;
+
+const GpuInferenceServer = @import("gpu_inference_server").GpuInferenceServer;
+const GpuWeightCache = @import("gpu_weight_cache").GpuWeightCache;
+const ServerConfig = @import("gpu_inference_server").ServerConfig;
+
+/// Initialize GPU inference server with batched processing
+/// Returns 0 on success, -1 on error
+export fn inference_init_gpu_server(
+    model_path: [*:0]const u8,
+    batch_size: u32,
+) i32 {
+    const path = spanFromPtr(model_path);
+    std.debug.print("\n🚀 Initializing GPU Inference Server...\n", .{});
+    std.debug.print("   Model: {s}\n", .{path});
+    std.debug.print("   Batch size: {}\n", .{batch_size});
+
+    // Load model to get config
+    var loader = gguf_loader.GGUFModelLoader.init(allocator, .OnTheFly);
+    const model = loader.loadGGUF(path) catch |err| {
+        std.debug.print("❌ Failed to load model: {}\n", .{err});
+        return -1;
+    };
+
+    // Initialize weight cache
+    gpu_weight_cache = allocator.create(GpuWeightCache) catch |err| {
+        std.debug.print("❌ Failed to allocate weight cache: {}\n", .{err});
+        return -1;
+    };
+    gpu_weight_cache.?.* = GpuWeightCache.init(
+        allocator,
+        model.config.embed_dim,
+        model.config.hidden_dim,
+        model.config.n_heads,
+        model.config.n_kv_heads,
+        model.config.vocab_size,
+        model.config.n_layers,
+    ) catch |err| {
+        std.debug.print("❌ Failed to init weight cache: {}\n", .{err});
+        return -1;
+    };
+
+    // Load weights to GPU
+    gpu_weight_cache.?.loadFromGGUF(&model) catch |err| {
+        std.debug.print("❌ Failed to load weights: {}\n", .{err});
+        return -1;
+    };
+
+    // Initialize server
+    const config = ServerConfig{
+        .batch_size = batch_size,
+        .embed_dim = model.config.embed_dim,
+        .hidden_dim = model.config.hidden_dim,
+        .n_heads = model.config.n_heads,
+        .n_kv_heads = model.config.n_kv_heads,
+        .vocab_size = model.config.vocab_size,
+        .n_layers = model.config.n_layers,
+    };
+
+    gpu_server = allocator.create(GpuInferenceServer) catch |err| {
+        std.debug.print("❌ Failed to allocate server: {}\n", .{err});
+        return -1;
+    };
+    gpu_server.?.* = GpuInferenceServer.init(
+        allocator,
+        gpu_weight_cache.?,
+        config,
+    ) catch |err| {
+        std.debug.print("❌ Failed to init server: {}\n", .{err});
+        return -1;
+    };
+
+    std.debug.print("✅ GPU Inference Server ready!\n", .{});
+    return 0;
+}
+
+/// Submit a request to the GPU inference queue
+/// Returns request ID on success, -1 on error
+export fn inference_submit_gpu_request(
+    token_ids: [*]const u32,
+    token_count: u32,
+    max_new_tokens: u32,
+    temperature: f32,
+) i64 {
+    const server = gpu_server orelse return -1;
+
+    const request = GpuInferenceServer.InferenceRequest{
+        .id = @intCast(std.time.nanoTimestamp()),
+        .token_ids = token_ids[0..token_count],
+        .max_new_tokens = max_new_tokens,
+        .temperature = temperature,
+        .callback = null,
+        .generated_tokens = undefined,
+        .current_position = 0,
+        .is_complete = false,
+    };
+
+    const id = server.submitRequest(request) catch return -1;
+    return @intCast(id);
+}
+
+/// Process one batch step, returns number of tokens generated
+export fn inference_process_gpu_batch() i32 {
+    const server = gpu_server orelse return -1;
+    const tokens = server.processBatchStep() catch return -1;
+    return @intCast(tokens);
+}
+
+/// Get GPU server statistics
+export fn inference_get_gpu_stats(
+    queue_depth: *u32,
+    active_batch: *u32,
+    total_tokens: *u64,
+) void {
+    const server = gpu_server orelse {
+        queue_depth.* = 0;
+        active_batch.* = 0;
+        total_tokens.* = 0;
+        return;
+    };
+
+    const stats = server.getStats();
+    queue_depth.* = @intCast(stats.queue_depth);
+    active_batch.* = @intCast(stats.active_batch_size);
+    total_tokens.* = stats.total_tokens;
+}
+
+/// Shutdown GPU inference server
+export fn inference_shutdown_gpu_server() void {
+    if (gpu_server) |server| {
+        server.deinit();
+        allocator.destroy(server);
+        gpu_server = null;
+    }
+    if (gpu_weight_cache) |cache| {
+        cache.deinit();
+        allocator.destroy(cache);
+        gpu_weight_cache = null;
+    }
+    std.debug.print("✅ GPU server shutdown\n", .{});
+}

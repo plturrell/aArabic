@@ -199,6 +199,14 @@ pub fn build(b: *std.Build) void {
     gpu_inference_module.addImport("gpu_tensor", gpu_tensor_module);
     gpu_inference_module.addImport("gpu_weight_cache", gpu_weight_cache_module);
 
+    // GPU Inference Server module (batched inference with continuous batching)
+    const gpu_inference_server_module = b.createModule(.{
+        .root_source_file = b.path("cuda/gpu_inference_server.zig"),
+    });
+    gpu_inference_server_module.addImport("cuda_bindings", cuda_bindings_module);
+    gpu_inference_server_module.addImport("gpu_inference", gpu_inference_module);
+    gpu_inference_server_module.addImport("gpu_weight_cache", gpu_weight_cache_module);
+
     // ========================================================================
     // AI Core Integration Modules (Phase 3)
     // ========================================================================
@@ -498,6 +506,16 @@ pub fn build(b: *std.Build) void {
     inference_lib.root_module.addImport("aicore_health", aicore_health_module);
     inference_lib.root_module.addImport("aicore_config", aicore_config_module);
     inference_lib.root_module.addImport("serving_template", serving_template_module);
+    // GPU inference modules (high-throughput batched inference)
+    inference_lib.root_module.addImport("gpu_inference_server", gpu_inference_server_module);
+    inference_lib.root_module.addImport("gpu_weight_cache", gpu_weight_cache_module);
+    inference_lib.root_module.addImport("gpu_inference", gpu_inference_module);
+    inference_lib.root_module.addImport("gpu_tensor", gpu_tensor_module);
+
+    // Additional GPU module imports (required for weight cache dequantization)
+    inference_lib.root_module.addImport("dequant_bindings", dequant_bindings_module);
+    inference_lib.root_module.addImport("cuda_bindings", cuda_bindings_module);
+    inference_lib.root_module.addImport("cublas_bindings", cublas_bindings_module);
 
     // CUDA library linking for inference library (GPU acceleration)
     if (target.result.os.tag == .linux) {
@@ -508,6 +526,10 @@ pub fn build(b: *std.Build) void {
         inference_lib.linkSystemLibrary("cuda");
         inference_lib.linkSystemLibrary("cublas");
         inference_lib.linkSystemLibrary("cudart");
+        // Link dequant kernels library for GPU weight dequantization
+        inference_lib.root_module.addLibraryPath(b.path("cuda/kernels"));
+        inference_lib.root_module.addRPath(b.path("cuda/kernels"));
+        inference_lib.linkSystemLibrary("dequant_kernels");
     }
 
     b.installArtifact(inference_lib);
