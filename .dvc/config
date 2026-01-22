@@ -1,4 +1,8 @@
 [core]
-    remote = local_storage
+    remote = sap_s3
+    autostage = true
+['remote "sap_s3"']
+    url = s3://hcp-055af4b0-2344-40d2-88fe-ddc1c4aad6c5/dvc-storage
+    region = us-east-1
 ['remote "local_storage"']
     url = cache

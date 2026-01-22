@@ -1,0 +1,158 @@
+name: Docker Build - Backend Services
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'src/serviceCore/**'
+      - 'docker/Dockerfile.*'
+      - '.github/workflows/docker-build-backend.yml'
+  pull_request:
+    branches:
+      - main
+      - master
+    paths:
+      - 'src/serviceCore/**'
+      - 'docker/Dockerfile.*'
+  workflow_dispatch:
+
+env:
+  REGISTRY: docker.io
+  IMAGE_PREFIX: plturrell
+  DOCKER_BUILDX_BUILDER: plturrell/anewmodel
+
+jobs:
+  # =============================================================================
+  # Build Matrix - All serviceCore Backend Services
+  # =============================================================================
+  build-backend:
+    name: Build ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - name: service-registry
+            dockerfile: docker/Dockerfile.service-registry
+            context: .
+            platforms: linux/amd64,linux/arm64
+          
+          - name: nopenamodels
+            dockerfile: docker/Dockerfile.nopenamodels
+            context: .
+            platforms: linux/amd64,linux/arm64
+          
+          - name: nwebserve
+            dockerfile: docker/Dockerfile.nwebserve
+            context: .
+            platforms: linux/amd64,linux/arm64
+
+    steps:
+      # -----------------------------------------------------------------------
+      # Checkout
+      # -----------------------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # -----------------------------------------------------------------------
+      # Docker Build Cloud Setup
+      # -----------------------------------------------------------------------
+      - name: Set up Docker Buildx with Build Cloud
+        uses: docker/setup-buildx-action@v3
+        with:
+          version: latest
+          driver: cloud
+          endpoint: ${{ env.DOCKER_BUILDX_BUILDER }}
+
+      # -----------------------------------------------------------------------
+      # Registry Authentication - Docker Hub
+      # -----------------------------------------------------------------------
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # -----------------------------------------------------------------------
+      # Docker Metadata
+      # -----------------------------------------------------------------------
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service.name }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      # -----------------------------------------------------------------------
+      # Build and Push
+      # -----------------------------------------------------------------------
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.service.context }}
+          file: ${{ matrix.service.dockerfile }}
+          platforms: ${{ matrix.service.platforms }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service.name }}:buildcache
+          cache-to: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service.name }}:buildcache,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+      # -----------------------------------------------------------------------
+      # Security Scanning with Snyk
+      # -----------------------------------------------------------------------
+      - name: Run Snyk security scan
+        uses: snyk/actions/docker@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service.name }}:${{ steps.meta.outputs.version }}
+          args: --severity-threshold=high
+
+      # -----------------------------------------------------------------------
+      # Output Summary
+      # -----------------------------------------------------------------------
+      - name: Image digest
+        run: |
+          echo "### ✅ ${{ matrix.service.name }} Build Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service.name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags:** ${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Platforms:** ${{ matrix.service.platforms }}" >> $GITHUB_STEP_SUMMARY
+
+  # =============================================================================
+  # Summary Job
+  # =============================================================================
+  summary:
+    name: Build Summary
+    runs-on: ubuntu-latest
+    needs: build-backend
+    if: always()
+    steps:
+      - name: Check build status
+        run: |
+          if [ "${{ needs.build-backend.result }}" == "success" ]; then
+            echo "✅ All backend services built successfully"
+            exit 0
+          else
+            echo "❌ Some backend services failed to build"
+            exit 1
+          fi

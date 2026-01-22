@@ -1,24 +1,19 @@
-# Master Docker Compose File
-# This is the main entry point for starting all services
-# All compose files are organized in docker/compose/
+# serviceCore Docker Compose File
+# First-party services only - All data stored in SAP HANA Cloud
 version: '3.8'
 
-# This file includes all other compose files for easy orchestration
-# Usage:
-#   docker-compose up -d                    # Start all services
-#   docker-compose -f docker/compose/core.yml up -d  # Start specific services
-
-# To start all services, use this command from project root:
-# docker-compose \
-#   -f docker/compose/docker-compose.core.yml \
-#   -f docker/compose/docker-compose.qdrant.yml \
-#   -f docker/compose/docker-compose.embedding.yml \
-#   up -d
+# This file includes only serviceCore services
+# All third-party infrastructure has been removed
+# Data layer: SAP HANA Cloud (via OData) + SAP Object Store
 
 networks:
-  ai_nucleus_network:
-    name: ai_nucleus_network
+  servicecore_network:
+    name: servicecore_network
     driver: bridge
 
-# NOTE: Individual service definitions are in docker/compose/*.yml
-# This file serves as documentation and network setup
+# Individual service definitions are in docker/compose/*.yml
+# Usage:
+#   docker-compose -f docker/compose/docker-compose.servicecore.yml up -d
+
+# NOTE: This is a placeholder file. Service definitions have been moved to:
+# - docker/compose/docker-compose.servicecore.yml (main services)

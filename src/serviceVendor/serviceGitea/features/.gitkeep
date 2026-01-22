@@ -1,6 +1,0 @@
-# Generated features will be placed here
-# Each feature gets its own directory with:
-# - src/ (Rust code)
-# - proofs/ (Lean4 proofs)
-# - specs/ (SCIP specifications)
-# - tests/ (Integration tests)

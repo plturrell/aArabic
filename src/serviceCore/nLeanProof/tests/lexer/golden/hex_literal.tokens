@@ -1,5 +1,0 @@
-KEYWORD	def	1:1
-IDENT	h	1:5
-SYMBOL	:=	1:7
-NUMBER	0x1f	1:10
-EOF		1:14

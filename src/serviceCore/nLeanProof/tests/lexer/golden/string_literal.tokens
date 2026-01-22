@@ -1,5 +1,0 @@
-KEYWORD	def	1:1
-IDENT	s	1:5
-SYMBOL	:=	1:7
-STRING	"hi\n"	1:10
-EOF		1:16

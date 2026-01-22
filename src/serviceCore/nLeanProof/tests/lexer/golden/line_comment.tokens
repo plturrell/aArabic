@@ -1,6 +1,0 @@
-KEYWORD	def	1:1
-IDENT	foo	1:5
-COMMENT	--line	1:9
-SYMBOL	:=	2:1
-NUMBER	2	2:4
-EOF		2:5

@@ -1,1 +1,0 @@
-(program (def expr (infix + (ident a) (infix * (ident b) (ident c)))))

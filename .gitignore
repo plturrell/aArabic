@@ -88,8 +88,24 @@ vendor/layerModels/**/*.onnx
 # Qdrant storage
 qdrant_storage/
 
-# Docker volumes
+# Docker volumes and data directories (removed third-party services)
+data/keycloak_db/
+data/gitea_db/
+data/marquez_db/
+data/registry_db/
+data/qdrant/
+data/memgraph/
+data/dragonfly/
+data/apisix_logs/
+data/n8n_db/
 gitea_data/
+
+# Data directories (managed by DVC)
+data/training/
+data/benchmarks/
+data/model-testing/
+# Keep data/README.md in git
+!data/README.md
 
 # Mojo build artifacts
 **/.mojo_cache/

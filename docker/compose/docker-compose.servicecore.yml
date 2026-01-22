@@ -1,0 +1,172 @@
+# =============================================================================
+# serviceCore Platform - First-Party Services Only
+# =============================================================================
+# All services are proprietary "n*" projects built with Zig/Mojo/Rust
+# Data layer: SAP HANA Cloud (OData) + SAP Object Store
+# Logging/Metrics/Tracing: Direct to SAP HANA Cloud
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # ===========================================================================
+  # SERVICE REGISTRY - Service Discovery & Orchestration
+  # ===========================================================================
+  service-registry:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.service-registry
+    container_name: servicecore_registry
+    ports:
+      - "8100:8100"
+    environment:
+      - SERVICE_REGISTRY_BIND=0.0.0.0:8100
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      - SERVICE_REGISTRY_CONFIG=config/service_registry.json
+      # SAP HANA Cloud connection (OData)
+      - HANA_ODATA_URL=${HANA_ODATA_URL}
+      - HANA_USERNAME=${HANA_USERNAME}
+      - HANA_PASSWORD=${HANA_PASSWORD}
+      # SAP Object Store
+      - OBJECT_STORE_URL=${OBJECT_STORE_URL}
+      - OBJECT_STORE_ACCESS_KEY=${OBJECT_STORE_ACCESS_KEY}
+      - OBJECT_STORE_SECRET_KEY=${OBJECT_STORE_SECRET_KEY}
+    volumes:
+      - ../../config/service_registry.json:/app/config/service_registry.json:ro
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8100/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - servicecore_internal
+    restart: unless-stopped
+
+  # ===========================================================================
+  # nWebServe - API Gateway & Web Server (Zig)
+  # ===========================================================================
+  nwebserve:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.nwebserve
+    container_name: servicecore_nwebserve
+    ports:
+      - "8080:8080"
+    environment:
+      - WEBSERVE_PORT=8080
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      # SAP HANA Cloud for logging
+      - HANA_ODATA_URL=${HANA_ODATA_URL}
+      - HANA_USERNAME=${HANA_USERNAME}
+      - HANA_PASSWORD=${HANA_PASSWORD}
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - servicecore_internal
+    restart: unless-stopped
+
+  # ===========================================================================
+  # nOpenaiServer - Local LLM Inference (Zig/Mojo)
+  # ===========================================================================
+  nopenaiserver:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.nopenaiserver
+    container_name: servicecore_nopenaiserver
+    ports:
+      - "11434:11434"
+    environment:
+      - OPENAI_PORT=11434
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      # SAP Object Store for models
+      - OBJECT_STORE_URL=${OBJECT_STORE_URL}
+      - OBJECT_STORE_ACCESS_KEY=${OBJECT_STORE_ACCESS_KEY}
+      - OBJECT_STORE_SECRET_KEY=${OBJECT_STORE_SECRET_KEY}
+      # SAP HANA Cloud for logging
+      - HANA_ODATA_URL=${HANA_ODATA_URL}
+      - HANA_USERNAME=${HANA_USERNAME}
+      - HANA_PASSWORD=${HANA_PASSWORD}
+    volumes:
+      - ../../models:/app/models:ro
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:11434/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - servicecore_internal
+    restart: unless-stopped
+
+  # ===========================================================================
+  # nExtract - Document Extraction Engine (Zig/Mojo)
+  # ===========================================================================
+  nextract:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.nextract
+    container_name: servicecore_nextract
+    ports:
+      - "8200:8200"
+    environment:
+      - EXTRACT_PORT=8200
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      - OPENAI_SERVER_URL=http://nopenaiserver:11434
+      # SAP Object Store for documents
+      - OBJECT_STORE_URL=${OBJECT_STORE_URL}
+      - OBJECT_STORE_ACCESS_KEY=${OBJECT_STORE_ACCESS_KEY}
+      - OBJECT_STORE_SECRET_KEY=${OBJECT_STORE_SECRET_KEY}
+      # SAP HANA Cloud for logging
+      - HANA_ODATA_URL=${HANA_ODATA_URL}
+      - HANA_USERNAME=${HANA_USERNAME}
+      - HANA_PASSWORD=${HANA_PASSWORD}
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      nopenaiserver:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8200/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - servicecore_internal
+    restart: unless-stopped
+
+  # ===========================================================================
+  # Additional serviceCore services can be added here:
+  # - nAudioLab (audio processing)
+  # - nCode (code generation)
+  # - nHyperBook (hypertext books)
+  # - nLeanProof (theorem proving)
+  # - nMetaData
+  # - nWorkflow
+  # - nLaunchpad
+  # ===========================================================================
+
+# =============================================================================
+# NETWORK - Internal Network
+# =============================================================================
+networks:
+  servicecore_internal:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16
+
+# =============================================================================
+# VOLUMES - Minimal local storage
+# =============================================================================
+volumes:
+  models:
+    driver: local

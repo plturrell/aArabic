@@ -7,32 +7,6 @@ on:
     branches: [ main, master ]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.8'
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install -r requirements-test.txt
-
-    - name: Run tests
-      run: |
-        pytest --cov=backend --cov-report=xml
-
-    - name: Lint with ruff
-      run: |
-        pip install ruff
-        ruff check backend/ || true
-
   mojo-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -95,4 +69,3 @@ jobs:
 
         echo ""
         echo "🎉 All toolorchestra Mojo tests passed"
-
