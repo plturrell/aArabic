@@ -1,0 +1,39 @@
+{
+  "cpu": {
+    "enabled": true,
+    "sample_rate_hz": 1000,
+    "max_stack_depth": 128,
+    "capture_threads": true
+  },
+  "memory": {
+    "enabled": true,
+    "track_allocations": true,
+    "sample_rate": 100,
+    "leak_detection": true,
+    "capture_stack_traces": true,
+    "max_tracked_allocs": 100000
+  },
+  "gpu": {
+    "enabled": true,
+    "poll_interval_ms": 100,
+    "track_kernels": true
+  },
+  "flamegraph": {
+    "min_width_percent": 0.1,
+    "color_scheme": "hot",
+    "interactive": true,
+    "width": 1200,
+    "height": 800
+  },
+  "bottleneck": {
+    "threshold_ms": 10.0,
+    "auto_detect": true,
+    "alert_on_regression": true,
+    "min_samples": 100
+  },
+  "storage": {
+    "persist_to_hana": true,
+    "retention_days": 30,
+    "max_profiles": 1000
+  }
+}
