@@ -134,6 +134,35 @@ pub extern "cublas" fn cublasGemmEx(
     algo: cublasGemmAlgo_t,
 ) cublasStatus_t;
 
+/// Strided batched GEMM - execute multiple GEMMs with a single kernel launch
+/// Each GEMM: C_i = alpha * A_i @ B_i + beta * C_i
+/// Strides define offset between consecutive matrices
+pub extern "cublas" fn cublasGemmStridedBatchedEx(
+    handle: cublasHandle_t,
+    transa: cublasOperation_t,
+    transb: cublasOperation_t,
+    m: c_int,
+    n: c_int,
+    k: c_int,
+    alpha: *const anyopaque,
+    A: *const anyopaque,
+    Atype: cudaDataType_t,
+    lda: c_int,
+    strideA: c_longlong,  // Stride between A matrices
+    B: *const anyopaque,
+    Btype: cudaDataType_t,
+    ldb: c_int,
+    strideB: c_longlong,  // Stride between B matrices
+    beta: *const anyopaque,
+    C: *anyopaque,
+    Ctype: cudaDataType_t,
+    ldc: c_int,
+    strideC: c_longlong,  // Stride between C matrices
+    batchCount: c_int,
+    computeType: cublasComputeType_t,
+    algo: cublasGemmAlgo_t,
+) cublasStatus_t;
+
 // ============================================================================
 // Helper Functions
 // ============================================================================

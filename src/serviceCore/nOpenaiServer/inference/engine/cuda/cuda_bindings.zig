@@ -225,6 +225,38 @@ pub const cudaEventBlockingSync: c_uint = 0x01;
 pub const cudaEventDisableTiming: c_uint = 0x02;
 
 // ============================================================================
+// CUDA Graph API - For capturing and replaying kernel sequences
+// ============================================================================
+
+/// Opaque graph types
+pub const cudaGraph_t = *anyopaque;
+pub const cudaGraphExec_t = *anyopaque;
+
+/// Stream capture modes
+pub const cudaStreamCaptureMode = c_int;
+pub const cudaStreamCaptureModeGlobal: cudaStreamCaptureMode = 0;
+pub const cudaStreamCaptureModeThreadLocal: cudaStreamCaptureMode = 1;
+pub const cudaStreamCaptureModeRelaxed: cudaStreamCaptureMode = 2;
+
+/// Begin stream capture
+pub extern "cudart" fn cudaStreamBeginCapture(stream: *anyopaque, mode: cudaStreamCaptureMode) c_int;
+
+/// End stream capture and get graph
+pub extern "cudart" fn cudaStreamEndCapture(stream: *anyopaque, graph: *cudaGraph_t) c_int;
+
+/// Instantiate graph into executable
+pub extern "cudart" fn cudaGraphInstantiate(graph_exec: *cudaGraphExec_t, graph: cudaGraph_t, error_node: ?*anyopaque, log_buffer: ?[*]u8, buffer_size: usize) c_int;
+
+/// Launch graph
+pub extern "cudart" fn cudaGraphLaunch(graph_exec: cudaGraphExec_t, stream: *anyopaque) c_int;
+
+/// Destroy graph
+pub extern "cudart" fn cudaGraphDestroy(graph: cudaGraph_t) c_int;
+
+/// Destroy executable graph
+pub extern "cudart" fn cudaGraphExecDestroy(graph_exec: cudaGraphExec_t) c_int;
+
+// ============================================================================
 // Error Handling - Using C import wrappers
 // ============================================================================
 
