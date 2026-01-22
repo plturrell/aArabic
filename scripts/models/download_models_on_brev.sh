@@ -37,8 +37,8 @@ echo ""
 
 # Check if huggingface-cli is installed
 if ! command -v huggingface-cli &> /dev/null; then
-    print_step "Installing HuggingFace CLI..."
-    pip install -q huggingface_hub[cli]
+    print_step "Installing HuggingFace CLI and dependencies..."
+    pip install -q huggingface_hub[cli] requests
     print_success "HuggingFace CLI installed"
 fi
 
@@ -151,10 +151,23 @@ esac
 
 print_success "Model download complete!"
 echo ""
+
+# Extract model card metadata
+print_step "Extracting model card metadata..."
+if [ -f "$LOCAL_PROJECT_ROOT/scripts/models/hf_model_card_extractor.py" ]; then
+    python3 "$LOCAL_PROJECT_ROOT/scripts/models/hf_model_card_extractor.py" \
+        "$LOCAL_PROJECT_ROOT/vendor/layerModels/MODEL_REGISTRY.json" 2>/dev/null || \
+        print_warning "Could not enrich model registry (continuing anyway)"
+else
+    print_warning "Model card extractor not found - skipping metadata enrichment"
+fi
+echo ""
+
 print_step "Models installed in: $MODELS_DIR"
 ls -lh "$MODELS_DIR"
 echo ""
 print_step "Next steps:"
-echo "1. Run tests: ./scripts/test_t4_gpu.sh"
+echo "1. Run tests: ./scripts/gpu/test_t4_gpu.sh"
 echo "2. Start inference: cd src/serviceCore/nOpenaiServer && zig build run"
+echo "3. Check enriched metadata: cat vendor/layerModels/MODEL_REGISTRY.json"
 echo ""

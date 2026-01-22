@@ -8,7 +8,22 @@
       "source": "huggingface",
       "hf_repo": "google/gemma-3-270m-it",
       "recommended_for": "testing, development",
-      "gpu_memory": "2GB"
+      "gpu_memory": "2GB",
+      "orchestration_categories": [
+        "code"
+      ],
+      "agent_types": [
+        "inference"
+      ],
+      "benchmarks": {},
+      "hf_metadata": {
+        "downloads": 113884,
+        "likes": 533,
+        "license": "",
+        "languages": [],
+        "datasets": [],
+        "pipeline_tag": "text-generation"
+      }
     },
     {
       "name": "LFM2.5-1.2B-Instruct-GGUF",
@@ -19,7 +34,11 @@
       "hf_repo": "LiquidAI/LFM-2.5-1.2B-Instruct-GGUF",
       "recommended_for": "production, inference",
       "gpu_memory": "4GB",
-      "variants": ["Q4_0", "Q4_K_M", "F16"]
+      "variants": [
+        "Q4_0",
+        "Q4_K_M",
+        "F16"
+      ]
     },
     {
       "name": "HY-MT1.5-7B",
@@ -30,7 +49,27 @@
       "hf_repo": "Helsinki-NLP/opus-mt-ar-en",
       "recommended_for": "arabic translation",
       "gpu_memory": "8GB",
-      "variants": ["Q4_K_M", "Q6_K", "Q8_0"]
+      "variants": [
+        "Q4_K_M",
+        "Q6_K",
+        "Q8_0"
+      ],
+      "orchestration_categories": [
+        "relational"
+      ],
+      "agent_types": [
+        "inference",
+        "tool"
+      ],
+      "benchmarks": {},
+      "hf_metadata": {
+        "downloads": 119010,
+        "likes": 48,
+        "license": "",
+        "languages": [],
+        "datasets": [],
+        "pipeline_tag": "translation"
+      }
     },
     {
       "name": "microsoft-phi-2",
@@ -40,7 +79,22 @@
       "source": "huggingface",
       "hf_repo": "microsoft/phi-2",
       "recommended_for": "general purpose",
-      "gpu_memory": "6GB"
+      "gpu_memory": "6GB",
+      "orchestration_categories": [
+        "code"
+      ],
+      "agent_types": [
+        "inference"
+      ],
+      "benchmarks": {},
+      "hf_metadata": {
+        "downloads": 1294247,
+        "likes": 3421,
+        "license": "",
+        "languages": [],
+        "datasets": [],
+        "pipeline_tag": "text-generation"
+      }
     },
     {
       "name": "deepseek-coder-33b-instruct-q4_k_m",
@@ -50,7 +104,22 @@
       "source": "huggingface",
       "hf_repo": "TheBloke/deepseek-coder-33B-instruct-GGUF",
       "recommended_for": "code generation",
-      "gpu_memory": "22GB"
+      "gpu_memory": "22GB",
+      "orchestration_categories": [
+        "code"
+      ],
+      "agent_types": [
+        "inference"
+      ],
+      "benchmarks": {},
+      "hf_metadata": {
+        "downloads": 9578,
+        "likes": 192,
+        "license": "",
+        "languages": [],
+        "datasets": [],
+        "pipeline_tag": ""
+      }
     },
     {
       "name": "Llama-3.3-70B-Instruct-Q4_K_M",
