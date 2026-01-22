@@ -94,9 +94,9 @@ pub const GpuInferenceServer = struct {
             .config = config,
             .gpu_engine = gpu_engine,
             .weight_cache = weight_cache,
-            .request_queue = std.ArrayList(InferenceRequest).init(allocator),
+            .request_queue = std.ArrayList(InferenceRequest){},
             .queue_mutex = .{},
-            .active_batch = std.ArrayList(*InferenceRequest).init(allocator),
+            .active_batch = std.ArrayList(*InferenceRequest){},
             .total_requests = 0,
             .total_tokens_generated = 0,
             .total_batches_processed = 0,
@@ -119,11 +119,11 @@ pub const GpuInferenceServer = struct {
         }
         
         var req = request;
-        req.generated_tokens = std.ArrayList(u32).init(self.allocator);
+        req.generated_tokens = std.ArrayList(u32){};
         req.current_position = @intCast(request.token_ids.len);
         req.is_complete = false;
         
-        try self.request_queue.append(req);
+        try self.request_queue.append(self.allocator, req);
         self.total_requests += 1;
         
         return req.id;
@@ -218,7 +218,7 @@ pub const GpuInferenceServer = struct {
 
             // Greedy sampling (argmax) - can add temperature later
             const next_token = argmax(req_logits);
-            try req.generated_tokens.append(next_token);
+            try req.generated_tokens.append(self.allocator, next_token);
             req.current_position += 1;
             tokens_generated += 1;
 
@@ -249,7 +249,7 @@ pub const GpuInferenceServer = struct {
         var i: usize = 0;
         while (i < self.request_queue.items.len) {
             if (self.request_queue.items[i].is_complete) {
-                self.request_queue.items[i].generated_tokens.deinit();
+                self.request_queue.items[i].generated_tokens.deinit(self.allocator);
                 _ = self.request_queue.orderedRemove(i);
             } else {
                 i += 1;

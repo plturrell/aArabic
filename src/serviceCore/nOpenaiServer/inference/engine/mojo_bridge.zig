@@ -558,8 +558,8 @@ export fn inference_init_gpu_server(
         model,
         meta.n_layers,
         meta.vocab_size,
-        meta.embed_dim,
-        meta.hidden_dim,
+        meta.hidden_size,
+        meta.intermediate_size,
         meta.n_heads,
         meta.n_kv_heads,
     ) catch |err| {
@@ -570,8 +570,8 @@ export fn inference_init_gpu_server(
     // Initialize server
     const config = ServerConfig{
         .batch_size = batch_size,
-        .embed_dim = meta.embed_dim,
-        .hidden_dim = meta.hidden_dim,
+        .embed_dim = meta.hidden_size,
+        .hidden_dim = meta.intermediate_size,
         .n_heads = meta.n_heads,
         .n_kv_heads = meta.n_kv_heads,
         .vocab_size = meta.vocab_size,
