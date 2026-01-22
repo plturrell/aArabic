@@ -92,7 +92,6 @@ fn computeScaledFreq(
             // scale = (current_length / original_length) ^ (dim / (dim - 2))
             const length_ratio = pos_f / original_max;
             const dim_f = @as(f32, @floatFromInt(head_dim));
-            _ = dim_idx; // unused in dynamic scaling
 
             // NTK-aware interpolation exponent
             const exponent = dim_f / (dim_f - 2.0);

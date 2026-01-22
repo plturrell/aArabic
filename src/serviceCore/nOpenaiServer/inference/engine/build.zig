@@ -254,6 +254,11 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("core/kv_cache.zig"),
     });
 
+    // Config Parser module (needed by attention for RopeScalingConfig)
+    const config_parser_module = b.createModule(.{
+        .root_source_file = b.path("loader/config_parser.zig"),
+    });
+
     // Attention module
     const attention_module = b.createModule(.{
         .root_source_file = b.path("core/attention.zig"),
@@ -263,6 +268,7 @@ pub fn build(b: *std.Build) void {
     attention_module.addImport("thread_pool", thread_pool_module);
     attention_module.addImport("compute", compute_module);
     attention_module.addImport("gguf_loader", gguf_module);
+    attention_module.addImport("config_parser", config_parser_module);
 
     // Feed-Forward module
     const feed_forward_module = b.createModule(.{
@@ -404,11 +410,6 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("loader/safetensors_sharded.zig"),
     });
     safetensors_sharded_module.addImport("safetensors_loader", safetensors_loader_module);
-
-    // Config Parser module (Production Feature)
-    const config_parser_module = b.createModule(.{
-        .root_source_file = b.path("loader/config_parser.zig"),
-    });
 
     // BPE Tokenizer module (Production Feature)
     const bpe_tokenizer_module = b.createModule(.{
