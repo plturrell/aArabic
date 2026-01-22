@@ -1049,7 +1049,7 @@ pub fn formatPrometheusMetrics(
     try writer.writeAll("# TYPE mhc_overall_acceptance_rate gauge\n");
     try writer.print("mhc_overall_acceptance_rate {d:.6}\n\n", .{monitor.getOverallAcceptanceRate()});
 
-    return buffer.toOwnedSlice(allocator);
+    return buffer.toOwnedSlice();
 }
 
 // ============================================================================

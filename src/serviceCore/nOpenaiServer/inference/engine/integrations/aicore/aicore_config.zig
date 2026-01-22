@@ -122,7 +122,7 @@ pub const AICoreConfig = struct {
     /// Allocate and track a string copy
     fn allocString(self: *Self, source: []const u8) ![]const u8 {
         const copy = try self.allocator.dupe(u8, source);
-        try self.owned_strings.append(self.allocator, copy);
+        try self.owned_strings.append(copy);
         return copy;
     }
 
@@ -247,7 +247,7 @@ pub const AICoreConfig = struct {
         try writer.print("  \"max_replicas\": {d}\n", .{self.max_replicas});
         try writer.writeAll("}");
 
-        return buffer.toOwnedSlice(self.allocator);
+        return buffer.toOwnedSlice();
     }
 };
 

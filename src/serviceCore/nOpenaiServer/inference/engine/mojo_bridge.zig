@@ -279,13 +279,13 @@ fn generateWithLfm2(
         if (pos < tokens.len - 1) m.advanceCaches();
     }
 
-    var generated = std.ArrayList(u8).empty;
-    errdefer generated.deinit(allocator);
-    generated.ensureTotalCapacity(allocator, max_tokens * 4) catch |err| {
+    var generated = std.ArrayList(u8).init(allocator);
+    errdefer generated.deinit();
+    generated.ensureTotalCapacity(max_tokens * 4) catch |err| {
         std.debug.print("❌ Pre-alloc failed: {}\n", .{err});
         return -1;
     };
-    defer generated.deinit(allocator);
+    defer generated.deinit();
 
     var last_token = tokens[tokens.len - 1];
     var position: u32 = @intCast(tokens.len);
@@ -379,7 +379,7 @@ fn generateWithLfm2(
             prev_token = last_token;
         }
 
-        generated.appendSlice(allocator, piece) catch |err| {
+        generated.appendSlice(piece) catch |err| {
             std.debug.print("❌ Append failed: {}\n", .{err});
             return -1;
         };
@@ -388,7 +388,7 @@ fn generateWithLfm2(
         position += 1;
     }
 
-    const out_slice = generated.toOwnedSlice(allocator) catch |err| {
+    const out_slice = generated.toOwnedSlice() catch |err| {
         std.debug.print("❌ Slice failed: {}\n", .{err});
         return -1;
     };

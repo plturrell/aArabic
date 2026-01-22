@@ -43,6 +43,12 @@ pub const GpuInference = struct {
     // Batch size for parallel token processing
     batch_size: u32,
 
+    // Maximum sequence length for KV cache
+    max_seq_len: u32,
+
+    // RoPE theta parameter
+    rope_theta: f32,
+
     // Pre-allocated GPU buffers for activations (reused each forward pass)
     // All buffers are sized for batch_size tokens
     hidden_state: GpuTensor,      // [batch_size * embed_dim] - current hidden state
@@ -59,10 +65,18 @@ pub const GpuInference = struct {
     // Scratch buffers
     scratch1: GpuTensor,
     scratch2: GpuTensor,
+
+    // KV cache buffers - one per layer
+    // Layout: [n_layers][n_kv_heads][max_seq_len][head_dim]
+    k_cache: []GpuTensor,  // [n_layers] tensors, each [n_kv_heads * max_seq_len * head_dim]
+    v_cache: []GpuTensor,  // [n_layers] tensors, each [n_kv_heads * max_seq_len * head_dim]
+
+    // Attention scores buffer (reused across layers)
+    attn_scores: GpuTensor,  // [n_heads * max_seq_len] - scores for current query
     
     const Self = @This();
-    
-    /// Initialize with default batch_size=1 (single token mode)
+
+    /// Initialize with default batch_size=1 and max_seq_len=2048
     pub fn init(
         allocator: std.mem.Allocator,
         embed_dim: u32,
@@ -71,11 +85,12 @@ pub const GpuInference = struct {
         n_kv_heads: u32,
         vocab_size: u32,
         n_layers: u32,
+        rope_theta: f32,
     ) !Self {
-        return initWithBatchSize(allocator, embed_dim, hidden_dim, n_heads, n_kv_heads, vocab_size, n_layers, 1);
+        return initWithBatchSize(allocator, embed_dim, hidden_dim, n_heads, n_kv_heads, vocab_size, n_layers, 1, 2048, rope_theta);
     }
 
-    /// Initialize with configurable batch size for parallel token processing
+    /// Initialize with configurable batch size and max sequence length
     pub fn initWithBatchSize(
         allocator: std.mem.Allocator,
         embed_dim: u32,
@@ -85,8 +100,10 @@ pub const GpuInference = struct {
         vocab_size: u32,
         n_layers: u32,
         batch_size: u32,
+        max_seq_len: u32,
+        rope_theta: f32,
     ) !Self {
-        std.debug.print("\n🔧 Initializing GPU Inference Engine (batch_size={})...\n", .{batch_size});
+        std.debug.print("\n🔧 Initializing GPU Inference Engine (batch_size={}, max_seq_len={})...\n", .{batch_size, max_seq_len});
 
         // Create cuBLAS handle
         var handle: cublas.cublasHandle_t = undefined;
@@ -123,16 +140,35 @@ pub const GpuInference = struct {
         const scratch1 = try GpuTensor.alloc(batch_size * @max(hidden_dim, vocab_size));
         const scratch2 = try GpuTensor.alloc(batch_size * @max(hidden_dim, vocab_size));
 
+        // Allocate attention scores buffer
+        const attn_scores = try GpuTensor.alloc(n_heads * max_seq_len);
+
+        // Allocate KV cache for each layer
+        const k_cache = try allocator.alloc(GpuTensor, n_layers);
+        const v_cache = try allocator.alloc(GpuTensor, n_layers);
+
+        var kv_cache_mem: usize = 0;
+        for (0..n_layers) |i| {
+            k_cache[i] = try GpuTensor.alloc(n_kv_heads * max_seq_len * head_dim);
+            v_cache[i] = try GpuTensor.alloc(n_kv_heads * max_seq_len * head_dim);
+            try k_cache[i].zero();
+            try v_cache[i].zero();
+            kv_cache_mem += k_cache[i].memoryUsage() + v_cache[i].memoryUsage();
+        }
+
         const total_mem = hidden_state.memoryUsage() + residual.memoryUsage() +
             attn_out.memoryUsage() + q_proj.memoryUsage() + k_proj.memoryUsage() +
             v_proj.memoryUsage() + ffn_gate.memoryUsage() + ffn_up.memoryUsage() +
             ffn_out.memoryUsage() + logits.memoryUsage() + scratch1.memoryUsage() +
-            scratch2.memoryUsage();
+            scratch2.memoryUsage() + attn_scores.memoryUsage() + kv_cache_mem;
 
         std.debug.print("   ✅ GPU activation buffers: {d:.2} MB (batch_size={})\n", .{
-            @as(f64, @floatFromInt(total_mem)) / (1024.0 * 1024.0), batch_size,
+            @as(f64, @floatFromInt(total_mem - kv_cache_mem)) / (1024.0 * 1024.0), batch_size,
         });
-        
+        std.debug.print("   ✅ GPU KV cache: {d:.2} MB ({} layers x {} seq_len)\n", .{
+            @as(f64, @floatFromInt(kv_cache_mem)) / (1024.0 * 1024.0), n_layers, max_seq_len,
+        });
+
         return Self{
             .allocator = allocator,
             .cublas_handle = handle,
@@ -148,6 +184,8 @@ pub const GpuInference = struct {
             .vocab_size = vocab_size,
             .n_layers = n_layers,
             .batch_size = batch_size,
+            .max_seq_len = max_seq_len,
+            .rope_theta = rope_theta,
             .hidden_state = hidden_state,
             .residual = residual,
             .attn_out = attn_out,
@@ -160,6 +198,9 @@ pub const GpuInference = struct {
             .logits = logits,
             .scratch1 = scratch1,
             .scratch2 = scratch2,
+            .k_cache = k_cache,
+            .v_cache = v_cache,
+            .attn_scores = attn_scores,
         };
     }
 
@@ -188,6 +229,27 @@ pub const GpuInference = struct {
         self.logits.deinit();
         self.scratch1.deinit();
         self.scratch2.deinit();
+        self.attn_scores.deinit();
+
+        // Free KV cache
+        for (self.k_cache) |*kc| {
+            kc.deinit();
+        }
+        for (self.v_cache) |*vc| {
+            vc.deinit();
+        }
+        self.allocator.free(self.k_cache);
+        self.allocator.free(self.v_cache);
+    }
+
+    /// Reset KV cache (call when starting a new sequence)
+    pub fn resetKVCache(self: *Self) !void {
+        for (self.k_cache) |*kc| {
+            try kc.zero();
+        }
+        for (self.v_cache) |*vc| {
+            try vc.zero();
+        }
     }
 
     /// GPU-to-GPU matmul using cuBLAS with FP16 Tensor Cores
@@ -242,7 +304,7 @@ pub const GpuInference = struct {
     pub fn forward(
         self: *Self,
         weights: *const GpuWeightCache,
-        _: u32, // position (for RoPE - TODO)
+        position: u32,
     ) !*GpuTensor {
         const rms_eps = weights.rms_norm_eps;
 
@@ -270,12 +332,73 @@ pub const GpuInference = struct {
             // V = normed @ Wv
             try self.gpuMatmul(&self.v_proj, &self.scratch1, &layer.wv, 1, self.n_kv_heads * self.head_dim, self.embed_dim);
 
-            // TODO: RoPE on GPU
-            // TODO: Attention score computation on GPU
-            // TODO: KV cache update on GPU
+            // Apply RoPE (Rotary Position Embeddings) to Q and K
+            try transformer_kernels.applyRope(
+                &self.q_proj,
+                &self.k_proj,
+                position,
+                self.head_dim,
+                self.n_heads,
+                self.n_kv_heads,
+                self.rope_theta,
+                self.stream,
+            );
 
-            // For now: output projection (simplified - no actual attention)
-            try self.gpuMatmul(&self.attn_out, &self.v_proj, &layer.wo, 1, self.embed_dim, self.n_kv_heads * self.head_dim);
+            // Copy K and V to KV cache at current position
+            try transformer_kernels.copyToKVCache(
+                &self.k_proj,
+                &self.v_proj,
+                &self.k_cache[layer_idx],
+                &self.v_cache[layer_idx],
+                position,
+                self.head_dim,
+                self.n_kv_heads,
+                self.max_seq_len,
+                self.stream,
+            );
+
+            // Compute attention scores: Q @ K^T / sqrt(head_dim)
+            try transformer_kernels.attentionScores(
+                &self.attn_scores,
+                &self.q_proj,
+                &self.k_cache[layer_idx],
+                position,
+                self.head_dim,
+                self.n_heads,
+                self.n_kv_heads,
+                self.max_seq_len,
+                self.stream,
+            );
+
+            // Apply causal mask (not needed for single token decode, but needed for prefill)
+            // For autoregressive decode at position P, we attend to positions 0..P inclusive
+            // The causal mask kernel sets positions > current_pos to -inf
+            // Since seq_len = position + 1 and current_pos = position, no masking occurs
+
+            // Apply softmax to attention scores (in-place)
+            const seq_len = position + 1;
+            try transformer_kernels.softmax(
+                &self.attn_scores,
+                self.n_heads,
+                seq_len,
+                self.stream,
+            );
+
+            // Compute attention output: softmax(scores) @ V
+            try transformer_kernels.attentionOutput(
+                &self.scratch1,  // Use scratch1 for attention output [n_heads * head_dim]
+                &self.attn_scores,
+                &self.v_cache[layer_idx],
+                position,
+                self.head_dim,
+                self.n_heads,
+                self.n_kv_heads,
+                self.max_seq_len,
+                self.stream,
+            );
+
+            // Output projection: attn_out = attention_output @ Wo
+            try self.gpuMatmul(&self.attn_out, &self.scratch1, &layer.wo, 1, self.embed_dim, self.n_heads * self.head_dim);
 
             // Add residual: hidden_state = attn_out + residual
             try transformer_kernels.vectorAdd(

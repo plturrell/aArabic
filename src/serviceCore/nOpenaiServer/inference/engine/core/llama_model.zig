@@ -168,6 +168,7 @@ pub const LlamaModel = struct {
             config.head_dim,
             config.max_seq_len,
             config.rope_theta,
+            null, // No scaling config
         );
         errdefer allocator.free(rope_freqs);
 

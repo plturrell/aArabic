@@ -151,7 +151,7 @@ pub const ServingTemplate = struct {
         try buffer.appendSlice(allocator, "            initialDelaySeconds: 30\n");
         try buffer.appendSlice(allocator, "            periodSeconds: 10\n");
 
-        return buffer.toOwnedSlice(allocator);
+        return buffer.toOwnedSlice();
     }
 };
 

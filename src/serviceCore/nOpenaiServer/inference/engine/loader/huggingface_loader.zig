@@ -99,7 +99,7 @@ pub const HuggingFaceModel = struct {
 
                 // Load the single safetensors file as a "shard"
                 const shard_name = try self.allocator.dupe(u8, "model.safetensors");
-                try self.weights.shard_files.append(self.allocator, shard_name);
+                try self.weights.shard_files.append(shard_name);
 
                 var shard = safetensors_loader.SafeTensorsFile.init(self.allocator, model_path);
                 try shard.load();

@@ -169,28 +169,28 @@ pub const Tokenizer = struct {
         add_eos: bool,
     ) ![]u32 {
         var current_tokens = try std.ArrayList(u32).initCapacity(allocator, 128);
-        defer current_tokens.deinit(allocator);
+        defer current_tokens.deinit();
 
         if (add_bos) {
-            try current_tokens.append(allocator, self.bos_token);
+            try current_tokens.append(self.bos_token);
         }
 
         // Pre-process: convert spaces to byte-level encoding (Ġ = 0xC4 0xA0)
         // GPT-2/Qwen use byte-level BPE where space (0x20) maps to 'Ġ'
         var processed = try std.ArrayList(u8).initCapacity(allocator, text.len * 2);
-        defer processed.deinit(allocator);
+        defer processed.deinit();
 
         for (text) |c| {
             if (c == ' ') {
                 // Space -> 'Ġ' (UTF-8: 0xC4 0xA0)
-                try processed.append(allocator, 0xC4);
-                try processed.append(allocator, 0xA0);
+                try processed.append(0xC4);
+                try processed.append(0xA0);
             } else if (c == '\n') {
                 // Newline -> 'Ċ' (UTF-8: 0xC4 0x8A)
-                try processed.append(allocator, 0xC4);
-                try processed.append(allocator, 0x8A);
+                try processed.append(0xC4);
+                try processed.append(0x8A);
             } else {
-                try processed.append(allocator, c);
+                try processed.append(c);
             }
         }
 
@@ -213,13 +213,13 @@ pub const Tokenizer = struct {
             }
 
             if (best_len > 0) {
-                try current_tokens.append(allocator, best_id);
+                try current_tokens.append(best_id);
                 i += best_len;
             } else {
                 // Try single byte fallback
                 const byte_str = input[i .. i + 1];
                 if (self.token_map.get(byte_str)) |id| {
-                    try current_tokens.append(allocator, id);
+                    try current_tokens.append(id);
                 } else {
                     std.debug.print("⚠️  Unknown byte at {d}: 0x{X:0>2}\n", .{ i, input[i] });
                 }
@@ -228,25 +228,25 @@ pub const Tokenizer = struct {
         }
 
         if (add_eos) {
-            try current_tokens.append(allocator, self.eos_token);
+            try current_tokens.append(self.eos_token);
         }
 
-        return current_tokens.toOwnedSlice(allocator);
+        return current_tokens.toOwnedSlice();
     }
 
     /// Decode token IDs to text
     /// Handles GPT-2/Qwen byte-level BPE tokens
     pub fn decode(self: *Tokenizer, token_ids: []const u32, allocator: std.mem.Allocator) ![]u8 {
         // First pass: collect raw token bytes
-        var raw_bytes = std.ArrayList(u8).empty;
-        defer raw_bytes.deinit(allocator);
+        var raw_bytes = std.ArrayList(u8).init(allocator);
+        defer raw_bytes.deinit();
 
         for (token_ids) |token_id| {
             if (token_id >= self.vocab_size) continue;
             if (token_id == self.bos_token or token_id == self.eos_token or token_id == self.pad_token) continue;
 
             const token_text = self.vocab[token_id].text;
-            try raw_bytes.appendSlice(allocator, token_text);
+            try raw_bytes.appendSlice(token_text);
         }
 
         // Second pass: decode GPT-2/Qwen byte tokens to actual bytes
@@ -254,8 +254,8 @@ pub const Tokenizer = struct {
         // - 'Ġ' (U+0120 = 0xC4 0xA0) represents space
         // - 'Ċ' (U+010A = 0xC4 0x8A) represents newline
         // - Other chars 0x100-0x143 represent control chars and extended bytes
-        var result = std.ArrayList(u8).empty;
-        errdefer result.deinit(allocator);
+        var result = std.ArrayList(u8).init(allocator);
+        errdefer result.deinit();
 
         var i: usize = 0;
         while (i < raw_bytes.items.len) {
@@ -266,13 +266,13 @@ pub const Tokenizer = struct {
                 const next = raw_bytes.items[i + 1];
                 // 'Ġ' (U+0120) = 0xC4 0xA0 -> space
                 if (next == 0xA0) {
-                    try result.append(allocator, ' ');
+                    try result.append(' ');
                     i += 2;
                     continue;
                 }
                 // 'Ċ' (U+010A) = 0xC4 0x8A -> newline
                 if (next == 0x8A) {
-                    try result.append(allocator, '\n');
+                    try result.append('\n');
                     i += 2;
                     continue;
                 }
@@ -286,7 +286,7 @@ pub const Tokenizer = struct {
                     if (unicode >= 0x100 and unicode < 0x144) {
                         // Decode using GPT-2 byte table reverse mapping
                         const decoded = decodeGPT2Byte(unicode);
-                        try result.append(allocator, decoded);
+                        try result.append(decoded);
                         i += 2;
                         continue;
                     }
@@ -299,7 +299,7 @@ pub const Tokenizer = struct {
                 const next = raw_bytes.items[i + 1];
                 // U+00C0-U+00FF -> bytes 0xC0-0xFF
                 const decoded = 0xC0 + (next - 0x80);
-                try result.append(allocator, decoded);
+                try result.append(decoded);
                 i += 2;
                 continue;
             }
@@ -309,18 +309,18 @@ pub const Tokenizer = struct {
             if (byte == 0xC2 and i + 1 < raw_bytes.items.len) {
                 const next = raw_bytes.items[i + 1];
                 if (next >= 0xA1 and next <= 0xBF) {
-                    try result.append(allocator, next);
+                    try result.append(next);
                     i += 2;
                     continue;
                 }
             }
 
             // Regular ASCII or pass through
-            try result.append(allocator, byte);
+            try result.append(byte);
             i += 1;
         }
 
-        return result.toOwnedSlice(allocator);
+        return result.toOwnedSlice();
     }
 
     /// Decode GPT-2 byte token (U+0100-U+0143) to original byte

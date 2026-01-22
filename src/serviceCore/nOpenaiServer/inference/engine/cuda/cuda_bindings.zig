@@ -3,16 +3,13 @@
 //
 // Links against: libcudart.so
 // Requires: CUDA Toolkit 11.8+ or 12.x
+//
+// Note: Using manual extern declarations instead of @cImport for Zig 0.14 compatibility
 
 const std = @import("std");
 
-// Use @cImport to properly import CUDA headers
-const c = @cImport({
-    @cInclude("cuda_runtime_api.h");
-});
-
-// Re-export types and functions from C import
-pub const cudaError_t = c.cudaError_t;
+// CUDA error type - in CUDA this is an enum, we represent as c_int
+pub const cudaError_t = c_int;
 
 // ============================================================================
 // CUDA Error Codes
@@ -39,185 +36,210 @@ pub const cudaMemcpyDeviceToDevice: c_int = 3;
 pub const cudaMemcpyDefault: c_int = 4;
 
 // ============================================================================
-// Device Management - Using C import for proper linking
+// Device Management - Using extern declarations
 // ============================================================================
 
 /// Get the number of CUDA-capable devices
-pub fn cudaGetDeviceCount(count: *c_int) c_int {
-    return @intCast(c.cudaGetDeviceCount(count));
-}
+pub extern "cudart" fn cudaGetDeviceCount(count: *c_int) c_int;
 
 /// Set the current CUDA device
-pub fn cudaSetDevice(device: c_int) c_int {
-    return @intCast(c.cudaSetDevice(device));
-}
+pub extern "cudart" fn cudaSetDevice(device: c_int) c_int;
 
 /// Get the current CUDA device
-pub fn cudaGetDevice(device: *c_int) c_int {
-    return @intCast(c.cudaGetDevice(device));
-}
+pub extern "cudart" fn cudaGetDevice(device: *c_int) c_int;
 
 /// Reset the current CUDA device
-pub fn cudaDeviceReset() c_int {
-    return @intCast(c.cudaDeviceReset());
-}
+pub extern "cudart" fn cudaDeviceReset() c_int;
 
 /// Synchronize the current device
-pub fn cudaDeviceSynchronize() c_int {
-    return @intCast(c.cudaDeviceSynchronize());
-}
+pub extern "cudart" fn cudaDeviceSynchronize() c_int;
 
 // ============================================================================
 // Device Properties
 // ============================================================================
 
-/// Re-export the C cudaDeviceProp struct directly
-pub const CudaDeviceProp = c.struct_cudaDeviceProp;
+/// cudaDeviceProp structure (simplified - using opaque bytes for compatibility)
+pub const CudaDeviceProp = extern struct {
+    name: [256]u8,
+    uuid: [16]u8,
+    luid: [8]u8,
+    luidDeviceNodeMask: c_uint,
+    totalGlobalMem: usize,
+    sharedMemPerBlock: usize,
+    regsPerBlock: c_int,
+    warpSize: c_int,
+    memPitch: usize,
+    maxThreadsPerBlock: c_int,
+    maxThreadsDim: [3]c_int,
+    maxGridSize: [3]c_int,
+    clockRate: c_int,
+    totalConstMem: usize,
+    major: c_int,
+    minor: c_int,
+    textureAlignment: usize,
+    texturePitchAlignment: usize,
+    deviceOverlap: c_int,
+    multiProcessorCount: c_int,
+    kernelExecTimeoutEnabled: c_int,
+    integrated: c_int,
+    canMapHostMemory: c_int,
+    computeMode: c_int,
+    maxTexture1D: c_int,
+    maxTexture1DMipmap: c_int,
+    maxTexture1DLinear: c_int,
+    maxTexture2D: [2]c_int,
+    maxTexture2DMipmap: [2]c_int,
+    maxTexture2DLinear: [3]c_int,
+    maxTexture2DGather: [2]c_int,
+    maxTexture3D: [3]c_int,
+    maxTexture3DAlt: [3]c_int,
+    maxTextureCubemap: c_int,
+    maxTexture1DLayered: [2]c_int,
+    maxTexture2DLayered: [3]c_int,
+    maxTextureCubemapLayered: [2]c_int,
+    maxSurface1D: c_int,
+    maxSurface2D: [2]c_int,
+    maxSurface3D: [3]c_int,
+    maxSurface1DLayered: [2]c_int,
+    maxSurface2DLayered: [3]c_int,
+    maxSurfaceCubemap: c_int,
+    maxSurfaceCubemapLayered: [2]c_int,
+    surfaceAlignment: usize,
+    concurrentKernels: c_int,
+    ECCEnabled: c_int,
+    pciBusID: c_int,
+    pciDeviceID: c_int,
+    pciDomainID: c_int,
+    tccDriver: c_int,
+    asyncEngineCount: c_int,
+    unifiedAddressing: c_int,
+    memoryClockRate: c_int,
+    memoryBusWidth: c_int,
+    l2CacheSize: c_int,
+    persistingL2CacheMaxSize: c_int,
+    maxThreadsPerMultiProcessor: c_int,
+    streamPrioritiesSupported: c_int,
+    globalL1CacheSupported: c_int,
+    localL1CacheSupported: c_int,
+    sharedMemPerMultiprocessor: usize,
+    regsPerMultiprocessor: c_int,
+    managedMemory: c_int,
+    isMultiGpuBoard: c_int,
+    multiGpuBoardGroupID: c_int,
+    hostNativeAtomicSupported: c_int,
+    singleToDoublePrecisionPerfRatio: c_int,
+    pageableMemoryAccess: c_int,
+    concurrentManagedAccess: c_int,
+    computePreemptionSupported: c_int,
+    canUseHostPointerForRegisteredMem: c_int,
+    cooperativeLaunch: c_int,
+    cooperativeMultiDeviceLaunch: c_int,
+    sharedMemPerBlockOptin: usize,
+    pageableMemoryAccessUsesHostPageTables: c_int,
+    directManagedMemAccessFromHost: c_int,
+    maxBlocksPerMultiProcessor: c_int,
+    accessPolicyMaxWindowSize: c_int,
+    reservedSharedMemPerBlock: usize,
+    // Padding for future CUDA versions
+    reserved: [64]c_int,
+};
 
 /// Get device properties
-pub fn cudaGetDeviceProperties(prop: *CudaDeviceProp, device: c_int) c_int {
-    return @intCast(c.cudaGetDeviceProperties(prop, device));
-}
+pub extern "cudart" fn cudaGetDeviceProperties(prop: *CudaDeviceProp, device: c_int) c_int;
 
 // ============================================================================
-// Memory Management - Using C import wrappers
+// Memory Management - Using extern declarations
 // ============================================================================
 
 /// Allocate memory on the device
-pub fn cudaMalloc(ptr: **anyopaque, size: usize) c_int {
-    return @intCast(c.cudaMalloc(@ptrCast(ptr), size));
-}
+pub extern "cudart" fn cudaMalloc(ptr: **anyopaque, size: usize) c_int;
 
 /// Free memory on the device
-pub fn cudaFree(ptr: *anyopaque) c_int {
-    return @intCast(c.cudaFree(ptr));
-}
+pub extern "cudart" fn cudaFree(ptr: ?*anyopaque) c_int;
 
 /// Allocate pinned host memory (page-locked)
-pub fn cudaMallocHost(ptr: **anyopaque, size: usize) c_int {
-    return @intCast(c.cudaMallocHost(@ptrCast(ptr), size));
-}
+pub extern "cudart" fn cudaMallocHost(ptr: **anyopaque, size: usize) c_int;
 
 /// Free pinned host memory
-pub fn cudaFreeHost(ptr: *anyopaque) c_int {
-    return @intCast(c.cudaFreeHost(ptr));
-}
+pub extern "cudart" fn cudaFreeHost(ptr: ?*anyopaque) c_int;
 
 /// Get free and total device memory
-pub fn cudaMemGetInfo(free_mem: *usize, total: *usize) c_int {
-    return @intCast(c.cudaMemGetInfo(free_mem, total));
-}
+pub extern "cudart" fn cudaMemGetInfo(free_mem: *usize, total: *usize) c_int;
 
 /// Copy memory between host and device
-pub fn cudaMemcpy(dst: *anyopaque, src: *const anyopaque, size: usize, kind: c_int) c_int {
-    return @intCast(c.cudaMemcpy(dst, @constCast(src), size, @intCast(kind)));
-}
+pub extern "cudart" fn cudaMemcpy(dst: ?*anyopaque, src: ?*const anyopaque, size: usize, kind: c_int) c_int;
 
 /// Asynchronous memory copy
-pub fn cudaMemcpyAsync(
-    dst: *anyopaque,
-    src: *const anyopaque,
+pub extern "cudart" fn cudaMemcpyAsync(
+    dst: ?*anyopaque,
+    src: ?*const anyopaque,
     size: usize,
     kind: c_int,
     stream: ?*anyopaque,
-) c_int {
-    return @intCast(c.cudaMemcpyAsync(dst, @constCast(src), size, @intCast(kind), @ptrCast(stream)));
-}
+) c_int;
 
 /// Set device memory to a value
-pub fn cudaMemset(ptr: *anyopaque, value: c_int, size: usize) c_int {
-    return @intCast(c.cudaMemset(ptr, value, size));
-}
+pub extern "cudart" fn cudaMemset(ptr: ?*anyopaque, value: c_int, size: usize) c_int;
 
 /// Asynchronous memset
-pub fn cudaMemsetAsync(ptr: *anyopaque, value: c_int, size: usize, stream: ?*anyopaque) c_int {
-    return @intCast(c.cudaMemsetAsync(ptr, value, size, @ptrCast(stream)));
-}
+pub extern "cudart" fn cudaMemsetAsync(ptr: ?*anyopaque, value: c_int, size: usize, stream: ?*anyopaque) c_int;
 
 // ============================================================================
-// Stream Management - Using C import wrappers
+// Stream Management - Using extern declarations
 // ============================================================================
 
 /// Create a CUDA stream
-pub fn cudaStreamCreate(stream: **anyopaque) c_int {
-    return @intCast(c.cudaStreamCreate(@ptrCast(stream)));
-}
+pub extern "cudart" fn cudaStreamCreate(stream: **anyopaque) c_int;
 
 /// Create a CUDA stream with flags
-pub fn cudaStreamCreateWithFlags(stream: **anyopaque, flags: c_uint) c_int {
-    return @intCast(c.cudaStreamCreateWithFlags(@ptrCast(stream), flags));
-}
+pub extern "cudart" fn cudaStreamCreateWithFlags(stream: **anyopaque, flags: c_uint) c_int;
 
 /// Destroy a CUDA stream
-pub fn cudaStreamDestroy(stream: *anyopaque) c_int {
-    return @intCast(c.cudaStreamDestroy(@ptrCast(stream)));
-}
+pub extern "cudart" fn cudaStreamDestroy(stream: ?*anyopaque) c_int;
 
 /// Synchronize a CUDA stream
-pub fn cudaStreamSynchronize(stream: *anyopaque) c_int {
-    return @intCast(c.cudaStreamSynchronize(@ptrCast(stream)));
-}
+pub extern "cudart" fn cudaStreamSynchronize(stream: ?*anyopaque) c_int;
 
 /// Query stream status
-pub fn cudaStreamQuery(stream: *anyopaque) c_int {
-    return @intCast(c.cudaStreamQuery(@ptrCast(stream)));
-}
+pub extern "cudart" fn cudaStreamQuery(stream: ?*anyopaque) c_int;
 
 // Stream flags
 pub const cudaStreamDefault: c_uint = 0x00;
 pub const cudaStreamNonBlocking: c_uint = 0x01;
 
 /// Create stream with priority
-pub fn cudaStreamCreateWithPriority(stream: **anyopaque, flags: c_uint, priority: c_int) c_int {
-    return @intCast(c.cudaStreamCreateWithPriority(@ptrCast(stream), flags, priority));
-}
+pub extern "cudart" fn cudaStreamCreateWithPriority(stream: **anyopaque, flags: c_uint, priority: c_int) c_int;
 
 /// Make stream wait for event
-pub fn cudaStreamWaitEvent(stream: *anyopaque, event: *anyopaque, flags: c_uint) c_int {
-    return @intCast(c.cudaStreamWaitEvent(@ptrCast(stream), @ptrCast(event), flags));
-}
+pub extern "cudart" fn cudaStreamWaitEvent(stream: ?*anyopaque, event: ?*anyopaque, flags: c_uint) c_int;
 
 // Error code for operations not ready
 pub const cudaErrorNotReady: c_int = 600;
 
 // ============================================================================
-// Event Management - Using C import wrappers
+// Event Management - Using extern declarations
 // ============================================================================
 
 /// Create a CUDA event
-pub fn cudaEventCreate(event: **anyopaque) c_int {
-    return @intCast(c.cudaEventCreate(@ptrCast(event)));
-}
+pub extern "cudart" fn cudaEventCreate(event: **anyopaque) c_int;
 
 /// Create a CUDA event with flags
-pub fn cudaEventCreateWithFlags(event: **anyopaque, flags: c_uint) c_int {
-    return @intCast(c.cudaEventCreateWithFlags(@ptrCast(event), flags));
-}
+pub extern "cudart" fn cudaEventCreateWithFlags(event: **anyopaque, flags: c_uint) c_int;
 
 /// Destroy a CUDA event
-pub fn cudaEventDestroy(event: *anyopaque) c_int {
-    return @intCast(c.cudaEventDestroy(@ptrCast(event)));
-}
+pub extern "cudart" fn cudaEventDestroy(event: ?*anyopaque) c_int;
 
 /// Record an event in a stream
-pub fn cudaEventRecord(event: *anyopaque, stream: *anyopaque) c_int {
-    return @intCast(c.cudaEventRecord(@ptrCast(event), @ptrCast(stream)));
-}
+pub extern "cudart" fn cudaEventRecord(event: ?*anyopaque, stream: ?*anyopaque) c_int;
 
 /// Synchronize on an event
-pub fn cudaEventSynchronize(event: *anyopaque) c_int {
-    return @intCast(c.cudaEventSynchronize(@ptrCast(event)));
-}
+pub extern "cudart" fn cudaEventSynchronize(event: ?*anyopaque) c_int;
 
 /// Query event status
-pub fn cudaEventQuery(event: *anyopaque) c_int {
-    return @intCast(c.cudaEventQuery(@ptrCast(event)));
-}
+pub extern "cudart" fn cudaEventQuery(event: ?*anyopaque) c_int;
 
 /// Calculate elapsed time between two events
-pub fn cudaEventElapsedTime(ms: *f32, start_event: *anyopaque, end_event: *anyopaque) c_int {
-    return @intCast(c.cudaEventElapsedTime(ms, @ptrCast(start_event), @ptrCast(end_event)));
-}
+pub extern "cudart" fn cudaEventElapsedTime(ms: *f32, start_event: ?*anyopaque, end_event: ?*anyopaque) c_int;
 
 // Event flags
 pub const cudaEventDefault: c_uint = 0x00;
@@ -257,28 +279,20 @@ pub extern "cudart" fn cudaGraphDestroy(graph: cudaGraph_t) c_int;
 pub extern "cudart" fn cudaGraphExecDestroy(graph_exec: cudaGraphExec_t) c_int;
 
 // ============================================================================
-// Error Handling - Using C import wrappers
+// Error Handling - Using extern declarations
 // ============================================================================
 
 /// Get the last CUDA error
-pub fn cudaGetLastError() c_int {
-    return @intCast(c.cudaGetLastError());
-}
+pub extern "cudart" fn cudaGetLastError() c_int;
 
 /// Peek at the last CUDA error (doesn't clear it)
-pub fn cudaPeekAtLastError() c_int {
-    return @intCast(c.cudaPeekAtLastError());
-}
+pub extern "cudart" fn cudaPeekAtLastError() c_int;
 
 /// Get error string from error code
-pub fn cudaGetErrorString(err: c_int) [*:0]const u8 {
-    return c.cudaGetErrorString(@intCast(err));
-}
+pub extern "cudart" fn cudaGetErrorString(err: c_int) [*:0]const u8;
 
 /// Get error name from error code
-pub fn cudaGetErrorName(err: c_int) [*:0]const u8 {
-    return c.cudaGetErrorName(@intCast(err));
-}
+pub extern "cudart" fn cudaGetErrorName(err: c_int) [*:0]const u8;
 
 // ============================================================================
 // Helper Functions

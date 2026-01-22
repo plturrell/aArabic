@@ -567,10 +567,10 @@ pub fn matmul_f32(
                     .end_row = end,
                 };
                 
-                tp.submit(.{
+                try tp.submit(.{
                     .work_fn = work_fn,
                     .context = @ptrCast(&contexts[t]),
-                }) catch {};
+                });
             }
             tp.waitAll();
             allocator.free(contexts); // Free AFTER threads complete

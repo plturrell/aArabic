@@ -205,13 +205,13 @@ pub const MemoryPool = struct {
             const last_idx = self.free_blocks.items.len - 1;
             const block = self.free_blocks.items[last_idx];
             _ = self.free_blocks.swapRemove(last_idx);
-            try self.allocated_blocks.append(self.allocator, block);
+            try self.allocated_blocks.append(block);
             return block;
         }
-        
+
         // Allocate new block
         const block = try DeviceMemory.alloc(self.allocator, self.block_size);
-        try self.allocated_blocks.append(self.allocator, block);
+        try self.allocated_blocks.append(block);
         self.total_allocated += 1;
         
         return block;
@@ -223,7 +223,7 @@ pub const MemoryPool = struct {
         for (self.allocated_blocks.items, 0..) |item, i| {
             if (item.ptr == block.ptr) {
                 _ = self.allocated_blocks.orderedRemove(i);
-                try self.free_blocks.append(self.allocator, block);
+                try self.free_blocks.append(block);
                 self.total_freed += 1;
                 return;
             }

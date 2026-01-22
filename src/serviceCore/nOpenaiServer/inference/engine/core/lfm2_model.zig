@@ -172,6 +172,7 @@ pub const Lfm2Model = struct {
             config.head_dim,
             config.max_seq_len,
             config.rope_theta,
+            null, // No scaling config for LFM2
         );
         errdefer allocator.free(rope_freqs);
 
@@ -476,8 +477,10 @@ pub const Lfm2Model = struct {
         if (window > 0) {
             const cache_slice = cache[0 .. window * hid];
             if (window > 1) {
-                // shift left by one slot (hid)
-                @memmove(cache_slice[0.. (window - 1) * hid], cache_slice[hid .. window * hid]);
+                // shift left by one slot (hid) - use copyBackwards for overlapping regions
+                const dest = cache_slice[0.. (window - 1) * hid];
+                const src = cache_slice[hid .. window * hid];
+                std.mem.copyBackwards(f32, dest, src);
             }
             @memcpy(cache_slice[(window - 1) * hid ..], input);
         }

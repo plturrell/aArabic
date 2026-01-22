@@ -226,14 +226,14 @@ pub const BPETokenizer = struct {
     
     /// Get pairs from word
     fn getPairs(word: []const []const u8, allocator: std.mem.Allocator) !std.ArrayList([2][]const u8) {
-        var pairs = std.ArrayList([2][]const u8){};
-        
+        var pairs = std.ArrayList([2][]const u8).init(allocator);
+
         if (word.len < 2) return pairs;
-        
+
         for (0..word.len - 1) |i| {
-            try pairs.append(allocator, .{ word[i], word[i + 1] });
+            try pairs.append(.{ word[i], word[i + 1] });
         }
-        
+
         return pairs;
     }
     
@@ -255,30 +255,30 @@ pub const BPETokenizer = struct {
         while (words.next()) |word| {
             // Try to find word in vocabulary
             if (self.vocab.getId(word)) |id| {
-                try tokens.append(self.allocator, id);
+                try tokens.append(id);
             } else {
                 // Use unknown token
-                try tokens.append(self.allocator, self.unk_token_id);
+                try tokens.append(self.unk_token_id);
             }
         }
-        
-        return try tokens.toOwnedSlice(self.allocator);
+
+        return try tokens.toOwnedSlice();
     }
     
     /// Decode token IDs to text
     pub fn decode(self: *BPETokenizer, token_ids: []const u32) ![]const u8 {
-        var result = std.ArrayList(u8){};
-        
+        var result = std.ArrayList(u8).init(self.allocator);
+
         for (token_ids, 0..) |id, i| {
             if (self.vocab.getToken(id)) |token| {
                 if (i > 0) {
-                    try result.append(self.allocator, ' ');
+                    try result.append(' ');
                 }
-                try result.appendSlice(self.allocator, token);
+                try result.appendSlice(token);
             }
         }
-        
-        return try result.toOwnedSlice(self.allocator);
+
+        return try result.toOwnedSlice();
     }
     
     /// Get vocabulary size

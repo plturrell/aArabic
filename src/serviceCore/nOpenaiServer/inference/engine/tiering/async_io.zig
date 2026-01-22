@@ -94,7 +94,7 @@ pub const AsyncIOEngine = struct {
         buffer: []u8,
         callback: ?*const fn(*IOResult) void,
     ) !void {
-        try self.pending.append(self.allocator, .{
+        try self.pending.append(.{
             .op = .{
                 .op_type = .read,
                 .fd = file.handle,
@@ -122,7 +122,7 @@ pub const AsyncIOEngine = struct {
         // Need mutable copy for the operation
         const data_copy = try self.allocator.dupe(u8, data);
         
-        try self.pending.append(self.allocator, .{
+        try self.pending.append(.{
             .op = .{
                 .op_type = .write,
                 .fd = file.handle,

@@ -290,7 +290,7 @@ pub const TieredKVCache = struct {
         // Day 3: Track this hot entry (only for layer 0 to save memory)
         if (layer == 0 and self.config.eviction_policy != .simple_lru) {
             const is_recent = self.seq_pos + self.config.pin_recent_tokens >= self.seq_pos;
-            try self.hot_entries.append(self.allocator, .{
+            try self.hot_entries.append(.{
                 .token_pos = self.seq_pos,
                 .access_count = 1,
                 .last_access_time = std.time.milliTimestamp(),
@@ -362,7 +362,7 @@ pub const TieredKVCache = struct {
         
         // Batch tracking update (single entry for batch)
         if (layer == 0 and self.config.eviction_policy != .simple_lru) {
-            try self.hot_entries.append(self.allocator, .{
+            try self.hot_entries.append(.{
                 .token_pos = self.seq_pos,
                 .access_count = 1,
                 .last_access_time = std.time.milliTimestamp(),
@@ -418,7 +418,7 @@ pub const TieredKVCache = struct {
             try self.ssd_storage.write(ssd_offset + keys_bytes.len, values_bytes);
 
             // Record cold block (Day 3: Enhanced tracking)
-            try self.cold_blocks.append(self.allocator, .{
+            try self.cold_blocks.append(.{
                 .start_pos = evict_start,
                 .end_pos = evict_end,
                 .ssd_offset = ssd_offset,
@@ -517,7 +517,7 @@ pub const TieredKVCache = struct {
             try self.ssd_storage.write(ssd_offset + keys_bytes.len, values_bytes);
             
             // Record cold block with access stats
-            try self.cold_blocks.append(self.allocator, .{
+            try self.cold_blocks.append(.{
                 .start_pos = evict_start,
                 .end_pos = evict_end,
                 .ssd_offset = ssd_offset,

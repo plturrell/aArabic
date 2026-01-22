@@ -920,7 +920,7 @@ pub const GGUFModelLoader = struct {
         const layer_types = try self.allocator.alloc(lfm2.LayerType, model.metadata.n_layers);
 
         var attn_idxs = try std.ArrayList(u32).initCapacity(self.allocator, 0);
-        defer attn_idxs.deinit(self.allocator);
+        defer attn_idxs.deinit();
 
         var config = lfm2.Lfm2Config{
             .vocab_size = model.metadata.vocab_size,
@@ -1035,7 +1035,7 @@ pub const GGUFModelLoader = struct {
             var k_norm: []const f32 = &[_]f32{};
 
             if (has_attn) {
-                try attn_idxs.append(self.allocator, @intCast(layer_idx));
+                try attn_idxs.append(@intCast(layer_idx));
                 const q_dim = config.n_heads * config.head_dim;
                 const kv_dim = config.n_kv_heads * config.head_dim;
                 
@@ -1112,7 +1112,7 @@ pub const GGUFModelLoader = struct {
             };
         }
 
-        const attn_slice = try attn_idxs.toOwnedSlice(self.allocator);
+        const attn_slice = try attn_idxs.toOwnedSlice();
         const cfg_final = lfm2.Lfm2Config{
             .vocab_size = config.vocab_size,
             .n_layers = config.n_layers,

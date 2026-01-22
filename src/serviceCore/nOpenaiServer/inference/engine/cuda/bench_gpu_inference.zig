@@ -54,6 +54,7 @@ pub fn main() !void {
     const n_heads = model.metadata.n_heads;
     const n_kv_heads = model.metadata.n_kv_heads;
     const vocab_size = model.metadata.vocab_size;
+    const rope_theta: f32 = 10000.0; // Default value, could be read from metadata if available
 
     std.debug.print("   Layers: {}\n", .{n_layers});
     std.debug.print("   Embed dim: {}\n", .{embed_dim});
@@ -90,6 +91,7 @@ pub fn main() !void {
         @intCast(n_kv_heads),
         @intCast(vocab_size),
         @intCast(n_layers),
+        rope_theta,
     );
     defer gpu_engine_single.deinit();
 
@@ -138,6 +140,8 @@ pub fn main() !void {
             @intCast(vocab_size),
             @intCast(n_layers),
             bs,
+            2048, // max_seq_len
+            rope_theta,
         );
         defer gpu_engine_batch.deinit();
 

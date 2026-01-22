@@ -56,6 +56,7 @@ pub fn main() !void {
     const n_heads = model.metadata.n_heads;
     const n_kv_heads = model.metadata.n_kv_heads;
     const vocab_size = model.metadata.vocab_size;
+    const rope_theta: f32 = 10000.0; // Default for LLaMA models
 
     std.debug.print("   Layers: {d}, Embed: {d}, Hidden: {d}, Heads: {d}/{d}, Vocab: {d}\n", .{
         n_layers, embed_dim, hidden_dim, n_heads, n_kv_heads, vocab_size,
@@ -100,6 +101,7 @@ pub fn main() !void {
         @intCast(n_kv_heads),
         @intCast(vocab_size),
         @intCast(n_layers),
+        rope_theta,
     );
     defer gpu_engine.deinit();
 

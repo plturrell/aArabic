@@ -213,8 +213,8 @@ pub const StreamPool = struct {
         var i: usize = 0;
         while (i < pool_size) : (i += 1) {
             const stream = try CudaStream.init(allocator);
-            try streams.append(allocator, stream);
-            try available.append(allocator, i);
+            try streams.append(stream);
+            try available.append(i);
         }
         
         return StreamPool{
@@ -230,8 +230,8 @@ pub const StreamPool = struct {
         for (self.streams.items) |*stream| {
             stream.deinit();
         }
-        self.streams.deinit(self.allocator);
-        self.available.deinit(self.allocator);
+        self.streams.deinit();
+        self.available.deinit();
     }
     
     /// Acquire a stream from the pool
@@ -253,7 +253,7 @@ pub const StreamPool = struct {
             if (@intFromPtr(s.handle) == @intFromPtr(stream.handle)) {
                 // Synchronize before releasing
                 try stream.synchronize();
-                try self.available.append(self.allocator, i);
+                try self.available.append(i);
                 return;
             }
         }

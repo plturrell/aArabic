@@ -107,18 +107,18 @@ pub fn listGPUs(allocator: std.mem.Allocator) ![][]const u8 {
     var gpu_list = try std.ArrayList([]const u8).initCapacity(allocator, 8);
     errdefer {
         for (gpu_list.items) |gpu| allocator.free(gpu);
-        gpu_list.deinit(allocator);
+        gpu_list.deinit();
     }
-    
+
     var lines = std.mem.splitScalar(u8, result.stdout, '\n');
     while (lines.next()) |line| {
         const trimmed = std.mem.trim(u8, line, " \t\r");
         if (trimmed.len > 0) {
-            try gpu_list.append(allocator, try allocator.dupe(u8, trimmed));
+            try gpu_list.append(try allocator.dupe(u8, trimmed));
         }
     }
-    
-    return gpu_list.toOwnedSlice(allocator);
+
+    return gpu_list.toOwnedSlice();
 }
 
 // ============================================================================
@@ -130,7 +130,7 @@ fn parseNvidiaSmiXML(allocator: std.mem.Allocator, xml: []const u8) ![]GPUInfo {
     var gpus = try std.ArrayList(GPUInfo).initCapacity(allocator, 4);
     errdefer {
         for (gpus.items) |*gpu| gpu.deinit(allocator);
-        gpus.deinit(allocator);
+        gpus.deinit();
     }
     
     // Simple state machine parser
@@ -166,7 +166,7 @@ fn parseNvidiaSmiXML(allocator: std.mem.Allocator, xml: []const u8) ![]GPUInfo {
             current_gpu.index = gpu_index;
             gpu_index += 1;
         } else if (std.mem.indexOf(u8, trimmed, "</gpu>")) |_| {
-            try gpus.append(allocator, current_gpu);
+            try gpus.append(current_gpu);
             in_gpu = false;
             // Reset for next GPU
             current_gpu = GPUInfo{
@@ -245,7 +245,7 @@ fn parseNvidiaSmiXML(allocator: std.mem.Allocator, xml: []const u8) ![]GPUInfo {
         }
     }
     
-    const gpu_array = try gpus.toOwnedSlice(allocator);
+    const gpu_array = try gpus.toOwnedSlice();
     std.debug.print("   Found {d} GPU(s)\n", .{gpu_array.len});
     
     return gpu_array;

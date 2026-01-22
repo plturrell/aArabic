@@ -173,7 +173,7 @@ pub const BenchmarkSuiteResult = struct {
     }
 
     pub fn addResult(self: *BenchmarkSuiteResult, result: BenchmarkResult) !void {
-        try self.results.append(self.allocator, result);
+        try self.results.append(result);
         self.scenarios_run += 1;
         self.total_duration_us += result.total_time_us;
         if (result.overhead_percent > 5.0) {
@@ -739,8 +739,8 @@ pub const BenchmarkReporter = struct {
 
     /// Generate CSV output
     pub fn toCsv(self: *BenchmarkReporter, suite: *const BenchmarkSuiteResult) ![]u8 {
-        var buffer: std.ArrayList(u8) = .{};
-        const writer = buffer.writer(self.allocator);
+        var buffer = std.ArrayList(u8).init(self.allocator);
+        const writer = buffer.writer();
 
         // Header
         try writer.writeAll("scenario,matrix_size,mean_us,min_us,max_us,p95_us,p99_us,std_dev_us,ops_per_sec,overhead_pct,stability_rate\n");
@@ -762,13 +762,13 @@ pub const BenchmarkReporter = struct {
             });
         }
 
-        return buffer.toOwnedSlice(self.allocator);
+        return buffer.toOwnedSlice();
     }
 
     /// Generate JSON output
     pub fn toJson(self: *BenchmarkReporter, suite: *const BenchmarkSuiteResult) ![]u8 {
-        var buffer: std.ArrayList(u8) = .{};
-        const writer = buffer.writer(self.allocator);
+        var buffer = std.ArrayList(u8).init(self.allocator);
+        const writer = buffer.writer();
 
         try writer.writeAll("{\n");
         try writer.print("  \"platform\": \"{s}\",\n", .{suite.platform});
@@ -800,7 +800,7 @@ pub const BenchmarkReporter = struct {
         try writer.writeAll("  ]\n");
         try writer.writeAll("}\n");
 
-        return buffer.toOwnedSlice(self.allocator);
+        return buffer.toOwnedSlice();
     }
 };
 
