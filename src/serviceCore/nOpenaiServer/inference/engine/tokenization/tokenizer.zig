@@ -81,11 +81,14 @@ pub const Tokenizer = struct {
     }
 
     pub fn deinit(self: *Tokenizer) void {
+        // Deinit the map first before freeing the vocab strings
+        // (the map uses string slices as keys that point into vocab)
+        self.token_map.deinit();
+
         for (self.vocab) |token| {
             self.allocator.free(token.text);
         }
         self.allocator.free(self.vocab);
-        self.token_map.deinit();
     }
 
     /// Create tokenizer from BPE vocab (for HuggingFace models)

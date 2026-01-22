@@ -23,9 +23,10 @@ const log = std.log.scoped(.dequant);
 pub const Q4_0_BLOCK_SIZE: usize = 32;
 pub const Q4_0_BLOCK_BYTES: usize = 18;
 
-/// Q8_0: 32 weights per block, 36 bytes (4B f32 scale + 32B int8)
+/// Q8_0: 32 weights per block, 34 bytes (2B f16 scale + 32B int8)
+/// Note: GGUF uses f16 scale, not f32
 pub const Q8_0_BLOCK_SIZE: usize = 32;
-pub const Q8_0_BLOCK_BYTES: usize = 36;
+pub const Q8_0_BLOCK_BYTES: usize = 34;
 
 /// Q4_K: 256 weights per block, 144 bytes (complex K-quant format)
 pub const Q4_K_BLOCK_SIZE: usize = 256;

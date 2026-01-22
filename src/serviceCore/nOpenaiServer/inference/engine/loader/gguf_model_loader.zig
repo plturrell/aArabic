@@ -855,32 +855,32 @@ pub const GGUFModelLoader = struct {
         activations_mb: usize,
         total_mb: usize,
     } {
-        var weights_bytes: usize = 0;
+        var weights_bytes: u64 = 0;
 
         // Embedding
-        weights_bytes += config.vocab_size * config.embed_dim * @sizeOf(f32);
+        weights_bytes += @as(u64, config.vocab_size) * @as(u64, config.embed_dim) * @sizeOf(f32);
 
         // Layers
-        const attention_params = 4 * config.embed_dim * config.embed_dim; // wq, wk, wv, wo
-        const ffn_params = 3 * config.embed_dim * config.ffn_dim; // gate, up, down
-        const norms = 2 * config.embed_dim; // attention_norm, ffn_norm
+        const attention_params: u64 = 4 * @as(u64, config.embed_dim) * @as(u64, config.embed_dim); // wq, wk, wv, wo
+        const ffn_params: u64 = 3 * @as(u64, config.embed_dim) * @as(u64, config.ffn_dim); // gate, up, down
+        const norms: u64 = 2 * @as(u64, config.embed_dim); // attention_norm, ffn_norm
 
-        weights_bytes += config.n_layers * (attention_params + ffn_params + norms) * @sizeOf(f32);
+        weights_bytes += @as(u64, config.n_layers) * (attention_params + ffn_params + norms) * @sizeOf(f32);
 
         // Output norm and head
-        weights_bytes += config.embed_dim * @sizeOf(f32); // output_norm
-        weights_bytes += config.vocab_size * config.embed_dim * @sizeOf(f32); // output head (usually shared but count separately for safety if not shared)
+        weights_bytes += @as(u64, config.embed_dim) * @sizeOf(f32); // output_norm
+        weights_bytes += @as(u64, config.vocab_size) * @as(u64, config.embed_dim) * @sizeOf(f32); // output head (usually shared but count separately for safety if not shared)
         // Note: Llama usually shares embedding and output weight? No, usually separate in safe tensors?
         // Llama 2: Unbound?
         // Let's assume separate for conservative estimate.
 
-        const weights_mb = weights_bytes / (1024 * 1024);
+        const weights_mb: usize = @intCast(weights_bytes / (1024 * 1024));
 
         // KV cache
-        const kv_cache_mb = (config.n_layers * 2 * config.n_kv_heads * config.head_dim * config.max_seq_len * @sizeOf(f32)) / (1024 * 1024);
+        const kv_cache_mb: usize = @intCast((@as(u64, config.n_layers) * 2 * @as(u64, config.n_kv_heads) * @as(u64, config.head_dim) * @as(u64, config.max_seq_len) * @sizeOf(f32)) / (1024 * 1024));
 
         // Activations
-        const activations_mb = (config.embed_dim * 4 * @sizeOf(f32)) / (1024 * 1024);
+        const activations_mb: usize = @intCast((@as(u64, config.embed_dim) * 4 * @sizeOf(f32)) / (1024 * 1024));
 
         const total_mb = weights_mb + kv_cache_mb + activations_mb;
 

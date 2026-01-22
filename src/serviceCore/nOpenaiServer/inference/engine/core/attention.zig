@@ -4,9 +4,11 @@ const kv_cache = @import("kv_cache");
 const thread_pool = @import("thread_pool");
 const compute = @import("compute");
 const gguf = @import("gguf_loader");
+const config_parser = @import("config_parser");
 
 /// Multi-head self-attention with KV caching for Llama models
 /// Implements scaled dot-product attention with RoPE position encoding
+/// Supports RoPE scaling for context window extension (linear, dynamic NTK, YaRN)
 
 // ============================================================================ 
 // Structures
@@ -17,6 +19,7 @@ pub const AttentionConfig = struct {
     n_kv_heads: u32,  // For grouped-query attention
     head_dim: u32,
     rope_theta: f32 = 10000.0,
+    rope_scaling: ?config_parser.RopeScalingConfig = null,
 };
 
 pub const AttentionWeights = struct {
@@ -56,26 +59,124 @@ pub fn weightToBackendParams(weight: matrix_ops.Weight) BackendParams {
 }
 
 // ============================================================================
-// RoPE (Rotary Position Embedding)
+// RoPE (Rotary Position Embedding) with Scaling Support
 // ============================================================================
 
-/// Precompute RoPE frequencies for position encoding
+/// Compute scaled RoPE frequency for a given position
+/// Supports linear, dynamic NTK-aware, and YaRN scaling methods
+fn computeScaledFreq(
+    base_freq: f32,
+    position: u32,
+    dim_idx: usize,
+    head_dim: u32,
+    scaling_config: ?config_parser.RopeScalingConfig,
+) f32 {
+    const config = scaling_config orelse return base_freq;
+    
+    const pos_f = @as(f32, @floatFromInt(position));
+    const original_max = @as(f32, @floatFromInt(config.original_max_position_embeddings));
+    
+    return switch (config.type) {
+        .none => base_freq,
+        
+        .linear => {
+            // Linear RoPE scaling: uniformly scale all frequencies
+            // Effective for moderate extensions (2-4x)
+            base_freq / config.factor
+        },
+        
+        .dynamic => {
+            // Dynamic NTK-aware scaling (Code Llama style)
+            // Only applies scaling beyond original context window
+            if (position < config.original_max_position_embeddings) {
+                return base_freq;
+            }
+            
+            // Scale factor based on sequence length ratio
+            // scale = (current_length / original_length) ^ (dim / (dim - 2))
+            const length_ratio = pos_f / original_max;
+            const dim_f = @as(f32, @floatFromInt(head_dim));
+            const dim_idx_f = @as(f32, @floatFromInt(dim_idx));
+            
+            // NTK-aware interpolation exponent
+            const exponent = dim_f / (dim_f - 2.0);
+            const ntk_scale = std.math.pow(f32, length_ratio, exponent);
+            
+            base_freq / ntk_scale
+        },
+        
+        .yarn => {
+            // YaRN (Yet another RoPE extensioN method)
+            // Most sophisticated, interpolates between low and high frequency dimensions
+            if (position < config.original_max_position_embeddings) {
+                return base_freq;
+            }
+            
+            const dim_f = @as(f32, @floatFromInt(head_dim));
+            const dim_idx_f = @as(f32, @floatFromInt(dim_idx * 2));
+            
+            // YaRN parameters with defaults
+            const attn_factor = config.attention_factor orelse 1.0;
+            const beta_fast = config.beta_fast orelse 32.0;
+            const beta_slow = config.beta_slow orelse 1.0;
+            
+            // Compute interpolation ramp based on dimension position
+            // Low frequencies (high wavelengths) get more scaling
+            // High frequencies (low wavelengths) get less scaling
+            const ramp = (dim_idx_f / dim_f - beta_fast) / (beta_slow - beta_fast);
+            const ramp_clamped = @max(0.0, @min(1.0, ramp));
+            
+            // Interpolate scale factor between 1.0 (no scaling) and config.factor
+            const scale = config.factor * ramp_clamped + 1.0 * (1.0 - ramp_clamped);
+            
+            base_freq / (scale * attn_factor)
+        },
+    };
+}
+
+/// Precompute RoPE frequencies with optional scaling for position encoding
+/// Supports context window extension via linear, dynamic NTK, or YaRN scaling
 pub fn precomputeRopeFreqs(
     allocator: std.mem.Allocator,
     head_dim: u32,
     max_seq_len: u32,
     theta: f32,
+    scaling_config: ?config_parser.RopeScalingConfig,
 ) ![]f32 {
     const freq_size = (head_dim / 2) * max_seq_len;
     const freqs = try allocator.alloc(f32, freq_size * 2); // cos and sin
     
-    // Compute base frequencies
+    // Log scaling information if present
+    if (scaling_config) |sc| {
+        std.debug.print("   🔄 RoPE Scaling enabled: {s}\n", .{@tagName(sc.type)});
+        std.debug.print("      Factor: {d:.2}x, Original: {d} → Extended: {d}\n", .{
+            sc.factor,
+            sc.original_max_position_embeddings,
+            sc.getExtendedSeqLen(),
+        });
+    }
+    
+    // Compute frequencies with scaling
     for (0..head_dim / 2) |i| {
-        const freq = 1.0 / std.math.pow(f32, theta, @as(f32, @floatFromInt(i * 2)) / @as(f32, @floatFromInt(head_dim)));
+        // Base frequency (unscaled)
+        const base_freq = 1.0 / std.math.pow(
+            f32,
+            theta,
+            @as(f32, @floatFromInt(i * 2)) / @as(f32, @floatFromInt(head_dim))
+        );
         
         // For each position
         for (0..max_seq_len) |pos| {
-            const angle = @as(f32, @floatFromInt(pos)) * freq;
+            // Apply scaling if configured
+            const scaled_freq = computeScaledFreq(
+                base_freq,
+                @intCast(pos),
+                i,
+                head_dim,
+                scaling_config,
+            );
+            
+            const angle = @as(f32, @floatFromInt(pos)) * scaled_freq;
             const idx = pos * (head_dim / 2) + i;
             freqs[idx] = @cos(angle);  // cos
             freqs[freq_size + idx] = @sin(angle);  // sin
@@ -643,7 +744,13 @@ pub fn test_attention(allocator: std.mem.Allocator) !void {
         var cache = try kv_cache.KVCache.init(allocator, 1, config.n_kv_heads, config.head_dim, max_seq_len);
         defer cache.deinit();
         
-        const freqs = try precomputeRopeFreqs(allocator, config.head_dim, max_seq_len, config.rope_theta);
+        const freqs = try precomputeRopeFreqs(
+            allocator,
+            config.head_dim,
+            max_seq_len,
+            config.rope_theta,
+            null, // No scaling for tests
+        );
         defer allocator.free(freqs);
         
         const input = try allocator.alloc(f32, embed_dim);

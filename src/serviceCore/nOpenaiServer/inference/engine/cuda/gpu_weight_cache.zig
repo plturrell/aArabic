@@ -14,6 +14,10 @@ const dequant = @import("dequant_bindings");
 const gguf = @import("gguf_loader");
 
 pub const GpuLayerWeights = struct {
+    /// Normalization weights (F32 on GPU)
+    attn_norm: GpuTensor, // [embed_dim] - for pre-attention RMSNorm
+    ffn_norm: GpuTensor, // [embed_dim] - for pre-FFN RMSNorm
+
     /// Attention weights
     wq: GpuTensor, // [n_heads * head_dim, embed_dim]
     wk: GpuTensor, // [n_kv_heads * head_dim, embed_dim]
@@ -26,6 +30,8 @@ pub const GpuLayerWeights = struct {
     w_down: GpuTensor, // [embed_dim, hidden_dim]
 
     pub fn deinit(self: *GpuLayerWeights) void {
+        self.attn_norm.deinit();
+        self.ffn_norm.deinit();
         self.wq.deinit();
         self.wk.deinit();
         self.wv.deinit();
@@ -36,7 +42,8 @@ pub const GpuLayerWeights = struct {
     }
 
     pub fn memoryUsage(self: *const GpuLayerWeights) usize {
-        return self.wq.memoryUsage() + self.wk.memoryUsage() +
+        return self.attn_norm.memoryUsage() + self.ffn_norm.memoryUsage() +
+            self.wq.memoryUsage() + self.wk.memoryUsage() +
             self.wv.memoryUsage() + self.wo.memoryUsage() +
             self.w_gate.memoryUsage() + self.w_up.memoryUsage() +
             self.w_down.memoryUsage();
@@ -48,6 +55,9 @@ pub const GpuWeightCache = struct {
 
     /// Token embedding (F16 on GPU)
     token_embedding: GpuTensor,
+
+    /// Output normalization weight (F32 on GPU for RMSNorm)
+    output_norm: GpuTensor,
 
     /// Output projection weight
     output_weight: GpuTensor,
@@ -61,6 +71,9 @@ pub const GpuWeightCache = struct {
     /// Stats
     total_gpu_memory: usize,
     n_layers: usize,
+
+    /// RMSNorm epsilon (from model metadata)
+    rms_norm_eps: f32,
 
     const Self = @This();
 
@@ -90,6 +103,11 @@ pub const GpuWeightCache = struct {
         );
         total_memory += token_emb.memoryUsage();
 
+        // Load output norm (always F32)
+        std.debug.print("   Loading output norm...\n", .{});
+        const output_norm_tensor = try loadTensorToGpuF32(model, "output_norm.weight", embed_dim);
+        total_memory += output_norm_tensor.memoryUsage();
+
         // Load output weight
         std.debug.print("   Loading output weight...\n", .{});
         const output_w = try loadTensorToGpu(
@@ -110,6 +128,10 @@ pub const GpuWeightCache = struct {
             std.debug.print("   Loading layer {}/{}...\r", .{ layer_idx + 1, n_layers });
 
             var name_buf: [128]u8 = undefined;
+
+            // Load normalization weights (F32)
+            layers[layer_idx].attn_norm = try loadTensorToGpuF32Fmt(model, "blk.{}.attn_norm.weight", layer_idx, embed_dim, &name_buf);
+            layers[layer_idx].ffn_norm = try loadTensorToGpuF32Fmt(model, "blk.{}.ffn_norm.weight", layer_idx, embed_dim, &name_buf);
 
             // Attention weights
             const wq_name = std.fmt.bufPrint(&name_buf, "blk.{}.attn_q.weight", .{layer_idx}) catch unreachable;
@@ -133,6 +155,9 @@ pub const GpuWeightCache = struct {
             total_memory += layers[layer_idx].memoryUsage();
         }
 
+        // Get RMS norm epsilon from model metadata
+        const rms_eps = model.metadata.rms_norm_eps;
+
         std.debug.print("\n   ✅ GPU Weight Cache initialized: {d:.2} GB\n", .{
             @as(f64, @floatFromInt(total_memory)) / (1024.0 * 1024.0 * 1024.0),
         });
@@ -140,16 +165,19 @@ pub const GpuWeightCache = struct {
         return Self{
             .allocator = allocator,
             .token_embedding = token_emb,
+            .output_norm = output_norm_tensor,
             .output_weight = output_w,
             .layers = layers,
             .dequant_ctx = dequant_ctx,
             .total_gpu_memory = total_memory,
             .n_layers = n_layers,
+            .rms_norm_eps = rms_eps,
         };
     }
 
     pub fn deinit(self: *Self) void {
         self.token_embedding.deinit();
+        self.output_norm.deinit();
         self.output_weight.deinit();
         for (self.layers) |*layer| {
             layer.deinit();
@@ -260,3 +288,40 @@ fn loadTensorToGpuCpuFallback(
     return gpu_tensor;
 }
 
+/// Load F32 tensor directly to GPU (for normalization weights)
+fn loadTensorToGpuF32(
+    model: *gguf.GGUFModel,
+    name: []const u8,
+    num_elements: usize,
+) !GpuTensor {
+    // Find tensor index
+    const tensor_idx = model.findTensor(name) orelse {
+        std.debug.print("ERROR: Tensor not found: {s}\n", .{name});
+        return error.TensorNotFound;
+    };
+
+    // Get tensor data from file
+    const data_bytes = try model.getTensorData(tensor_idx);
+    defer model.allocator.free(data_bytes);
+
+    // Norms are always F32 in GGUF
+    const f32_data: []const f32 = @alignCast(std.mem.bytesAsSlice(f32, data_bytes));
+
+    // Allocate GPU tensor and copy data
+    var gpu_tensor = try GpuTensor.alloc(num_elements);
+    errdefer gpu_tensor.deinit();
+    try gpu_tensor.copyFromHostF32(f32_data);
+
+    return gpu_tensor;
+}
+
+fn loadTensorToGpuF32Fmt(
+    model: *gguf.GGUFModel,
+    comptime fmt: []const u8,
+    layer_idx: usize,
+    num_elements: usize,
+    buf: *[128]u8,
+) !GpuTensor {
+    const name = std.fmt.bufPrint(buf, fmt, .{layer_idx}) catch unreachable;
+    return loadTensorToGpuF32(model, name, num_elements);
+}

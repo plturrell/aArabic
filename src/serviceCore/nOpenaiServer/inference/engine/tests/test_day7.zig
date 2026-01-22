@@ -63,21 +63,20 @@ fn test_batch_with_model(allocator: std.mem.Allocator) !void {
     };
 
     // Create dummy weights
+    // Note: All these allocations are passed to LlamaWeights which is owned by LlamaModel.
+    // LlamaModel.deinit() calls LlamaWeights.deinit() which frees all of these.
+    // Do NOT use defer to free them here as that would cause double-free.
     const token_embedding = try allocator.alloc(f32, config.vocab_size * config.embed_dim);
-    defer allocator.free(token_embedding);
     @memset(token_embedding, 0.1);
 
     const output_norm = try allocator.alloc(f32, config.embed_dim);
-    defer allocator.free(output_norm);
     for (output_norm) |*w| w.* = 1.0;
 
     const output_weight = try allocator.alloc(f32, config.embed_dim * config.vocab_size);
-    defer allocator.free(output_weight);
     @memset(output_weight, 0.1);
 
     // Create layer weights
     const layer_weights = try allocator.alloc(transformer.TransformerWeights, config.n_layers);
-    defer allocator.free(layer_weights);
 
     const q_dim = config.n_heads * config.head_dim;
     const kv_dim = config.n_kv_heads * config.head_dim;
@@ -119,40 +118,9 @@ fn test_batch_with_model(allocator: std.mem.Allocator) !void {
         };
     }
 
-    defer {
-        for (layer_weights) |lw| {
-            allocator.free(lw.attn_norm);
-            switch (lw.wq) {
-                .f32 => |s| allocator.free(s),
-                else => {},
-            }
-            switch (lw.wk) {
-                .f32 => |s| allocator.free(s),
-                else => {},
-            }
-            switch (lw.wv) {
-                .f32 => |s| allocator.free(s),
-                else => {},
-            }
-            switch (lw.wo) {
-                .f32 => |s| allocator.free(s),
-                else => {},
-            }
-            allocator.free(lw.ffn_norm);
-            switch (lw.w_gate) {
-                .f32 => |s| allocator.free(s),
-                else => {},
-            }
-            switch (lw.w_up) {
-                .f32 => |s| allocator.free(s),
-                else => {},
-            }
-            switch (lw.w_down) {
-                .f32 => |s| allocator.free(s),
-                else => {},
-            }
-        }
-    }
+    // Note: LlamaWeights.deinit() is called by LlamaModel.deinit() which frees
+    // all layer weights. Do NOT add a defer block to free them here as that
+    // would cause a double-free.
 
     const weights = llama.LlamaWeights{
         .token_embedding = matrix_ops.Weight{ .f32 = token_embedding },
@@ -163,6 +131,17 @@ fn test_batch_with_model(allocator: std.mem.Allocator) !void {
     };
 
     // Create simple tokenizer
+    // Note: We create a dummy model ONLY to pass metadata to the tokenizer.
+    // We use empty slices and undefined file since we won't actually load from it.
+    // Since deinit() would try to close the undefined file, we manually clean up
+    // the small allocations we made instead of calling deinit().
+    const vocab_tokens_slice = try allocator.alloc([]u8, 0);
+    defer allocator.free(vocab_tokens_slice);
+    const vocab_scores_slice = try allocator.alloc(f32, 0);
+    defer allocator.free(vocab_scores_slice);
+    const tensors_slice = try allocator.alloc(gguf.TensorInfo, 0);
+    defer allocator.free(tensors_slice);
+
     var dummy_model = gguf.GGUFModel{
         .allocator = allocator,
         .file = undefined,
@@ -180,15 +159,16 @@ fn test_batch_with_model(allocator: std.mem.Allocator) !void {
             .rms_norm_eps = config.rms_norm_eps,
             .conv_kernel = 3,
         },
-        .vocab_tokens = try allocator.alloc([]u8, 0),
-        .vocab_scores = try allocator.alloc(f32, 0),
-        .tensors = try allocator.alloc(gguf.TensorInfo, 0),
+        .vocab_tokens = vocab_tokens_slice,
+        .vocab_scores = vocab_scores_slice,
+        .tensors = tensors_slice,
         .tensor_data_offset = 0,
     };
-    defer dummy_model.deinit();
+    // Do NOT call dummy_model.deinit() - it would try to close an undefined file handle
 
-    var tok = try tokenizer.Tokenizer.loadFromModel(allocator, &dummy_model);
-    defer tok.deinit();
+    // Note: LlamaModel.init() takes ownership of the tokenizer and will call deinit on it.
+    // Do NOT defer tok.deinit() here as that would cause a double-free.
+    const tok = try tokenizer.Tokenizer.loadFromModel(allocator, &dummy_model);
 
     std.debug.print("   ✅ Test model created\n", .{});
 

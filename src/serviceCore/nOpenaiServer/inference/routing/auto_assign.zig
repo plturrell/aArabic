@@ -12,6 +12,8 @@ const capability_scorer = @import("capability_scorer.zig");
 // Type aliases for convenience
 const ModelCapability = capability_scorer.ModelCapability;
 const TaskType = capability_scorer.TaskType;
+const TaskCategory = capability_scorer.TaskCategory;
+const TaskProfile = capability_scorer.TaskProfile;
 const ModelCapabilityProfile = capability_scorer.ModelCapabilityProfile;
 const AgentCapabilityRequirements = capability_scorer.AgentCapabilityRequirements;
 const CapabilityMatchResult = capability_scorer.CapabilityMatchResult;
@@ -31,6 +33,7 @@ pub const AgentInfo = struct {
     capabilities: []const ModelCapability,
     preferred_capabilities: []const ModelCapability,
     min_context_length: u32,
+    task_profiles: []const TaskProfile = &[_]TaskProfile{},
     
     pub const AgentType = enum {
         inference,
@@ -65,7 +68,11 @@ pub const AgentInfo = struct {
         for (self.preferred_capabilities) |cap| {
             try requirements.preferred_capabilities.append(cap);
         }
-        
+
+        for (self.task_profiles) |profile| {
+            try requirements.task_profiles.append(profile);
+        }
+
         requirements.min_context_length = self.min_context_length;
         
         return requirements;
@@ -416,6 +423,11 @@ pub fn createSampleAgentRegistry(allocator: std.mem.Allocator) !AgentRegistry {
     // Agent 1: GPU inference agent (coding focused)
     const agent1_caps = [_]ModelCapability{ .coding, .reasoning };
     const agent1_prefs = [_]ModelCapability{ .high_accuracy, .long_context };
+    const agent1_task_profiles = [_]TaskProfile{
+        .{ .category = .code, .benchmark = "HumanEval", .dataset = "StarCoder GitHub", .score = 0.78 },
+        .{ .category = .reasoning, .benchmark = "GSM8K", .dataset = "GSM8K train", .score = 0.72 },
+    };
+
     try registry.registerAgent(.{
         .agent_id = "agent_gpu_1",
         .agent_name = "GPU Inference Agent 1",
@@ -425,11 +437,18 @@ pub fn createSampleAgentRegistry(allocator: std.mem.Allocator) !AgentRegistry {
         .capabilities = &agent1_caps,
         .preferred_capabilities = &agent1_prefs,
         .min_context_length = 4096,
+        .task_profiles = &agent1_task_profiles,
     });
     
     // Agent 2: GPU inference agent (general purpose)
     const agent2_caps = [_]ModelCapability{ .general, .reasoning };
     const agent2_prefs = [_]ModelCapability{ .multilingual, .long_context };
+    const agent2_task_profiles = [_]TaskProfile{
+        .{ .category = .relational, .benchmark = "Spider", .dataset = "Enterprise Data Mart", .score = 0.69 },
+        .{ .category = .graph, .benchmark = "GraphQA", .dataset = "Neo4j Supply Chain", .score = 0.65 },
+        .{ .category = .vector_search, .benchmark = "BEIR", .dataset = "MSMARCO", .score = 0.70 },
+    };
+
     try registry.registerAgent(.{
         .agent_id = "agent_gpu_2",
         .agent_name = "GPU Inference Agent 2",
@@ -439,11 +458,18 @@ pub fn createSampleAgentRegistry(allocator: std.mem.Allocator) !AgentRegistry {
         .capabilities = &agent2_caps,
         .preferred_capabilities = &agent2_prefs,
         .min_context_length = 4096,
+        .task_profiles = &agent2_task_profiles,
     });
     
     // Agent 3: CPU inference agent (lightweight)
     const agent3_caps = [_]ModelCapability{ .general };
     const agent3_prefs = [_]ModelCapability{ .low_latency };
+    const agent3_task_profiles = [_]TaskProfile{
+        .{ .category = .time_series, .benchmark = "M4", .dataset = "Monash Retail", .score = 0.61 },
+        .{ .category = .summarization, .benchmark = "SummScreen", .dataset = "Ops Logs", .score = 0.58 },
+        .{ .category = .ocr_extraction, .benchmark = "DocVQA", .dataset = "Invoices", .score = 0.55 },
+    };
+
     try registry.registerAgent(.{
         .agent_id = "agent_cpu_1",
         .agent_name = "CPU Inference Agent 1",
@@ -453,6 +479,7 @@ pub fn createSampleAgentRegistry(allocator: std.mem.Allocator) !AgentRegistry {
         .capabilities = &agent3_caps,
         .preferred_capabilities = &agent3_prefs,
         .min_context_length = 2048,
+        .task_profiles = &agent3_task_profiles,
     });
     
     return registry;
@@ -592,6 +619,9 @@ test "AgentInfo: convert to capability requirements" {
     const caps = [_]ModelCapability{ .coding, .reasoning };
     const prefs = [_]ModelCapability{ .high_accuracy };
     
+    const profiles = [_]TaskProfile{
+        .{ .category = .math, .benchmark = "GSM8K", .dataset = "GSM8K", .score = 0.75 },
+    };
     const agent = AgentInfo{
         .agent_id = "test",
         .agent_name = "Test",
@@ -601,6 +631,7 @@ test "AgentInfo: convert to capability requirements" {
         .capabilities = &caps,
         .preferred_capabilities = &prefs,
         .min_context_length = 4096,
+        .task_profiles = &profiles,
     };
     
     var requirements = try agent.toCapabilityRequirements(allocator);
@@ -609,4 +640,5 @@ test "AgentInfo: convert to capability requirements" {
     try std.testing.expectEqual(@as(usize, 2), requirements.required_capabilities.items.len);
     try std.testing.expectEqual(@as(usize, 1), requirements.preferred_capabilities.items.len);
     try std.testing.expectEqual(@as(u32, 4096), requirements.min_context_length);
+    try std.testing.expectEqual(@as(usize, 1), requirements.task_profiles.items.len);
 }

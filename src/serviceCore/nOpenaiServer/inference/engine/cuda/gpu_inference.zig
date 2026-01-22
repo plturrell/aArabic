@@ -14,6 +14,8 @@ const cuda = @import("cuda_bindings");
 const cublas = @import("cublas_bindings");
 const GpuTensor = @import("gpu_tensor").GpuTensor;
 const GpuWeightCache = @import("gpu_weight_cache").GpuWeightCache;
+const GpuLayerWeights = @import("gpu_weight_cache").GpuLayerWeights;
+const transformer_kernels = @import("transformer_kernels");
 
 pub const GpuInference = struct {
     allocator: std.mem.Allocator,
@@ -242,6 +244,8 @@ pub const GpuInference = struct {
         weights: *const GpuWeightCache,
         _: u32, // position (for RoPE - TODO)
     ) !*GpuTensor {
+        const rms_eps = weights.rms_norm_eps;
+
         // Process each transformer layer
         for (0..self.n_layers) |layer_idx| {
             const layer = weights.getLayer(layer_idx);
@@ -249,16 +253,22 @@ pub const GpuInference = struct {
             // Save residual (GPU D2D copy - very fast)
             try self.copyTensor(&self.residual, &self.hidden_state);
 
-            // TODO: RMSNorm on GPU (currently skipped)
+            // Pre-attention RMSNorm: scratch1 = rms_norm(hidden_state, attn_norm)
+            try transformer_kernels.rmsNorm(
+                &self.scratch1,
+                &self.hidden_state,
+                &layer.attn_norm,
+                rms_eps,
+                self.stream,
+            );
 
-            // Attention projections (GPU-to-GPU matmul)
-            // Note: M=1 means these are GEMV operations - could use cublasSgemv for better perf
-            // Q = hidden @ Wq
-            try self.gpuMatmul(&self.q_proj, &self.hidden_state, &layer.wq, 1, self.n_heads * self.head_dim, self.embed_dim);
-            // K = hidden @ Wk
-            try self.gpuMatmul(&self.k_proj, &self.hidden_state, &layer.wk, 1, self.n_kv_heads * self.head_dim, self.embed_dim);
-            // V = hidden @ Wv
-            try self.gpuMatmul(&self.v_proj, &self.hidden_state, &layer.wv, 1, self.n_kv_heads * self.head_dim, self.embed_dim);
+            // Attention projections (GPU-to-GPU matmul) on normalized hidden state
+            // Q = normed @ Wq
+            try self.gpuMatmul(&self.q_proj, &self.scratch1, &layer.wq, 1, self.n_heads * self.head_dim, self.embed_dim);
+            // K = normed @ Wk
+            try self.gpuMatmul(&self.k_proj, &self.scratch1, &layer.wk, 1, self.n_kv_heads * self.head_dim, self.embed_dim);
+            // V = normed @ Wv
+            try self.gpuMatmul(&self.v_proj, &self.scratch1, &layer.wv, 1, self.n_kv_heads * self.head_dim, self.embed_dim);
 
             // TODO: RoPE on GPU
             // TODO: Attention score computation on GPU
@@ -267,30 +277,62 @@ pub const GpuInference = struct {
             // For now: output projection (simplified - no actual attention)
             try self.gpuMatmul(&self.attn_out, &self.v_proj, &layer.wo, 1, self.embed_dim, self.n_kv_heads * self.head_dim);
 
-            // Add residual (TODO: implement proper CUDA add kernel)
-            try self.addTensors(&self.hidden_state, &self.attn_out, &self.residual);
+            // Add residual: hidden_state = attn_out + residual
+            try transformer_kernels.vectorAdd(
+                &self.hidden_state,
+                &self.attn_out,
+                &self.residual,
+                self.stream,
+            );
 
-            // FFN
+            // FFN - save new residual
             try self.copyTensor(&self.residual, &self.hidden_state);
 
-            // TODO: RMSNorm on GPU
+            // Pre-FFN RMSNorm: scratch1 = rms_norm(hidden_state, ffn_norm)
+            try transformer_kernels.rmsNorm(
+                &self.scratch1,
+                &self.hidden_state,
+                &layer.ffn_norm,
+                rms_eps,
+                self.stream,
+            );
 
-            // gate = hidden @ W_gate
-            try self.gpuMatmul(&self.ffn_gate, &self.hidden_state, &layer.w_gate, 1, self.hidden_dim, self.embed_dim);
-            // up = hidden @ W_up
-            try self.gpuMatmul(&self.ffn_up, &self.hidden_state, &layer.w_up, 1, self.hidden_dim, self.embed_dim);
+            // gate = normed @ W_gate
+            try self.gpuMatmul(&self.ffn_gate, &self.scratch1, &layer.w_gate, 1, self.hidden_dim, self.embed_dim);
+            // up = normed @ W_up
+            try self.gpuMatmul(&self.ffn_up, &self.scratch1, &layer.w_up, 1, self.hidden_dim, self.embed_dim);
 
-            // TODO: SiLU and elementwise mul on GPU
+            // SiLU activation and elementwise multiply: ffn_gate = silu(gate) * up
+            try transformer_kernels.siluMul(
+                &self.ffn_gate,  // output (reuse gate buffer)
+                &self.ffn_gate,  // gate input
+                &self.ffn_up,    // up input
+                self.stream,
+            );
 
-            // down = (gate * up) @ W_down
+            // down = activated @ W_down
             try self.gpuMatmul(&self.ffn_out, &self.ffn_gate, &layer.w_down, 1, self.embed_dim, self.hidden_dim);
 
-            // Add residual
-            try self.addTensors(&self.hidden_state, &self.ffn_out, &self.residual);
+            // Add residual: hidden_state = ffn_out + residual
+            try transformer_kernels.vectorAdd(
+                &self.hidden_state,
+                &self.ffn_out,
+                &self.residual,
+                self.stream,
+            );
         }
 
-        // Final output projection
-        try self.gpuMatmul(&self.logits, &self.hidden_state, &weights.output_weight, 1, self.vocab_size, self.embed_dim);
+        // Final RMSNorm before output projection
+        try transformer_kernels.rmsNorm(
+            &self.scratch1,
+            &self.hidden_state,
+            &weights.output_norm,
+            rms_eps,
+            self.stream,
+        );
+
+        // Output projection: logits = normed @ output_weight
+        try self.gpuMatmul(&self.logits, &self.scratch1, &weights.output_weight, 1, self.vocab_size, self.embed_dim);
 
         return &self.logits;
     }
@@ -431,12 +473,14 @@ pub const GpuInference = struct {
     /// Forward pass for batch of tokens - uses M=batch_size for better GPU utilization
     /// Input: token embeddings loaded into hidden_state via loadEmbeddingsBatched
     /// Output: logits tensor with batch_size * vocab_size values
+    /// NOTE: For batch_size > 1, RMSNorm is applied per-row (requires iterating)
     pub fn forwardBatched(
         self: *Self,
         weights: *const GpuWeightCache,
         _: u32, // position (for RoPE - TODO)
     ) !*GpuTensor {
         const M = self.batch_size; // Number of tokens in batch
+        const rms_eps = weights.rms_norm_eps;
 
         // Process each transformer layer
         for (0..self.n_layers) |layer_idx| {
@@ -445,39 +489,83 @@ pub const GpuInference = struct {
             // Save residual
             try self.copyTensor(&self.residual, &self.hidden_state);
 
+            // Pre-attention RMSNorm (per-row for batch)
+            try self.batchedRmsNorm(&self.scratch1, &self.hidden_state, &layer.attn_norm, M, rms_eps);
+
             // Attention projections with M=batch_size (true GEMM, not GEMV!)
-            // Q = hidden @ Wq  [batch_size × embed_dim] @ [embed_dim × n_heads*head_dim]
-            try self.gpuMatmul(&self.q_proj, &self.hidden_state, &layer.wq, M, self.n_heads * self.head_dim, self.embed_dim);
-            // K = hidden @ Wk
-            try self.gpuMatmul(&self.k_proj, &self.hidden_state, &layer.wk, M, self.n_kv_heads * self.head_dim, self.embed_dim);
-            // V = hidden @ Wv
-            try self.gpuMatmul(&self.v_proj, &self.hidden_state, &layer.wv, M, self.n_kv_heads * self.head_dim, self.embed_dim);
+            // Q = normed @ Wq  [batch_size × embed_dim] @ [embed_dim × n_heads*head_dim]
+            try self.gpuMatmul(&self.q_proj, &self.scratch1, &layer.wq, M, self.n_heads * self.head_dim, self.embed_dim);
+            // K = normed @ Wk
+            try self.gpuMatmul(&self.k_proj, &self.scratch1, &layer.wk, M, self.n_kv_heads * self.head_dim, self.embed_dim);
+            // V = normed @ Wv
+            try self.gpuMatmul(&self.v_proj, &self.scratch1, &layer.wv, M, self.n_kv_heads * self.head_dim, self.embed_dim);
 
             // Output projection (simplified - no actual attention)
             try self.gpuMatmul(&self.attn_out, &self.v_proj, &layer.wo, M, self.embed_dim, self.n_kv_heads * self.head_dim);
 
             // Add residual
-            try self.addTensors(&self.hidden_state, &self.attn_out, &self.residual);
+            try transformer_kernels.vectorAdd(&self.hidden_state, &self.attn_out, &self.residual, self.stream);
 
             // FFN
             try self.copyTensor(&self.residual, &self.hidden_state);
 
-            // gate = hidden @ W_gate
-            try self.gpuMatmul(&self.ffn_gate, &self.hidden_state, &layer.w_gate, M, self.hidden_dim, self.embed_dim);
-            // up = hidden @ W_up
-            try self.gpuMatmul(&self.ffn_up, &self.hidden_state, &layer.w_up, M, self.hidden_dim, self.embed_dim);
+            // Pre-FFN RMSNorm (per-row for batch)
+            try self.batchedRmsNorm(&self.scratch1, &self.hidden_state, &layer.ffn_norm, M, rms_eps);
 
-            // down = (gate * up) @ W_down
+            // gate = normed @ W_gate
+            try self.gpuMatmul(&self.ffn_gate, &self.scratch1, &layer.w_gate, M, self.hidden_dim, self.embed_dim);
+            // up = normed @ W_up
+            try self.gpuMatmul(&self.ffn_up, &self.scratch1, &layer.w_up, M, self.hidden_dim, self.embed_dim);
+
+            // SiLU + multiply
+            try transformer_kernels.siluMul(&self.ffn_gate, &self.ffn_gate, &self.ffn_up, self.stream);
+
+            // down = activated @ W_down
             try self.gpuMatmul(&self.ffn_out, &self.ffn_gate, &layer.w_down, M, self.embed_dim, self.hidden_dim);
 
             // Add residual
-            try self.addTensors(&self.hidden_state, &self.ffn_out, &self.residual);
+            try transformer_kernels.vectorAdd(&self.hidden_state, &self.ffn_out, &self.residual, self.stream);
         }
 
+        // Final RMSNorm (per-row for batch)
+        try self.batchedRmsNorm(&self.scratch1, &self.hidden_state, &weights.output_norm, M, rms_eps);
+
         // Final output projection
-        try self.gpuMatmul(&self.logits, &self.hidden_state, &weights.output_weight, M, self.vocab_size, self.embed_dim);
+        try self.gpuMatmul(&self.logits, &self.scratch1, &weights.output_weight, M, self.vocab_size, self.embed_dim);
 
         return &self.logits;
+    }
+
+    /// Apply RMSNorm to each row of a batched tensor
+    /// For batch_size=1, this is just a single kernel call
+    /// For batch_size>1, we call the kernel for each row (less efficient but correct)
+    fn batchedRmsNorm(
+        self: *Self,
+        output: *GpuTensor,
+        input: *const GpuTensor,
+        weight: *const GpuTensor,
+        batch_size: u32,
+        eps: f32,
+    ) !void {
+        if (batch_size == 1) {
+            // Single row - direct call
+            try transformer_kernels.rmsNorm(output, input, weight, eps, self.stream);
+        } else {
+            // Multiple rows - call kernel for each row
+            // This is less efficient but correct until we implement batched RMSNorm kernel
+            const row_elements = self.embed_dim;
+            for (0..batch_size) |i| {
+                // Create temporary tensors pointing to each row by pointer arithmetic on f16
+                var in_row = input.*;
+                in_row.ptr = input.ptr + i * row_elements;
+                in_row.len = row_elements;
+                var out_row = output.*;
+                out_row.ptr = output.ptr + i * row_elements;
+                out_row.len = row_elements;
+
+                try transformer_kernels.rmsNorm(&out_row, &in_row, weight, eps, self.stream);
+            }
+        }
     }
 
     /// Get logits back to CPU

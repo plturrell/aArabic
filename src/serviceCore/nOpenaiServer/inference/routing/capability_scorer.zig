@@ -64,6 +64,31 @@ pub const TaskType = enum {
     }
 };
 
+/// Specialized task categories used to benchmark agents within a type
+pub const TaskCategory = enum {
+    math,
+    time_series,
+    relational,
+    graph,
+    code,
+    vector_search,
+    ocr_extraction,
+    reasoning,
+    summarization,
+
+    pub fn toString(self: TaskCategory) []const u8 {
+        return @tagName(self);
+    }
+};
+
+/// Benchmark/dataset metadata attached to agents
+pub const TaskProfile = struct {
+    category: TaskCategory,
+    benchmark: []const u8,
+    dataset: []const u8,
+    score: f32 = 0.0,
+};
+
 // ============================================================================
 // STRUCTS: Capability Definitions
 // ============================================================================
@@ -108,6 +133,7 @@ pub const AgentCapabilityRequirements = struct {
     required_capabilities: std.ArrayList(ModelCapability),
     preferred_capabilities: std.ArrayList(ModelCapability),
     min_context_length: u32,
+    task_profiles: std.ArrayList(TaskProfile),
     
     pub fn init(allocator: std.mem.Allocator, agent_id: []const u8, agent_name: []const u8) AgentCapabilityRequirements {
         return .{
@@ -116,12 +142,14 @@ pub const AgentCapabilityRequirements = struct {
             .required_capabilities = std.ArrayList(ModelCapability).init(allocator),
             .preferred_capabilities = std.ArrayList(ModelCapability).init(allocator),
             .min_context_length = 2048,
+            .task_profiles = std.ArrayList(TaskProfile).init(allocator),
         };
     }
     
     pub fn deinit(self: *AgentCapabilityRequirements) void {
         self.required_capabilities.deinit();
         self.preferred_capabilities.deinit();
+        self.task_profiles.deinit();
     }
 };
 

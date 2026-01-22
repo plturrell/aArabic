@@ -249,12 +249,13 @@ pub fn test_q4_0(allocator: std.mem.Allocator) !void {
         }
         
         // Quantize
-        var quantized: [@sizeOf(common.BlockQ4_0)]u8 = undefined;
-        quantize(&quantized, &original, 32);
+        var quantized_block: common.BlockQ4_0 = undefined;
+        const quantized = std.mem.asBytes(&quantized_block);
+        quantize(quantized, &original, 32);
         
         // Dequantize
         var recovered: [32]f32 = undefined;
-        dequantize(&recovered, &quantized, 32);
+        dequantize(&recovered, quantized, 32);
         
         // Check error
         var max_error: f32 = 0.0;

@@ -190,6 +190,13 @@ pub fn build(b: *std.Build) void {
     gpu_weight_cache_module.addImport("gguf_loader", gguf_module);
     gpu_weight_cache_module.addImport("matrix_ops", matrix_ops_module);
 
+    // Transformer Kernels module (RMSNorm, SiLU, etc. for GPU inference)
+    const transformer_kernels_module = b.createModule(.{
+        .root_source_file = b.path("cuda/transformer_kernels.zig"),
+    });
+    transformer_kernels_module.addImport("cuda_bindings", cuda_bindings_module);
+    transformer_kernels_module.addImport("gpu_tensor", gpu_tensor_module);
+
     // GPU Inference module (GPU-native forward pass)
     const gpu_inference_module = b.createModule(.{
         .root_source_file = b.path("cuda/gpu_inference.zig"),
@@ -198,6 +205,7 @@ pub fn build(b: *std.Build) void {
     gpu_inference_module.addImport("cublas_bindings", cublas_bindings_module);
     gpu_inference_module.addImport("gpu_tensor", gpu_tensor_module);
     gpu_inference_module.addImport("gpu_weight_cache", gpu_weight_cache_module);
+    gpu_inference_module.addImport("transformer_kernels", transformer_kernels_module);
 
     // GPU Inference Server module (batched inference with continuous batching)
     const gpu_inference_server_module = b.createModule(.{
@@ -454,6 +462,7 @@ pub fn build(b: *std.Build) void {
         test_hf_to_llama.root_module.addLibraryPath(b.path("cuda/kernels"));
         test_hf_to_llama.root_module.addRPath(b.path("cuda/kernels"));
         test_hf_to_llama.linkSystemLibrary("dequant_kernels");
+        test_hf_to_llama.linkSystemLibrary("transformer_kernels");
     }
 
     b.installArtifact(test_hf_to_llama);
@@ -532,6 +541,7 @@ pub fn build(b: *std.Build) void {
         inference_lib.root_module.addLibraryPath(b.path("cuda/kernels"));
         inference_lib.root_module.addRPath(b.path("cuda/kernels"));
         inference_lib.linkSystemLibrary("dequant_kernels");
+        inference_lib.linkSystemLibrary("transformer_kernels");
     }
 
     b.installArtifact(inference_lib);
@@ -597,6 +607,7 @@ pub fn build(b: *std.Build) void {
         cli.root_module.addLibraryPath(b.path("cuda/kernels"));
         cli.root_module.addRPath(b.path("cuda/kernels"));
         cli.linkSystemLibrary("dequant_kernels");
+        cli.linkSystemLibrary("transformer_kernels");
     }
 
     const install_cli = b.addInstallArtifact(cli, .{});
@@ -727,6 +738,7 @@ pub fn build(b: *std.Build) void {
         test_day5.root_module.addLibraryPath(b.path("cuda/kernels"));
         test_day5.root_module.addRPath(b.path("cuda/kernels"));
         test_day5.linkSystemLibrary("dequant_kernels");
+        test_day5.linkSystemLibrary("transformer_kernels");
     }
 
     b.installArtifact(test_day5);
@@ -765,6 +777,7 @@ pub fn build(b: *std.Build) void {
         test_day6.root_module.addLibraryPath(b.path("cuda/kernels"));
         test_day6.root_module.addRPath(b.path("cuda/kernels"));
         test_day6.linkSystemLibrary("dequant_kernels");
+        test_day6.linkSystemLibrary("transformer_kernels");
     }
 
     b.installArtifact(test_day6);
@@ -807,6 +820,7 @@ pub fn build(b: *std.Build) void {
         test_day7.root_module.addLibraryPath(b.path("cuda/kernels"));
         test_day7.root_module.addRPath(b.path("cuda/kernels"));
         test_day7.linkSystemLibrary("dequant_kernels");
+        test_day7.linkSystemLibrary("transformer_kernels");
     }
 
     b.installArtifact(test_day7);
@@ -1266,6 +1280,7 @@ pub fn build(b: *std.Build) void {
         bench_gpu_inference.root_module.addLibraryPath(b.path("cuda/kernels"));
         bench_gpu_inference.root_module.addRPath(b.path("cuda/kernels"));
         bench_gpu_inference.linkSystemLibrary("dequant_kernels");
+        bench_gpu_inference.linkSystemLibrary("transformer_kernels");
     }
 
     b.installArtifact(bench_gpu_inference);
@@ -1278,6 +1293,53 @@ pub fn build(b: *std.Build) void {
 
     const bench_gpu_inference_step = b.step("bench-gpu", "Run GPU inference benchmark (target: 500 tok/s)");
     bench_gpu_inference_step.dependOn(&run_bench_gpu_inference.step);
+
+    // ========================================================================
+    // Perplexity Benchmark
+    // ========================================================================
+
+    const bench_perplexity = b.addExecutable(.{
+        .name = "bench_perplexity",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("cuda/bench_perplexity.zig"),
+            .target = target,
+            .optimize = .ReleaseFast,
+        }),
+    });
+    bench_perplexity.root_module.addImport("gpu_inference", gpu_inference_module);
+    bench_perplexity.root_module.addImport("gpu_weight_cache", gpu_weight_cache_module);
+    bench_perplexity.root_module.addImport("gpu_tensor", gpu_tensor_module);
+    bench_perplexity.root_module.addImport("cuda_bindings", cuda_bindings_module);
+    bench_perplexity.root_module.addImport("cublas_bindings", cublas_bindings_module);
+    bench_perplexity.root_module.addImport("dequant_bindings", dequant_bindings_module);
+    bench_perplexity.root_module.addImport("transformer_kernels", transformer_kernels_module);
+    bench_perplexity.root_module.addImport("gguf_loader", gguf_module);
+    bench_perplexity.root_module.addImport("tokenizer", tokenizer_module);
+
+    if (builtin.os.tag == .linux) {
+        bench_perplexity.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+        bench_perplexity.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+        bench_perplexity.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+        bench_perplexity.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+        bench_perplexity.linkSystemLibrary("cuda");
+        bench_perplexity.linkSystemLibrary("cublas");
+        bench_perplexity.linkSystemLibrary("cudart");
+        bench_perplexity.root_module.addLibraryPath(b.path("cuda/kernels"));
+        bench_perplexity.root_module.addRPath(b.path("cuda/kernels"));
+        bench_perplexity.linkSystemLibrary("dequant_kernels");
+        bench_perplexity.linkSystemLibrary("transformer_kernels");
+    }
+
+    b.installArtifact(bench_perplexity);
+
+    const run_bench_perplexity = b.addRunArtifact(bench_perplexity);
+    run_bench_perplexity.step.dependOn(b.getInstallStep());
+    if (b.args) |args| {
+        run_bench_perplexity.addArgs(args);
+    }
+
+    const bench_perplexity_step = b.step("bench-ppl", "Run perplexity benchmark on WikiText-2");
+    bench_perplexity_step.dependOn(&run_bench_perplexity.step);
 
     // ========================================================================
     // Combined Test

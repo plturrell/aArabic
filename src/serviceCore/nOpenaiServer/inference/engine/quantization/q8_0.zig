@@ -12,13 +12,13 @@ const common = @import("common");
 /// Better quality than Q4_0 but larger size
 
 pub const BLOCK_SIZE = 32;
-pub const BLOCK_BYTES = 36; // 4 (scale) + 32 (int8s)
+pub const BLOCK_BYTES = 34; // 2 (f16 scale) + 32 (int8s) - GGUF uses f16 scale
 
-/// Q8_0 quantized block
+/// Q8_0 quantized block (GGUF format with f16 scale)
 pub const BlockQ8_0 = extern struct {
-    scale: f32,              // Scale factor
+    scale: f16,              // Scale factor (f16 in GGUF format)
     qs: [BLOCK_SIZE]i8,      // Quantized values (-128 to 127)
-    
+
     /// Get the size of a block in bytes
     pub fn sizeInBytes() usize {
         return BLOCK_BYTES;
@@ -52,7 +52,7 @@ pub fn quantize(
         
         // Compute scale (map to int8 range: -127 to 127)
         const scale = max_abs / 127.0;
-        block.scale = scale;
+        block.scale = @floatCast(scale); // Store as f16
         
         // Quantize values
         if (scale > 0.0) {
@@ -79,9 +79,10 @@ pub fn dequantizeBlock(
     block: *const BlockQ8_0,
 ) void {
     std.debug.assert(output.len == BLOCK_SIZE);
-    
-    const scale = block.scale;
-    
+
+    // GGUF uses f16 scale, convert to f32 for computation
+    const scale: f32 = @floatCast(block.scale);
+
     for (block.qs, 0..) |q, i| {
         output[i] = @as(f32, @floatFromInt(q)) * scale;
     }
@@ -120,8 +121,8 @@ pub fn vecDotQ8_0F32(
         for (block.qs, 0..) |q, j| {
             block_sum += @as(f32, @floatFromInt(q)) * v[j];
         }
-        
-        sum += block_sum * block.scale;
+
+        sum += block_sum * @as(f32, @floatCast(block.scale));
     }
     
     return sum;
@@ -143,8 +144,10 @@ pub fn vecDotQ8_0Q8_0(
             int_sum += @as(i32, qa) * @as(i32, qb);
         }
         
-        // Scale result
-        sum += @as(f32, @floatFromInt(int_sum)) * block_a.scale * block_b.scale;
+        // Scale result (convert f16 scales to f32)
+        const scale_a: f32 = @floatCast(block_a.scale);
+        const scale_b: f32 = @floatCast(block_b.scale);
+        sum += @as(f32, @floatFromInt(int_sum)) * scale_a * scale_b;
     }
     
     return sum;

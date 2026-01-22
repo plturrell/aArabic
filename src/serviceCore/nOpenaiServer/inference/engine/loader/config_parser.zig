@@ -55,6 +55,28 @@ pub const RopeScalingType = enum {
     }
 };
 
+/// RoPE Scaling Configuration for context window extension
+pub const RopeScalingConfig = struct {
+    type: RopeScalingType,
+    factor: f32,  // Scaling factor (e.g., 2.0 for 2x extension)
+    original_max_position_embeddings: u32,  // Original context window before scaling
+    
+    // YaRN-specific parameters
+    attention_factor: ?f32 = null,
+    beta_fast: ?f32 = null,
+    beta_slow: ?f32 = null,
+    
+    /// Get the extended max sequence length
+    pub fn getExtendedSeqLen(self: RopeScalingConfig) u32 {
+        return @intFromFloat(@as(f32, @floatFromInt(self.original_max_position_embeddings)) * self.factor);
+    }
+    
+    /// Check if position is within original range (no scaling needed)
+    pub fn isWithinOriginalRange(self: RopeScalingConfig, position: u32) bool {
+        return position < self.original_max_position_embeddings;
+    }
+};
+
 // ============================================================================
 // Model Configuration
 // ============================================================================
@@ -87,6 +109,7 @@ pub const ModelConfig = struct {
     // RoPE (Rotary Position Embedding)
     rope_theta: f32,
     rope_scaling: ?RopeScalingType,
+    rope_scaling_config: ?RopeScalingConfig,
     
     // Tokenizer
     bos_token_id: i32,
@@ -258,6 +281,7 @@ pub const ConfigParser = struct {
             .hidden_act = hidden_act,
             .rope_theta = rope_theta,
             .rope_scaling = rope_scaling,
+            .rope_scaling_config = try self.parseRopeScalingConfig(root, max_position_embeddings),
             .bos_token_id = @intCast(bos_token_id),
             .eos_token_id = @intCast(eos_token_id),
             .pad_token_id = if (pad_token_id) |pid| @as(i32, @intCast(pid)) else null,
@@ -280,6 +304,81 @@ pub const ConfigParser = struct {
         }
         
         return null;
+    }
+    
+    /// Parse complete RoPE scaling configuration with all parameters
+    fn parseRopeScalingConfig(
+        self: ConfigParser,
+        root: std.json.ObjectMap,
+        max_position_embeddings: usize,
+    ) !?RopeScalingConfig {
+        _ = self;
+        const rope_scaling = root.get("rope_scaling") orelse return null;
+        
+        if (rope_scaling != .object) return null;
+        
+        const scaling_obj = rope_scaling.object;
+        
+        // Get scaling type
+        const type_value = scaling_obj.get("type") orelse return null;
+        if (type_value != .string) return null;
+        const scaling_type = RopeScalingType.fromString(type_value.string);
+        
+        if (scaling_type == .none) return null;
+        
+        // Get scaling factor (required)
+        const factor_value = scaling_obj.get("factor") orelse return null;
+        const factor: f32 = switch (factor_value) {
+            .float => @floatCast(factor_value.float),
+            .integer => @floatFromInt(factor_value.integer),
+            else => return null,
+        };
+        
+        // Get original max position embeddings (may be specified or use current)
+        const original_max_pos = if (root.get("original_max_position_embeddings")) |orig|
+            switch (orig) {
+                .integer => @as(u32, @intCast(orig.integer)),
+                else => @as(u32, @intCast(max_position_embeddings)),
+            }
+        else
+            @as(u32, @intCast(max_position_embeddings));
+        
+        // Parse YaRN-specific parameters if present
+        const attention_factor: ?f32 = if (scaling_obj.get("attention_factor")) |af|
+            switch (af) {
+                .float => @floatCast(af.float),
+                .integer => @floatFromInt(af.integer),
+                else => null,
+            }
+        else
+            null;
+        
+        const beta_fast: ?f32 = if (scaling_obj.get("beta_fast")) |bf|
+            switch (bf) {
+                .float => @floatCast(bf.float),
+                .integer => @floatFromInt(bf.integer),
+                else => null,
+            }
+        else
+            null;
+        
+        const beta_slow: ?f32 = if (scaling_obj.get("beta_slow")) |bs|
+            switch (bs) {
+                .float => @floatCast(bs.float),
+                .integer => @floatFromInt(bs.integer),
+                else => null,
+            }
+        else
+            null;
+        
+        return RopeScalingConfig{
+            .type = scaling_type,
+            .factor = factor,
+            .original_max_position_embeddings = original_max_pos,
+            .attention_factor = attention_factor,
+            .beta_fast = beta_fast,
+            .beta_slow = beta_slow,
+        };
     }
     
     /// Helper: Get integer value
@@ -362,6 +461,14 @@ pub fn test_config_parser(allocator: std.mem.Allocator, config_path: []const u8)
     std.debug.print("   RoPE Theta: {d:.1}\n", .{config.rope_theta});
     if (config.rope_scaling) |rs| {
         std.debug.print("   RoPE Scaling: {s}\n", .{@tagName(rs)});
+        if (config.rope_scaling_config) |rsc| {
+            std.debug.print("   RoPE Scaling Factor: {d:.2}\n", .{rsc.factor});
+            std.debug.print("   Original Context: {d}\n", .{rsc.original_max_position_embeddings});
+            std.debug.print("   Extended Context: {d}\n", .{rsc.getExtendedSeqLen()});
+            if (rsc.attention_factor) |af| {
+                std.debug.print("   YaRN Attention Factor: {d:.2}\n", .{af});
+            }
+        }
     }
     std.debug.print("\n   Token IDs:\n", .{});
     std.debug.print("     BOS: {d}\n", .{config.bos_token_id});

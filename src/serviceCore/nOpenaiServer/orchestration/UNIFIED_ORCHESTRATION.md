@@ -41,6 +41,24 @@ The nOpenaiServer orchestration layer consists of **5 complementary systems** th
 
 ## System Components
 
+### Agent Task Categories & Benchmarks
+
+To make `AgentInfo.AgentType` (inference, tool, orchestrator) actionable, we now track specialized task categories with canonical benchmarks and datasets. These categories power the capability scorer, UI reporting, and orchestration routing.
+
+| Category | Agent Types | Example Benchmarks | Dataset(s) |
+| --- | --- | --- | --- |
+| `math` | inference | GSM8K, MATH | GSM8K train, MATH full |
+| `time_series` | inference | M4, Monash | M4 retail, Monash traffic |
+| `relational` | inference/tool | Spider | Enterprise Data Mart |
+| `graph` | inference/tool | GraphQA, AQuA | Neo4j supply chain |
+| `code` | inference | HumanEval, MBPP | StarCoder GitHub |
+| `vector_search` | inference/tool | BEIR, LlamaIndex RAG Bench | MSMARCO, Enterprise KB |
+| `ocr_extraction` | inference/tool | DocVQA, ChartQA | Invoices, structured docs |
+| `reasoning` | inference/orchestrator | ARC-Challenge, BIG-Bench Hard | ARC, BBH |
+| `summarization` | inference/orchestrator | SummScreen, GovReport | Ops logs, GovReport |
+
+These definitions live in `orchestration/catalog/task_categories.json` and are attached to each agent via `AgentInfo.task_profiles`. Each profile records the benchmark, dataset, and performance score to inform routing and dashboarding.
+
 ### 1. **Guardrails Agent** (Safety & Compliance)
 
 **Location:** `orchestration/agents/guardrails/`

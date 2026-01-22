@@ -14,7 +14,7 @@
 #define Q4_0_BLOCK_SIZE 32
 #define Q4_0_BLOCK_BYTES 18
 #define Q8_0_BLOCK_SIZE 32
-#define Q8_0_BLOCK_BYTES 36
+#define Q8_0_BLOCK_BYTES 34  // 2 bytes f16 scale + 32 bytes int8 (GGUF format)
 #define Q4_K_BLOCK_SIZE 256
 #define Q4_K_BLOCK_BYTES 144
 #define Q6_K_BLOCK_SIZE 256
@@ -49,21 +49,22 @@ __global__ void dequant_q4_0_kernel(const uint8_t* __restrict__ input,
 
 // ============================================================================
 // Q8_0 Dequantization Kernel
-// Format: 4 bytes f32 scale + 32 bytes int8 values = 32 FP16 outputs
+// GGUF Format: 2 bytes f16 scale + 32 bytes int8 values = 34 bytes per block
 // ============================================================================
 __global__ void dequant_q8_0_kernel(const uint8_t* __restrict__ input,
                                      __half* __restrict__ output,
                                      int num_blocks) {
     int block_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (block_idx >= num_blocks) return;
-    
+
     const uint8_t* block = input + block_idx * Q8_0_BLOCK_BYTES;
     __half* out = output + block_idx * Q8_0_BLOCK_SIZE;
-    
-    // Read scale (stored as f32)
-    float scale = *reinterpret_cast<const float*>(block);
-    const int8_t* qs = reinterpret_cast<const int8_t*>(block + 4);
-    
+
+    // Read scale (stored as f16 in GGUF format)
+    __half scale_h = *reinterpret_cast<const __half*>(block);
+    float scale = __half2float(scale_h);
+    const int8_t* qs = reinterpret_cast<const int8_t*>(block + 2);  // 2 bytes for f16 scale
+
     // Dequantize 32 values
     for (int i = 0; i < 32; i++) {
         out[i] = __float2half((float)qs[i] * scale);

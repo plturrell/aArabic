@@ -1,0 +1,84 @@
+{
+  "categories": [
+    {
+      "name": "math",
+      "agent_types": ["inference"],
+      "description": "Mathematical and quantitative reasoning tasks.",
+      "benchmarks": [
+        {"name": "GSM8K", "dataset": "GSM8K train", "metric": "accuracy"},
+        {"name": "MATH", "dataset": "MATH full", "metric": "pass@1"}
+      ]
+    },
+    {
+      "name": "time_series",
+      "agent_types": ["inference"],
+      "description": "Forecasting and anomaly detection over temporal signals.",
+      "benchmarks": [
+        {"name": "M4", "dataset": "M4 retail", "metric": "sMAPE"},
+        {"name": "Monash", "dataset": "Monash traffic", "metric": "MASE"}
+      ]
+    },
+    {
+      "name": "relational",
+      "agent_types": ["inference", "tool"],
+      "description": "Reasoning over SQL/relational data sources.",
+      "benchmarks": [
+        {"name": "Spider", "dataset": "Enterprise Data Mart", "metric": "execution_accuracy"}
+      ]
+    },
+    {
+      "name": "graph",
+      "agent_types": ["inference", "tool"],
+      "description": "Graph query planning and reasoning.",
+      "benchmarks": [
+        {"name": "GraphQA", "dataset": "Neo4j Supply Chain", "metric": "F1"},
+        {"name": "AQuA", "dataset": "Knowledge Graph QA", "metric": "exact_match"}
+      ]
+    },
+    {
+      "name": "code",
+      "agent_types": ["inference"],
+      "description": "Code generation, completion, and repair.",
+      "benchmarks": [
+        {"name": "HumanEval", "dataset": "StarCoder GitHub", "metric": "pass@1"},
+        {"name": "MBPP", "dataset": "MBPP canonical", "metric": "pass@3"}
+      ]
+    },
+    {
+      "name": "vector_search",
+      "agent_types": ["inference", "tool"],
+      "description": "Retrieval augmented generation pipelines using vector stores.",
+      "benchmarks": [
+        {"name": "BEIR", "dataset": "MSMARCO", "metric": "nDCG@10"},
+        {"name": "LlamaIndex RAG", "dataset": "Enterprise KB", "metric": "answer_f1"}
+      ]
+    },
+    {
+      "name": "ocr_extraction",
+      "agent_types": ["inference", "tool"],
+      "description": "Document vision, OCR, and structured extraction tasks.",
+      "benchmarks": [
+        {"name": "DocVQA", "dataset": "Invoices", "metric": "EM"},
+        {"name": "ChartQA", "dataset": "Charts", "metric": "accuracy"}
+      ]
+    },
+    {
+      "name": "reasoning",
+      "agent_types": ["inference", "orchestrator"],
+      "description": "General logical reasoning and planning.",
+      "benchmarks": [
+        {"name": "ARC-Challenge", "dataset": "ARC", "metric": "accuracy"},
+        {"name": "BIG-Bench Hard", "dataset": "BBH", "metric": "accuracy"}
+      ]
+    },
+    {
+      "name": "summarization",
+      "agent_types": ["inference", "orchestrator"],
+      "description": "Long-form summarization of documents and logs.",
+      "benchmarks": [
+        {"name": "SummScreen", "dataset": "Ops Logs", "metric": "ROUGE-L"},
+        {"name": "GovReport", "dataset": "GovReport", "metric": "ROUGE-2"}
+      ]
+    }
+  ]
+}
