@@ -887,14 +887,30 @@ struct MojoTranslationService:
         """Batch translate with parallel processing"""
         self.total_translations += len(texts)
 
-        # Select model
+        # Try TranslateGemma first for all language pairs
+        if self.use_translategemma and self.translategemma.is_language_supported(source_lang) and self.translategemma.is_language_supported(target_lang):
+            print("🌍 Using TranslateGemma-27B for batch translation:", source_lang, "→", target_lang)
+            var results = self.translategemma.translate_batch(texts, source_lang, target_lang)
+
+            # Check if any translations succeeded
+            var success_count = 0
+            for i in range(len(results)):
+                if len(results[i]) > 0:
+                    success_count += 1
+
+            if success_count > 0:
+                return results
+            else:
+                print("⚠️ TranslateGemma batch failed, falling back to opus-mt")
+
+        # Fallback to opus-mt for Arabic-English
         var translator: BatchTranslator
         if source_lang == "ar" and target_lang == "en":
             translator = self.ar_to_en
         elif source_lang == "en" and target_lang == "ar":
             translator = self.en_to_ar
         else:
-            print("❌ Unsupported language pair")
+            print("❌ Unsupported language pair (TranslateGemma unavailable)")
             return List[String]()
 
         return translator.translate_batch(texts)
@@ -937,11 +953,11 @@ struct MojoTranslationService:
 
 fn main() raises:
     print("\n" + "=" * 80)
-    print("🚀 Mojo Translation Service - High-Performance Mode with mHC")
+    print("🚀 Mojo Translation Service - High-Performance Mode with mHC & TranslateGemma")
     print("=" * 80)
 
-    # Initialize service with mHC enabled
-    var service = MojoTranslationService(enable_mhc=True)
+    # Initialize service with mHC enabled and TranslateGemma
+    var service = MojoTranslationService(enable_mhc=True, use_translategemma=True)
 
     # Configure mHC parameters
     service.configure_mhc(sinkhorn_iters=15, stability_threshold=1e-4, log_metrics=True)
@@ -963,6 +979,34 @@ fn main() raises:
     print("Quality Score:", score2)
     print("Stability - α:", metrics2.amplification_factor, "stable:", metrics2.is_stable)
 
+    # Test TranslateGemma multilingual capabilities (55 languages)
+    print("\n🌍 Testing TranslateGemma multilingual translations...")
+
+    # English → German
+    var text3 = "The weather is beautiful today"
+    var (translation3, score3) = service.translate(text3, "en", "de")
+    print("EN→DE:", text3, "→", translation3, "(score:", score3, ")")
+
+    # English → Japanese
+    var text4 = "Hello, how are you?"
+    var (translation4, score4) = service.translate(text4, "en", "ja")
+    print("EN→JA:", text4, "→", translation4, "(score:", score4, ")")
+
+    # English → French
+    var text5 = "Thank you for your help"
+    var (translation5, score5) = service.translate(text5, "en", "fr")
+    print("EN→FR:", text5, "→", translation5, "(score:", score5, ")")
+
+    # English → Chinese
+    var text6 = "Good morning everyone"
+    var (translation6, score6) = service.translate(text6, "en", "zh")
+    print("EN→ZH:", text6, "→", translation6, "(score:", score6, ")")
+
+    # Arabic → French (cross-language via TranslateGemma)
+    var text7 = "شكرا جزيلا على مساعدتك"
+    var (translation7, score7) = service.translate(text7, "ar", "fr")
+    print("AR→FR:", text7, "→", translation7, "(score:", score7, ")")
+
     # Test batch
     print("\n🧪 Testing batch translation...")
     var batch_texts = List[String]()
@@ -980,5 +1024,8 @@ fn main() raises:
     print("\n" + service.get_stability_summary())
 
     print("\n" + "=" * 80)
-    print("✅ All tests complete with mHC stability monitoring!")
+    print("✅ All tests complete with mHC stability monitoring & TranslateGemma!")
+    print("  • TranslateGemma-27B-IT: 55 languages supported")
+    print("  • GGUF Q4_K_M quantization: 16.5GB")
+    print("  • Prompt format: <source_lang>X</source_lang><target_lang>Y</target_lang>text")
     print("=" * 80)

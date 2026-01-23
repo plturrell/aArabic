@@ -16,7 +16,7 @@ sap.ui.define([
                 })
                 .catch(error => {
                     console.error("Authentication failed:", error);
-                    // Fallback to mock mode for development
+                    // Continue without authentication for now
                     this._initializeDashboard();
                 });
         },
@@ -98,11 +98,11 @@ sap.ui.define([
 		            }
 		            
 		            console.log("Loaded", formattedModels.length, "models from API");
-		        })
-		        .catch(error => {
+                })
+                .catch(error => {
                     console.error("Failed to load models:", error);
-                    // Fallback to mock data
-                    this._initializeMockData(this.getOwnerComponent().getModel("metrics"));
+                    sap.m.MessageBox.error("Model catalog unavailable. Please verify the API.");
+                    this.getOwnerComponent().getModel("metrics").setProperty("/availableModels", []);
                 });
         },
         
@@ -440,8 +440,8 @@ sap.ui.define([
         _initializeNotifications: function() {
             // Create notifications model
             var oNotificationsModel = new JSONModel({
-                items: this._getMockNotifications(),
-                unreadCount: 3,
+                items: [],
+                unreadCount: 0,
                 hasMore: false
             });
             this.getView().setModel(oNotificationsModel, "notifications");
@@ -457,45 +457,6 @@ sap.ui.define([
             }
         },
         
-        _getMockNotifications: function() {
-            var now = new Date();
-            return [
-                {
-                    id: "notif_1",
-                    type: "warning",
-                    category: "Performance",
-                    title: "High Latency Detected",
-                    message: "Model lfm2.5-1.2b-q4_0 P95 latency exceeded 500ms threshold",
-                    timestamp: this._formatTimeAgo(new Date(now.getTime() - 5 * 60000)),
-                    read: false,
-                    action: "viewMetrics",
-                    actionText: "View Metrics"
-                },
-                {
-                    id: "notif_2",
-                    type: "info",
-                    category: "System",
-                    title: "Model Update Available",
-                    message: "Llama 3.3 70B v2.1 is now available for download",
-                    timestamp: this._formatTimeAgo(new Date(now.getTime() - 30 * 60000)),
-                    read: false,
-                    action: "viewModels",
-                    actionText: "View Models"
-                },
-                {
-                    id: "notif_3",
-                    type: "error",
-                    category: "Training",
-                    title: "Training Job Failed",
-                    message: "Job mhc_ft_20260121_001 failed due to GPU memory error",
-                    timestamp: this._formatTimeAgo(new Date(now.getTime() - 120 * 60000)),
-                    read: false,
-                    action: "viewTraining",
-                    actionText: "View Details"
-                }
-            ];
-        },
-        
         _formatTimeAgo: function(date) {
             var seconds = Math.floor((new Date() - date) / 1000);
             if (seconds < 60) return seconds + "s ago";
@@ -509,7 +470,7 @@ sap.ui.define([
         
         onRefreshNotifications: function() {
             var oModel = this.getView().getModel("notifications");
-            oModel.setProperty("/items", this._getMockNotifications());
+            oModel.setProperty("/items", []);
             sap.m.MessageToast.show("Notifications refreshed");
         },
         
@@ -845,51 +806,6 @@ sap.ui.define([
                 .catch(error => {
                     sap.m.MessageBox.error("Export failed: " + error.message);
                 });
-        },
-        
-        _initializeMockData: function(oModel) {
-            // Fallback mock data if API fails
-            var now = new Date();
-            
-            var oData = {
-                connected: false,
-                selectedModel: "lfm2.5-1.2b-q4_0",
-                availableModels: [
-                    {
-                        id: "lfm2.5-1.2b-q4_0",
-                        display_name: "LFM2.5 1.2B",
-                        quantization: "Q4_0",
-                        architecture: "lfm2",
-                        parameter_count: "1.2B",
-                        health: "healthy",
-                        avgLatency: 52,
-                        avgThroughput: 65,
-                        requests: 1247,
-                        lastUsed: "2 min ago"
-                    }
-                ],
-                selectedModelData: {
-                    current: {
-                        p50: 52,
-                        p95: 89,
-                        p99: 156,
-                        tps: 65,
-                        ttft: 35,
-                        cacheHit: 0.82,
-                        queueDepth: 3,
-                        totalTokens: 245
-                    }
-                },
-                tiers: {
-                    gpu: { used: 0, total: 0, hitRate: 0 },
-                    ram: { used: 2.2, total: 16, hitRate: 0.15 },
-                    dragonfly: { used: 0.5, total: 2, hitRate: 0.82 },
-                    postgres: { used: 1.2, total: 10, hitRate: 0.45 },
-                    ssd: { used: 5.6, total: 50, hitRate: 0.12 }
-                }
-            };
-            
-            oModel.setData(oData);
         },
         
         onExit: function () {

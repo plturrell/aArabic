@@ -227,7 +227,7 @@ b.installArtifact(cli_exe);
 ### Step 2: Build the Compiler
 
 ```bash
-cd src/serviceCore/nLocalModels/mojo-sdk
+cd src/codeCore/mojo-sdk
 zig build
 ```
 

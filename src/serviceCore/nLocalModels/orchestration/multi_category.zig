@@ -60,7 +60,7 @@ pub const MultiCategoryModel = struct {
         confidence: f32,
     ) !void {
         // Create new score
-        var new_score = MultiCategoryScore{
+        const new_score = MultiCategoryScore{
             .category = try self.allocator.dupe(u8, category),
             .base_score = base_score,
             .benchmark_score = benchmark_score,

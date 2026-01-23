@@ -12,7 +12,7 @@ sap.ui.define([
         onInit: function () {
             // Initialize versions model for TreeTable hierarchical data
             var oVersionsModel = new JSONModel({
-                modelHierarchy: this._getMockVersionData()
+                modelHierarchy: []
             });
             this.getView().setModel(oVersionsModel, "versions");
 
@@ -101,53 +101,6 @@ sap.ui.define([
 
             // Load versions from API
             this._loadVersions();
-        },
-
-        _getMockVersionData: function () {
-            return [
-                {
-                    name: "Llama 3.2",
-                    level: 1,
-                    children: [
-                        {
-                            name: "v3.2.x",
-                            level: 2,
-                            children: [
-                                { id: "v-001", name: "v3.2.0", level: 3, status: "PRODUCTION", accuracy: 94, latencyP50: 45, latencyP95: 120, trafficPercent: 80, createdAt: "2026-01-15", promotedBy: "admin" },
-                                { id: "v-002", name: "v3.2.1", level: 3, status: "STAGING", accuracy: 95, latencyP50: 42, latencyP95: 115, trafficPercent: 20, createdAt: "2026-01-18" }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    name: "Qwen 2.5",
-                    level: 1,
-                    children: [
-                        {
-                            name: "v2.5.x",
-                            level: 2,
-                            children: [
-                                { id: "v-003", name: "v2.5.0", level: 3, status: "PRODUCTION", accuracy: 92, latencyP50: 52, latencyP95: 140, trafficPercent: 100, createdAt: "2026-01-10", promotedBy: "system" },
-                                { id: "v-004", name: "v2.5.1", level: 3, status: "CANARY", accuracy: 93, latencyP50: 48, latencyP95: 130, trafficPercent: 5, createdAt: "2026-01-17" }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    name: "Phi-2",
-                    level: 1,
-                    children: [
-                        {
-                            name: "v2.0.x",
-                            level: 2,
-                            children: [
-                                { id: "v-005", name: "v2.0.0", level: 3, status: "PRODUCTION", accuracy: 89, latencyP50: 35, latencyP95: 95, trafficPercent: 100, createdAt: "2026-01-05", promotedBy: "admin" },
-                                { id: "v-006", name: "v2.0.1", level: 3, status: "ARCHIVED", accuracy: 87, latencyP50: 38, latencyP95: 100, trafficPercent: 0, createdAt: "2025-12-20" }
-                            ]
-                        }
-                    ]
-                }
-            ];
         },
 
         // ==================== Event Handlers ====================
@@ -398,24 +351,24 @@ sap.ui.define([
             oModel.setProperty(sBasePath + "/status", oVersion.status || "");
             oModel.setProperty(sBasePath + "/createdDate", oVersion.createdAt || "");
             oModel.setProperty(sBasePath + "/promotedBy", oVersion.promotedBy || "system");
-            oModel.setProperty(sBasePath + "/trainingExperimentId", oVersion.experimentId || "EXP-" + (oVersion.id || "unknown"));
+            oModel.setProperty(sBasePath + "/trainingExperimentId", oVersion.experimentId || (oVersion.id ? "EXP-" + oVersion.id : ""));
 
             // Training metrics
-            oModel.setProperty(sBasePath + "/trainingMetrics/finalLoss", oVersion.finalLoss || (Math.random() * 0.5 + 0.1).toFixed(3));
+            oModel.setProperty(sBasePath + "/trainingMetrics/finalLoss", oVersion.finalLoss || 0);
             oModel.setProperty(sBasePath + "/trainingMetrics/accuracy", oVersion.accuracy ? (oVersion.accuracy * 100).toFixed(1) : 0);
-            oModel.setProperty(sBasePath + "/trainingMetrics/trainingTime", oVersion.trainingTime || Math.floor(Math.random() * 10 + 2) + "h " + Math.floor(Math.random() * 60) + "m");
-            oModel.setProperty(sBasePath + "/trainingMetrics/epochsCompleted", oVersion.epochs || Math.floor(Math.random() * 50 + 10));
+            oModel.setProperty(sBasePath + "/trainingMetrics/trainingTime", oVersion.trainingTime || "");
+            oModel.setProperty(sBasePath + "/trainingMetrics/epochsCompleted", oVersion.epochs || 0);
 
             // Inference metrics
             oModel.setProperty(sBasePath + "/inferenceMetrics/latencyP50", oVersion.latencyP50 || 0);
             oModel.setProperty(sBasePath + "/inferenceMetrics/latencyP95", oVersion.latencyP95 || 0);
-            oModel.setProperty(sBasePath + "/inferenceMetrics/throughput", oVersion.throughput || Math.floor(Math.random() * 500 + 100));
-            oModel.setProperty(sBasePath + "/inferenceMetrics/errorRate", oVersion.errorRate || (Math.random() * 2).toFixed(2));
+            oModel.setProperty(sBasePath + "/inferenceMetrics/throughput", oVersion.throughput || 0);
+            oModel.setProperty(sBasePath + "/inferenceMetrics/errorRate", oVersion.errorRate || 0);
 
             // A/B testing metrics
             oModel.setProperty(sBasePath + "/abTesting/trafficPercent", oVersion.traffic || 0);
-            oModel.setProperty(sBasePath + "/abTesting/totalRequests", oVersion.totalRequests || Math.floor(Math.random() * 100000 + 10000));
-            oModel.setProperty(sBasePath + "/abTesting/successRate", oVersion.successRate || (95 + Math.random() * 4).toFixed(1));
+            oModel.setProperty(sBasePath + "/abTesting/totalRequests", oVersion.totalRequests || 0);
+            oModel.setProperty(sBasePath + "/abTesting/successRate", oVersion.successRate || 0);
         },
 
         _calculateModelDeltas: function () {
@@ -766,20 +719,56 @@ sap.ui.define([
             var that = this;
             var oComponent = this.getOwnerComponent();
             var sApiBaseUrl = oComponent ? oComponent.getApiBaseUrl() : "";
+            var oVersionsModel = this.getView().getModel("versions");
 
-            // GET /v1/models/versions
-            return fetch(sApiBaseUrl + "/v1/models/versions")
+            // Load live models and map to a simple hierarchy (no mock fallback)
+            return fetch(sApiBaseUrl + "/v1/models")
                 .then(function (response) {
-                    if (!response.ok) throw new Error("Failed to fetch versions");
+                    if (!response.ok) throw new Error("Failed to fetch models");
                     return response.json();
                 })
                 .then(function (data) {
-                    that.getView().getModel("versions").setProperty("/versions", data.versions || []);
-                    MessageToast.show("Versions loaded successfully");
+                    var aModels = data.data || data.models || [];
+                    var aTree = aModels.map(function (m) {
+                        var createdAt = m.created ? new Date(m.created * 1000).toISOString() : "";
+                        var status = (m.status || m.state || "PRODUCTION").toUpperCase();
+
+                        return {
+                            name: m.display_name || m.name || m.id,
+                            id: m.id,
+                            level: 1,
+                            status: status,
+                            accuracy: m.accuracy || 0,
+                            latencyP50: m.latency_p50 || m.p50 || 0,
+                            latencyP95: m.latency_p95 || m.p95 || 0,
+                            trafficPercent: m.traffic_percent || 100,
+                            createdAt: createdAt,
+                            promotedBy: m.owned_by || "system",
+                            children: [
+                                {
+                                    name: m.version || "current",
+                                    id: m.id,
+                                    level: 3,
+                                    status: status,
+                                    accuracy: m.accuracy || 0,
+                                    latencyP50: m.latency_p50 || m.p50 || 0,
+                                    latencyP95: m.latency_p95 || m.p95 || 0,
+                                    trafficPercent: m.traffic_percent || 100,
+                                    createdAt: createdAt,
+                                    promotedBy: m.owned_by || "system",
+                                    children: []
+                                }
+                            ]
+                        };
+                    });
+
+                    oVersionsModel.setProperty("/modelHierarchy", aTree);
+                    MessageToast.show("Versions loaded from API");
                 })
                 .catch(function (error) {
-                    console.warn("API not available, using mock data:", error.message);
-                    // Keep mock data on error
+                    console.error("Failed to load versions:", error.message);
+                    oVersionsModel.setProperty("/modelHierarchy", []);
+                    MessageBox.error("Version catalog unavailable. Please verify the API.");
                 });
         },
 
@@ -829,4 +818,3 @@ sap.ui.define([
         }
     });
 });
-

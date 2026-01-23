@@ -1,0 +1,13 @@
+{
+  "name": "hana-sql-bridge",
+  "version": "1.0.0",
+  "description": "HTTP bridge for HANA Cloud SQL execution",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "install-hana": "npm install @sap/hana-client"
+  },
+  "dependencies": {
+    "@sap/hana-client": "^2.21.31"
+  }
+}

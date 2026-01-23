@@ -9,10 +9,18 @@
 
     var finish = function () {
       try {
+        var passed = true;
         if (typeof printTestSummary === "function") {
-          printTestSummary();
+          passed = printTestSummary() !== false;
         }
-        window.__karma__.complete();
+        window.__karma__.info({ total: 1 });
+        window.__karma__.result({
+          description: "UIFlow integration suite",
+          suite: ["UIFlow"],
+          success: passed,
+          log: []
+        });
+        window.__karma__.complete({ coverage: {}, exitCode: passed ? 0 : 1 });
       } catch (e) {
         window.__karma__.error(e);
       }

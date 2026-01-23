@@ -360,7 +360,9 @@ pub const ModelRegistry = struct {
         var params: []const u8 = "unknown";
         
         // Check for known architectures
-        if (std.mem.indexOf(u8, name, "Llama") != null or std.mem.indexOf(u8, name, "llama") != null) {
+        if (std.mem.indexOf(u8, name, "translategemma") != null or std.mem.indexOf(u8, name, "TranslateGemma") != null) {
+            arch = "gemma2";  // TranslateGemma uses Gemma2 architecture
+        } else if (std.mem.indexOf(u8, name, "Llama") != null or std.mem.indexOf(u8, name, "llama") != null) {
             arch = "llama";
         } else if (std.mem.indexOf(u8, name, "phi") != null or std.mem.indexOf(u8, name, "Phi") != null) {
             arch = "phi";
@@ -370,10 +372,20 @@ pub const ModelRegistry = struct {
             arch = "gemma";
         } else if (std.mem.indexOf(u8, name, "Nemotron") != null) {
             arch = "nemotron";
+        } else if (std.mem.indexOf(u8, name, "deepseek") != null or std.mem.indexOf(u8, name, "DeepSeek") != null) {
+            arch = "deepseek";
+        } else if (std.mem.indexOf(u8, name, "LFM") != null) {
+            arch = "lfm";  // Liquid Foundation Model
         }
         
         // Extract parameter count (look for patterns like "1B", "3B", "270m")
-        if (std.mem.indexOf(u8, name, "1B") != null or std.mem.indexOf(u8, name, "1b") != null) {
+        if (std.mem.indexOf(u8, name, "27b") != null or std.mem.indexOf(u8, name, "27B") != null) {
+            params = "27B";
+        } else if (std.mem.indexOf(u8, name, "33b") != null or std.mem.indexOf(u8, name, "33B") != null) {
+            params = "33B";
+        } else if (std.mem.indexOf(u8, name, "70B") != null or std.mem.indexOf(u8, name, "70b") != null) {
+            params = "70B";
+        } else if (std.mem.indexOf(u8, name, "1B") != null or std.mem.indexOf(u8, name, "1b") != null) {
             params = "1B";
         } else if (std.mem.indexOf(u8, name, "3B") != null or std.mem.indexOf(u8, name, "3b") != null) {
             params = "3B";

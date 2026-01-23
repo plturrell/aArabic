@@ -410,7 +410,6 @@ pub const ModelSelector = struct {
         model: *const Model,
         constraints: SelectionConstraints,
     ) !bool {
-        _ = self;
         
         // Check GPU memory
         if (constraints.max_gpu_memory_mb) |max_mem| {
@@ -450,8 +449,6 @@ pub const ModelSelector = struct {
         task_category: []const u8,
         constraints: SelectionConstraints,
     ) !f64 {
-        _ = self;
-        _ = task_category;
         
         var score: f64 = 50.0; // Base score
         

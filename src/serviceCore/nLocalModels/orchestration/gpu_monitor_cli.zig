@@ -32,7 +32,7 @@ pub fn main() !void {
         log_file = args[2];
     }
     
-    const stdout = std.io.getStdOut().writer();
+    const stdout = std.fs.File.stdout().deprecatedWriter();
     
     try stdout.print("=== GPU Selection Monitoring ===\n", .{});
     try stdout.print("Interval: {d} seconds\n", .{interval_ms / 1000});

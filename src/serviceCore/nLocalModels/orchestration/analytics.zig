@@ -468,8 +468,8 @@ pub const Analytics = struct {
         _ = self;
         var buf: [64]u8 = undefined;
         const now = std.time.timestamp();
-        const epoch_day = @divFloor(now, 86400);
-        const day_seconds = @mod(now, 86400);
+        _ = epoch_day; // const epoch_day = @divFloor(now, 86400);
+        _ = day_seconds; // const day_seconds = @mod(now, 86400);
         
         // Simple timestamp format
         return try std.fmt.bufPrint(&buf, "{d}", .{now});
@@ -486,7 +486,7 @@ pub fn main() !void {
     defer std.process.argsFree(allocator, args);
     
     if (args.len < 2) {
-        const stderr = std.io.getStdErr().writer();
+        const stderr = std.fs.File.stderr().writer();
         try stderr.print("Usage: {s} <metrics_file> [--report] [--format markdown|json]\n", .{args[0]});
         std.process.exit(1);
     }

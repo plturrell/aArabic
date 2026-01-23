@@ -38,7 +38,7 @@ pub fn main() !void {
         iterations = try std.fmt.parseInt(usize, args[1], 10);
     }
     
-    const stdout = std.io.getStdOut().writer();
+    const stdout = std.fs.File.stdout().deprecatedWriter();
     
     try stdout.print("\n{'=':**60}\n", .{});
     try stdout.print("Routing Performance Benchmark ({d} iterations)\n", .{iterations});
@@ -74,7 +74,7 @@ fn benchmarkSelectionTime(
     selector: *ModelSelector,
     iterations: usize,
 ) !void {
-    const stdout = std.io.getStdOut().writer();
+    const stdout = std.fs.File.stdout().deprecatedWriter();
     
     try stdout.print("Selection Time Benchmark:\n\n", .{});
     
@@ -122,7 +122,7 @@ fn testConstraintCombinations(
     allocator: std.mem.Allocator,
     selector: *ModelSelector,
 ) !void {
-    const stdout = std.io.getStdOut().writer();
+    const stdout = std.fs.File.stdout().deprecatedWriter();
     
     try stdout.print("\nConstraint Combination Tests:\n\n", .{});
     
@@ -161,7 +161,7 @@ fn testSelectionConsistency(
     selector: *ModelSelector,
     iterations: usize,
 ) !void {
-    const stdout = std.io.getStdOut().writer();
+    const stdout = std.fs.File.stdout().deprecatedWriter();
     
     try stdout.print("\nSelection Consistency Test ({d} iterations):\n\n", .{iterations});
     
@@ -227,7 +227,7 @@ fn validateCategoryCoverage(
     selector: *ModelSelector,
 ) !void {
     _ = allocator;
-    const stdout = std.io.getStdOut().writer();
+    const stdout = std.fs.File.stdout().deprecatedWriter();
     
     try stdout.print("\nCategory Coverage Validation:\n\n", .{});
     
@@ -273,7 +273,7 @@ fn calculateMean(values: []const f64) f64 {
 fn calculateMedian(allocator: std.mem.Allocator, values: []const f64) !f64 {
     if (values.len == 0) return 0.0;
     
-    var sorted = try allocator.dupe(f64, values);
+    const sorted = try allocator.dupe(f64, values);
     defer allocator.free(sorted);
     
     std.mem.sort(f64, sorted, {}, comptime std.sort.asc(f64));

@@ -110,8 +110,9 @@ sap.ui.define([
                 })
                 .catch(error => {
                     console.error("Failed to load agent topology:", error);
-                    // Fallback to mock only if server unreachable
-                    this._loadMockAgentTopology();
+                    sap.m.MessageBox.error("Agent topology unavailable. Please check the orchestration API.");
+                    this._buildNetworkGraph([]);
+                    this._updateStatistics([]);
                 });
         },
         
@@ -734,88 +735,6 @@ sap.ui.define([
         
         onImportTopology: function() {
             MessageBox.information("Import topology from JSON file (coming soon)");
-        },
-        
-        _loadMockAgentTopology: function() {
-            // Mock data for development/testing
-            var mockAgents = [
-                {
-                    id: "router-1",
-                    name: "Router Agent",
-                    description: "Routes requests to appropriate agents",
-                    type: "router",
-                    model_id: "lfm2.5-1.2b-q4_0",
-                    status: "healthy",
-                    total_requests: 1547,
-                    avg_latency: 45,
-                    success_rate: 98.5,
-                    next_agents: ["code-1", "translation-1", "rag-1"]
-                },
-                {
-                    id: "code-1",
-                    name: "Code Agent",
-                    description: "Generates and validates code",
-                    type: "code",
-                    model_id: "deepseek-coder-33b",
-                    status: "busy",
-                    total_requests: 845,
-                    avg_latency: 230,
-                    success_rate: 95.2,
-                    next_agents: ["validation-1"]
-                },
-                {
-                    id: "translation-1",
-                    name: "Translation Agent",
-                    description: "Translates text between languages",
-                    type: "translation",
-                    model_id: "hymt-1.5-7b-q6_k",
-                    status: "healthy",
-                    total_requests: 523,
-                    avg_latency: 125,
-                    success_rate: 99.1,
-                    next_agents: ["quality-1"]
-                },
-                {
-                    id: "rag-1",
-                    name: "RAG Agent",
-                    description: "Retrieval-augmented generation",
-                    type: "rag",
-                    model_id: "lfm2.5-1.2b-f16",
-                    status: "healthy",
-                    total_requests: 1234,
-                    avg_latency: 180,
-                    success_rate: 96.8,
-                    next_agents: ["validation-1"]
-                },
-                {
-                    id: "validation-1",
-                    name: "Validation Agent",
-                    description: "Validates agent outputs",
-                    type: "validation",
-                    model_id: "lfm2.5-1.2b-q4_k_m",
-                    status: "healthy",
-                    total_requests: 2102,
-                    avg_latency: 55,
-                    success_rate: 97.3,
-                    next_agents: []
-                },
-                {
-                    id: "quality-1",
-                    name: "Quality Agent",
-                    description: "Ensures output quality",
-                    type: "quality",
-                    model_id: "lfm2.5-1.2b-q4_k_m",
-                    status: "healthy",
-                    total_requests: 523,
-                    avg_latency: 62,
-                    success_rate: 98.9,
-                    next_agents: []
-                }
-            ];
-            
-            this._buildNetworkGraph(mockAgents);
-            this._updateStatistics(mockAgents);
-            console.log("Loaded mock agent topology");
         },
         
         onRefreshGraphs: function() {

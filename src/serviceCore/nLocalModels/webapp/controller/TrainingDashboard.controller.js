@@ -45,7 +45,7 @@ sap.ui.define([
             this._loadAlgorithms();
             this._loadJobs();
             this._loadExperiments();
-            this._loadMockKTOMetrics();  // Load mock KTO data for demo
+            this._loadKTOMetrics();
         },
 
         onAfterRendering: function () {
@@ -100,11 +100,8 @@ sap.ui.define([
             var container = document.getElementById("trainingLossChart");
             if (!container || !this._ChartsModule) return;
 
-            // Mock training loss data
-            var mockData = this._generateMockTrainingData();
-
             this._charts.trainingLoss = new this._ChartsModule.LineChart(container, {
-                series: mockData,
+                series: this._oTrainingModel.getProperty("/trainingLossSeries") || [],
                 xAxisLabel: "Training Steps",
                 yAxisLabel: "Loss",
                 showGrid: true,
@@ -120,31 +117,11 @@ sap.ui.define([
             var container = document.getElementById("sankeyChart");
             if (!container || !this._ChartsModule) return;
 
-            // Training data pipeline flow
-            var nodes = [
-                { id: "raw", name: "Raw Dataset" },
-                { id: "filtered", name: "Filtered" },
-                { id: "tokenized", name: "Tokenized" },
-                { id: "train", name: "Training Set" },
-                { id: "val", name: "Validation Set" },
-                { id: "kto", name: "KTO Training" },
-                { id: "sft", name: "SFT Training" },
-                { id: "eval", name: "Evaluation" }
-            ];
-
-            var links = [
-                { source: "raw", target: "filtered", value: 100000 },
-                { source: "filtered", target: "tokenized", value: 85000 },
-                { source: "tokenized", target: "train", value: 68000 },
-                { source: "tokenized", target: "val", value: 17000 },
-                { source: "train", target: "kto", value: 40000 },
-                { source: "train", target: "sft", value: 28000 },
-                { source: "val", target: "eval", value: 17000 }
-            ];
+            var sankey = this._oTrainingModel.getProperty("/sankey") || { nodes: [], links: [] };
 
             this._charts.sankey = new this._ChartsModule.SankeyDiagram(container, {
-                nodes: nodes,
-                links: links,
+                nodes: sankey.nodes || [],
+                links: sankey.links || [],
                 width: container.offsetWidth || 800,
                 height: 350,
                 nodeWidth: 24,
@@ -155,44 +132,23 @@ sap.ui.define([
             });
         },
 
-        _generateMockTrainingData: function () {
-            var policyLoss = [];
-            var valueLoss = [];
-            var klDivergence = [];
-
-            for (var i = 0; i < 100; i++) {
-                var step = i * 10;
-                // Simulated decaying loss with noise
-                policyLoss.push({ x: step, y: 2.5 * Math.exp(-i/30) + 0.1 + Math.random() * 0.1 });
-                valueLoss.push({ x: step, y: 1.8 * Math.exp(-i/40) + 0.05 + Math.random() * 0.08 });
-                klDivergence.push({ x: step, y: 5 + 10 * (1 - Math.exp(-i/50)) + Math.random() * 2 });
-            }
-
-            return [
-                { name: "Policy Loss", data: policyLoss, color: "#0a6ed1" },
-                { name: "Value Loss", data: valueLoss, color: "#107e3e" },
-                { name: "KL Divergence", data: klDivergence, color: "#e9730c", dashed: true }
-            ];
-        },
-
-        _loadMockKTOMetrics: function () {
-            // Mock KTO metrics for demo
-            this._oTrainingModel.setProperty("/ktoMetrics", {
-                winRate: 67.5,
-                klDivergence: 12.4,
-                desirableCount: 15420,
-                undesirableCount: 8230,
-                ratio: "1.87",
-                refEmaAlpha: 0.95,
-                policyLoss: 0.342,
-                policyLossTrend: "down",
-                valueLoss: 0.128
-            });
-
-            // Update chart if it exists
-            if (this._charts.winRate) {
-                this._charts.winRate.setValue(67.5);
-            }
+        _loadKTOMetrics: function () {
+            var that = this;
+            var oModel = this._oTrainingModel;
+            fetch(this._getApiBaseUrl() + "/v1/training/kto")
+                .then(function (response) { return response.ok ? response.json() : Promise.reject(response.statusText); })
+                .then(function (data) {
+                    oModel.setProperty("/ktoMetrics", data.metrics || {});
+                    oModel.setProperty("/trainingLossSeries", data.training_loss || []);
+                    oModel.setProperty("/sankey", data.sankey || { nodes: [], links: [] });
+                })
+                .catch(function (error) {
+                    console.error("Failed to load KTO metrics:", error);
+                    oModel.setProperty("/ktoMetrics", {});
+                    oModel.setProperty("/trainingLossSeries", []);
+                    oModel.setProperty("/sankey", { nodes: [], links: [] });
+                    sap.m.MessageToast.show("Training metrics unavailable");
+                });
         },
 
         // ==================== API Base URL ====================

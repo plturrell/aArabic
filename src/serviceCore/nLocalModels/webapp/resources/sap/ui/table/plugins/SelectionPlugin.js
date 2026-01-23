@@ -1,0 +1,7 @@
+/*
+ * OpenUI5
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/core/Element","./PluginBase"],function(e,t){"use strict";var o=e.extend("sap.ui.table.plugins.SelectionPlugin",{metadata:{abstract:true,library:"sap.ui.table",properties:{enabled:{type:"boolean",defaultValue:true}},events:{selectionChange:{parameters:{}}}}});for(var n in t.prototype){if(!o.prototype.hasOwnProperty(n)){o.prototype[n]=t.prototype[n]}}o.prototype.setParent=function(e){var o=this.getTable();t.prototype.setParent.apply(this,arguments);(e||o)._initSelectionPlugin()};o.prototype.exit=function(){t.prototype.exit.apply(this,arguments);this.getTable()?._initSelectionPlugin()};o.prototype.setEnabled=function(e){this.setProperty("enabled",e,true);if(this.getEnabled()){this.activate()}else{this.deactivate()}return this};o.prototype.getRenderConfig=function(){return{headerSelector:{type:"none"}}};o.prototype.onHeaderSelectorPress=function(){};o.prototype.onKeyboardShortcut=function(e,t){};o.prototype.setSelected=function(e,t,o){throw new Error(this+" does not implement #setSelected")};o.prototype.isSelected=function(e){throw new Error(this+" does not implement #isSelected")};o.prototype.getSelectedCount=function(){throw new Error(this+" does not implement #getSelectedCount")};return o});
+//# sourceMappingURL=SelectionPlugin.js.map

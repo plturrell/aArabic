@@ -81,20 +81,9 @@ sap.ui.define([
                 })
                 .catch(function (error) {
                     console.error("Error loading models:", error);
-                    // Use mock models for demo
-                    that._oABTestModel.setProperty("/availableModels", that._getMockModels());
+                    that._oABTestModel.setProperty("/availableModels", []);
+                    MessageBox.error("Unable to load models. Please verify the API.");
                 });
-        },
-
-        _getMockModels: function () {
-            return [
-                { id: "lfm2.5-1.2b-q4_0", display_name: "LFM2.5 1.2B", quantization: "Q4_0" },
-                { id: "lfm2.5-1.2b-q4_k_m", display_name: "LFM2.5 1.2B", quantization: "Q4_K_M" },
-                { id: "lfm2.5-1.2b-f16", display_name: "LFM2.5 1.2B", quantization: "F16" },
-                { id: "llama-3.3-70b-q4_k_m", display_name: "Llama 3.3 70B", quantization: "Q4_K_M" },
-                { id: "mistral-7b-q4_0", display_name: "Mistral 7B", quantization: "Q4_0" },
-                { id: "qwen-2.5-7b-q4_k_m", display_name: "Qwen 2.5 7B", quantization: "Q4_K_M" }
-            ];
         },
 
         onModelAChange: function (oEvent) {
@@ -200,16 +189,7 @@ sap.ui.define([
                 };
             })
             .catch(function (error) {
-                // Return mock data for demo purposes
-                var nLatency = Math.floor(Math.random() * 500) + 100;
-                var nTokens = Math.floor(Math.random() * 200) + 50;
-                return {
-                    text: "Mock response for " + sModelId + ": This is a simulated response for testing purposes. The actual API call failed: " + error.message,
-                    latency_ms: nLatency,
-                    tokens_per_second: Math.round(nTokens / (nLatency / 1000)),
-                    tokens_generated: nTokens,
-                    cost_estimate: (nTokens / 1000 * 0.001 + nLatency / 1000 * 0.0001).toFixed(6)
-                };
+                return Promise.reject(error);
             });
         },
 
@@ -389,39 +369,10 @@ sap.ui.define([
                 })
                 .catch(function (error) {
                     console.warn("Could not load history from API:", error);
-                    // Use mock history for demo
-                    that._oABTestModel.setProperty("/comparisonHistory", that._getMockHistory());
+                    that._oABTestModel.setProperty("/comparisonHistory", []);
                     that._updateAggregateStats();
+                    MessageBox.error("A/B comparison history is unavailable.");
                 });
-        },
-
-        _getMockHistory: function () {
-            return [
-                {
-                    id: "mock-1",
-                    timestamp: new Date(Date.now() - 3600000).toISOString(),
-                    prompt: "What is the capital of France? Explain its history.",
-                    modelA: { id: "lfm2.5-1.2b-q4_0", display_name: "LFM2.5 1.2B Q4_0", latency_ms: 150, tps: 45 },
-                    modelB: { id: "mistral-7b-q4_0", display_name: "Mistral 7B Q4_0", latency_ms: 280, tps: 32 },
-                    winner: "A"
-                },
-                {
-                    id: "mock-2",
-                    timestamp: new Date(Date.now() - 7200000).toISOString(),
-                    prompt: "Write a Python function to sort a list using quicksort.",
-                    modelA: { id: "lfm2.5-1.2b-f16", display_name: "LFM2.5 1.2B F16", latency_ms: 320, tps: 28 },
-                    modelB: { id: "llama-3.3-70b-q4_k_m", display_name: "Llama 3.3 70B", latency_ms: 450, tps: 22 },
-                    winner: "B"
-                },
-                {
-                    id: "mock-3",
-                    timestamp: new Date(Date.now() - 10800000).toISOString(),
-                    prompt: "ما هو الذكاء الاصطناعي؟",
-                    modelA: { id: "lfm2.5-1.2b-q4_k_m", display_name: "LFM2.5 1.2B Q4_K_M", latency_ms: 180, tps: 40 },
-                    modelB: { id: "qwen-2.5-7b-q4_k_m", display_name: "Qwen 2.5 7B", latency_ms: 175, tps: 38 },
-                    winner: "tie"
-                }
-            ];
         },
 
         onSearchHistory: function (oEvent) {
@@ -531,4 +482,3 @@ sap.ui.define([
         }
     });
 });
-

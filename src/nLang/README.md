@@ -1,7 +1,7 @@
-# nLang - SCB Custom Language SDKs
-## Standard Chartered Bank - Nucleus Project
+# nLang - Custom Language SDKs
+## Bank - Nucleus Project
 
-This directory contains Standard Chartered Bank's custom, audited, and compliance-approved language SDKs for the Nucleus project.
+This directory contains Bank's custom, audited, and compliance-approved language SDKs for the Nucleus project.
 
 **Service Name:** nLang (following Nucleus naming convention: nLocalModels, nWebServe, nLang)
 
@@ -11,14 +11,14 @@ This directory contains Standard Chartered Bank's custom, audited, and complianc
 
 ```
 src/nLang/
-├── scb-mojo-sdk/          # SCB Custom Mojo SDK
+├── n-python-sdk/          # Custom Mojo SDK
 │   ├── compiler/          # Mojo compiler implementation
 │   ├── stdlib/            # Standard library
 │   ├── runtime/           # Runtime system
 │   ├── tools/             # LSP, fuzzer, CLI tools
 │   └── docs/              # Documentation
 │
-├── scb-zig-sdk/           # SCB Custom Zig SDK
+├── n-c-sdk/           # Custom Zig SDK
 │   ├── lib/               # Zig standard library
 │   ├── src/               # Zig compiler source
 │   ├── test/              # Test suite
@@ -32,11 +32,11 @@ src/nLang/
 
 ## SDK Overview
 
-### scb-mojo-sdk
+### n-python-sdk
 
 **Purpose:** Custom Mojo SDK for ML/AI workloads
 **Version:** Based on Mojo 0.26.1
-**Tag Convention:** `scb-mojo-{version}-nucleus-{release}`
+**Tag Convention:** `n-python-{version}-nucleus-{release}`
 **Status:** Research & Development
 
 **Key Components:**
@@ -54,16 +54,16 @@ src/nLang/
 - Quality assurance (fuzzing)
 - Understanding Mojo internals
 
-**Documentation:** See `scb-mojo-sdk/README.md`
+**Documentation:** See `n-python-sdk/README.md`
 
 ---
 
-### scb-zig-sdk
+### n-c-sdk
 
 **Purpose:** Custom Zig SDK for system tools and infrastructure
 **Version:** Zig 0.15.2
-**Tag Convention:** `scb-zig-{version}-nucleus-{release}`
-**Current Tag:** `scb-zig-0.15.2-nucleus-1`
+**Tag Convention:** `n-c-{version}-nucleus-{release}`
+**Current Tag:** `n-c-0.15.2-nucleus-1`
 **Status:** Phase 1 Complete (Repository Setup)
 
 **Key Components:**
@@ -79,7 +79,7 @@ src/nLang/
 - Compliance-approved compilation toolchain
 - Reproducible builds for regulated environment
 
-**Documentation:** See `scb-zig-sdk/PHASE1_COMPLETE.md`
+**Documentation:** See `n-c-sdk/PHASE1_COMPLETE.md`
 
 ---
 
@@ -94,12 +94,12 @@ scb-{language}-{version}-nucleus-{release}
 ```
 
 **Examples:**
-- `scb-mojo-0.26.1-nucleus-1`
-- `scb-zig-0.15.2-nucleus-1`
-- `scb-zig-0.15.2-nucleus-2` (after updates)
+- `n-python-0.26.1-nucleus-1`
+- `n-c-0.15.2-nucleus-1`
+- `n-c-0.15.2-nucleus-2` (after updates)
 
 **Components:**
-- `scb` = Standard Chartered Bank
+- `scb` = Bank
 - `{language}` = mojo | zig
 - `{version}` = Upstream version number
 - `nucleus` = Project name
@@ -122,18 +122,18 @@ Both SDKs are subject to:
 
 | SDK | Phase | Status | Next Steps |
 |-----|-------|--------|------------|
-| **scb-mojo-sdk** | Research | ✅ Active | Continue development |
-| **scb-zig-sdk** | Phase 1 | ✅ Complete | Phase 2: Security Audit |
+| **n-python-sdk** | Research | ✅ Active | Continue development |
+| **n-c-sdk** | Phase 1 | ✅ Complete | Phase 2: Security Audit |
 
 ---
 
 ## Usage
 
-### scb-mojo-sdk
+### n-python-sdk
 
 ```bash
 # Built tools (already available)
-cd src/nLang/scb-mojo-sdk/zig-out/bin
+cd src/nLang/n-python-sdk/zig-out/bin
 ./mojo-lsp        # LSP server for IDEs
 ./fuzz-parser     # Fuzzing tool
 
@@ -142,7 +142,7 @@ cd src/nLang/scb-mojo-sdk/zig-out/bin
 mojo build your-file.mojo
 ```
 
-### scb-zig-sdk
+### n-c-sdk
 
 ```bash
 # Recommended: Use system Zig binary
@@ -173,7 +173,7 @@ zig build
 ### For Zig Development
 
 1. Use system Zig 0.15.2 for compilation
-2. Reference scb-zig-sdk for source code audit
+2. Reference n-c-sdk for source code audit
 3. Build tools with system Zig
 4. Maintain compliance documentation
 
@@ -181,11 +181,11 @@ zig build
 
 ## Git Configuration
 
-### scb-mojo-sdk
+### n-python-sdk
 
 ```bash
 # Check remotes
-cd src/nLang/scb-mojo-sdk
+cd src/nLang/n-python-sdk
 git remote -v
 
 # Internal repository (to be configured)
@@ -193,11 +193,11 @@ git remote -v
 # origin: git@internal-gitlab.scb.com:nucleus/mojo-sdk.git
 ```
 
-### scb-zig-sdk
+### n-c-sdk
 
 ```bash
 # Check remotes
-cd src/nLang/scb-zig-sdk
+cd src/nLang/n-c-sdk
 git remote -v
 
 # Already configured
@@ -220,14 +220,14 @@ git remote -v
 
 ```bash
 # List available tags
-cd src/nLang/scb-zig-sdk
-git tag | grep scb-zig
+cd src/nLang/n-c-sdk
+git tag | grep n-c
 
 # Checkout specific version
-git checkout scb-zig-0.15.2-nucleus-1
+git checkout n-c-0.15.2-nucleus-1
 
 # Create new release
-git tag -a scb-zig-0.15.2-nucleus-2 -m "Release notes"
+git tag -a n-c-0.15.2-nucleus-2 -m "Release notes"
 ```
 
 ---
@@ -240,8 +240,8 @@ git tag -a scb-zig-0.15.2-nucleus-2 -m "Release notes"
 arabic_folder/
 ├── src/
 │   ├── nLang/                 # Custom SDKs (this directory)
-│   │   ├── scb-mojo-sdk/     # ML/AI language
-│   │   └── scb-zig-sdk/      # Systems language
+│   │   ├── n-python-sdk/     # ML/AI language
+│   │   └── n-c-sdk/      # Systems language
 │   │
 │   └── serviceCore/           # Built with these SDKs
 │       └── nLocalModels/
@@ -267,12 +267,12 @@ arabic_folder/
 
 ### Available Documents
 
-**scb-mojo-sdk:**
-- `scb-mojo-sdk/README.md` - SDK overview
+**n-python-sdk:**
+- `n-python-sdk/README.md` - SDK overview
 - `docs/01-architecture/CUSTOM_MOJO_SDK_ANALYSIS.md` - Detailed analysis
 
-**scb-zig-sdk:**
-- `scb-zig-sdk/PHASE1_COMPLETE.md` - Phase 1 completion report
+**n-c-sdk:**
+- `n-c-sdk/PHASE1_COMPLETE.md` - Phase 1 completion report
 - `docs/01-architecture/CUSTOM_ZIG_SDK_ANALYSIS.md` - Banking compliance analysis
 
 **General:**
@@ -300,14 +300,14 @@ arabic_folder/
 ## Roadmap
 
 ### Q1 2026
-- [x] scb-zig-sdk Phase 1: Repository setup
-- [ ] scb-zig-sdk Phase 2: Security audit
-- [ ] scb-zig-sdk Phase 3: Build pipeline
-- [ ] scb-zig-sdk Phase 4: Compliance approval
+- [x] n-c-sdk Phase 1: Repository setup
+- [ ] n-c-sdk Phase 2: Security audit
+- [ ] n-c-sdk Phase 3: Build pipeline
+- [ ] n-c-sdk Phase 4: Compliance approval
 
 ### Q2 2026
-- [ ] scb-mojo-sdk: Rename and restructure
-- [ ] scb-mojo-sdk: Security audit
+- [ ] n-python-sdk: Rename and restructure
+- [ ] n-python-sdk: Security audit
 - [ ] Both: Production approval
 - [ ] Integration testing
 
@@ -321,13 +321,13 @@ arabic_folder/
 
 ## Approval Status
 
-### scb-mojo-sdk
+### n-python-sdk
 - **Platform Engineering:** ✅ Approved (Research use)
 - **Security Team:** ⏳ Pending (Full audit)
 - **Compliance:** ⏳ Pending (Review)
 - **Production:** ❌ Not approved (use system Mojo)
 
-### scb-zig-sdk
+### n-c-sdk
 - **Platform Engineering:** ✅ Approved (Phase 1)
 - **Security Team:** ⏳ Pending (Phase 2)
 - **Compliance:** ⏳ Pending (Phase 4)

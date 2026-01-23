@@ -5,8 +5,10 @@
   "private": true,
   "scripts": {
     "start": "ui5 serve --port 8081 --open index.html",
-    "build:components": "cd components && bun install && bun run build:prod && rm -rf ../components-dist && cp -R dist ../components-dist",
+    "build:components": "cd components && bun install && bun run build:prod && rm -rf ../components-dist && cp -R dist ../components-dist && mkdir -p ../components-dist/NetworkGraph && cp NetworkGraph/styles.css ../components-dist/NetworkGraph/styles.css && mkdir -p ../components-dist/ProcessFlow && cp ProcessFlow/processflow.css ../components-dist/ProcessFlow/processflow.css",
     "build": "npm run build:components && ui5 build && mkdir -p dist/components-dist && cp -R components-dist/. dist/components-dist/",
+    "serve:dist": "cd dist && python3 -m http.server 8085 --bind 127.0.0.1",
+    "ci": "npm run build && npm test",
     "lint": "eslint .",
     "test": "karma start"
   },

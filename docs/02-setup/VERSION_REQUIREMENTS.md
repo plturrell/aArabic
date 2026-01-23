@@ -63,7 +63,7 @@ mojo --version
 
 ### mojo-sdk (Custom Mojo Implementation)
 
-**Location:** `src/serviceCore/nLocalModels/mojo-sdk/`
+**Location:** `src/codeCore/mojo-sdk/`
 
 **Architecture:** This is a **complete custom Mojo language implementation** built in Zig, not the official Modular Mojo SDK!
 
@@ -332,7 +332,7 @@ Solution: Ensure mojo-sdk/ is properly copied in Docker COPY command
 echo "=== Version Check ==="
 echo "Zig: $(zig version)"
 echo "Mojo: $(mojo --version)"
-echo "mojo-sdk: $([ -d src/serviceCore/nLocalModels/mojo-sdk ] && echo 'Present' || echo 'MISSING')"
+echo "mojo-sdk: $([ -d src/codeCore/mojo-sdk ] && echo 'Present' || echo 'MISSING')"
 echo "===================="
 ```
 
@@ -343,7 +343,7 @@ echo "===================="
 - **Zig Downloads:** https://ziglang.org/download/
 - **Mojo Installation:** https://docs.modular.com/mojo/manual/get-started/
 - **Magic CLI:** https://docs.modular.com/magic/
-- **Project mojo-sdk:** `src/serviceCore/nLocalModels/mojo-sdk/README.md`
+- **Project mojo-sdk:** `src/codeCore/mojo-sdk/README.md`
 
 ---
 

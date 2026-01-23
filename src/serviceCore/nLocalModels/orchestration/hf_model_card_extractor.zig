@@ -34,6 +34,7 @@ const NAME_PATTERNS = std.ComptimeStringMap([]const []const u8, .{
 });
 
 pub const ModelInfo = struct {
+    allocator: Allocator,
     hf_metadata: std.StringHashMap(std.json.Value),
     specifications: std.StringHashMap([]const u8),
     benchmarks: std.StringHashMap(BenchmarkScore),
@@ -48,6 +49,7 @@ pub const ModelInfo = struct {
     
     pub fn init(allocator: Allocator) ModelInfo {
         return .{
+            .allocator = allocator,
             .hf_metadata = std.StringHashMap(std.json.Value).init(allocator),
             .specifications = std.StringHashMap([]const u8).init(allocator),
             .benchmarks = std.StringHashMap(BenchmarkScore).init(allocator),
@@ -82,12 +84,12 @@ pub const ModelInfo = struct {
         self.hardware.deinit();
         
         for (self.orchestration_categories.items) |cat| {
-            self.orchestration_categories.allocator.free(cat);
+            self.allocator.free(cat);
         }
         self.orchestration_categories.deinit();
         
         for (self.agent_types.items) |agent| {
-            self.agent_types.allocator.free(agent);
+            self.allocator.free(agent);
         }
         self.agent_types.deinit();
     }
@@ -153,75 +155,17 @@ pub const HFModelCardExtractor = struct {
     }
     
     fn fetchAPIInfo(self: *HFModelCardExtractor, hf_repo: []const u8) ![]const u8 {
-        const url = try std.fmt.allocPrint(
-            self.allocator,
-            "https://huggingface.co/api/models/{s}",
-            .{hf_repo}
-        );
-        defer self.allocator.free(url);
-        
-        self.log("Fetching API info from: {s}", .{url});
-        
-        const uri = try std.Uri.parse(url);
-        
-        var headers = std.http.Headers{ .allocator = self.allocator };
-        defer headers.deinit();
-        try headers.append("User-Agent", "ModelOrchestrationMapper/1.0");
-        
-        var req = try self.http_client.open(.GET, uri, headers, .{});
-        defer req.deinit();
-        
-        try req.send(.{});
-        try req.finish();
-        try req.wait();
-        
-        if (req.response.status != .ok) {
-            return error.HTTPError;
-        }
-        
-        var response_body = std.ArrayList(u8).init(self.allocator);
-        defer response_body.deinit();
-        
-        const max_size = 10 * 1024 * 1024; // 10MB max
-        try req.reader().readAllArrayList(&response_body, max_size);
-        
-        return try response_body.toOwnedSlice();
+        _ = self;
+        _ = hf_repo;
+        // TODO: Re-implement with Zig 0.15.2 HTTP API
+        return error.HTTPNotImplemented;
     }
     
     fn fetchModelCard(self: *HFModelCardExtractor, hf_repo: []const u8) ![]const u8 {
-        const url = try std.fmt.allocPrint(
-            self.allocator,
-            "https://huggingface.co/{s}/raw/main/README.md",
-            .{hf_repo}
-        );
-        defer self.allocator.free(url);
-        
-        self.log("Fetching model card from: {s}", .{url});
-        
-        const uri = try std.Uri.parse(url);
-        
-        var headers = std.http.Headers{ .allocator = self.allocator };
-        defer headers.deinit();
-        try headers.append("User-Agent", "ModelOrchestrationMapper/1.0");
-        
-        var req = try self.http_client.open(.GET, uri, headers, .{});
-        defer req.deinit();
-        
-        try req.send(.{});
-        try req.finish();
-        try req.wait();
-        
-        if (req.response.status != .ok) {
-            return error.HTTPError;
-        }
-        
-        var response_body = std.ArrayList(u8).init(self.allocator);
-        defer response_body.deinit();
-        
-        const max_size = 10 * 1024 * 1024; // 10MB max
-        try req.reader().readAllArrayList(&response_body, max_size);
-        
-        return try response_body.toOwnedSlice();
+        _ = self;
+        _ = hf_repo;
+        // TODO: Re-implement with Zig 0.15.2 HTTP API
+        return error.HTTPNotImplemented;
     }
     
     fn parseAPIInfo(self: *HFModelCardExtractor, info: *ModelInfo, json_data: []const u8) !void {
@@ -345,8 +289,6 @@ pub const HFModelCardExtractor = struct {
                 }
             }
         }
-        
-        _ = self;
     }
     
     fn determineCategories(self: *HFModelCardExtractor, info: *ModelInfo, hf_repo: []const u8) !void {
@@ -397,9 +339,10 @@ pub fn main() !void {
     defer std.process.argsFree(allocator, args);
     
     if (args.len < 2) {
-        try std.io.getStdErr().writeAll("Usage: ");
-        try std.io.getStdErr().writeAll(args[0]);
-        try std.io.getStdErr().writeAll(" <registry_path> [--test HF_REPO] [--verbose]\n");
+        const stderr = std.fs.File.stderr();
+        try stderr.writeAll("Usage: ");
+        try stderr.writeAll(args[0]);
+        try stderr.writeAll(" <registry_path> [--test HF_REPO] [--verbose]\n");
         std.process.exit(1);
     }
     
@@ -422,9 +365,9 @@ pub fn main() !void {
     defer extractor.deinit();
     
     if (test_repo) |repo| {
-        std.debug.print("\n{'=':**60}\n", .{});
+        std.debug.print("\n{'=':**<60}\n", .{});
         std.debug.print("Testing model: {s}\n", .{repo});
-        std.debug.print("{'=':**60}\n\n", .{});
+        std.debug.print("{'=':**<60}\n\n", .{});
         
         var info = try extractor.extractModelInfo(repo);
         defer info.deinit();

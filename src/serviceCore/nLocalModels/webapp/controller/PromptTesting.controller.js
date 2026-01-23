@@ -624,9 +624,9 @@ sap.ui.define([
                 })
                 .catch(function (error) {
                     console.error("⚠️ Error loading history from HANA:", error);
-                    // Fallback to mock data
-                    that._oTestModel.setProperty("/history", that._getMockHistory());
+                    that._oTestModel.setProperty("/history", []);
                     that._updateHistoryStats();
+                    MessageBox.error("Prompt history could not be loaded from the API.");
                 });
         },
 
@@ -652,41 +652,6 @@ sap.ui.define([
             this._oTestModel.setProperty("/totalPrompts", nTotal);
             this._oTestModel.setProperty("/avgLatency", 
                 nTotal > 0 ? Math.round(nTotalLatency / nTotal) : 0);
-        },
-
-        _getMockHistory: function () {
-            return [
-                {
-                    prompt_id: "mock-1",
-                    mode: "Fast",
-                    prompt_text: "What is 2+2?",
-                    model_id: "lfm2.5-1.2b-q4_0",
-                    latency_ms: 85,
-                    tokens_per_second: 58,
-                    user_rating: 5,
-                    timestamp: new Date(Date.now() - 3600000).toISOString()
-                },
-                {
-                    prompt_id: "mock-2",
-                    mode: "Normal",
-                    prompt_text: "Explain quantum computing in simple terms",
-                    model_id: "lfm2.5-1.2b-q4_k_m",
-                    latency_ms: 245,
-                    tokens_per_second: 32,
-                    user_rating: 4,
-                    timestamp: new Date(Date.now() - 7200000).toISOString()
-                },
-                {
-                    prompt_id: "mock-3",
-                    mode: "Expert",
-                    prompt_text: "Write a binary search tree implementation in Python",
-                    model_id: "lfm2.5-1.2b-f16",
-                    latency_ms: 380,
-                    tokens_per_second: 25,
-                    user_rating: 5,
-                    timestamp: new Date(Date.now() - 10800000).toISOString()
-                }
-            ];
         },
 
         onSearchHistory: function (oEvent) {

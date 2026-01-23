@@ -14,15 +14,24 @@ pub const ModelArchitecture = enum {
     mistral,
     phi,
     gemma,
+    gemma2,  // Gemma 2 architecture (used by TranslateGemma)
     unknown,
-    
+
     pub fn fromString(s: []const u8) ModelArchitecture {
         if (std.mem.eql(u8, s, "LlamaForCausalLM")) return .llama;
         if (std.mem.eql(u8, s, "Qwen2ForCausalLM")) return .qwen2;
         if (std.mem.eql(u8, s, "MistralForCausalLM")) return .mistral;
         if (std.mem.eql(u8, s, "PhiForCausalLM")) return .phi;
         if (std.mem.eql(u8, s, "GemmaForCausalLM")) return .gemma;
+        if (std.mem.eql(u8, s, "Gemma2ForCausalLM")) return .gemma2;
+        // TranslateGemma uses Gemma2 architecture
+        if (std.mem.eql(u8, s, "Gemma2ForConditionalGeneration")) return .gemma2;
         return .unknown;
+    }
+
+    /// Check if architecture supports translation tasks
+    pub fn supportsTranslation(self: ModelArchitecture) bool {
+        return self == .gemma2;  // TranslateGemma uses Gemma2
     }
 };
 

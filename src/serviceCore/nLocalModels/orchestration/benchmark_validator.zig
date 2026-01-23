@@ -9,6 +9,7 @@
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
+const ArrayList = std.ArrayList;
 
 /// Known benchmark ranges and validation rules
 const BenchmarkRange = struct {
@@ -53,9 +54,13 @@ pub const BenchmarkValidator = struct {
             .allocator = allocator,
             .registry_path = try allocator.dupe(u8, registry_path),
             .registry = undefined,
-            .validation_errors = std.ArrayList([]const u8).init(allocator),
-            .warnings = std.ArrayList([]const u8).init(allocator),
+            .validation_errors = undefined,
+            .warnings = undefined,
         };
+        
+        // Initialize ArrayLists after struct creation
+        self.validation_errors = ArrayList([]const u8).init(allocator);
+        self.warnings = ArrayList([]const u8).init(allocator);
         
         try self.loadRegistry();
         return self;
@@ -95,11 +100,11 @@ pub const BenchmarkValidator = struct {
     
     /// Validate all benchmarks in registry
     pub fn validateAll(self: *BenchmarkValidator) !bool {
-        const stdout = std.io.getStdOut().writer();
+        const stdout = std.fs.File.stdout().deprecatedWriter();
         
-        try stdout.print("\n{'=':**60}\n", .{});
+        try stdout.print("\n{'=':**<60}\n", .{});
         try stdout.print("Benchmark Validation Report\n", .{});
-        try stdout.print("{'=':**60}\n\n", .{});
+        try stdout.print("{'=':**<60}\n\n", .{});
         
         var all_valid = true;
         var models_with_benchmarks: usize = 0;
@@ -161,9 +166,9 @@ pub const BenchmarkValidator = struct {
         }
         
         // Print summary
-        try stdout.print("\n{'=':**60}\n", .{});
+        try stdout.print("\n{'=':**<60}\n", .{});
         try stdout.print("Summary\n", .{});
-        try stdout.print("{'=':**60}\n", .{});
+        try stdout.print("{'=':**<60}\n", .{});
         try stdout.print("Models with benchmarks: {d}/{d}\n", 
             .{ models_with_benchmarks, models_array.items.len });
         try stdout.print("Total benchmarks: {d}\n", .{total_benchmarks});
@@ -171,18 +176,18 @@ pub const BenchmarkValidator = struct {
         try stdout.print("Warnings: {d}\n", .{self.warnings.items.len});
         
         if (self.validation_errors.items.len > 0) {
-            try stdout.print("\n{'=':**60}\n", .{});
+            try stdout.print("\n{'=':**<60}\n", .{});
             try stdout.print("Validation Errors\n", .{});
-            try stdout.print("{'=':**60}\n", .{});
+            try stdout.print("{'=':**<60}\n", .{});
             for (self.validation_errors.items) |err| {
                 try stdout.print("  ✗ {s}\n", .{err});
             }
         }
         
         if (self.warnings.items.len > 0) {
-            try stdout.print("\n{'=':**60}\n", .{});
+            try stdout.print("\n{'=':**<60}\n", .{});
             try stdout.print("Warnings\n", .{});
-            try stdout.print("{'=':**60}\n", .{});
+            try stdout.print("{'=':**<60}\n", .{});
             for (self.warnings.items) |warn| {
                 try stdout.print("  ⚠ {s}\n", .{warn});
             }
@@ -227,11 +232,11 @@ pub const BenchmarkValidator = struct {
     
     /// Compare all models on a specific benchmark
     pub fn compareModels(self: *BenchmarkValidator, benchmark_name: []const u8) !void {
-        const stdout = std.io.getStdOut().writer();
+        const stdout = std.fs.File.stdout().deprecatedWriter();
         
-        try stdout.print("\n{'=':**60}\n", .{});
+        try stdout.print("\n{'=':**<60}\n", .{});
         try stdout.print("Benchmark Comparison: {s}\n", .{benchmark_name});
-        try stdout.print("{'=':**60}\n\n", .{});
+        try stdout.print("{'=':**<60}\n\n", .{});
         
         const ModelScore = struct {
             model: []const u8,
@@ -294,11 +299,11 @@ pub const BenchmarkValidator = struct {
     
     /// Generate comprehensive benchmark report
     pub fn generateReport(self: *BenchmarkValidator) !void {
-        const stdout = std.io.getStdOut().writer();
+        const stdout = std.fs.File.stdout().deprecatedWriter();
         
-        try stdout.print("\n{'=':**60}\n", .{});
+        try stdout.print("\n{'=':**<60}\n", .{});
         try stdout.print("Comprehensive Benchmark Report\n", .{});
-        try stdout.print("{'=':**60}\n\n", .{});
+        try stdout.print("{'=':**<60}\n\n", .{});
         
         // Organize data by category
         const CategoryData = std.StringHashMap(std.ArrayList(struct {
@@ -367,7 +372,7 @@ pub const BenchmarkValidator = struct {
         var cat_iter = category_data.iterator();
         while (cat_iter.next()) |cat_entry| {
             try stdout.print("\n{s} Category\n", .{cat_entry.key_ptr.*});
-            try stdout.print("{'-':**60}\n", .{});
+            try stdout.print("{'-':**<60}\n", .{});
             
             var bench_iter = cat_entry.value_ptr.iterator();
             while (bench_iter.next()) |bench_entry| {
@@ -410,9 +415,10 @@ pub fn main() !void {
     defer std.process.argsFree(allocator, args);
     
     if (args.len < 2) {
-        try std.io.getStdErr().writeAll("Usage: ");
-        try std.io.getStdErr().writeAll(args[0]);
-        try std.io.getStdErr().writeAll(" <registry_path> [--compare BENCHMARK | --report]\n");
+        const stderr = std.fs.File.stderr();
+        try stderr.writeAll("Usage: ");
+        try stderr.writeAll(args[0]);
+        try stderr.writeAll(" <registry_path> [--compare BENCHMARK | --report]\n");
         std.process.exit(1);
     }
     
