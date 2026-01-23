@@ -1,7 +1,7 @@
 # nLang - Custom Language SDKs
-## Bank - Nucleus Project
+## Nucleus Project
 
-This directory contains Bank's custom, audited, and compliance-approved language SDKs for the Nucleus project.
+This directory contains Custom, audited, and compliance-approved language SDKs for the Nucleus project.
 
 **Service Name:** nLang (following Nucleus naming convention: nLocalModels, nWebServe, nLang)
 
@@ -103,7 +103,7 @@ scb-{language}-{version}-nucleus-{release}
 - `{language}` = mojo | zig
 - `{version}` = Upstream version number
 - `nucleus` = Project name
-- `{release}` = SCB internal release number
+- `{release}` = Bank internal release number
 
 ---
 
@@ -115,7 +115,7 @@ Both SDKs are subject to:
 - ✅ **Supply Chain Security** - Full source code audit
 - ✅ **Compliance Review** - SOX, PCI-DSS, Basel III/IV
 - ✅ **Internal CI/CD** - Controlled build and deployment
-- ✅ **Binary Signing** - Code signing with SCB certificates
+- ✅ **Binary Signing** - Code signing with Bank certificates
 - ✅ **Audit Trail** - Complete documentation and approvals
 
 ### Security Audit Status
@@ -338,4 +338,4 @@ arabic_folder/
 **Last Updated:** 2026-01-23  
 **Owner:** Platform Engineering Team  
 **Review Cycle:** Quarterly  
-**Classification:** Internal - SCB Confidential
+**Classification:** Internal - Bank Confidential
