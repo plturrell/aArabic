@@ -51,30 +51,33 @@ pkill -f "nWebServe.*3000" 2>/dev/null || true
 pkill -f "hana_bridge/server.js" 2>/dev/null || true
 sleep 2
 
-# Start HANA bridge (Node) for SQL → HANA Cloud
-if lsof -i :"$BRIDGE_PORT" > /dev/null 2>&1; then
-    echo "🔗 HANA bridge already running on port $BRIDGE_PORT"
-else
-    if [ ! -d "$BRIDGE_DIR" ]; then
-        echo "❌ HANA bridge directory not found: $BRIDGE_DIR"
-        exit 1
-    fi
-    echo "🔗 Starting HANA bridge (port $BRIDGE_PORT)..."
-    (cd "$BRIDGE_DIR" && \
-        HANA_HOST="$HANA_HOST" \
-        HANA_PORT="$HANA_PORT" \
-        HANA_USER="$HANA_USER" \
-        HANA_PASSWORD="$HANA_PASSWORD" \
-        HANA_SCHEMA="$HANA_SCHEMA" \
-        BRIDGE_PORT="$BRIDGE_PORT" \
-        node server.js > "$BRIDGE_LOG" 2>&1 &)
-    sleep 3
-    if ! lsof -i :"$BRIDGE_PORT" > /dev/null 2>&1; then
-        echo "❌ HANA bridge failed to start; see $BRIDGE_LOG"
-        exit 1
-    fi
-    echo "✅ HANA bridge running (PID $(lsof -i :"$BRIDGE_PORT" -t | head -n1))"
+# Start HANA bridge (Node) for SQL → HANA Cloud (force fresh instance)
+if [ ! -d "$BRIDGE_DIR" ]; then
+    echo "❌ HANA bridge directory not found: $BRIDGE_DIR"
+    exit 1
 fi
+
+if lsof -i :"$BRIDGE_PORT" > /dev/null 2>&1; then
+    echo "🧹 Stopping existing process on port $BRIDGE_PORT..."
+    lsof -i :"$BRIDGE_PORT" -t | xargs -r kill -9 2>/dev/null || true
+    sleep 1
+fi
+
+echo "🔗 Starting HANA bridge (port $BRIDGE_PORT)..."
+(cd "$BRIDGE_DIR" && \
+    HANA_HOST="$HANA_HOST" \
+    HANA_PORT="$HANA_PORT" \
+    HANA_USER="$HANA_USER" \
+    HANA_PASSWORD="$HANA_PASSWORD" \
+    HANA_SCHEMA="$HANA_SCHEMA" \
+    BRIDGE_PORT="$BRIDGE_PORT" \
+    node server.js > "$BRIDGE_LOG" 2>&1 &)
+sleep 3
+if ! lsof -i :"$BRIDGE_PORT" > /dev/null 2>&1; then
+    echo "❌ HANA bridge failed to start; see $BRIDGE_LOG"
+    exit 1
+fi
+echo "✅ HANA bridge running (PID $(lsof -i :"$BRIDGE_PORT" -t | head -n1))"
 
 # Start OpenAI API server (background) with model directory
 echo "🦙 Starting OpenAI API Server (port 11434)..."

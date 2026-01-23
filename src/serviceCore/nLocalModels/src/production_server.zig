@@ -204,7 +204,7 @@ fn formatComparisons(raw: []const u8, allocator: std.mem.Allocator) !struct { bo
         first = false;
 
         const entry = try std.fmt.allocPrint(allocator,
-            "{{\"id\":{d},\"timestamp\":{s},\"prompt\":{s},\"modelA\":{{\"id\":{s},\"display_name\":{s},\"latency_ms\":{d},\"tokens_per_second\":0}},\"modelB\":{{\"id\":{s},\"display_name\":{s},\"latency_ms\":{d},\"tokens_per_second\":0}},\"winner\":{s}}}",
+            "{{\"id\":{d},\"timestamp\":{s},\"prompt\":{s},\"modelA\":{{\"id\":{s},\"display_name\":{s},\"latency_ms\":{d},\"tokens_per_second\":{d}}},\"modelB\":{{\"id\":{s},\"display_name\":{s},\"latency_ms\":{d},\"tokens_per_second\":{d}}},\"winner\":{s}}}",
             .{
                 valueAsInt(id_val, 0),
                 ts_json,
@@ -212,9 +212,11 @@ fn formatComparisons(raw: []const u8, allocator: std.mem.Allocator) !struct { bo
                 model_a_json,
                 model_a_json,
                 valueAsInt(row.get("LATENCY_A_MS"), 0),
+                valueAsInt(row.get("TOKENS_PER_SECOND_A"), 0),
                 model_b_json,
                 model_b_json,
                 valueAsInt(row.get("LATENCY_B_MS"), 0),
+                valueAsInt(row.get("TOKENS_PER_SECOND_B"), 0),
                 winner_json,
             },
         );
@@ -537,7 +539,7 @@ fn handleConnection(stream: net.Stream, allocator: std.mem.Allocator) !void {
         defer freeHanaConfig(allocator, hana_cfg);
 
         if (mem.eql(u8, method, "GET") or is_head) {
-            const sql = "SELECT COMPARISON_ID, PROMPT_TEXT, MODEL_A, MODEL_B, WINNER, RESPONSE_A, RESPONSE_B, LATENCY_A_MS, LATENCY_B_MS, CREATED_AT FROM PROMPT_COMPARISONS ORDER BY CREATED_AT DESC LIMIT 50";
+            const sql = "SELECT COMPARISON_ID, PROMPT_TEXT, MODEL_A, MODEL_B, WINNER, RESPONSE_A, RESPONSE_B, LATENCY_A_MS, LATENCY_B_MS, TOKENS_PER_SECOND_A, TOKENS_PER_SECOND_B, CREATED_AT FROM PROMPT_COMPARISONS ORDER BY CREATED_AT DESC LIMIT 50";
             const raw = hanaQueryAlloc(hana_cfg, allocator, sql) catch |err| {
                 std.debug.print("HANA query failed: {}\n", .{err});
                 try sendJson(stream, 500, "{\"comparisons\":[]}");
@@ -584,12 +586,15 @@ fn handleConnection(stream: net.Stream, allocator: std.mem.Allocator) !void {
             var modelB_name: []const u8 = "";
             var latencyA: i32 = 0;
             var latencyB: i32 = 0;
+            var tpsA: i32 = 0;
+            var tpsB: i32 = 0;
 
             if (modelA) |ma| {
                 switch (ma) {
                     .object => |o| {
                         modelA_name = valueAsString(o.get("display_name") orelse o.get("id") orelse json.Value{ .string = "" });
                         latencyA = valueAsInt(o.get("latency_ms"), 0);
+                        tpsA = valueAsInt(o.get("tokens_per_second"), 0);
                     },
                     else => modelA_name = valueAsString(ma),
                 }
@@ -600,6 +605,7 @@ fn handleConnection(stream: net.Stream, allocator: std.mem.Allocator) !void {
                     .object => |o| {
                         modelB_name = valueAsString(o.get("display_name") orelse o.get("id") orelse json.Value{ .string = "" });
                         latencyB = valueAsInt(o.get("latency_ms"), 0);
+                        tpsB = valueAsInt(o.get("tokens_per_second"), 0);
                     },
                     else => modelB_name = valueAsString(mb),
                 }
@@ -619,8 +625,8 @@ fn handleConnection(stream: net.Stream, allocator: std.mem.Allocator) !void {
             defer allocator.free(esc_respB);
 
             const sql = try std.fmt.allocPrint(allocator,
-                "INSERT INTO PROMPT_COMPARISONS (PROMPT_TEXT, MODEL_A, MODEL_B, WINNER, RESPONSE_A, RESPONSE_B, LATENCY_A_MS, LATENCY_B_MS, CREATED_AT) VALUES ('{s}','{s}','{s}','{s}','{s}','{s}', {d}, {d}, CURRENT_TIMESTAMP)",
-                .{ esc_prompt, esc_modelA, esc_modelB, esc_winner, esc_respA, esc_respB, latencyA, latencyB });
+                "INSERT INTO PROMPT_COMPARISONS (PROMPT_TEXT, MODEL_A, MODEL_B, WINNER, RESPONSE_A, RESPONSE_B, LATENCY_A_MS, LATENCY_B_MS, TOKENS_PER_SECOND_A, TOKENS_PER_SECOND_B, CREATED_AT) VALUES ('{s}','{s}','{s}','{s}','{s}','{s}', {d}, {d}, {d}, {d}, CURRENT_TIMESTAMP)",
+                .{ esc_prompt, esc_modelA, esc_modelB, esc_winner, esc_respA, esc_respB, latencyA, latencyB, tpsA, tpsB });
             defer allocator.free(sql);
 
             hanaExec(hana_cfg, allocator, sql) catch |err| {
