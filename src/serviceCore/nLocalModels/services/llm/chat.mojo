@@ -438,17 +438,129 @@ fn handle_chat_request(body: String) -> String:
 
 
 # ============================================================================
-# Streaming Support (Future Enhancement)
+# Streaming Support
 # ============================================================================
+
+struct StreamingState:
+    """State for streaming response generation"""
+    var request_id: String
+    var model: String
+    var content_buffer: String
+    var chunk_index: Int
+    var is_complete: Bool
+
+    fn __init__(out self, request_id: String, model: String):
+        self.request_id = request_id
+        self.model = model
+        self.content_buffer = ""
+        self.chunk_index = 0
+        self.is_complete = False
+
+
+fn format_sse_chunk(
+    content: String,
+    state: StreamingState,
+    is_final: Bool
+) -> String:
+    """Format a single SSE chunk in OpenAI streaming format"""
+    var chunk = String("data: {")
+    chunk += json_string("id") + String(":") + json_string(state.request_id) + String(",")
+    chunk += json_string("object") + String(":") + json_string("chat.completion.chunk") + String(",")
+    chunk += json_string("created") + String(":") + json_number(unix_timestamp()) + String(",")
+    chunk += json_string("model") + String(":") + json_string(state.model) + String(",")
+
+    # Choices array
+    chunk += json_string("choices") + String(":[{")
+    chunk += json_string("index") + String(":0,")
+    chunk += json_string("delta") + String(":{")
+
+    if state.chunk_index == 0:
+        # First chunk includes role
+        chunk += json_string("role") + String(":") + json_string("assistant")
+        if len(content) > 0:
+            chunk += String(",")
+            chunk += json_string("content") + String(":") + json_string(content)
+    elif len(content) > 0:
+        # Subsequent chunks only have content
+        chunk += json_string("content") + String(":") + json_string(content)
+
+    chunk += String("},")
+
+    if is_final:
+        chunk += json_string("finish_reason") + String(":") + json_string("stop")
+    else:
+        chunk += json_string("finish_reason") + String(":null")
+
+    chunk += String("}]}")
+    chunk += String("\n\n")
+
+    return chunk
+
+
+fn generate_streaming_chunks(prompt: String, config: ChatConfig) -> List[String]:
+    """
+    Generate streaming response chunks.
+    Returns list of SSE-formatted chunks.
+    """
+    var chunks = List[String]()
+
+    # Initialize streaming state
+    var timestamp = unix_timestamp()
+    var request_id = String("chatcmpl-") + String(timestamp)
+    var state = StreamingState(request_id, config.model)
+
+    # Generate full response first
+    var full_content = generate_chat_response(prompt, config)
+
+    # Split into chunks (roughly token-sized pieces)
+    var chunk_size = 4  # Approximate characters per token
+    var pos = 0
+
+    while pos < len(full_content):
+        var end_pos = min(pos + chunk_size, len(full_content))
+        var chunk_content = String(full_content[pos:end_pos])
+
+        var is_final = (end_pos >= len(full_content))
+        var sse_chunk = format_sse_chunk(chunk_content, state, is_final)
+        chunks.append(sse_chunk)
+
+        state.chunk_index += 1
+        pos = end_pos
+
+    # Add final [DONE] message
+    chunks.append(String("data: [DONE]\n\n"))
+
+    return chunks^
+
 
 fn handle_chat_stream(body: String) -> String:
     """
     Handle streaming chat completions.
-    Returns Server-Sent Events (SSE) format.
+    Returns concatenated SSE chunks for non-streaming transports.
+    For true streaming, use generate_streaming_chunks and send via SSE connection.
     """
-    # TODO: Implement streaming support
-    # Will require integration with Zig HTTP server for SSE
-    return "Streaming not yet implemented"
+    print("📡 Processing streaming chat completion request")
+
+    # Parse request
+    var messages = parse_chat_messages(body)
+    var config = parse_chat_config(body)
+    config.stream = True
+
+    # Build prompt
+    var prompt = build_chat_prompt(messages)
+
+    # Generate all chunks
+    var chunks = generate_streaming_chunks(prompt, config)
+
+    # Concatenate for synchronous response
+    # (In production, these would be sent via SSE connection)
+    var response = String("")
+    for i in range(len(chunks)):
+        response += chunks[i]
+
+    print("✅ Streaming response generated with", len(chunks), "chunks")
+
+    return response
 
 
 # ============================================================================

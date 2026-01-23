@@ -148,6 +148,13 @@
           ]
         },
         {
+          "name": "trainingDashboard",
+          "pattern": "training",
+          "target": [
+            "TargetTrainingDashboard"
+          ]
+        },
+        {
           "name": "settings",
           "pattern": "settings",
           "target": [
@@ -168,7 +175,7 @@
           "viewType": "XML",
           "viewId": "ModelConfigurator",
           "viewName": "ModelConfigurator",
-          "viewLevel": 1,
+          "viewLevel": 2,
           "controlAggregation": "pages",
           "controlId": "appContainer"
         },
@@ -216,6 +223,14 @@
           "viewType": "XML",
           "viewId": "ABTesting",
           "viewName": "ABTesting",
+          "viewLevel": 1,
+          "controlAggregation": "pages",
+          "controlId": "appContainer"
+        },
+        "TargetTrainingDashboard": {
+          "viewType": "XML",
+          "viewId": "TrainingDashboard",
+          "viewName": "TrainingDashboard",
           "viewLevel": 1,
           "controlAggregation": "pages",
           "controlId": "appContainer"

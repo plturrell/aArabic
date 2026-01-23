@@ -1,0 +1,208 @@
+{
+  "timestamp": "2026-01-23 07:31:18",
+  "registry": "vendor/layerModels/MODEL_REGISTRY.json",
+  "categories": "src/serviceCore/nOpenaiServer/orchestration/catalog/task_categories.json",
+  "results": {
+    "timing": {
+      "math": {
+        "mean": 0.0001891407009679824,
+        "median": 0.000166997779160738,
+        "stdev": 0.00013320427719747458,
+        "min": 0.0001249863998964429,
+        "max": 0.0011660013115033507
+      },
+      "code": {
+        "mean": 0.0033841705590020865,
+        "median": 0.002792003215290606,
+        "stdev": 0.004386771850245417,
+        "min": 0.002707995008677244,
+        "max": 0.04562499816529453
+      },
+      "reasoning": {
+        "mean": 0.00016371894162148237,
+        "median": 0.000166997779160738,
+        "stdev": 2.2308904621922713e-05,
+        "min": 0.0001249863998964429,
+        "max": 0.0002500019036233425
+      },
+      "summarization": {
+        "mean": 0.0001666501339059323,
+        "median": 0.000166997779160738,
+        "stdev": 2.5129182863600404e-05,
+        "min": 0.0001249863998964429,
+        "max": 0.00029199873097240925
+      },
+      "time_series": {
+        "mean": 0.00016662044799886644,
+        "median": 0.000166997779160738,
+        "stdev": 2.3650722790838807e-05,
+        "min": 0.0001249863998964429,
+        "max": 0.00024998735170811415
+      },
+      "relational": {
+        "mean": 0.0018571005784906447,
+        "median": 0.0018330028979107738,
+        "stdev": 0.00015210807521282718,
+        "min": 0.001791006070561707,
+        "max": 0.003334003849886358
+      },
+      "graph": {
+        "mean": 0.00016742036677896976,
+        "median": 0.000166997779160738,
+        "stdev": 2.4306416314642042e-05,
+        "min": 0.0001249863998964429,
+        "max": 0.00029099464882165194
+      },
+      "vector_search": {
+        "mean": 0.00016492980648763478,
+        "median": 0.000166997779160738,
+        "stdev": 2.0377050299498234e-05,
+        "min": 0.0001249863998964429,
+        "max": 0.00020800507627427578
+      },
+      "ocr_extraction": {
+        "mean": 0.00016496996977366507,
+        "median": 0.000166997779160738,
+        "stdev": 2.3565963096182034e-05,
+        "min": 0.0001249863998964429,
+        "max": 0.00020899460650980473
+      }
+    },
+    "constraints": {
+      "T4 GPU (14GB)": {
+        "model": "google-gemma-3-270m-it",
+        "score": 70.0,
+        "category": "code"
+      },
+      "A100 GPU (40GB)": {
+        "model": "google-gemma-3-270m-it",
+        "score": 70.0,
+        "category": "code"
+      },
+      "Translation (tool)": {
+        "model": "HY-MT1.5-7B",
+        "score": 50.0,
+        "category": "relational"
+      },
+      "Small model only": {
+        "model": "google-gemma-3-270m-it",
+        "score": 70.0,
+        "category": "code"
+      }
+    },
+    "consistency": {
+      "math": {
+        "selections": {},
+        "consistency": 0,
+        "total": 100
+      },
+      "code": {
+        "selections": {
+          "google-gemma-3-270m-it": 100
+        },
+        "consistency": 100.0,
+        "total": 100
+      },
+      "reasoning": {
+        "selections": {},
+        "consistency": 0,
+        "total": 100
+      },
+      "summarization": {
+        "selections": {},
+        "consistency": 0,
+        "total": 100
+      },
+      "time_series": {
+        "selections": {},
+        "consistency": 0,
+        "total": 100
+      },
+      "relational": {
+        "selections": {
+          "HY-MT1.5-7B": 100
+        },
+        "consistency": 100.0,
+        "total": 100
+      },
+      "graph": {
+        "selections": {},
+        "consistency": 0,
+        "total": 100
+      },
+      "vector_search": {
+        "selections": {},
+        "consistency": 0,
+        "total": 100
+      },
+      "ocr_extraction": {
+        "selections": {},
+        "consistency": 0,
+        "total": 100
+      }
+    },
+    "coverage": {
+      "math": {
+        "total_models": 0,
+        "valid_models": 0,
+        "coverage": 0,
+        "models": []
+      },
+      "code": {
+        "total_models": 3,
+        "valid_models": 3,
+        "coverage": 100.0,
+        "models": [
+          "google-gemma-3-270m-it",
+          "microsoft-phi-2",
+          "deepseek-coder-33b-instruct-q4_k_m"
+        ]
+      },
+      "reasoning": {
+        "total_models": 0,
+        "valid_models": 0,
+        "coverage": 0,
+        "models": []
+      },
+      "summarization": {
+        "total_models": 0,
+        "valid_models": 0,
+        "coverage": 0,
+        "models": []
+      },
+      "time_series": {
+        "total_models": 0,
+        "valid_models": 0,
+        "coverage": 0,
+        "models": []
+      },
+      "relational": {
+        "total_models": 2,
+        "valid_models": 2,
+        "coverage": 100.0,
+        "models": [
+          "HY-MT1.5-7B",
+          "translategemma-27b-it-GGUF"
+        ]
+      },
+      "graph": {
+        "total_models": 0,
+        "valid_models": 0,
+        "coverage": 0,
+        "models": []
+      },
+      "vector_search": {
+        "total_models": 0,
+        "valid_models": 0,
+        "coverage": 0,
+        "models": []
+      },
+      "ocr_extraction": {
+        "total_models": 0,
+        "valid_models": 0,
+        "coverage": 0,
+        "models": []
+      }
+    }
+  }
+}

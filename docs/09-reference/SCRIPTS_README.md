@@ -172,8 +172,8 @@ Initial setup and configuration scripts.
 
 - [T4 GPU Quick Start Guide](gpu/T4_GPU_QUICKSTART.md)
 - [Model Registry](../vendor/layerModels/MODEL_REGISTRY.json)
-- [T4 Optimization Guide](../src/serviceCore/nOpenaiServer/docs/T4/T4_OPTIMIZATION_GUIDE.md)
-- [Implementation Plan](../src/serviceCore/nOpenaiServer/docs/T4/IMPLEMENTATION_PLAN.md)
+- [T4 Optimization Guide](../src/serviceCore/nLocalModels/docs/T4/T4_OPTIMIZATION_GUIDE.md)
+- [Implementation Plan](../src/serviceCore/nLocalModels/docs/T4/IMPLEMENTATION_PLAN.md)
 
 ## 💡 Tips
 

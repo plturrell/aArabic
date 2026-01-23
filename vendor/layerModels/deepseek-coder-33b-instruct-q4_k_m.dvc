@@ -1,0 +1,6 @@
+outs:
+- md5: 6f601109285ff0c4967158d788c778f8.dir
+  size: 19940531328
+  nfiles: 1
+  hash: md5
+  path: deepseek-coder-33b-instruct-q4_k_m

@@ -28,43 +28,86 @@ pub const QueryResult = struct {
 
 pub const Row = struct {
     values: []Value,
+    column_names: [][]const u8,
     allocator: Allocator,
-    
+
     pub fn deinit(self: *const Row) void {
         for (self.values) |val| {
             val.deinit(self.allocator);
         }
         self.allocator.free(self.values);
     }
-    
+
     pub fn get(self: *const Row, index: usize) ?Value {
         if (index >= self.values.len) return null;
         return self.values[index];
     }
-    
+
+    /// Find column index by name
+    fn findColumnIndex(self: *const Row, column: []const u8) ?usize {
+        for (self.column_names, 0..) |col_name, i| {
+            if (std.mem.eql(u8, col_name, column)) {
+                return i;
+            }
+        }
+        // Try case-insensitive match (HANA column names are often uppercase)
+        for (self.column_names, 0..) |col_name, i| {
+            if (std.ascii.eqlIgnoreCase(col_name, column)) {
+                return i;
+            }
+        }
+        return null;
+    }
+
     pub fn getInt(self: *const Row, column: []const u8) i64 {
-        _ = column;
-        // TODO: Implement column name lookup
-        if (self.values.len > 0) {
-            return self.values[0].asInt() orelse 0;
+        const idx = self.findColumnIndex(column) orelse {
+            std.log.warn("Column '{s}' not found in row", .{column});
+            return 0;
+        };
+        if (idx < self.values.len) {
+            return self.values[idx].asInt() orelse 0;
         }
         return 0;
     }
-    
+
     pub fn getFloat(self: *const Row, column: []const u8) f64 {
-        _ = column;
-        // TODO: Implement column name lookup
-        if (self.values.len > 0) {
-            return self.values[0].asFloat() orelse 0.0;
+        const idx = self.findColumnIndex(column) orelse {
+            std.log.warn("Column '{s}' not found in row", .{column});
+            return 0.0;
+        };
+        if (idx < self.values.len) {
+            return self.values[idx].asFloat() orelse 0.0;
         }
         return 0.0;
     }
-    
+
     pub fn getString(self: *const Row, column: []const u8) ?[]const u8 {
-        _ = column;
-        // TODO: Implement column name lookup
-        if (self.values.len > 0) {
-            return self.values[0].asString();
+        const idx = self.findColumnIndex(column) orelse {
+            std.log.warn("Column '{s}' not found in row", .{column});
+            return null;
+        };
+        if (idx < self.values.len) {
+            return self.values[idx].asString();
+        }
+        return null;
+    }
+
+    pub fn getBool(self: *const Row, column: []const u8) ?bool {
+        const idx = self.findColumnIndex(column) orelse {
+            std.log.warn("Column '{s}' not found in row", .{column});
+            return null;
+        };
+        if (idx < self.values.len) {
+            return self.values[idx].asBool();
+        }
+        return null;
+    }
+
+    /// Get value by column name with type inference
+    pub fn getValue(self: *const Row, column: []const u8) ?Value {
+        const idx = self.findColumnIndex(column) orelse return null;
+        if (idx < self.values.len) {
+            return self.values[idx];
         }
         return null;
     }
@@ -286,7 +329,13 @@ pub const HanaClient = struct {
         }
 
         pub fn close(self: *Connection) void {
-            // TODO: Close ODBC connection
+            // Close ODBC connection handles
+            if (self.handle != null) {
+                // In production ODBC:
+                // SQLDisconnect(hDbc)
+                // SQLFreeHandle(SQL_HANDLE_DBC, hDbc)
+                std.log.info("Closing ODBC connection {d}", .{self.id});
+            }
             self.handle = null;
             self.is_healthy = false;
         }

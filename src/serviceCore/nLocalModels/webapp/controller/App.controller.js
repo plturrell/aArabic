@@ -124,28 +124,25 @@ sap.ui.define([
         onNavigationSelect: function (oEvent) {
             var oItem = oEvent.getParameter("item");
             var sKey = oItem.getKey();
-            var oNavContainer = this.byId("navContainer");
+            var oRouter = this.getOwnerComponent().getRouter();
             
             // Map keys to page IDs
             var mPageMap = {
-                "main": "mainPageContent",
-                "promptTesting": "promptTestingPage",
-                "mhcTuning": "mhcTuningPage",
-                "orchestration": "orchestrationPage",
-                "modelVersions": "modelVersionsPage",
-                "trainingDashboard": "trainingDashboardPage",
-                "modelRouter": "modelRouterPage",
-                "abTesting": "abTestingPage",
-                "settings": "settingsPage"
+                "main": "main",
+                "promptTesting": "promptTesting",
+                "mhcTuning": "mhcTuning",
+                "orchestration": "orchestration",
+                "modelVersions": "modelVersions",
+                "trainingDashboard": "trainingDashboard",
+                "modelRouter": "modelRouter",
+                "abTesting": "abTesting",
+                "settings": "settings"
             };
             
-            var sPageId = mPageMap[sKey];
-            if (sPageId && oNavContainer) {
-                var oPage = this.byId(sPageId);
-                if (oPage) {
-                    oNavContainer.to(oPage);
-                    console.log("Navigated to:", sKey);
-                }
+            var sRouteName = mPageMap[sKey];
+            if (sRouteName && oRouter) {
+                oRouter.navTo(sRouteName);
+                console.log("Navigated to route:", sRouteName);
             }
             
             // On phone/tablet, auto-collapse sidebar after selection
@@ -165,25 +162,21 @@ sap.ui.define([
         },
 
         onSettings: function () {
-            // Navigate to the Settings page
-            var oNavContainer = this.byId("navContainer");
-            if (oNavContainer) {
-                var oSettingsPage = this.byId("settingsPage");
-                if (oSettingsPage) {
-                    oNavContainer.to(oSettingsPage);
+            var oRouter = this.getOwnerComponent().getRouter();
+            if (oRouter) {
+                oRouter.navTo("settings");
+            }
 
-                    // Update side navigation selection
-                    var oSideNav = this.byId("sideNavigation");
-                    if (oSideNav) {
-                        var oNavList = oSideNav.getItem();
-                        if (oNavList) {
-                            var aItems = oNavList.getItems();
-                            for (var i = 0; i < aItems.length; i++) {
-                                if (aItems[i].getKey() === "settings") {
-                                    oNavList.setSelectedItem(aItems[i]);
-                                    break;
-                                }
-                            }
+            // Update side navigation selection
+            var oSideNav = this.byId("sideNavigation");
+            if (oSideNav) {
+                var oNavList = oSideNav.getItem();
+                if (oNavList) {
+                    var aItems = oNavList.getItems();
+                    for (var i = 0; i < aItems.length; i++) {
+                        if (aItems[i].getKey() === "settings") {
+                            oNavList.setSelectedItem(aItems[i]);
+                            break;
                         }
                     }
                 }

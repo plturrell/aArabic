@@ -292,10 +292,10 @@ const result = try inference.forward_with_mhc(input, config, mhc_config);
 
 ```bash
 # Unit tests (91 tests)
-zig test src/serviceCore/nOpenaiServer/inference/engine/core/mhc_test_suite.zig
+zig test src/serviceCore/nLocalModels/inference/engine/core/mhc_test_suite.zig
 
 # Integration tests
-zig test src/serviceCore/nOpenaiServer/inference/engine/core/test_mhc_integration.zig
+zig test src/serviceCore/nLocalModels/inference/engine/core/test_mhc_integration.zig
 
 # Performance benchmarks
 ./scripts/benchmark_mhc.sh

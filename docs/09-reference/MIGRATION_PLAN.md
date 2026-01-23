@@ -365,7 +365,7 @@ Same structure as tau2-bench: agent, api_service, data_model, environment, evalu
 
 ### Infrastructure to Leverage
 ```
-src/serviceCore/nOpenaiServer/
+src/serviceCore/nLocalModels/
 ├── shared/http/client.zig          # HTTP client (GET/POST)
 ├── shared/http/server.zig          # HTTP server
 ├── mojo-sdk/stdlib/json/parser.mojo # JSON parsing

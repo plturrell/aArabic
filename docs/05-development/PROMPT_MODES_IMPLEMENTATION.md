@@ -170,13 +170,13 @@ _autoSelectRecommendedModel(oPreset)
 2. `docs/PROMPT_MODES_IMPLEMENTATION.md` - This documentation
 
 ### Modified
-1. `src/serviceCore/nOpenaiServer/webapp/view/ModelConfigurator.view.xml`
+1. `src/serviceCore/nLocalModels/webapp/view/ModelConfigurator.view.xml`
    - Added Prompt Mode panel with segmented button
    - Added mode info display
    - Added model recommendation message strip
    - Added `enabled` property to model dropdowns
 
-2. `src/serviceCore/nOpenaiServer/webapp/controller/ModelConfigurator.controller.js`
+2. `src/serviceCore/nLocalModels/webapp/controller/ModelConfigurator.controller.js`
    - Added `_initPromptModePresets()` function
    - Added `onPromptModeChange()` handler
    - Added model filtering logic
@@ -213,7 +213,7 @@ _autoSelectRecommendedModel(oPreset)
 ## 🚀 Next Steps
 
 ### Phase 3: Zig Backend (Pending)
-- [ ] Create `src/serviceCore/nOpenaiServer/shared/mode_presets.zig`
+- [ ] Create `src/serviceCore/nLocalModels/shared/mode_presets.zig`
 - [ ] Implement mode preset logic
 - [ ] Add HANA connection layer
 - [ ] Create REST API endpoints:
@@ -222,7 +222,7 @@ _autoSelectRecommendedModel(oPreset)
   - `GET /api/modes/compatible-models/{mode}` - Get compatible models
 
 ### Phase 4: HANA Persistence (Pending)
-- [ ] Create `src/serviceCore/nOpenaiServer/shared/hana_persistence.zig`
+- [ ] Create `src/serviceCore/nLocalModels/shared/hana_persistence.zig`
 - [ ] Implement CRUD operations for mode configs
 - [ ] Save prompt history on each inference
 - [ ] Track performance metrics

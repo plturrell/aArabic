@@ -202,7 +202,7 @@ v2.0 adds new API endpoints:
 
 ```bash
 # Run all mHC tests (800+)
-cd src/serviceCore/nOpenaiServer/inference/engine/core
+cd src/serviceCore/nLocalModels/inference/engine/core
 zig build test
 
 # Run specific test suites
@@ -311,7 +311,7 @@ curl http://localhost:8080/v1/mhc/status
 
 ## Support
 
-- **Documentation**: `src/serviceCore/nOpenaiServer/docs/`
+- **Documentation**: `src/serviceCore/nLocalModels/docs/`
 - **Release Notes**: `docs/RELEASE_NOTES_V2.md`
 - **Operator Runbook**: `docs/operations/OPERATOR_RUNBOOK.md`
 

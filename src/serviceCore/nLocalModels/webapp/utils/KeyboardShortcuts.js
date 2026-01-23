@@ -407,41 +407,37 @@ sap.ui.define([
                 return;
             }
 
-            // Get navigation container and side navigation
-            var oNavContainer = this._controller.byId("navContainer");
+            var oRouter = this._controller.getOwnerComponent().getRouter();
             var oSideNav = this._controller.byId("sideNavigation");
 
-            // Map navigation keys to page IDs
+            // Map navigation keys to routes
             var mPageMap = {
-                "main": "mainPageContent",
-                "orchestration": "orchestrationPage",
-                "modelRouter": "modelRouterPage",
-                "abTesting": "abTestingPage",
-                "settings": "settingsPage"
+                "main": "main",
+                "orchestration": "orchestration",
+                "modelRouter": "modelRouter",
+                "abTesting": "abTesting",
+                "settings": "settings"
             };
 
-            var sPageId = mPageMap[sNavKey];
-            if (sPageId && oNavContainer) {
-                var oPage = this._controller.byId(sPageId);
-                if (oPage) {
-                    oNavContainer.to(oPage);
+            var sRoute = mPageMap[sNavKey];
+            if (sRoute && oRouter) {
+                oRouter.navTo(sRoute);
 
-                    // Update side navigation selection
-                    if (oSideNav) {
-                        var oNavList = oSideNav.getItem();
-                        if (oNavList) {
-                            var aItems = oNavList.getItems();
-                            for (var i = 0; i < aItems.length; i++) {
-                                if (aItems[i].getKey() === sNavKey) {
-                                    oNavList.setSelectedItem(aItems[i]);
-                                    break;
-                                }
+                // Update side navigation selection
+                if (oSideNav) {
+                    var oNavList = oSideNav.getItem();
+                    if (oNavList) {
+                        var aItems = oNavList.getItems();
+                        for (var i = 0; i < aItems.length; i++) {
+                            if (aItems[i].getKey() === sNavKey) {
+                                oNavList.setSelectedItem(aItems[i]);
+                                break;
                             }
                         }
                     }
-                } else if (sNavKey === "settings") {
-                    sap.m.MessageToast.show("Settings page coming soon");
                 }
+            } else if (sNavKey === "settings") {
+                sap.m.MessageToast.show("Settings page coming soon");
             }
         },
 
@@ -790,4 +786,3 @@ sap.ui.define([
 
     return KeyboardShortcuts;
 });
-

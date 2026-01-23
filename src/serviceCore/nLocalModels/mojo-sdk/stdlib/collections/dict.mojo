@@ -195,22 +195,21 @@ struct Dict[K, V]:
     # Element Access
     # ========================================================================
     
-    fn __getitem__(self, key: K) -> V:
-        """Get value for key. Returns default if not found."""
+    fn __getitem__(self, key: K) raises -> V:
+        """Get value for key. Raises KeyError if not found."""
         let index = self._find_slot(key)
-        
+
         if index == -1:
-            # TODO: Proper error handling
-            return self.buckets[0].value  # Placeholder
-        
+            raise Error("KeyError: Key not found in dictionary")
+
         return self.buckets[index].value
     
     fn __setitem__(inout self, key: K, value: V):
         """Set value for key."""
         self.set(key, value)
     
-    fn get(self, key: K) -> V:
-        """Get value for key."""
+    fn get(self, key: K) raises -> V:
+        """Get value for key. Raises KeyError if not found."""
         return self.__getitem__(key)
     
     fn get_or_default(self, key: K, default: V) -> V:
@@ -247,19 +246,18 @@ struct Dict[K, V]:
         """Alias for set - insert or update key-value pair."""
         self.set(key, value)
     
-    fn remove(inout self, key: K) -> V:
-        """Remove and return value for key."""
+    fn remove(inout self, key: K) raises -> V:
+        """Remove and return value for key. Raises KeyError if not found."""
         let index = self._find_slot(key)
-        
+
         if index == -1:
-            # TODO: Proper error handling
-            return self.buckets[0].value  # Placeholder
-        
+            raise Error("KeyError: Key not found in dictionary")
+
         let value = self.buckets[index].value
         self.buckets[index].is_deleted = True
         self.buckets[index].is_occupied = True  # Keep as occupied but deleted
         self.size -= 1
-        
+
         return value
     
     fn delete(inout self, key: K):
@@ -272,8 +270,8 @@ struct Dict[K, V]:
             self.buckets[i] = KeyValuePair[K, V]()
         self.size = 0
     
-    fn pop(inout self, key: K) -> V:
-        """Remove and return value for key (alias for remove)."""
+    fn pop(inout self, key: K) raises -> V:
+        """Remove and return value for key (alias for remove). Raises KeyError if not found."""
         return self.remove(key)
     
     fn pop_or_default(inout self, key: K, default: V) -> V:

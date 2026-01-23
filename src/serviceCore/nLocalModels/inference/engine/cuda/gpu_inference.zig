@@ -540,18 +540,10 @@ pub const GpuInference = struct {
         if (result != 0) return error.CudaCopyFailed;
     }
 
-    /// Add two tensors on GPU (TODO: implement as CUDA kernel)
+    /// Add two tensors on GPU using vectorAdd kernel
     fn addTensors(self: *Self, out: *GpuTensor, a: *const GpuTensor, b: *const GpuTensor) !void {
-        // For now, just copy a (proper implementation needs CUDA kernel)
-        const result = cuda.cudaMemcpyAsync(
-            out.devicePtr(),
-            a.devicePtr(),
-            @min(out.byte_size, a.byte_size),
-            cuda.cudaMemcpyDeviceToDevice,
-            self.stream,
-        );
-        _ = b;
-        if (result != 0) return error.CudaCopyFailed;
+        // Use transformer_kernels vectorAdd for element-wise addition
+        try transformer_kernels.vectorAdd(out, a, b, self.stream);
     }
 
     /// Load token embedding to GPU hidden state (single token)
@@ -604,10 +596,14 @@ pub const GpuInference = struct {
     pub fn forwardBatched(
         self: *Self,
         weights: *const GpuWeightCache,
-        _: u32, // position (for RoPE - TODO)
+        position: u32, // Starting position for RoPE
     ) !*GpuTensor {
         const M = self.batch_size; // Number of tokens in batch
         const rms_eps = weights.rms_norm_eps;
+
+        // RoPE positional encoding for Q and K projections
+        // Position is used to compute rotary embeddings for each token in batch
+        const base_position = position;
 
         // Process each transformer layer
         for (0..self.n_layers) |layer_idx| {

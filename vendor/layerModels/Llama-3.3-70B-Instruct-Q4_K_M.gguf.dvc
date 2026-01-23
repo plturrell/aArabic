@@ -1,0 +1,6 @@
+outs:
+- md5: 3ff59fd9c9ec5c56b227be87766d5fff.dir
+  size: 42520398816
+  nfiles: 1
+  hash: md5
+  path: Llama-3.3-70B-Instruct-Q4_K_M.gguf

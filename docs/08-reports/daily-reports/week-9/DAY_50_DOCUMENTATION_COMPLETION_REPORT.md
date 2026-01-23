@@ -16,7 +16,7 @@ Day 50 marks the completion of the mHC (Manifold-Constrained Hyper-Connections) 
 
 ### 1. MHC_QUICKSTART_GUIDE.md
 
-**Location**: `src/serviceCore/nOpenaiServer/docs/MHC_QUICKSTART_GUIDE.md`  
+**Location**: `src/serviceCore/nLocalModels/docs/MHC_QUICKSTART_GUIDE.md`  
 **Purpose**: Enable developers to run mHC-enabled inference in 5 minutes  
 **Lines**: ~300
 
@@ -45,7 +45,7 @@ Day 50 marks the completion of the mHC (Manifold-Constrained Hyper-Connections) 
 
 ### 2. MHC_TROUBLESHOOTING_GUIDE.md
 
-**Location**: `src/serviceCore/nOpenaiServer/docs/MHC_TROUBLESHOOTING_GUIDE.md`  
+**Location**: `src/serviceCore/nLocalModels/docs/MHC_TROUBLESHOOTING_GUIDE.md`  
 **Purpose**: Diagnose and resolve common mHC issues  
 **Lines**: ~400
 
@@ -85,7 +85,7 @@ Day 50 marks the completion of the mHC (Manifold-Constrained Hyper-Connections) 
 
 ### 3. MHC_MIGRATION_GUIDE.md
 
-**Location**: `src/serviceCore/nOpenaiServer/docs/MHC_MIGRATION_GUIDE.md`  
+**Location**: `src/serviceCore/nLocalModels/docs/MHC_MIGRATION_GUIDE.md`  
 **Purpose**: Guide developers through upgrading from non-mHC to mHC  
 **Lines**: ~400
 

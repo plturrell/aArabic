@@ -68,24 +68,23 @@ struct List[T]:
     # Element Access
     # ========================================================================
     
-    fn __getitem__(self, index: Int) -> T:
-        """Get element at index. Raises error if index out of bounds."""
+    fn __getitem__(self, index: Int) raises -> T:
+        """Get element at index. Raises IndexError if index out of bounds."""
         if index < 0 or index >= self.size:
-            # TODO: Proper error handling
-            return self.data[0]  # Placeholder
+            raise Error("IndexError: List index out of bounds")
         return self.data[index]
-    
-    fn __setitem__(inout self, index: Int, value: T):
-        """Set element at index. Raises error if index out of bounds."""
+
+    fn __setitem__(inout self, index: Int, value: T) raises:
+        """Set element at index. Raises IndexError if index out of bounds."""
         if index < 0 or index >= self.size:
-            return  # TODO: Proper error handling
+            raise Error("IndexError: List index out of bounds")
         self.data[index] = value
     
-    fn get(self, index: Int) -> T:
+    fn get(self, index: Int) raises -> T:
         """Get element at index with bounds checking."""
         return self.__getitem__(index)
-    
-    fn set(inout self, index: Int, value: T):
+
+    fn set(inout self, index: Int, value: T) raises:
         """Set element at index with bounds checking."""
         self.__setitem__(index, value)
     
@@ -113,44 +112,44 @@ struct List[T]:
         """Alias for append - adds element to end."""
         self.append(value)
     
-    fn insert(inout self, index: Int, value: T):
+    fn insert(inout self, index: Int, value: T) raises:
         """Insert an element at the specified index."""
         if index < 0 or index > self.size:
-            return  # TODO: Error handling
-        
+            raise Error("IndexError: Insert index out of bounds")
+
         if self.size >= self.capacity:
             self._grow()
-        
+
         # Shift elements right
         for i in range(self.size, index, -1):
             self.data[i] = self.data[i - 1]
-        
+
         self.data[index] = value
         self.size += 1
-    
-    fn remove(inout self, index: Int) -> T:
+
+    fn remove(inout self, index: Int) raises -> T:
         """Remove and return element at index."""
         if index < 0 or index >= self.size:
-            return self.data[0]  # TODO: Error handling
-        
+            raise Error("IndexError: Remove index out of bounds")
+
         let removed = self.data[index]
-        
+
         # Shift elements left
         for i in range(index, self.size - 1):
             self.data[i] = self.data[i + 1]
-        
+
         self.size -= 1
         return removed
-    
-    fn pop(inout self) -> T:
+
+    fn pop(inout self) raises -> T:
         """Remove and return the last element."""
         if self.size == 0:
-            return self.data[0]  # TODO: Error handling
-        
+            raise Error("IndexError: Pop from empty list")
+
         self.size -= 1
         return self.data[self.size]
     
-    fn pop_back(inout self) -> T:
+    fn pop_back(inout self) raises -> T:
         """Alias for pop - removes and returns last element."""
         return self.pop()
     

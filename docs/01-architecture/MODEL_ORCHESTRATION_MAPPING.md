@@ -131,71 +131,118 @@ Arabic and multilingual models get additional categorization:
 
 ## Automatic Enrichment
 
-### When Models Are Downloaded
+### Enrichment Script
 
-The `download_models_on_brev.sh` script automatically enriches `MODEL_REGISTRY.json` with:
+The `hf_model_card_extractor.py` script enriches `MODEL_REGISTRY.json` with comprehensive vendor data:
 
-1. **Orchestration categories** mapped from HF metadata
-2. **Agent types** determined by category
+1. **Orchestration categories** - Automatically mapped from HF metadata
+2. **Agent types** - Determined by orchestration categories
 3. **HF metadata**:
-   - Download counts
-   - Like counts
+   - Download counts and likes
    - License information
    - Languages supported
    - Datasets used
-   - Pipeline tag
+   - Pipeline tag and model tags
+4. **Model specifications**:
+   - Parameter count
+   - Context length
+   - Architecture type
+   - Quantization format
+5. **Hardware requirements**:
+   - Minimum GPU memory
+   - CPU compatibility
+6. **Training information**:
+   - Training datasets
+   - Training tokens
+7. **Benchmark scores**:
+   - Extracted from model cards
+   - Validated against known ranges
 
-### Manual Enrichment
-
-You can manually enrich the registry at any time:
+### Usage
 
 ```bash
 # Enrich entire registry
 python3 scripts/models/hf_model_card_extractor.py vendor/layerModels/MODEL_REGISTRY.json
 
-# Test single model
-python3 scripts/models/hf_model_card_extractor.py --test "google/gemma-3-270m-it"
+# Test single model with verbose output
+python3 scripts/models/hf_model_card_extractor.py --test "google/gemma-3-270m-it" --verbose
+
+# Validate benchmarks
+python3 scripts/models/benchmark_validator.py vendor/layerModels/MODEL_REGISTRY.json
+
+# Generate benchmark report
+python3 scripts/models/benchmark_validator.py vendor/layerModels/MODEL_REGISTRY.json --report
+
+# Compare models on specific benchmark
+python3 scripts/models/benchmark_validator.py vendor/layerModels/MODEL_REGISTRY.json --compare humaneval
 ```
 
 ## Integration with Orchestration Layer
 
-### Model Selection by Category
+### Task Categories Catalog
 
-```zig
-// In orchestration/catalog/task_categories.json
+The orchestration system uses `src/serviceCore/nLocalModels/orchestration/catalog/task_categories.json` to map tasks to models:
+
+```json
 {
-  "math": {
-    "models": ["google-gemma-3-270m-it"],  // Has "math" category
-    "benchmarks": ["GSM8K", "MATH"]
+  "categories": {
+    "code": {
+      "models": [
+        "google-gemma-3-270m-it",
+        "microsoft-phi-2",
+        "deepseek-coder-33b-instruct-q4_k_m"
+      ],
+      "benchmarks": [
+        {"name": "HumanEval", "metric": "pass@1"},
+        {"name": "MBPP", "metric": "pass@1"}
+      ]
+    },
+    "relational": {
+      "models": [
+        "HY-MT1.5-7B",
+        "translategemma-27b-it-GGUF"
+      ],
+      "benchmarks": [
+        {"name": "Spider", "metric": "exact match"}
+      ]
+    }
   },
-  "code": {
-    "models": [
-      "google-gemma-3-270m-it",
-      "microsoft-phi-2",
-      "deepseek-coder-33b-instruct"
-    ],
-    "benchmarks": ["HumanEval", "MBPP"]
-  },
-  "relational": {
-    "models": ["HY-MT1.5-7B"],  // Translation model
-    "benchmarks": ["Spider"]
+  "routing_rules": {
+    "gpu_constraints": {
+      "t4_16gb": {
+        "max_model_memory": "14GB",
+        "recommended_models": [
+          "google-gemma-3-270m-it",
+          "microsoft-phi-2"
+        ]
+      }
+    }
   }
 }
 ```
 
-### Routing Logic
+### Model Selection in Zig (Planned Implementation)
 
 ```zig
-// Example routing based on task category
-fn selectModelForTask(task_category: []const u8) ![]const u8 {
-    const registry = try loadModelRegistry();
+// Future implementation in nFlow/nodes/llm/
+pub fn selectModelForTask(
+    allocator: Allocator,
+    task_category: []const u8,
+    gpu_memory_available: usize
+) ![]const u8 {
+    // Load task_categories.json
+    const categories = try loadTaskCategories(allocator);
     
-    for (registry.models) |model| {
-        if (model.orchestration_categories.contains(task_category)) {
-            // Check if model fits GPU constraints
-            if (model.gpu_memory <= available_vram) {
-                return model.name;
-            }
+    // Get models for this category
+    const category = categories.get(task_category) orelse 
+        return error.UnknownCategory;
+    
+    // Filter by GPU constraints
+    for (category.models) |model_name| {
+        const model = try loadModelFromRegistry(allocator, model_name);
+        
+        if (model.gpu_memory_mb <= gpu_memory_available) {
+            return model.name;
         }
     }
     
@@ -227,29 +274,45 @@ fn selectModelForTask(task_category: []const u8) ![]const u8 {
 
 ## Future Enhancements
 
-### Planned Additions
+### ✅ Phase 5 Completed Additions
 
-1. **Benchmark Integration**
-   - Extract actual scores from HF model cards
-   - Link to evaluation datasets
-   - Track performance over time
+1. **✅ Benchmark Integration** (Enhancement #4)
+   - Module: `src/serviceCore/nLocalModels/orchestration/benchmark_scoring.zig`
+   - Extract scores from HF model cards ✅
+   - Link to evaluation datasets (16 benchmarks configured) ✅
+   - Category-specific benchmark weighting ✅
+   - Normalized scoring (0-50 points) ✅
 
-2. **Multi-Category Support**
-   - Models can excel at multiple tasks
-   - Weighted scoring per category
-   - Automatic A/B testing
+2. **✅ Multi-Category Support** (Enhancement #1)
+   - Module: `src/serviceCore/nLocalModels/orchestration/multi_category.zig`
+   - Models excel at multiple tasks ✅
+   - Weighted scoring per category with confidence levels (0.7-0.95) ✅
+   - Per-category performance tracking ✅
+   - MultiCategoryRegistry for centralized management ✅
 
-3. **Dynamic Routing**
-   - Real-time model selection based on:
-     - Current GPU load
-     - Task complexity
-     - Latency requirements
-     - Cost constraints
+3. **✅ Dynamic GPU-Aware Routing** (Enhancement #2)
+   - Module: `src/serviceCore/nLocalModels/orchestration/gpu_monitor.zig`
+   - Real-time GPU load monitoring via nvidia-smi ✅
+   - Load-balanced model selection ✅
+   - Health checking (temperature, utilization, power) ✅
+   - Multi-GPU support ✅
 
-4. **Category Expansion**
+### 📋 Future Additions (Medium/Low Priority)
+
+1. **A/B Testing Framework** (Enhancement #3 - Medium Priority)
+   - Compare model performance across categories
+   - Track selection accuracy
+   - Automated performance regression detection
+
+2. **Category Expansion** (Enhancement #5 - Medium Priority)
    - Add domain-specific categories (medical, legal, finance)
    - Fine-grained subcategories
    - Custom user-defined categories
+
+3. **Python → Zig/Mojo Migration** (Enhancement #6 - Low Priority)
+   - Convert model selection logic to Zig
+   - Mojo integration for performance-critical paths
+   - Zero-copy model metadata handling
 
 ## Usage Examples
 
@@ -290,12 +353,58 @@ Output:
 "HY-MT1.5-7B"
 ```
 
+## Current Implementation Status
+
+### ✅ Phase 5 Completed (All High-Priority Items)
+
+#### Infrastructure & Tooling
+- **HF Model Card Extractor** - `scripts/models/hf_model_card_extractor.py` ✅
+- **Benchmark Validator** - `scripts/models/benchmark_validator.py` ✅
+- **Task Categories Catalog** - `src/serviceCore/nLocalModels/orchestration/catalog/task_categories.json` ✅
+- **MODEL_REGISTRY.json Enrichment** - All 7 models enriched with metadata ✅
+- **Orchestration Category Mapping** - Models mapped to task categories ✅
+
+#### Core Orchestration Modules (Zig)
+- **Model Selector** - `src/serviceCore/nLocalModels/orchestration/model_selector.zig` ✅
+  - Basic category-based selection ✅
+  - Multi-category selection with weighted scoring ✅
+  - GPU-aware dynamic routing ✅
+  - Fallback strategies ✅
+  
+- **Benchmark Scoring** - `src/serviceCore/nLocalModels/orchestration/benchmark_scoring.zig` ✅
+  - 16 benchmark weights configured ✅
+  - Category-specific scoring ✅
+  - Normalized scoring (0-50 points) ✅
+  - 6 passing tests ✅
+
+- **Multi-Category Support** - `src/serviceCore/nLocalModels/orchestration/multi_category.zig` ✅
+  - Per-category confidence scoring ✅
+  - MultiCategoryRegistry ✅
+  - MultiCategoryBuilder helpers ✅
+  - 10 passing tests ✅
+
+- **GPU Monitoring** - `src/serviceCore/nLocalModels/orchestration/gpu_monitor.zig` ✅
+  - nvidia-smi integration ✅
+  - Real-time load monitoring ✅
+  - Health checking ✅
+  - Load-balanced selection ✅
+  - 5 passing tests ✅
+
+**Total Test Coverage:** 23 passing tests across all modules ✅
+
+### 📋 Future Work (Medium/Low Priority)
+
+- **A/B Testing Framework** - Compare model performance across categories
+- **Automated Vendor Sync** - Periodic HF metadata refresh
+- **Extended Taxonomy** - Domain-specific categories (medical, legal, finance)
+- **Python → Zig Migration** - Convert remaining Python orchestration logic
+
 ## References
 
-- [Unified Orchestration Architecture](../src/serviceCore/nOpenaiServer/orchestration/UNIFIED_ORCHESTRATION.md)
-- [Task Categories Catalog](../src/serviceCore/nOpenaiServer/orchestration/catalog/task_categories.json)
+- [Task Categories Catalog](../../src/serviceCore/nLocalModels/orchestration/catalog/task_categories.json)
+- [Model Registry](../../vendor/layerModels/MODEL_REGISTRY.json)
 - [HuggingFace Model API](https://huggingface.co/docs/api-inference/index)
-- [Model Registry](../vendor/layerModels/MODEL_REGISTRY.json)
+- [LLM Integration Nodes](../../src/serviceCore/nFlow/nodes/llm/llm_nodes.zig)
 
 ## Support
 

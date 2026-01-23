@@ -5,7 +5,7 @@
 This document summarizes the implementation of the mHC Configuration System, which provides a comprehensive configuration loading and management solution for the mHC (Manifold Homeostatic Constraints) inference engine.
 
 **Implementation Date:** Day 47
-**File:** `src/serviceCore/nOpenaiServer/inference/engine/core/mhc_config_loader.zig`
+**File:** `src/serviceCore/nLocalModels/inference/engine/core/mhc_config_loader.zig`
 
 ## Features Implemented
 
@@ -139,7 +139,7 @@ The implementation includes comprehensive unit tests:
 
 Run tests with:
 ```bash
-zig test src/serviceCore/nOpenaiServer/inference/engine/core/mhc_config_loader.zig
+zig test src/serviceCore/nLocalModels/inference/engine/core/mhc_config_loader.zig
 ```
 
 ## Integration

@@ -60,7 +60,7 @@ sap.ui.define([
             var that = this;
 
             // Dynamically import the Charts module
-            var chartScriptPath = sap.ui.require.toUrl("llm/server/dashboard") + "/../components/dist/Charts/Charts.js";
+            var chartScriptPath = sap.ui.require.toUrl("llm/server/dashboard") + "/components-dist/Charts/Charts.js";
 
             import(chartScriptPath).then(function (ChartsModule) {
                 that._ChartsModule = ChartsModule;

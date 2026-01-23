@@ -161,82 +161,282 @@ pub const MacroExpander = struct {
 // ============================================================================
 
 /// println! macro - prints with newline
+/// Generates: print(format_args(...)); print("\n");
 pub fn builtinPrintln(allocator: Allocator, input: TokenStream) !TokenStream {
-    _ = allocator;
-    _ = input;
-    
-    // TODO: Generate code for printing
     var result = TokenStream.init(allocator);
+
+    // Generate print function call token
+    try result.append(.{ .token = .{
+        .kind = .identifier,
+        .source = "print",
+        .line = 0,
+        .column = 0,
+    } });
+
+    // Add opening paren
+    try result.append(.{ .token = .{
+        .kind = .lparen,
+        .source = "(",
+        .line = 0,
+        .column = 0,
+    } });
+
+    // Copy input tokens (format arguments)
+    for (input.tokens.items) |token| {
+        try result.append(token);
+    }
+
+    // Add newline string literal
+    try result.append(.{ .token = .{
+        .kind = .string_literal,
+        .source = "\"\\n\"",
+        .line = 0,
+        .column = 0,
+    } });
+
+    // Add closing paren
+    try result.append(.{ .token = .{
+        .kind = .rparen,
+        .source = ")",
+        .line = 0,
+        .column = 0,
+    } });
+
     return result;
 }
 
-/// vec! macro - creates vector
+/// vec! macro - creates vector from elements
+/// Generates: { var v = List[T](); v.append(e1); v.append(e2); ... v }
 pub fn builtinVec(allocator: Allocator, input: TokenStream) !TokenStream {
-    _ = allocator;
-    _ = input;
-    
-    // TODO: Generate code for vector creation
     var result = TokenStream.init(allocator);
+
+    // Generate block expression for vector creation
+    try result.append(.{ .token = .{
+        .kind = .lbrace,
+        .source = "{",
+        .line = 0,
+        .column = 0,
+    } });
+
+    // var v = List()
+    try result.append(.{ .token = .{ .kind = .keyword_var, .source = "var", .line = 0, .column = 0 } });
+    try result.append(.{ .token = .{ .kind = .identifier, .source = "_vec_temp", .line = 0, .column = 0 } });
+    try result.append(.{ .token = .{ .kind = .equal, .source = "=", .line = 0, .column = 0 } });
+    try result.append(.{ .token = .{ .kind = .identifier, .source = "List", .line = 0, .column = 0 } });
+    try result.append(.{ .token = .{ .kind = .lparen, .source = "(", .line = 0, .column = 0 } });
+    try result.append(.{ .token = .{ .kind = .rparen, .source = ")", .line = 0, .column = 0 } });
+    try result.append(.{ .token = .{ .kind = .semicolon, .source = ";", .line = 0, .column = 0 } });
+
+    // For each element in input, generate: _vec_temp.append(elem);
+    for (input.tokens.items) |token| {
+        if (token == .token and token.token.kind == .comma) continue;
+
+        try result.append(.{ .token = .{ .kind = .identifier, .source = "_vec_temp", .line = 0, .column = 0 } });
+        try result.append(.{ .token = .{ .kind = .dot, .source = ".", .line = 0, .column = 0 } });
+        try result.append(.{ .token = .{ .kind = .identifier, .source = "append", .line = 0, .column = 0 } });
+        try result.append(.{ .token = .{ .kind = .lparen, .source = "(", .line = 0, .column = 0 } });
+        try result.append(token);
+        try result.append(.{ .token = .{ .kind = .rparen, .source = ")", .line = 0, .column = 0 } });
+        try result.append(.{ .token = .{ .kind = .semicolon, .source = ";", .line = 0, .column = 0 } });
+    }
+
+    // Return the vector
+    try result.append(.{ .token = .{ .kind = .identifier, .source = "_vec_temp", .line = 0, .column = 0 } });
+
+    try result.append(.{ .token = .{
+        .kind = .rbrace,
+        .source = "}",
+        .line = 0,
+        .column = 0,
+    } });
+
     return result;
 }
 
 /// assert! macro - runtime assertion
+/// Generates: if not (condition) { raise Error("Assertion failed: " + msg) }
 pub fn builtinAssert(allocator: Allocator, input: TokenStream) !TokenStream {
-    _ = allocator;
-    _ = input;
-    
-    // TODO: Generate code for assertion
     var result = TokenStream.init(allocator);
+
+    // Generate: if not (...)
+    try result.append(.{ .token = .{ .kind = .keyword_if, .source = "if", .line = 0, .column = 0 } });
+    try result.append(.{ .token = .{ .kind = .keyword_not, .source = "not", .line = 0, .column = 0 } });
+    try result.append(.{ .token = .{ .kind = .lparen, .source = "(", .line = 0, .column = 0 } });
+
+    // Copy condition tokens
+    for (input.tokens.items) |token| {
+        try result.append(token);
+    }
+
+    try result.append(.{ .token = .{ .kind = .rparen, .source = ")", .line = 0, .column = 0 } });
+
+    // Generate: { raise Error("Assertion failed") }
+    try result.append(.{ .token = .{ .kind = .lbrace, .source = "{", .line = 0, .column = 0 } });
+    try result.append(.{ .token = .{ .kind = .keyword_raise, .source = "raise", .line = 0, .column = 0 } });
+    try result.append(.{ .token = .{ .kind = .identifier, .source = "Error", .line = 0, .column = 0 } });
+    try result.append(.{ .token = .{ .kind = .lparen, .source = "(", .line = 0, .column = 0 } });
+    try result.append(.{ .token = .{ .kind = .string_literal, .source = "\"Assertion failed\"", .line = 0, .column = 0 } });
+    try result.append(.{ .token = .{ .kind = .rparen, .source = ")", .line = 0, .column = 0 } });
+    try result.append(.{ .token = .{ .kind = .rbrace, .source = "}", .line = 0, .column = 0 } });
+
     return result;
 }
 
 /// format! macro - string formatting
+/// Generates: String.format(format_str, args...)
 pub fn builtinFormat(allocator: Allocator, input: TokenStream) !TokenStream {
-    _ = allocator;
-    _ = input;
-    
-    // TODO: Generate formatted string code
     var result = TokenStream.init(allocator);
+
+    // Generate: String.format(...)
+    try result.append(.{ .token = .{ .kind = .identifier, .source = "String", .line = 0, .column = 0 } });
+    try result.append(.{ .token = .{ .kind = .dot, .source = ".", .line = 0, .column = 0 } });
+    try result.append(.{ .token = .{ .kind = .identifier, .source = "format", .line = 0, .column = 0 } });
+    try result.append(.{ .token = .{ .kind = .lparen, .source = "(", .line = 0, .column = 0 } });
+
+    // Copy format string and arguments
+    for (input.tokens.items) |token| {
+        try result.append(token);
+    }
+
+    try result.append(.{ .token = .{ .kind = .rparen, .source = ")", .line = 0, .column = 0 } });
+
     return result;
 }
 
-/// include_str! macro - include file as string
+/// include_str! macro - include file as string at compile time
+/// Generates: string literal containing file contents
 pub fn builtinIncludeStr(allocator: Allocator, input: TokenStream) !TokenStream {
-    _ = allocator;
-    _ = input;
-    
-    // TODO: Read file and generate string literal
     var result = TokenStream.init(allocator);
+
+    // Extract filename from input tokens
+    var filename: []const u8 = "";
+    for (input.tokens.items) |token| {
+        if (token == .token and token.token.kind == .string_literal) {
+            // Remove quotes from string literal
+            const source = token.token.source;
+            if (source.len >= 2) {
+                filename = source[1 .. source.len - 1];
+            }
+            break;
+        }
+    }
+
+    // Read file contents at compile time
+    const file_contents = std.fs.cwd().readFileAlloc(allocator, filename, 1024 * 1024) catch |_| {
+        // If file not found, generate error string
+        try result.append(.{ .token = .{
+            .kind = .string_literal,
+            .source = "\"<file not found>\"",
+            .line = 0,
+            .column = 0,
+        } });
+        return result;
+    };
+    defer allocator.free(file_contents);
+
+    // Generate string literal with escaped content
+    const escaped = try std.fmt.allocPrint(allocator, "\"{s}\"", .{file_contents});
+    defer allocator.free(escaped);
+
+    try result.append(.{ .token = .{
+        .kind = .string_literal,
+        .source = escaped,
+        .line = 0,
+        .column = 0,
+    } });
+
     return result;
 }
 
 /// stringify! macro - converts tokens to string
+/// Generates: string literal of token text
 pub fn builtinStringify(allocator: Allocator, input: TokenStream) !TokenStream {
-    _ = allocator;
-    _ = input;
-    
-    // TODO: Convert token stream to string literal
     var result = TokenStream.init(allocator);
+
+    // Build string from all input tokens
+    var buffer = std.ArrayList(u8).init(allocator);
+    defer buffer.deinit();
+
+    try buffer.append('"');
+    for (input.tokens.items) |token| {
+        if (token == .token) {
+            try buffer.appendSlice(token.token.source);
+            try buffer.append(' ');
+        }
+    }
+    try buffer.append('"');
+
+    const stringified = try buffer.toOwnedSlice();
+
+    try result.append(.{ .token = .{
+        .kind = .string_literal,
+        .source = stringified,
+        .line = 0,
+        .column = 0,
+    } });
+
     return result;
 }
 
-/// concat! macro - concatenates literals
+/// concat! macro - concatenates literals at compile time
+/// Generates: concatenated string literal
 pub fn builtinConcat(allocator: Allocator, input: TokenStream) !TokenStream {
-    _ = allocator;
-    _ = input;
-    
-    // TODO: Concatenate literals at compile time
     var result = TokenStream.init(allocator);
+
+    // Concatenate all string literals
+    var buffer = std.ArrayList(u8).init(allocator);
+    defer buffer.deinit();
+
+    for (input.tokens.items) |token| {
+        if (token == .token and token.token.kind == .string_literal) {
+            const source = token.token.source;
+            // Strip quotes and append content
+            if (source.len >= 2) {
+                try buffer.appendSlice(source[1 .. source.len - 1]);
+            }
+        }
+    }
+
+    const concatenated = try std.fmt.allocPrint(allocator, "\"{s}\"", .{buffer.items});
+
+    try result.append(.{ .token = .{
+        .kind = .string_literal,
+        .source = concatenated,
+        .line = 0,
+        .column = 0,
+    } });
+
     return result;
 }
 
-/// env! macro - gets environment variable
+/// env! macro - gets environment variable at compile time
+/// Generates: string literal of env var value
 pub fn builtinEnv(allocator: Allocator, input: TokenStream) !TokenStream {
-    _ = allocator;
-    _ = input;
-    
-    // TODO: Get environment variable at compile time
     var result = TokenStream.init(allocator);
+
+    // Extract env var name from input
+    var env_name: []const u8 = "";
+    for (input.tokens.items) |token| {
+        if (token == .token and token.token.kind == .string_literal) {
+            const source = token.token.source;
+            if (source.len >= 2) {
+                env_name = source[1 .. source.len - 1];
+            }
+            break;
+        }
+    }
+
+    // Get environment variable at compile time
+    const env_value = std.posix.getenv(env_name) orelse "";
+    const value_str = try std.fmt.allocPrint(allocator, "\"{s}\"", .{env_value});
+
+    try result.append(.{ .token = .{
+        .kind = .string_literal,
+        .source = value_str,
+        .line = 0,
+        .column = 0,
+    } });
+
     return result;
 }
 

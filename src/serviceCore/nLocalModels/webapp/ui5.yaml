@@ -2,6 +2,10 @@ specVersion: "3.0"
 metadata:
   name: llm.server.dashboard
 type: application
+resources:
+  configuration:
+    paths:
+      webapp: "."
 framework:
   name: OpenUI5
   version: "1.120.0"
@@ -21,3 +25,7 @@ builder:
     excludes:
       - "/test/**"
       - "/localService/**"
+      - "/node_modules/**"
+      - "/components/**"
+      - "/components-dist/**"
+      - "/dist/**"

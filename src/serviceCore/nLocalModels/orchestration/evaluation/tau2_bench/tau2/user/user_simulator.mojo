@@ -7,26 +7,29 @@ from user.base import User, UserProfile, BaseUser
 from data_model.tasks import TaskDefinition, TaskInstance
 
 struct UserSimulatorConfig:
-    """Configuration for user simulator"""
+    """Configuration for user simulator - uses local models only"""
     var model: String
     var temperature: Float32
     var max_tokens: Int
     var variability: Float32  # 0.0-1.0, how much to vary responses
     var realism_level: String  # "low", "medium", "high"
-    
+    var local_endpoint: String  # Local model inference endpoint
+
     fn __init__(out self):
-        self.model = "gpt-3.5-turbo"
+        self.model = "LFM2.5-1.2B-Instruct"  # Local model
         self.temperature = 0.8
         self.max_tokens = 512
         self.variability = 0.5
         self.realism_level = "medium"
-    
+        self.local_endpoint = "http://localhost:11435/v1/chat/completions"
+
     fn __init__(out self, model: String, temperature: Float32):
         self.model = model
         self.temperature = temperature
         self.max_tokens = 512
         self.variability = 0.5
         self.realism_level = "medium"
+        self.local_endpoint = "http://localhost:11435/v1/chat/completions"
 
 struct UserSimulator(User):
     """
@@ -103,13 +106,66 @@ struct UserSimulator(User):
             self.emotional_state = "neutral"
             self.satisfaction_score = min(1.0, self.satisfaction_score + 0.05)
     
+    fn _call_local_llm(self, system_prompt: String, user_prompt: String) -> String:
+        """Call local LLM endpoint for generation"""
+        from python import Python
+
+        try:
+            let requests = Python.import_module("requests")
+            let json_mod = Python.import_module("json")
+
+            # Build request body for local endpoint
+            var messages = Python.list()
+
+            var sys_msg = Python.dict()
+            sys_msg["role"] = "system"
+            sys_msg["content"] = system_prompt
+            messages.append(sys_msg)
+
+            var user_msg = Python.dict()
+            user_msg["role"] = "user"
+            user_msg["content"] = user_prompt
+            messages.append(user_msg)
+
+            var body = Python.dict()
+            body["model"] = self.config.model
+            body["messages"] = messages
+            body["temperature"] = self.config.temperature
+            body["max_tokens"] = self.config.max_tokens
+
+            let response = requests.post(
+                self.config.local_endpoint,
+                json=body,
+                timeout=30
+            )
+
+            if int(response.status_code) == 200:
+                let result = json_mod.loads(response.text)
+                let choices = result.get("choices", [])
+                if len(choices) > 0:
+                    return String(choices[0]["message"]["content"])
+
+        except e:
+            # Log error and return fallback
+            print("Local LLM call failed:", e)
+
+        # Fallback to template-based response
+        return ""
+
     fn _call_llm_for_query(self, context: String) -> String:
-        """Call LLM to generate user query"""
-        # TODO: Integrate with actual LLM service
-        # For now, return a template-based response
-        
+        """Call local LLM to generate user query"""
+        let system_prompt = self._build_user_persona_prompt()
+        let user_prompt = "Based on the context below, generate a natural user query.\n\nContext: " + context + "\n\nGenerate a single query as this user would ask:"
+
+        let llm_response = self._call_local_llm(system_prompt, user_prompt)
+
+        # If LLM call succeeded, use that response
+        if len(llm_response) > 0:
+            return llm_response
+
+        # Fallback to template-based response
         var query = ""
-        
+
         if self.turn_count == 0:
             # Initial query
             query = "Hi, I need help with " + self.task_instance.task_def.name
@@ -119,16 +175,23 @@ struct UserSimulator(User):
             query = "I don't understand. Can you explain that differently?"
         else:
             query = "What should I do next?"
-        
+
         return query
-    
+
     fn _call_llm_for_feedback(self, agent_response: String) -> String:
-        """Call LLM to generate user feedback"""
-        # TODO: Integrate with actual LLM service
-        # For now, return template-based feedback
-        
+        """Call local LLM to generate user feedback"""
+        let system_prompt = self._build_user_persona_prompt()
+        let user_prompt = "The agent responded: '" + agent_response + "'\n\nAs this user, provide natural feedback or follow-up:"
+
+        let llm_response = self._call_local_llm(system_prompt, user_prompt)
+
+        # If LLM call succeeded, use that response
+        if len(llm_response) > 0:
+            return llm_response
+
+        # Fallback to template-based feedback
         var feedback = ""
-        
+
         if self.emotional_state == "satisfied":
             feedback = "Great, thank you! That helps."
         elif self.emotional_state == "frustrated":
@@ -137,7 +200,7 @@ struct UserSimulator(User):
             feedback = "I'm still confused about what to do."
         else:
             feedback = "Okay, I'll try that."
-        
+
         return feedback
     
     fn generate_query(mut self, context: String) -> String:
@@ -229,17 +292,17 @@ fn create_user_simulator(
     user_id: String,
     domain: String,
     task: TaskInstance,
-    model: String = "gpt-3.5-turbo"
+    model: String = "LFM2.5-1.2B-Instruct"  # Local model default
 ) -> UserSimulator:
     """
     Factory function to create a user simulator
-    
+
     Args:
         user_id: User identifier
         domain: Domain of the task
         task: Task instance to accomplish
-        model: LLM model to use for simulation
-        
+        model: Local LLM model to use for simulation
+
     Returns:
         Configured UserSimulator instance
     """
@@ -247,11 +310,11 @@ fn create_user_simulator(
     profile.set_interaction_style("conversational")
     profile.set_patience_level(5)
     profile.set_knowledge_level("intermediate")
-    
+
     var config = UserSimulatorConfig(model, 0.8)
     config.realism_level = "medium"
     config.variability = 0.5
-    
+
     return UserSimulator(profile, config, task)
 
 fn create_realistic_user_simulator(
@@ -264,7 +327,7 @@ fn create_realistic_user_simulator(
 ) -> UserSimulator:
     """
     Create a user simulator with specific behavioral characteristics
-    
+
     Args:
         user_id: User identifier
         domain: Domain of the task
@@ -272,17 +335,18 @@ fn create_realistic_user_simulator(
         interaction_style: User's preferred interaction style
         knowledge_level: User's knowledge level
         patience: User's patience level (1-10)
-        
+
     Returns:
-        Configured UserSimulator instance
+        Configured UserSimulator instance with local LLM
     """
     var profile = UserProfile(user_id, "SimulatedUser", domain)
     profile.set_interaction_style(interaction_style)
     profile.set_patience_level(patience)
     profile.set_knowledge_level(knowledge_level)
-    
-    var config = UserSimulatorConfig("gpt-4", 0.9)
+
+    # Use local model for high-realism simulation
+    var config = UserSimulatorConfig("LFM2.5-1.2B-Instruct", 0.9)
     config.realism_level = "high"
     config.variability = 0.7
-    
+
     return UserSimulator(profile, config, task)

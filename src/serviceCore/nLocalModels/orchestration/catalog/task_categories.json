@@ -1,84 +1,346 @@
 {
-  "categories": [
-    {
-      "name": "math",
+  "version": "1.0.0",
+  "last_updated": "2026-01-23",
+  "categories": {
+    "math": {
+      "id": "math",
+      "name": "Mathematical Reasoning",
+      "description": "Mathematical problem solving, calculations, and quantitative reasoning",
       "agent_types": ["inference"],
-      "description": "Mathematical and quantitative reasoning tasks.",
       "benchmarks": [
-        {"name": "GSM8K", "dataset": "GSM8K train", "metric": "accuracy"},
-        {"name": "MATH", "dataset": "MATH full", "metric": "pass@1"}
+        {
+          "name": "GSM8K",
+          "description": "Grade School Math 8K problems",
+          "metric": "accuracy",
+          "range": [0, 100]
+        },
+        {
+          "name": "MATH",
+          "description": "Competition-level math problems",
+          "metric": "accuracy",
+          "range": [0, 100]
+        }
+      ],
+      "models": [],
+      "example_tasks": [
+        "Solve algebraic equations",
+        "Calculate statistics",
+        "Mathematical word problems"
       ]
     },
-    {
-      "name": "time_series",
+    "code": {
+      "id": "code",
+      "name": "Code Generation & Understanding",
+      "description": "Programming, code generation, debugging, and software development",
       "agent_types": ["inference"],
-      "description": "Forecasting and anomaly detection over temporal signals.",
       "benchmarks": [
-        {"name": "M4", "dataset": "M4 retail", "metric": "sMAPE"},
-        {"name": "Monash", "dataset": "Monash traffic", "metric": "MASE"}
+        {
+          "name": "HumanEval",
+          "description": "Python code generation benchmark",
+          "metric": "pass@1",
+          "range": [0, 100]
+        },
+        {
+          "name": "MBPP",
+          "description": "Mostly Basic Python Problems",
+          "metric": "pass@1",
+          "range": [0, 100]
+        }
+      ],
+      "models": [
+        "google-gemma-3-270m-it",
+        "microsoft-phi-2",
+        "deepseek-coder-33b-instruct-q4_k_m"
+      ],
+      "example_tasks": [
+        "Generate Python functions",
+        "Debug existing code",
+        "Explain code snippets",
+        "Refactor code for better performance"
       ]
     },
-    {
-      "name": "relational",
-      "agent_types": ["inference", "tool"],
-      "description": "Reasoning over SQL/relational data sources.",
-      "benchmarks": [
-        {"name": "Spider", "dataset": "Enterprise Data Mart", "metric": "execution_accuracy"}
-      ]
-    },
-    {
-      "name": "graph",
-      "agent_types": ["inference", "tool"],
-      "description": "Graph query planning and reasoning.",
-      "benchmarks": [
-        {"name": "GraphQA", "dataset": "Neo4j Supply Chain", "metric": "F1"},
-        {"name": "AQuA", "dataset": "Knowledge Graph QA", "metric": "exact_match"}
-      ]
-    },
-    {
-      "name": "code",
-      "agent_types": ["inference"],
-      "description": "Code generation, completion, and repair.",
-      "benchmarks": [
-        {"name": "HumanEval", "dataset": "StarCoder GitHub", "metric": "pass@1"},
-        {"name": "MBPP", "dataset": "MBPP canonical", "metric": "pass@3"}
-      ]
-    },
-    {
-      "name": "vector_search",
-      "agent_types": ["inference", "tool"],
-      "description": "Retrieval augmented generation pipelines using vector stores.",
-      "benchmarks": [
-        {"name": "BEIR", "dataset": "MSMARCO", "metric": "nDCG@10"},
-        {"name": "LlamaIndex RAG", "dataset": "Enterprise KB", "metric": "answer_f1"}
-      ]
-    },
-    {
-      "name": "ocr_extraction",
-      "agent_types": ["inference", "tool"],
-      "description": "Document vision, OCR, and structured extraction tasks.",
-      "benchmarks": [
-        {"name": "DocVQA", "dataset": "Invoices", "metric": "EM"},
-        {"name": "ChartQA", "dataset": "Charts", "metric": "accuracy"}
-      ]
-    },
-    {
-      "name": "reasoning",
+    "reasoning": {
+      "id": "reasoning",
+      "name": "Complex Reasoning",
+      "description": "Multi-step reasoning, logical analysis, and complex problem solving",
       "agent_types": ["inference", "orchestrator"],
-      "description": "General logical reasoning and planning.",
       "benchmarks": [
-        {"name": "ARC-Challenge", "dataset": "ARC", "metric": "accuracy"},
-        {"name": "BIG-Bench Hard", "dataset": "BBH", "metric": "accuracy"}
+        {
+          "name": "ARC-Challenge",
+          "description": "AI2 Reasoning Challenge",
+          "metric": "accuracy",
+          "range": [0, 100]
+        },
+        {
+          "name": "HellaSwag",
+          "description": "Commonsense reasoning",
+          "metric": "accuracy",
+          "range": [0, 100]
+        },
+        {
+          "name": "MMLU",
+          "description": "Massive Multitask Language Understanding",
+          "metric": "accuracy",
+          "range": [0, 100]
+        },
+        {
+          "name": "Winogrande",
+          "description": "Commonsense reasoning benchmark",
+          "metric": "accuracy",
+          "range": [0, 100]
+        }
+      ],
+      "models": [],
+      "example_tasks": [
+        "Multi-step problem solving",
+        "Causal reasoning",
+        "Logical deduction",
+        "Complex analysis"
       ]
     },
-    {
-      "name": "summarization",
+    "summarization": {
+      "id": "summarization",
+      "name": "Text Summarization",
+      "description": "Document summarization, text condensation, and key point extraction",
       "agent_types": ["inference", "orchestrator"],
-      "description": "Long-form summarization of documents and logs.",
       "benchmarks": [
-        {"name": "SummScreen", "dataset": "Ops Logs", "metric": "ROUGE-L"},
-        {"name": "GovReport", "dataset": "GovReport", "metric": "ROUGE-2"}
+        {
+          "name": "SummScreen",
+          "description": "TV show transcript summarization",
+          "metric": "ROUGE-L",
+          "range": [0, 100]
+        },
+        {
+          "name": "GovReport",
+          "description": "Long document summarization",
+          "metric": "ROUGE-L",
+          "range": [0, 100]
+        }
+      ],
+      "models": [],
+      "example_tasks": [
+        "Summarize long documents",
+        "Extract key points from articles",
+        "Create executive summaries",
+        "Condense meeting notes"
+      ]
+    },
+    "time_series": {
+      "id": "time_series",
+      "name": "Time Series Analysis",
+      "description": "Time series forecasting, trend analysis, and temporal predictions",
+      "agent_types": ["inference"],
+      "benchmarks": [
+        {
+          "name": "M4",
+          "description": "Forecasting competition benchmark",
+          "metric": "SMAPE",
+          "range": [0, 100]
+        },
+        {
+          "name": "Monash",
+          "description": "Time series forecasting archive",
+          "metric": "MAE/RMSE",
+          "range": [0, "inf"]
+        }
+      ],
+      "models": [],
+      "example_tasks": [
+        "Financial forecasting",
+        "IoT sensor predictions",
+        "Sales forecasting",
+        "Demand planning"
+      ]
+    },
+    "relational": {
+      "id": "relational",
+      "name": "Relational Data & SQL",
+      "description": "Database queries, tabular data analysis, and cross-lingual understanding",
+      "agent_types": ["inference", "tool"],
+      "benchmarks": [
+        {
+          "name": "Spider",
+          "description": "Text-to-SQL benchmark",
+          "metric": "exact match",
+          "range": [0, 100]
+        },
+        {
+          "name": "WikiSQL",
+          "description": "SQL query generation",
+          "metric": "accuracy",
+          "range": [0, 100]
+        }
+      ],
+      "models": [
+        "HY-MT1.5-7B",
+        "translategemma-27b-it-GGUF"
+      ],
+      "example_tasks": [
+        "Generate SQL queries",
+        "Analyze tabular data",
+        "Cross-lingual translation",
+        "Data relationship extraction"
+      ]
+    },
+    "graph": {
+      "id": "graph",
+      "name": "Graph Database Queries",
+      "description": "Knowledge graphs, graph database queries, and relationship mapping",
+      "agent_types": ["inference", "tool"],
+      "benchmarks": [
+        {
+          "name": "GraphQA",
+          "description": "Graph question answering",
+          "metric": "accuracy",
+          "range": [0, 100]
+        },
+        {
+          "name": "KGQA",
+          "description": "Knowledge graph QA",
+          "metric": "F1",
+          "range": [0, 100]
+        }
+      ],
+      "models": [],
+      "example_tasks": [
+        "Cypher query generation",
+        "Neo4j database queries",
+        "Knowledge graph traversal",
+        "Relationship extraction"
+      ]
+    },
+    "vector_search": {
+      "id": "vector_search",
+      "name": "Vector Search & Embeddings",
+      "description": "Semantic search, document retrieval, and embedding generation",
+      "agent_types": ["inference", "tool"],
+      "benchmarks": [
+        {
+          "name": "BEIR",
+          "description": "Information retrieval benchmark",
+          "metric": "nDCG@10",
+          "range": [0, 100]
+        },
+        {
+          "name": "MSMARCO",
+          "description": "Passage ranking",
+          "metric": "MRR@10",
+          "range": [0, 100]
+        },
+        {
+          "name": "MTEB",
+          "description": "Massive Text Embedding Benchmark",
+          "metric": "average score",
+          "range": [0, 100]
+        }
+      ],
+      "models": [],
+      "example_tasks": [
+        "Semantic document search",
+        "RAG systems",
+        "Similarity search",
+        "Document clustering"
+      ]
+    },
+    "ocr_extraction": {
+      "id": "ocr_extraction",
+      "name": "OCR & Document Extraction",
+      "description": "Document text extraction, OCR, and visual document understanding",
+      "agent_types": ["inference", "tool"],
+      "benchmarks": [
+        {
+          "name": "DocVQA",
+          "description": "Document visual question answering",
+          "metric": "ANLS",
+          "range": [0, 100]
+        },
+        {
+          "name": "ChartQA",
+          "description": "Chart question answering",
+          "metric": "accuracy",
+          "range": [0, 100]
+        },
+        {
+          "name": "InfographicVQA",
+          "description": "Infographic understanding",
+          "metric": "accuracy",
+          "range": [0, 100]
+        }
+      ],
+      "models": [],
+      "example_tasks": [
+        "Extract text from invoices",
+        "Parse PDF documents",
+        "Chart data extraction",
+        "Form field recognition"
       ]
     }
-  ]
+  },
+  "category_hierarchy": {
+    "complexity": {
+      "simple": ["vector_search", "ocr_extraction"],
+      "moderate": ["summarization", "relational", "graph"],
+      "complex": ["code", "reasoning", "math", "time_series"]
+    },
+    "domain": {
+      "nlp": ["summarization", "reasoning"],
+      "code": ["code"],
+      "data": ["relational", "graph", "time_series", "vector_search"],
+      "vision": ["ocr_extraction"],
+      "math": ["math"]
+    }
+  },
+  "agent_type_mapping": {
+    "inference": [
+      "math",
+      "code",
+      "reasoning",
+      "summarization",
+      "time_series"
+    ],
+    "tool": [
+      "vector_search",
+      "ocr_extraction",
+      "relational",
+      "graph"
+    ],
+    "orchestrator": [
+      "reasoning",
+      "summarization"
+    ]
+  },
+  "routing_rules": {
+    "default_category": "code",
+    "fallback_model": "google-gemma-3-270m-it",
+    "gpu_constraints": {
+      "t4_16gb": {
+        "max_model_memory": "14GB",
+        "recommended_models": [
+          "google-gemma-3-270m-it",
+          "LFM2.5-1.2B-Instruct-GGUF",
+          "HY-MT1.5-7B",
+          "microsoft-phi-2"
+        ]
+      },
+      "a100_40gb": {
+        "max_model_memory": "38GB",
+        "recommended_models": [
+          "translategemma-27b-it-GGUF",
+          "deepseek-coder-33b-instruct-q4_k_m"
+        ]
+      },
+      "a100_80gb": {
+        "max_model_memory": "76GB",
+        "recommended_models": [
+          "Llama-3.3-70B-Instruct-Q4_K_M"
+        ]
+      }
+    }
+  },
+  "metadata": {
+    "total_categories": 9,
+    "total_models": 7,
+    "total_benchmarks": 19,
+    "documentation": "docs/01-architecture/MODEL_ORCHESTRATION_MAPPING.md"
+  }
 }

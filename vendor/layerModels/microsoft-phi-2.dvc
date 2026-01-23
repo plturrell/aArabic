@@ -1,0 +1,6 @@
+outs:
+- md5: 5c0c94c393262976ef751a3819f2b188.dir
+  size: 5562852991
+  nfiles: 55
+  hash: md5
+  path: microsoft-phi-2

@@ -22,7 +22,7 @@ sap.ui.define([], function() {
                 }
 
                 // Import NetworkGraph dynamically from compiled dist
-                import('../components/dist/NetworkGraph/NetworkGraph.js').then(module => {
+                import('../components-dist/NetworkGraph/NetworkGraph.js').then(module => {
                     this.networkGraph = new module.NetworkGraph(container);
                     
                     // Load real data from Zig backend
@@ -245,7 +245,7 @@ sap.ui.define([], function() {
                 }
 
                 // Import ProcessFlow dynamically from compiled dist
-                import('../components/dist/ProcessFlow/ProcessFlow.js').then(module => {
+                import('../components-dist/ProcessFlow/ProcessFlow.js').then(module => {
                     this.processFlow = new module.ProcessFlow(container);
                     
                     // Load real workflow data
@@ -289,7 +289,7 @@ sap.ui.define([], function() {
          */
         loadExampleWorkflow: function() {
             // Import ProcessFlowNodeState from compiled dist
-            import('../components/dist/ProcessFlow/types.js').then(module => {
+            import('../components-dist/ProcessFlow/types.js').then(module => {
                 const ProcessFlowNodeState = module.ProcessFlowNodeState;
                 
                 const flowData = {

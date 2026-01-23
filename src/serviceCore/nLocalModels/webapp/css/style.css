@@ -33,7 +33,7 @@
 }
 
 /* Ensure NavContainer fills height */
-#navContainer {
+#appContainer {
     height: 100%;
 }
 

@@ -5,18 +5,12 @@
   "private": true,
   "scripts": {
     "start": "ui5 serve --port 8081 --open index.html",
-    "build": "ui5 build --all",
+    "build:components": "cd components && bun install && bun run build:prod && rm -rf ../components-dist && cp -R dist ../components-dist",
+    "build": "npm run build:components && ui5 build && mkdir -p dist/components-dist && cp -R components-dist/. dist/components-dist/",
     "lint": "eslint .",
     "test": "karma start"
   },
   "dependencies": {
-    "@openui5/sap.f": "^1.120.0",
-    "@openui5/sap.m": "^1.120.0",
-    "@openui5/sap.ui.core": "^1.120.0",
-    "@openui5/sap.ui.layout": "^1.120.0",
-    "@openui5/sap.ui.table": "^1.120.0",
-    "@openui5/sap.tnt": "^1.120.0",
-    "@openui5/themelib_sap_horizon": "^1.120.0",
     "socket.io-client": "^4.7.0"
   },
   "devDependencies": {
@@ -29,14 +23,5 @@
     "karma-coverage": "^2.2.1",
     "karma-ui5": "^3.0.0",
     "qunit": "^2.20.0"
-  },
-  "ui5": {
-    "dependencies": [
-      "@openui5/sap.f",
-      "@openui5/sap.m",
-      "@openui5/sap.ui.core",
-      "@openui5/sap.ui.layout",
-      "@openui5/themelib_sap_horizon"
-    ]
   }
 }

@@ -216,50 +216,47 @@ describe('Navigation between pages', () => {
     });
 
     test('should navigate from Main to Orchestration page', () => {
-        // Setup navigation container mock
-        const navContainer = MockDOM.createElement('navContainer', {
-            currentPage: 'mainPageContent',
-            to(pageId) { this.currentPage = pageId; }
-        });
-
-        const pageMap = {
-            "main": "mainPageContent",
-            "orchestration": "orchestrationPage",
-            "modelRouter": "modelRouterPage"
+        const router = {
+            currentRoute: 'main',
+            navTo(route) { this.currentRoute = route; }
         };
 
-        // Simulate navigation event
-        const navigationKey = 'orchestration';
-        const targetPageId = pageMap[navigationKey];
-        navContainer.to(targetPageId);
+        const routeMap = {
+            "main": "main",
+            "orchestration": "orchestration",
+            "modelRouter": "modelRouter"
+        };
 
-        expect(navContainer.currentPage).toBe('orchestrationPage');
+        router.navTo(routeMap.orchestration);
+
+        expect(router.currentRoute).toBe('orchestration');
     });
 
     test('should navigate from Main to Model Router page', () => {
-        const navContainer = MockDOM.createElement('navContainer', {
-            currentPage: 'mainPageContent',
-            to(pageId) { this.currentPage = pageId; }
-        });
+        const router = {
+            currentRoute: 'main',
+            navTo(route) { this.currentRoute = route; }
+        };
 
-        navContainer.to('modelRouterPage');
-        expect(navContainer.currentPage).toBe('modelRouterPage');
+        router.navTo('modelRouter');
+        expect(router.currentRoute).toBe('modelRouter');
     });
 
     test('should have correct page mapping for all navigation items', () => {
-        const pageMap = {
-            "main": "mainPageContent",
-            "promptTesting": "promptTestingPage",
-            "mhcTuning": "mhcTuningPage",
-            "orchestration": "orchestrationPage",
-            "modelVersions": "modelVersionsPage",
-            "modelRouter": "modelRouterPage"
+        const routeMap = {
+            "main": "main",
+            "promptTesting": "promptTesting",
+            "mhcTuning": "mhcTuning",
+            "orchestration": "orchestration",
+            "modelVersions": "modelVersions",
+            "modelRouter": "modelRouter",
+            "trainingDashboard": "trainingDashboard"
         };
 
-        expect(Object.keys(pageMap)).toHaveLength(6);
-        expect(pageMap.main).toBe('mainPageContent');
-        expect(pageMap.orchestration).toBe('orchestrationPage');
-        expect(pageMap.modelRouter).toBe('modelRouterPage');
+        expect(Object.keys(routeMap)).toHaveLength(7);
+        expect(routeMap.main).toBe('main');
+        expect(routeMap.orchestration).toBe('orchestration');
+        expect(routeMap.modelRouter).toBe('modelRouter');
     });
 
     test('should update sidebar selection on navigation', () => {

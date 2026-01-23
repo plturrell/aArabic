@@ -1,0 +1,6 @@
+outs:
+- md5: 06d67a0347f2166e99bf4c127efb6863.dir
+  size: 3769994971
+  nfiles: 17
+  hash: md5
+  path: LFM2.5-1.2B-Instruct-GGUF

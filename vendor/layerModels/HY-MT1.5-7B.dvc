@@ -1,0 +1,6 @@
+outs:
+- md5: 24c30de95bf74b3c7506193cf2af6e0f.dir
+  size: 18771061824
+  nfiles: 3
+  hash: md5
+  path: HY-MT1.5-7B

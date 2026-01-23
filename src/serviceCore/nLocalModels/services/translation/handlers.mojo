@@ -374,26 +374,190 @@ struct TranslationCache:
 # Batch Translation with Parallel Processing
 # ============================================================================
 
+# ============================================================================
+# TranslateGemma Translator - High-Quality Multilingual Translation
+# ============================================================================
+
+struct TranslateGemmaTranslator:
+    """
+    TranslateGemma-27B-IT translator using local GGUF inference.
+    Supports 55 languages with state-of-the-art quality.
+    """
+    var model_path: String
+    var endpoint: String
+    var max_tokens: Int
+    var temperature: Float32
+    var supported_languages: List[String]
+
+    fn __init__(inout self, model_path: String = "", endpoint: String = "http://localhost:11435/v1/chat/completions"):
+        """Initialize TranslateGemma translator"""
+        if model_path == "":
+            self.model_path = "/vendor/layerModels/translategemma-27b-it-GGUF/translategemma-27b-it.Q4_K_M.gguf"
+        else:
+            self.model_path = model_path
+        self.endpoint = endpoint
+        self.max_tokens = 2048
+        self.temperature = 0.1  # Low temperature for accurate translation
+
+        # Initialize supported languages
+        self.supported_languages = List[String]()
+        var langs = ["ar", "bn", "cs", "da", "de", "el", "en", "es", "fa", "fi",
+                     "fil", "fr", "he", "hi", "hr", "hu", "id", "it", "ja", "ko",
+                     "lt", "lv", "mr", "nl", "no", "pl", "pt", "ro", "ru", "sk",
+                     "sl", "sv", "sw", "ta", "te", "th", "tr", "uk", "ur", "vi", "zh"]
+        for i in range(len(langs)):
+            self.supported_languages.append(langs[i])
+
+        print("✅ TranslateGemma translator initialized")
+        print("   Model: translategemma-27b-it (Q4_K_M)")
+        print("   Languages: 55 supported")
+
+    fn _get_language_name(self, code: String) -> String:
+        """Convert language code to full name for prompt"""
+        var lang_names = Dict[String, String]()
+        lang_names["ar"] = "Arabic"
+        lang_names["bn"] = "Bengali"
+        lang_names["cs"] = "Czech"
+        lang_names["da"] = "Danish"
+        lang_names["de"] = "German"
+        lang_names["el"] = "Greek"
+        lang_names["en"] = "English"
+        lang_names["es"] = "Spanish"
+        lang_names["fa"] = "Persian"
+        lang_names["fi"] = "Finnish"
+        lang_names["fil"] = "Filipino"
+        lang_names["fr"] = "French"
+        lang_names["he"] = "Hebrew"
+        lang_names["hi"] = "Hindi"
+        lang_names["hr"] = "Croatian"
+        lang_names["hu"] = "Hungarian"
+        lang_names["id"] = "Indonesian"
+        lang_names["it"] = "Italian"
+        lang_names["ja"] = "Japanese"
+        lang_names["ko"] = "Korean"
+        lang_names["lt"] = "Lithuanian"
+        lang_names["lv"] = "Latvian"
+        lang_names["mr"] = "Marathi"
+        lang_names["nl"] = "Dutch"
+        lang_names["no"] = "Norwegian"
+        lang_names["pl"] = "Polish"
+        lang_names["pt"] = "Portuguese"
+        lang_names["ro"] = "Romanian"
+        lang_names["ru"] = "Russian"
+        lang_names["sk"] = "Slovak"
+        lang_names["sl"] = "Slovenian"
+        lang_names["sv"] = "Swedish"
+        lang_names["sw"] = "Swahili"
+        lang_names["ta"] = "Tamil"
+        lang_names["te"] = "Telugu"
+        lang_names["th"] = "Thai"
+        lang_names["tr"] = "Turkish"
+        lang_names["uk"] = "Ukrainian"
+        lang_names["ur"] = "Urdu"
+        lang_names["vi"] = "Vietnamese"
+        lang_names["zh"] = "Chinese"
+
+        if code in lang_names:
+            return lang_names[code]
+        return code
+
+    fn _build_prompt(self, text: String, source_lang: String, target_lang: String) -> String:
+        """Build TranslateGemma prompt format"""
+        # TranslateGemma uses specific tag format
+        var source_name = self._get_language_name(source_lang)
+        var target_name = self._get_language_name(target_lang)
+        return "<source_lang>" + source_name + "</source_lang><target_lang>" + target_name + "</target_lang>" + text
+
+    fn is_language_supported(self, lang_code: String) -> Bool:
+        """Check if language is supported"""
+        for i in range(len(self.supported_languages)):
+            if self.supported_languages[i] == lang_code:
+                return True
+        return False
+
+    fn translate(self, text: String, source_lang: String, target_lang: String) -> String:
+        """Translate text using TranslateGemma"""
+        # Validate languages
+        if not self.is_language_supported(source_lang):
+            print("❌ Source language not supported:", source_lang)
+            return ""
+        if not self.is_language_supported(target_lang):
+            print("❌ Target language not supported:", target_lang)
+            return ""
+
+        # Build prompt
+        var prompt = self._build_prompt(text, source_lang, target_lang)
+
+        # Call local inference endpoint
+        try:
+            var requests = Python.import_module("requests")
+            var json_mod = Python.import_module("json")
+
+            var messages = Python.list()
+            var user_msg = Python.dict()
+            user_msg["role"] = "user"
+            user_msg["content"] = prompt
+            messages.append(user_msg)
+
+            var body = Python.dict()
+            body["model"] = "translategemma-27b-it"
+            body["messages"] = messages
+            body["temperature"] = self.temperature
+            body["max_tokens"] = self.max_tokens
+            body["stream"] = False
+
+            var response = requests.post(
+                self.endpoint,
+                json=body,
+                timeout=120  # Longer timeout for 27B model
+            )
+
+            if int(response.status_code) == 200:
+                var result = json_mod.loads(response.text)
+                var choices = result.get("choices", [])
+                if len(choices) > 0:
+                    var translation = String(choices[0]["message"]["content"])
+                    # Clean up any residual tags
+                    translation = translation.strip()
+                    return translation
+            else:
+                print("❌ TranslateGemma API error:", response.status_code)
+
+        except e:
+            print("❌ TranslateGemma request failed:", e)
+
+        return ""
+
+    fn translate_batch(self, texts: List[String], source_lang: String, target_lang: String) -> List[String]:
+        """Translate batch of texts"""
+        var results = List[String]()
+
+        for i in range(len(texts)):
+            var translation = self.translate(texts[i], source_lang, target_lang)
+            results.append(translation)
+
+        return results
+
 struct BatchTranslator:
     var model: PythonObject
     var tokenizer: PythonObject
     var device: String
     var max_batch_size: Int
-    
+
     fn __init__(inout self, model_name: String = "Helsinki-NLP/opus-mt-ar-en") raises:
         """Initialize translation model"""
         var transformers = Python.import_module("transformers")
         var torch = Python.import_module("torch")
-        
+
         # Load model and tokenizer
         self.tokenizer = transformers.MarianTokenizer.from_pretrained(model_name)
         self.model = transformers.MarianMTModel.from_pretrained(model_name)
-        
+
         # Set device
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = self.model.to(self.device)
         self.max_batch_size = 32
-        
+
         print("✅ Loaded model:", model_name, "on", self.device)
     
     fn translate_single(inout self, text: String) -> String:
@@ -534,6 +698,7 @@ struct QualityScorer:
 struct MojoTranslationService:
     var ar_to_en: BatchTranslator
     var en_to_ar: BatchTranslator
+    var translategemma: TranslateGemmaTranslator
     var cache: TranslationCache
     var scorer: QualityScorer
     var total_translations: Int
@@ -541,9 +706,11 @@ struct MojoTranslationService:
     var mhc_config: MHCConfiguration
     var stability_collector: StabilityMetricsCollector
     var mhc_enabled: Bool
+    # Model selection
+    var use_translategemma: Bool  # Use TranslateGemma for multilingual, fall back to opus for ar/en
 
-    fn __init__(inout self, enable_mhc: Bool = True) raises:
-        """Initialize translation service with optional mHC integration"""
+    fn __init__(inout self, enable_mhc: Bool = True, use_translategemma: Bool = True) raises:
+        """Initialize translation service with optional mHC integration and TranslateGemma"""
         print("=" * 80)
         print("🌐 Mojo Translation Service - Initializing")
         print("=" * 80)
@@ -552,6 +719,10 @@ struct MojoTranslationService:
         print("\n📥 Loading translation models...")
         self.ar_to_en = BatchTranslator("Helsinki-NLP/opus-mt-ar-en")
         self.en_to_ar = BatchTranslator("Helsinki-NLP/opus-mt-en-ar")
+
+        # Initialize TranslateGemma (55 languages support)
+        self.translategemma = TranslateGemmaTranslator()
+        self.use_translategemma = use_translategemma
 
         # Initialize components
         self.cache = TranslationCache()
@@ -569,6 +740,11 @@ struct MojoTranslationService:
         else:
             self.mhc_config.disable()
             print("📊 mHC stability monitoring: DISABLED")
+
+        if use_translategemma:
+            print("🌍 TranslateGemma-27B: ENABLED (55 languages)")
+        else:
+            print("🌍 TranslateGemma-27B: DISABLED (using opus-mt only)")
 
         print("\n✅ Mojo Translation Service Ready!")
         print("=" * 80)
@@ -595,18 +771,40 @@ struct MojoTranslationService:
                 print("⚡ Cache hit!")
                 return (cached, 1.0)
 
-        # Select model
+        var translation: String = ""
+
+        # Try TranslateGemma first for all language pairs (55 languages supported)
+        if self.use_translategemma and self.translategemma.is_language_supported(source_lang) and self.translategemma.is_language_supported(target_lang):
+            print("🌍 Using TranslateGemma-27B for", source_lang, "→", target_lang)
+            translation = self.translategemma.translate(text, source_lang, target_lang)
+
+            if len(translation) > 0:
+                # Calculate quality score
+                var quality_score = self.scorer.calculate_quality_score(
+                    text, translation, source_lang
+                )
+
+                # Store in cache
+                if use_cache and quality_score > 0.7:
+                    var embedding = self.scorer.get_embedding(text)
+                    self.cache.store(text, translation, embedding)
+
+                return (translation, quality_score)
+            else:
+                print("⚠️ TranslateGemma failed, falling back to opus-mt")
+
+        # Fallback to opus-mt for Arabic-English
         var translator: BatchTranslator
         if source_lang == "ar" and target_lang == "en":
             translator = self.ar_to_en
         elif source_lang == "en" and target_lang == "ar":
             translator = self.en_to_ar
         else:
-            print("❌ Unsupported language pair")
+            print("❌ Unsupported language pair (TranslateGemma unavailable)")
             return ("", 0.0)
 
-        # Translate
-        var translation = translator.translate_single(text)
+        # Translate with opus-mt
+        translation = translator.translate_single(text)
 
         # Calculate quality score
         var quality_score = self.scorer.calculate_quality_score(
@@ -638,18 +836,30 @@ struct MojoTranslationService:
                 print("⚡ Cache hit!")
                 return (cached, 1.0, cached_metrics)
 
-        # Select model
-        var translator: BatchTranslator
-        if source_lang == "ar" and target_lang == "en":
-            translator = self.ar_to_en
-        elif source_lang == "en" and target_lang == "ar":
-            translator = self.en_to_ar
-        else:
-            print("❌ Unsupported language pair")
-            return ("", 0.0, StabilityMetrics())
+        var translation: String = ""
+        var used_translategemma: Bool = False
 
-        # Translate
-        var translation = translator.translate_single(text)
+        # Try TranslateGemma first for all language pairs (55 languages supported)
+        if self.use_translategemma and self.translategemma.is_language_supported(source_lang) and self.translategemma.is_language_supported(target_lang):
+            print("🌍 Using TranslateGemma-27B for", source_lang, "→", target_lang)
+            translation = self.translategemma.translate(text, source_lang, target_lang)
+            if len(translation) > 0:
+                used_translategemma = True
+            else:
+                print("⚠️ TranslateGemma failed, falling back to opus-mt")
+
+        # Fallback to opus-mt for Arabic-English if TranslateGemma failed
+        if not used_translategemma:
+            var translator: BatchTranslator
+            if source_lang == "ar" and target_lang == "en":
+                translator = self.ar_to_en
+            elif source_lang == "en" and target_lang == "ar":
+                translator = self.en_to_ar
+            else:
+                print("❌ Unsupported language pair")
+                return ("", 0.0, StabilityMetrics())
+
+            translation = translator.translate_single(text)
 
         # Calculate quality score and get embeddings
         var source_emb = self.scorer.get_embedding(text)

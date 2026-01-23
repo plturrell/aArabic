@@ -8,7 +8,7 @@
 	xmlns:card="sap.f.cards"
 	height="100%">
 
-	<Page id="guardrailsPage" title="Guardrails & Safety">
+		<Page id="guardrailsPage" title="Guardrails &amp; Safety">
 		<content>
 			<layout:VerticalLayout width="100%" class="sapUiSmallMargin">
 

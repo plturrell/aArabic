@@ -99,37 +99,7 @@
 			
 			<!-- Main Content -->
 			<tnt:mainContents>
-				<NavContainer id="navContainer" initialPage="mainPageContent">
-					<pages>
-						<Page id="mainPageContent" showHeader="false">
-							<mvc:XMLView viewName="llm.server.dashboard.view.Main"/>
-						</Page>
-						<Page id="promptTestingPage" showHeader="false">
-							<mvc:XMLView viewName="llm.server.dashboard.view.PromptTesting"/>
-						</Page>
-						<Page id="mhcTuningPage" showHeader="false">
-							<mvc:XMLView viewName="llm.server.dashboard.view.MHCTuning"/>
-						</Page>
-						<Page id="orchestrationPage" showHeader="false">
-							<mvc:XMLView viewName="llm.server.dashboard.view.Orchestration"/>
-						</Page>
-						<Page id="modelVersionsPage" showHeader="false">
-							<mvc:XMLView viewName="llm.server.dashboard.view.ModelVersions"/>
-						</Page>
-						<Page id="trainingDashboardPage" showHeader="false">
-							<mvc:XMLView viewName="llm.server.dashboard.view.TrainingDashboard"/>
-						</Page>
-						<Page id="modelRouterPage" showHeader="false">
-							<mvc:XMLView viewName="llm.server.dashboard.view.ModelRouter"/>
-						</Page>
-						<Page id="abTestingPage" showHeader="false">
-							<mvc:XMLView viewName="llm.server.dashboard.view.ABTesting"/>
-						</Page>
-						<Page id="settingsPage" showHeader="false">
-							<mvc:XMLView viewName="llm.server.dashboard.view.Settings"/>
-						</Page>
-					</pages>
-				</NavContainer>
+				<NavContainer id="appContainer"/>
 			</tnt:mainContents>
 			
 		</tnt:ToolPage>

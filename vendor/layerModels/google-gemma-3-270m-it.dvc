@@ -1,0 +1,6 @@
+outs:
+- md5: 695935a4db251b7a60c980d6d3506ba8.dir
+  size: 575486884
+  nfiles: 34
+  hash: md5
+  path: google-gemma-3-270m-it

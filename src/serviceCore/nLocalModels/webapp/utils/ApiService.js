@@ -1,19 +1,24 @@
-sap.ui.define([], function () {
+sap.ui.define([
+    "llm/server/dashboard/utils/RuntimeConfig"
+], function (RuntimeConfig) {
     "use strict";
 
     /**
      * Unified API Service for all Dashboard pages
      * Handles: REST API calls, WebSocket, Keycloak auth, error handling
      */
+
+    var runtimeConfig = RuntimeConfig.get();
+
     const ApiService = {
         
         // Configuration
         config: {
-            baseUrl: "http://localhost:8080",
-            wsUrl: "ws://localhost:8080/ws",
-            keycloakUrl: "http://localhost:8080/auth",
-            keycloakRealm: "nucleus",
-            keycloakClientId: "dashboard-client"
+            baseUrl: runtimeConfig.apiBaseUrl,
+            wsUrl: runtimeConfig.wsUrl,
+            keycloakUrl: runtimeConfig.keycloak.url,
+            keycloakRealm: runtimeConfig.keycloak.realm,
+            keycloakClientId: runtimeConfig.keycloak.clientId
         },
         
         // State
@@ -21,6 +26,8 @@ sap.ui.define([], function () {
         _keycloak: null,
         _wsConnection: null,
         _wsCallbacks: [],
+        _shouldReconnect: true,
+        _reconnectDelayMs: 5000,
         
         // ========================================================================
         // AUTHENTICATION (Keycloak OAuth2)
@@ -327,6 +334,7 @@ sap.ui.define([], function () {
         // ========================================================================
         
         connectWebSocket: function() {
+            this._shouldReconnect = true;
             if (this._wsConnection && this._wsConnection.readyState === WebSocket.OPEN) {
                 console.log("WebSocket already connected");
                 return;
@@ -337,6 +345,7 @@ sap.ui.define([], function () {
                 
                 this._wsConnection.onopen = () => {
                     console.log("WebSocket connected");
+                    this._reconnectDelayMs = 5000;
                     // Send auth token
                     this._wsConnection.send(JSON.stringify({
                         type: 'auth',
@@ -358,8 +367,13 @@ sap.ui.define([], function () {
                 };
                 
                 this._wsConnection.onclose = () => {
-                    console.log("WebSocket disconnected, reconnecting in 5s...");
-                    setTimeout(() => this.connectWebSocket(), 5000);
+                    if (!this._shouldReconnect) {
+                        return;
+                    }
+                    console.log("WebSocket disconnected, reconnecting in " + this._reconnectDelayMs + "ms...");
+                    var delay = this._reconnectDelayMs;
+                    this._reconnectDelayMs = Math.min(30000, Math.round(this._reconnectDelayMs * 1.5));
+                    setTimeout(() => this.connectWebSocket(), delay);
                 };
                 
             } catch (error) {
@@ -385,6 +399,7 @@ sap.ui.define([], function () {
         
         disconnectWebSocket: function() {
             if (this._wsConnection) {
+                this._shouldReconnect = false;
                 this._wsConnection.close();
                 this._wsConnection = null;
             }

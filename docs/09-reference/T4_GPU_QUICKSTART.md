@@ -62,7 +62,7 @@ If you prefer manual testing:
 nvidia-smi
 
 # Navigate to project
-cd ~/arabic_folder/src/serviceCore/nOpenaiServer/inference/engine
+cd ~/arabic_folder/src/serviceCore/nLocalModels/inference/engine
 
 # Build
 zig build -Doptimize=ReleaseFast
@@ -134,7 +134,7 @@ After successful testing:
 
 1. **Run inference server:**
    ```bash
-   cd ~/arabic_folder/src/serviceCore/nOpenaiServer
+   cd ~/arabic_folder/src/serviceCore/nLocalModels
    zig build run -- --backend cuda --model-path ../../vendor/layerModels/google-gemma-3-270m-it
    ```
 

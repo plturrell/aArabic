@@ -166,7 +166,7 @@ report.print();
 
 ## Files Created
 
-- `src/serviceCore/nOpenaiServer/inference/engine/core/mhc_perf_profiler.zig` - Performance profiler implementation
+- `src/serviceCore/nLocalModels/inference/engine/core/mhc_perf_profiler.zig` - Performance profiler implementation
 - `docs/DAY_48_PERFORMANCE_OPTIMIZATION_REPORT.md` - This report
 
 ## Conclusion

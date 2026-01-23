@@ -1,0 +1,200 @@
+{
+  "models": [
+    {
+      "name": "google-gemma-3-270m-it",
+      "description": "Google Gemma 3 270M Instruction-Tuned (for testing)",
+      "size": "540 MB",
+      "format": "safetensors",
+      "source": "huggingface",
+      "hf_repo": "google/gemma-3-270m-it",
+      "recommended_for": "testing, development",
+      "gpu_memory": "2GB",
+      "orchestration_categories": [
+        "code"
+      ],
+      "agent_types": [
+        "inference"
+      ],
+      "benchmarks": {},
+      "hf_metadata": {
+        "downloads": 113884,
+        "likes": 533,
+        "license": "",
+        "languages": [],
+        "datasets": [],
+        "pipeline_tag": "text-generation"
+      }
+    },
+    {
+      "name": "LFM2.5-1.2B-Instruct-GGUF",
+      "description": "Liquid Foundation Model 2.5 1.2B Instruction-Tuned",
+      "size": "1.2 GB (Q4), 2.4 GB (F16)",
+      "format": "gguf",
+      "source": "huggingface",
+      "hf_repo": "LiquidAI/LFM-2.5-1.2B-Instruct-GGUF",
+      "recommended_for": "production, inference",
+      "gpu_memory": "4GB",
+      "variants": [
+        "Q4_0",
+        "Q4_K_M",
+        "F16"
+      ]
+    },
+    {
+      "name": "HY-MT1.5-7B",
+      "description": "Arabic Machine Translation Model 7B",
+      "size": "4.2 GB (Q4), 7.6 GB (Q8)",
+      "format": "gguf",
+      "source": "huggingface",
+      "hf_repo": "Helsinki-NLP/opus-mt-ar-en",
+      "recommended_for": "arabic translation",
+      "gpu_memory": "8GB",
+      "variants": [
+        "Q4_K_M",
+        "Q6_K",
+        "Q8_0"
+      ],
+      "orchestration_categories": [
+        "relational"
+      ],
+      "agent_types": [
+        "inference",
+        "tool"
+      ],
+      "benchmarks": {},
+      "hf_metadata": {
+        "downloads": 119010,
+        "likes": 48,
+        "license": "",
+        "languages": [],
+        "datasets": [],
+        "pipeline_tag": "translation"
+      }
+    },
+    {
+      "name": "microsoft-phi-2",
+      "description": "Microsoft Phi-2 2.7B",
+      "size": "5.2 GB",
+      "format": "safetensors",
+      "source": "huggingface",
+      "hf_repo": "microsoft/phi-2",
+      "recommended_for": "general purpose",
+      "gpu_memory": "6GB",
+      "orchestration_categories": [
+        "code"
+      ],
+      "agent_types": [
+        "inference"
+      ],
+      "benchmarks": {},
+      "hf_metadata": {
+        "downloads": 1294247,
+        "likes": 3421,
+        "license": "",
+        "languages": [],
+        "datasets": [],
+        "pipeline_tag": "text-generation"
+      }
+    },
+    {
+      "name": "deepseek-coder-33b-instruct-q4_k_m",
+      "description": "DeepSeek Coder 33B Instruct (Quantized)",
+      "size": "19 GB",
+      "format": "gguf",
+      "source": "huggingface",
+      "hf_repo": "TheBloke/deepseek-coder-33B-instruct-GGUF",
+      "recommended_for": "code generation",
+      "gpu_memory": "22GB",
+      "orchestration_categories": [
+        "code"
+      ],
+      "agent_types": [
+        "inference"
+      ],
+      "benchmarks": {},
+      "hf_metadata": {
+        "downloads": 9578,
+        "likes": 192,
+        "license": "",
+        "languages": [],
+        "datasets": [],
+        "pipeline_tag": ""
+      }
+    },
+    {
+      "name": "Llama-3.3-70B-Instruct-Q4_K_M",
+      "description": "Meta Llama 3.3 70B Instruct (Quantized)",
+      "size": "43 GB",
+      "format": "gguf",
+      "source": "huggingface",
+      "hf_repo": "meta-llama/Llama-3.3-70B-Instruct-GGUF",
+      "recommended_for": "advanced reasoning",
+      "gpu_memory": "48GB",
+      "notes": "Requires multiple GPUs or CPU offloading on T4"
+    },
+    {
+      "name": "translategemma-27b-it-GGUF",
+      "description": "Google TranslateGemma 27B Instruction-Tuned - Multilingual Translation Model",
+      "size": "16.6 GB (Q4_K_M), 22.3 GB (Q6_K), 28.8 GB (Q8_0)",
+      "format": "gguf",
+      "source": "huggingface",
+      "hf_repo": "mradermacher/translategemma-27b-it-GGUF",
+      "original_repo": "google/translategemma-27b-it",
+      "recommended_for": "multilingual translation",
+      "gpu_memory": "20GB (Q4_K_M), 24GB (Q6_K), 32GB (Q8_0)",
+      "variants": [
+        "Q2_K",
+        "Q3_K_M",
+        "Q4_K_M",
+        "Q5_K_M",
+        "Q6_K",
+        "Q8_0"
+      ],
+      "supported_languages": [
+        "ar", "bn", "cs", "da", "de", "el", "en", "es", "fa", "fi",
+        "fil", "fr", "he", "hi", "hr", "hu", "id", "it", "ja", "ko",
+        "lt", "lv", "mr", "nl", "no", "pl", "pt", "ro", "ru", "sk",
+        "sl", "sv", "sw", "ta", "te", "th", "tr", "uk", "ur", "vi",
+        "zh"
+      ],
+      "orchestration_categories": [
+        "translation",
+        "relational"
+      ],
+      "agent_types": [
+        "inference",
+        "tool"
+      ],
+      "benchmarks": {
+        "flores200_avg": "state-of-the-art",
+        "languages_supported": 55
+      },
+      "hf_metadata": {
+        "model_type": "gemma2",
+        "parameters": "27B",
+        "license": "gemma",
+        "pipeline_tag": "translation"
+      },
+      "prompt_template": "<source_lang>{source_lang}</source_lang><target_lang>{target_lang}</target_lang>{text}"
+    }
+  ],
+  "recommended_for_t4": [
+    "google-gemma-3-270m-it",
+    "LFM2.5-1.2B-Instruct-GGUF",
+    "HY-MT1.5-7B",
+    "microsoft-phi-2"
+  ],
+  "recommended_for_a100": [
+    "translategemma-27b-it-GGUF",
+    "deepseek-coder-33b-instruct-q4_k_m",
+    "Llama-3.3-70B-Instruct-Q4_K_M"
+  ],
+  "translation_models": [
+    "translategemma-27b-it-GGUF",
+    "HY-MT1.5-7B"
+  ],
+  "testing_models": [
+    "google-gemma-3-270m-it",
+    "LFM2.5-1.2B-Instruct-GGUF"
+  ]
+}

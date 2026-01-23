@@ -70,30 +70,36 @@ sap.ui.define([
                     
                     // Transform API response to match UI model
                     var models = response.models || response.available_models || [];
-                    var formattedModels = models.map(model => ({
-                        id: model.id,
-                        display_name: model.name || model.display_name,
-                        quantization: model.quantization,
-                        architecture: model.architecture,
-                        parameter_count: model.size_mb ? (model.size_mb / 1000).toFixed(1) + "GB" : "N/A",
-                        health: model.status === "active" || model.status === "ready" ? "healthy" : "error",
-                        avgLatency: model.avg_latency || 0,
-                        avgThroughput: model.avg_throughput || 0,
-                        requests: model.total_requests || 0,
-                        lastUsed: model.last_used || "Never"
-                    }));
-                    
-                    oModel.setProperty("/availableModels", formattedModels);
-                    
-                    // Set selected model (first active model)
-                    var activeModel = formattedModels.find(m => m.health === "healthy");
-                    if (activeModel) {
-                        oModel.setProperty("/selectedModel", activeModel.id);
-                    }
-                    
-                    console.log("Loaded", formattedModels.length, "models from API");
-                })
-                .catch(error => {
+		            var formattedModels = models.map(model => ({
+		                id: model.id,
+		                display_name: model.name || model.display_name,
+		                quantization: model.quantization,
+		                architecture: model.architecture,
+		                parameter_count: model.size_mb ? (model.size_mb / 1000).toFixed(1) + "GB" : "N/A",
+		                health: model.status === "active" || model.status === "ready" ? "healthy" : "error",
+		                avgLatency: model.avg_latency || 0,
+		                avgThroughput: model.avg_throughput || 0,
+		                requests: model.total_requests || 0,
+		                lastUsed: model.last_used || "Never"
+		            }));
+		            
+		            oModel.setProperty("/availableModels", formattedModels);
+		            
+		            // Set selected model (first active model)
+		            var activeModel = formattedModels.find(m => m.health === "healthy");
+		            if (activeModel) {
+		                oModel.setProperty("/selectedModel", activeModel.id);
+		                this._loadCurrentMetrics();
+		                ApiService.getMetricsHistory(activeModel.id, '1h')
+		                    .then(history => {
+		                        this._updateHistoryData(history);
+		                    })
+		                    .catch(() => {/* already logged in API layer */});
+		            }
+		            
+		            console.log("Loaded", formattedModels.length, "models from API");
+		        })
+		        .catch(error => {
                     console.error("Failed to load models:", error);
                     // Fallback to mock data
                     this._initializeMockData(this.getOwnerComponent().getModel("metrics"));
@@ -112,6 +118,7 @@ sap.ui.define([
                 })
                 .catch(error => {
                     console.error("Failed to load metrics:", error);
+                    oModel.setProperty("/connected", false);
                 });
         },
         
@@ -292,10 +299,9 @@ sap.ui.define([
         },
         
         onBreadcrumbHome: function () {
-            // Already on Dashboard (it's now the home page)
-            var oNavContainer = this.getView().getParent().getParent().byId("navContainer");
-            if (oNavContainer) {
-                oNavContainer.to(oNavContainer.getPages()[0]);
+            var oRouter = this.getOwnerComponent().getRouter();
+            if (oRouter) {
+                oRouter.navTo("main");
             }
         },
         
