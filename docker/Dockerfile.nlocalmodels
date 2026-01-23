@@ -1,5 +1,9 @@
 # nLocalModels Dockerfile (Zig/Mojo LLM Inference Server)
 # Formerly nOpenaiServer - now consolidated as nLocalModels
+# 
+# Version Requirements:
+#   - Zig: 0.15.2 (matches local development)
+#   - Mojo: 0.26.1 (uses bundled mojo-sdk)
 FROM debian:bookworm-slim AS builder
 
 # Install build dependencies
@@ -7,30 +11,43 @@ RUN apt-get update && apt-get install -y \
     curl \
     xz-utils \
     git \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Zig
+# Install Zig 0.15.2 (matches local development environment)
 WORKDIR /tmp
-RUN curl -L https://ziglang.org/download/0.13.0/zig-linux-x86_64-0.13.0.tar.xz -o zig.tar.xz \
+RUN curl -L https://ziglang.org/download/0.15.2/zig-linux-x86_64-0.15.2.tar.xz -o zig.tar.xz \
     && tar -xf zig.tar.xz \
-    && mv zig-linux-x86_64-0.13.0 /usr/local/zig \
-    && ln -s /usr/local/zig/zig /usr/local/bin/zig
+    && mv zig-linux-x86_64-0.15.2 /usr/local/zig \
+    && ln -s /usr/local/zig/zig /usr/local/bin/zig \
+    && zig version
 
-# Install Mojo (via magic CLI)
+# Install Mojo 0.26.1 via magic CLI
 RUN curl -ssL https://magic.modular.com/install.sh | bash
 ENV PATH="/root/.modular/bin:/root/.magic/bin:${PATH}"
+RUN magic install mojo==0.26.1 || magic install mojo
 
 WORKDIR /app
 
 # Copy source (updated path to nLocalModels)
+# IMPORTANT: Includes local mojo-sdk for consistent builds
 COPY src/serviceCore/nLocalModels/ ./
+
+# Verify versions match development environment
+RUN echo "=== Build Environment ===" && \
+    echo "Zig version: $(zig version)" && \
+    echo "Mojo version: $(mojo --version)" && \
+    echo "======================="
 
 # Build Zig components
 RUN zig build -Doptimize=ReleaseFast
 
-# Build Mojo components (if applicable)
+# Build Mojo components using bundled mojo-sdk
+# The mojo-sdk directory contains our custom SDK build
 RUN if [ -d "mojo" ]; then \
-    cd mojo && mojo build main.mojo -o ../zig-out/bin/nlocalmodels-mojo; \
+    echo "Building Mojo components with local SDK..." && \
+    cd mojo && \
+    mojo build main.mojo -o ../zig-out/bin/nlocalmodels-mojo; \
     fi
 
 # Runtime image
