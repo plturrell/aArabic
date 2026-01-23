@@ -147,19 +147,55 @@ Quality: 98/100 score
 │       │                       │                          │
 │       ├───────────┬───────────┤                          │
 │                   │                                      │
-│            Custom mojo-sdk/                              │
-│         (Zig-based compiler)                             │
+│         System Mojo 0.26.1                               │
+│       (Official Modular compiler)                        │
 │                   │                                      │
 │                   ├── Compiles .mojo → LLVM IR          │
 │                   ├── Links with Zig code               │
 │                   └── Produces unified binary           │
 │                                                         │
-│  System Mojo 0.26.1 (development/testing only)          │
-│  NOT used in production builds                          │
+│  Custom mojo-sdk/ (Reference implementation)             │
+│  - Language research & development                       │
+│  - Custom feature prototyping                            │
+│  - NOT used for production compilation                   │
 └─────────────────────────────────────────────────────────┘
 ```
 
-**Important:** This is a **bundled component** that travels with the source code. Docker builds use this exact SDK to ensure consistency. The system-installed Mojo 0.26.1 is only used for development and testing, not for production builds.
+**Important Clarification:**
+
+**Production Builds:**
+- Use **system Mojo 0.26.1** (Official Modular compiler) to compile `.mojo` files
+- The `mojo build` command in build scripts uses the system compiler
+- Docker installs Mojo 0.26.1 via `magic install mojo==0.26.1`
+- This is the **production compiler** for all `.mojo` code
+
+**Custom mojo-sdk Status:**
+- **CLI compiler is COMMENTED OUT** in build.zig (never finished)
+- **Currently builds:** LSP server (mojo-lsp) and fuzzer (fuzz-parser)
+- **NOT building:** The `mojo` compiler executable itself
+- This is a **research/development project**, not a production compiler replacement
+
+**What IS Being Used from Custom mojo-sdk:**
+- ✅ **mojo-lsp** (1.6MB) - Language Server for IDE integration
+- ✅ **fuzz-parser** (1.2MB) - Quality assurance fuzzing tool
+- ✅ **Compiler modules** - For research and learning
+
+**What is NOT Being Used:**
+- ❌ **mojo CLI compiler** - Commented out in build.zig, incomplete
+
+**Why This Hybrid Approach:**
+1. **System Mojo (0.26.1)** - Proven production compiler for .mojo files
+2. **Custom mojo-sdk tools** - IDE support (LSP) and QA (fuzzer)
+3. **Custom mojo-sdk modules** - Research/development platform
+
+**To Enable Custom Compiler (Future):**
+See `docs/01-architecture/CUSTOM_MOJO_SDK_ANALYSIS.md` for:
+- How to uncomment and build the CLI
+- Testing requirements (956 tests must pass)
+- Build system integration steps
+- Pros/cons analysis
+
+**Current approach is optimal** - using proven system compiler for production while leveraging custom tools where they add value.
 
 ---
 
