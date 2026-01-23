@@ -73,17 +73,18 @@ services:
     restart: unless-stopped
 
   # ===========================================================================
-  # nOpenaiServer - Local LLM Inference (Zig/Mojo)
+  # nLocalModels - Local LLM Inference (Zig/Mojo)
+  # Formerly nOpenaiServer - consolidated model orchestration service
   # ===========================================================================
-  nopenaiserver:
+  nlocalmodels:
     build:
       context: ../..
-      dockerfile: docker/Dockerfile.nopenaiserver
-    container_name: servicecore_nopenaiserver
+      dockerfile: docker/Dockerfile.nlocalmodels
+    container_name: servicecore_nlocalmodels
     ports:
       - "11434:11434"
     environment:
-      - OPENAI_PORT=11434
+      - LOCALMODELS_PORT=11434
       - SERVICE_REGISTRY_URL=http://service-registry:8100
       # SAP Object Store for models
       - OBJECT_STORE_URL=${OBJECT_STORE_URL}
@@ -94,7 +95,7 @@ services:
       - HANA_USERNAME=${HANA_USERNAME}
       - HANA_PASSWORD=${HANA_PASSWORD}
     volumes:
-      - ../../models:/app/models:ro
+      - ../../vendor/layerModels:/app/models:ro
     depends_on:
       service-registry:
         condition: service_healthy
@@ -120,7 +121,7 @@ services:
     environment:
       - EXTRACT_PORT=8200
       - SERVICE_REGISTRY_URL=http://service-registry:8100
-      - OPENAI_SERVER_URL=http://nopenaiserver:11434
+      - LOCALMODELS_URL=http://nlocalmodels:11434
       # SAP Object Store for documents
       - OBJECT_STORE_URL=${OBJECT_STORE_URL}
       - OBJECT_STORE_ACCESS_KEY=${OBJECT_STORE_ACCESS_KEY}
@@ -132,7 +133,7 @@ services:
     depends_on:
       service-registry:
         condition: service_healthy
-      nopenaiserver:
+      nlocalmodels:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8200/health"]

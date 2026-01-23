@@ -26,6 +26,7 @@ env:
 jobs:
   # =============================================================================
   # Build Matrix - All serviceCore Backend Services
+  # Updated for new service names: nAgentFlow, nAgentMeta, nLocalModels
   # =============================================================================
   build-backend:
     name: Build ${{ matrix.service }}
@@ -44,8 +45,8 @@ jobs:
             context: .
             platforms: linux/amd64,linux/arm64
           
-          - name: nopenamodels
-            dockerfile: docker/Dockerfile.nopenamodels
+          - name: nlocalmodels
+            dockerfile: docker/Dockerfile.nlocalmodels
             context: .
             platforms: linux/amd64,linux/arm64
           

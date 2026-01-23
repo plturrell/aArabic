@@ -1,4 +1,5 @@
-# nOpenaiServer Dockerfile (Zig/Mojo LLM Inference Server)
+# nLocalModels Dockerfile (Zig/Mojo LLM Inference Server)
+# Formerly nOpenaiServer - now consolidated as nLocalModels
 FROM debian:bookworm-slim AS builder
 
 # Install build dependencies
@@ -21,15 +22,15 @@ ENV PATH="/root/.modular/bin:/root/.magic/bin:${PATH}"
 
 WORKDIR /app
 
-# Copy source
-COPY src/serviceCore/nOpenaiServer/ ./
+# Copy source (updated path to nLocalModels)
+COPY src/serviceCore/nLocalModels/ ./
 
 # Build Zig components
 RUN zig build -Doptimize=ReleaseFast
 
 # Build Mojo components (if applicable)
 RUN if [ -d "mojo" ]; then \
-    cd mojo && mojo build main.mojo -o ../zig-out/bin/nopenaiserver-mojo; \
+    cd mojo && mojo build main.mojo -o ../zig-out/bin/nlocalmodels-mojo; \
     fi
 
 # Runtime image
@@ -57,4 +58,4 @@ EXPOSE 11434
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s \
   CMD curl -sf http://localhost:11434/health || exit 1
 
-CMD ["./nopenaiserver"]
+CMD ["./nlocalmodels"]

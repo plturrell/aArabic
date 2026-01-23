@@ -1,15 +1,12 @@
-/* Karma configuration for UI5 app with headless Chrome */
+/* Karma configuration running the standalone integration tests with headless Chrome */
 module.exports = function (config) {
   config.set({
     basePath: "",
-    frameworks: ["ui5"],
-    ui5: {
-      type: "application",
-      configPath: "ui5.yaml",
-      paths: {
-        webapp: "."
-      }
-    },
+    frameworks: [],
+    files: [
+      { pattern: "test/integration/UIFlow.test.js", watched: false },
+      { pattern: "test/karma.bootstrap.js", watched: false }
+    ],
     browsers: ["ChromeHeadlessNoSandbox"],
     customLaunchers: {
       ChromeHeadlessNoSandbox: {

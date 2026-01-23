@@ -21,7 +21,7 @@ jobs:
         path: |
           ~/.modular
           ~/.magic
-        key: ${{ runner.os }}-mojo-${{ hashFiles('src/serviceCore/nOpenaiServer/tools/toolorchestra/**/*.mojo') }}
+        key: ${{ runner.os }}-mojo-${{ hashFiles('src/serviceCore/nLocalModels/tools/toolorchestra/**/*.mojo') }}
         restore-keys: |
           ${{ runner.os }}-mojo-
 
@@ -45,7 +45,7 @@ jobs:
         mojo --version || echo "Mojo not available"
 
     - name: Run toolorchestra Mojo tests
-      working-directory: src/serviceCore/nOpenaiServer
+      working-directory: src/serviceCore/nLocalModels
       run: |
         set -euo pipefail
         export PATH="$HOME/.modular/bin:$HOME/.magic/bin:$PATH"
