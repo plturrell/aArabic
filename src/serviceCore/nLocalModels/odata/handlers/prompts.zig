@@ -51,7 +51,7 @@ pub const PromptsHandler = struct {
     pub fn list(self: *PromptsHandler, options: QueryOptions) ![]const u8 {
         // Build SQL query
         var qb = QueryBuilder.init(self.allocator);
-        _ = qb.from("NUCLEUS.PROMPTS");
+        _ = qb.from("PROMPTS");
         _ = try qb.applyODataOptions(options);
         
         const sql = try qb.build();
@@ -69,7 +69,7 @@ pub const PromptsHandler = struct {
     pub fn get(self: *PromptsHandler, id: i32) ![]const u8 {
         const sql = try std.fmt.allocPrint(
             self.allocator,
-            "SELECT * FROM NUCLEUS.PROMPTS WHERE PROMPT_ID = {d}",
+            "SELECT * FROM PROMPTS WHERE PROMPT_ID = {d}",
             .{id},
         );
         defer self.allocator.free(sql);
@@ -86,7 +86,7 @@ pub const PromptsHandler = struct {
         // For now, stub with a simple INSERT
         const sql = try std.fmt.allocPrint(
             self.allocator,
-            \\INSERT INTO NUCLEUS.PROMPTS 
+            \\INSERT INTO PROMPTS 
             \\(PROMPT_TEXT, PROMPT_MODE_ID, MODEL_NAME, USER_ID, CREATED_AT)
             \\VALUES ('New prompt', 1, 'test-model', 'anonymous', CURRENT_TIMESTAMP)
             ,
@@ -111,7 +111,7 @@ pub const PromptsHandler = struct {
         
         const sql = try std.fmt.allocPrint(
             self.allocator,
-            "UPDATE NUCLEUS.PROMPTS SET UPDATED_AT = CURRENT_TIMESTAMP WHERE PROMPT_ID = {d}",
+            "UPDATE PROMPTS SET UPDATED_AT = CURRENT_TIMESTAMP WHERE PROMPT_ID = {d}",
             .{id},
         );
         defer self.allocator.free(sql);
@@ -126,7 +126,7 @@ pub const PromptsHandler = struct {
     pub fn delete(self: *PromptsHandler, id: i32) !void {
         const sql = try std.fmt.allocPrint(
             self.allocator,
-            "DELETE FROM NUCLEUS.PROMPTS WHERE PROMPT_ID = {d}",
+            "DELETE FROM PROMPTS WHERE PROMPT_ID = {d}",
             .{id},
         );
         defer self.allocator.free(sql);

@@ -4,6 +4,7 @@
 
 const std = @import("std");
 const mem = std.mem;
+const json = std.json;
 
 const header_line = "================================================================================";
 
@@ -22,6 +23,64 @@ pub const allocator = gpa.allocator();
 // The /sap/opu/odata/sap/SQL_EXECUTION_SRV paths are for SAP on-premise (S/4HANA),
 // NOT for HANA Cloud.
 // ============================================================================
+
+fn fetchOAuthToken(allocator: std.mem.Allocator) ?[]u8 {
+    const auth_url = std.process.getEnvVarOwned(allocator, "AICORE_AUTH_URL") catch return null;
+    const client_id = std.process.getEnvVarOwned(allocator, "AICORE_CLIENT_ID") catch {
+        allocator.free(auth_url);
+        return null;
+    };
+    const client_secret = std.process.getEnvVarOwned(allocator, "AICORE_CLIENT_SECRET") catch {
+        allocator.free(auth_url);
+        allocator.free(client_id);
+        return null;
+    };
+
+    defer allocator.free(auth_url);
+    defer allocator.free(client_id);
+    defer allocator.free(client_secret);
+
+    const payload = std.fmt.allocPrint(allocator, "grant_type=client_credentials&client_id={s}&client_secret={s}", .{ client_id, client_secret }) catch return null;
+    defer allocator.free(payload);
+
+    const args = [_][]const u8{
+        "curl",
+        "-s",
+        "-X",
+        "POST",
+        "-H",
+        "Content-Type: application/x-www-form-urlencoded",
+        "-d",
+        payload,
+        auth_url,
+    };
+
+    var child = std.process.Child.init(&args, allocator);
+    child.stdout_behavior = .Pipe;
+    if (child.spawn() catch null) |*proc| {
+        const out = proc.stdout.?.readToEndAlloc(allocator, 1024 * 1024) catch {
+            return null;
+        };
+        _ = proc.wait() catch {};
+
+        var parsed = std.json.parseFromSlice(std.json.Value, allocator, out, .{}) catch {
+            allocator.free(out);
+            return null;
+        };
+        defer parsed.deinit();
+        allocator.free(out);
+
+        if (parsed.value == .object) {
+            if (parsed.value.object.get("access_token")) |tok| {
+                switch (tok) {
+                    .string => |s| return allocator.dupe(u8, s) catch null,
+                    else => {},
+                }
+            }
+        }
+    }
+    return null;
+}
 
 /// Execute SQL via HANA Cloud SQL API
 /// Uses the correct HANA Cloud endpoint at /sql/v1
@@ -61,6 +120,9 @@ pub fn executeSqlViaHanaOData(
     const user_pass = try std.fmt.allocPrint(allocator, "{s}:{s}", .{ user, password });
     defer allocator.free(user_pass);
 
+    const bearer = fetchOAuthToken(allocator);
+    defer if (bearer) |b| allocator.free(b);
+
     // Try multiple HANA Cloud SQL endpoints in order of preference
     const endpoints = [_][]const u8{
         "/sql/v1",                    // Primary HANA Cloud SQL API
@@ -78,7 +140,10 @@ pub fn executeSqlViaHanaOData(
 
         std.debug.print("   Trying endpoint: {s}\n", .{url});
 
-        const curl_args = [_][]const u8{
+        var args_builder = std.ArrayList([]const u8).init(allocator);
+        defer args_builder.deinit();
+
+        try args_builder.appendSlice(&[_][]const u8{
             "curl",
             "-X",
             "POST",
@@ -86,8 +151,17 @@ pub fn executeSqlViaHanaOData(
             "Content-Type: application/json",
             "-H",
             "Accept: application/json",
-            "-u",
-            user_pass,
+        });
+
+        if (bearer) |b| {
+            const auth_header = try std.fmt.allocPrint(allocator, "Authorization: Bearer {s}", .{b});
+            defer allocator.free(auth_header);
+            try args_builder.appendSlice(&[_][]const u8{"-H", auth_header});
+        } else {
+            try args_builder.appendSlice(&[_][]const u8{"-u", user_pass});
+        }
+
+        try args_builder.appendSlice(&[_][]const u8{
             "-d",
             payload,
             "-k", // Accept self-signed certs for dev
@@ -97,7 +171,10 @@ pub fn executeSqlViaHanaOData(
             "--connect-timeout",
             "10",
             url,
-        };
+        });
+
+        const curl_args = try args_builder.toOwnedSlice();
+        defer allocator.free(curl_args);
 
         var child = std.process.Child.init(&curl_args, allocator);
         child.stdout_behavior = .Pipe;
@@ -220,6 +297,9 @@ pub fn querySqlViaHanaOData(
     const user_pass = try std.fmt.allocPrint(allocator, "{s}:{s}", .{ user, password });
     defer allocator.free(user_pass);
 
+    const bearer = fetchOAuthToken(allocator);
+    defer if (bearer) |b| allocator.free(b);
+
     // Try HANA Cloud SQL endpoints
     const endpoints = [_][]const u8{
         "/sql/v1",
@@ -235,7 +315,10 @@ pub fn querySqlViaHanaOData(
         );
         defer allocator.free(url);
 
-        const curl_args = [_][]const u8{
+        var args_builder = std.ArrayList([]const u8).init(allocator);
+        defer args_builder.deinit();
+
+        try args_builder.appendSlice(&[_][]const u8{
             "curl",
             "-X",
             "POST",
@@ -243,8 +326,17 @@ pub fn querySqlViaHanaOData(
             "Content-Type: application/json",
             "-H",
             "Accept: application/json",
-            "-u",
-            user_pass,
+        });
+
+        if (bearer) |b| {
+            const auth_header = try std.fmt.allocPrint(allocator, "Authorization: Bearer {s}", .{b});
+            defer allocator.free(auth_header);
+            try args_builder.appendSlice(&[_][]const u8{"-H", auth_header});
+        } else {
+            try args_builder.appendSlice(&[_][]const u8{"-u", user_pass});
+        }
+
+        try args_builder.appendSlice(&[_][]const u8{
             "-d",
             payload,
             "-k",
@@ -252,7 +344,10 @@ pub fn querySqlViaHanaOData(
             "--connect-timeout",
             "10",
             url,
-        };
+        });
+
+        const curl_args = try args_builder.toOwnedSlice();
+        defer allocator.free(curl_args);
 
         var child = std.process.Child.init(&curl_args, allocator);
         child.stdout_behavior = .Pipe;

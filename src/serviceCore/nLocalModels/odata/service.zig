@@ -43,19 +43,19 @@ pub const ODataService = struct {
     pub fn init(allocator: Allocator) !ODataService {
         // Define all 13 entity sets
         const entity_sets = [_]EntitySet{
-            .{ .name = "Prompts", .entity_type = "Prompt", .table_name = "NUCLEUS.PROMPTS" },
-            .{ .name = "ModelConfigurations", .entity_type = "ModelConfiguration", .table_name = "NUCLEUS.MODEL_CONFIGURATIONS" },
-            .{ .name = "UserSettings", .entity_type = "UserSetting", .table_name = "NUCLEUS.USER_SETTINGS" },
-            .{ .name = "Notifications", .entity_type = "Notification", .table_name = "NUCLEUS.NOTIFICATIONS" },
-            .{ .name = "PromptComparisons", .entity_type = "PromptComparison", .table_name = "NUCLEUS.PROMPT_COMPARISONS" },
-            .{ .name = "ModelVersionComparisons", .entity_type = "ModelVersionComparison", .table_name = "NUCLEUS.MODEL_VERSION_COMPARISONS" },
-            .{ .name = "TrainingExperimentComparisons", .entity_type = "TrainingExperimentComparison", .table_name = "NUCLEUS.TRAINING_EXPERIMENT_COMPARISONS" },
-            .{ .name = "PromptModeConfigs", .entity_type = "PromptModeConfig", .table_name = "NUCLEUS.PROMPT_MODE_CONFIGS" },
-            .{ .name = "ModePresets", .entity_type = "ModePreset", .table_name = "NUCLEUS.MODE_PRESETS" },
-            .{ .name = "ModelPerformance", .entity_type = "ModelPerformanceRecord", .table_name = "NUCLEUS.MODEL_PERFORMANCE" },
-            .{ .name = "ModelVersions", .entity_type = "ModelVersion", .table_name = "NUCLEUS.MODEL_VERSIONS" },
-            .{ .name = "TrainingExperiments", .entity_type = "TrainingExperiment", .table_name = "NUCLEUS.TRAINING_EXPERIMENTS" },
-            .{ .name = "AuditLog", .entity_type = "AuditLogEntry", .table_name = "NUCLEUS.AUDIT_LOG" },
+            .{ .name = "Prompts", .entity_type = "Prompt", .table_name = "PROMPTS" },
+            .{ .name = "ModelConfigurations", .entity_type = "ModelConfiguration", .table_name = "MODEL_CONFIGURATIONS" },
+            .{ .name = "UserSettings", .entity_type = "UserSetting", .table_name = "USER_SETTINGS" },
+            .{ .name = "Notifications", .entity_type = "Notification", .table_name = "NOTIFICATIONS" },
+            .{ .name = "PromptComparisons", .entity_type = "PromptComparison", .table_name = "PROMPT_COMPARISONS" },
+            .{ .name = "ModelVersionComparisons", .entity_type = "ModelVersionComparison", .table_name = "MODEL_VERSION_COMPARISONS" },
+            .{ .name = "TrainingExperimentComparisons", .entity_type = "TrainingExperimentComparison", .table_name = "TRAINING_EXPERIMENT_COMPARISONS" },
+            .{ .name = "PromptModeConfigs", .entity_type = "PromptModeConfig", .table_name = "PROMPT_MODE_CONFIGS" },
+            .{ .name = "ModePresets", .entity_type = "ModePreset", .table_name = "MODE_PRESETS" },
+            .{ .name = "ModelPerformance", .entity_type = "ModelPerformanceRecord", .table_name = "MODEL_PERFORMANCE" },
+            .{ .name = "ModelVersions", .entity_type = "ModelVersion", .table_name = "MODEL_VERSIONS" },
+            .{ .name = "TrainingExperiments", .entity_type = "TrainingExperiment", .table_name = "TRAINING_EXPERIMENTS" },
+            .{ .name = "AuditLog", .entity_type = "AuditLogEntry", .table_name = "AUDIT_LOG" },
         };
         
         const sets = try allocator.dupe(EntitySet, &entity_sets);
@@ -97,16 +97,28 @@ pub const ODataService = struct {
     ) ![]const u8 {
         
         // Remove /odata/v4/ prefix
-        const odata_path = if (mem.startsWith(u8, path, "/odata/v4/"))
+        // Normalize path: strip /odata/v4 prefix and leading slash
+        var odata_path = if (mem.startsWith(u8, path, "/odata/v4/"))
             path[10..]
+        else if (mem.startsWith(u8, path, "/odata/v4"))
+            path[9..]
         else
             path;
-        
+
+        if (mem.startsWith(u8, odata_path, "/")) {
+            odata_path = odata_path[1..];
+        }
+
+        // Service document
+        if (odata_path.len == 0) {
+            return self.generateServiceDocument();
+        }
+
         // Handle $metadata
         if (mem.eql(u8, odata_path, "$metadata")) {
             return self.generateMetadata();
         }
-        
+
         // Parse entity set name and key
         var path_parts = mem.splitSequence(u8, odata_path, "/");
         const entity_set_name = path_parts.next() orelse return error.InvalidPath;
@@ -192,6 +204,26 @@ pub const ODataService = struct {
         }
         
         return options;
+    }
+
+    fn generateServiceDocument(self: *ODataService) ![]const u8 {
+        var body: std.ArrayList(u8) = .{};
+        errdefer body.deinit(self.allocator);
+
+        try body.appendSlice(self.allocator, "{\"@odata.context\":\"$metadata\",\"value\":[");
+        var first = true;
+        for (self.entity_sets) |set| {
+            if (!first) try body.append(self.allocator, ',');
+            first = false;
+            try body.appendSlice(self.allocator, "{\"name\":\"");
+            try body.appendSlice(self.allocator, set.name);
+            try body.appendSlice(self.allocator, "\",\"kind\":\"EntitySet\",\"url\":\"");
+            try body.appendSlice(self.allocator, set.name);
+            try body.appendSlice(self.allocator, "\"}");
+        }
+        try body.appendSlice(self.allocator, "]}");
+
+        return body.toOwnedSlice(self.allocator);
     }
     
     fn generateMetadata(self: *ODataService) ![]const u8 {

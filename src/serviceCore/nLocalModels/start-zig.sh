@@ -15,9 +15,11 @@ BRIDGE_PORT="${BRIDGE_PORT:-3001}"
 
 # Load .env if present to pick up HANA credentials
 if [ -f "$ROOT_DIR/.env" ]; then
+    set +H 2>/dev/null || set +o histexpand 2>/dev/null || true
     set -a
     source "$ROOT_DIR/.env"
     set +a
+    set -H 2>/dev/null || set -o histexpand 2>/dev/null || true
 fi
 
 # Normalize HANA env vars for the Zig OData client
@@ -28,6 +30,10 @@ export HANA_USER="${HANA_USER:-${HANA_USERNAME:-NUCLEUS_APP}}"
 export HANA_PASSWORD="${HANA_PASSWORD:-${HANA_PASSWORD:-}}"
 export HANA_SCHEMA="${HANA_SCHEMA:-DBADMIN}"
 export HANA_BRIDGE_URL="${HANA_BRIDGE_URL:-http://localhost:${BRIDGE_PORT}/sql}"
+export AICORE_AUTH_URL="${AICORE_AUTH_URL:-https://scbtest-xhlxpm6g.authentication.ap11.hana.ondemand.com/oauth/token}"
+export AICORE_CLIENT_ID="${AICORE_CLIENT_ID:-}"
+export AICORE_CLIENT_SECRET="${AICORE_CLIENT_SECRET:-}"
+export AICORE_RESOURCE_GROUP="${AICORE_RESOURCE_GROUP:-default}"
 
 # Check if binaries exist
 if [ ! -f "$BIN_DIR/openai_http_server" ]; then
@@ -41,6 +47,11 @@ if [ ! -f "$BIN_DIR/production_server" ]; then
     echo "Please compile: zig build-exe src/production_server.zig -O ReleaseFast -femit-bin=bin/production_server"
     exit 1
 fi
+if [ ! -f "$BIN_DIR/agents_admin_server" ]; then
+    echo "❌ Error: agents_admin_server not found!"
+    echo "Please compile: zig build-exe src/agents_admin_server.zig -O ReleaseFast -femit-bin=bin/agents_admin_server"
+    exit 1
+fi
 
 # Kill existing processes
 echo "🧹 Cleaning up old processes..."
@@ -49,6 +60,7 @@ pkill -f unified_server 2>/dev/null || true
 pkill -f openai_http_server 2>/dev/null || true
 pkill -f "nWebServe.*3000" 2>/dev/null || true
 pkill -f "hana_bridge/server.js" 2>/dev/null || true
+pkill -f "agents_admin_server" 2>/dev/null || true
 sleep 2
 
 # Start HANA bridge (Node) for SQL → HANA Cloud (force fresh instance)
@@ -59,8 +71,12 @@ fi
 
 if lsof -i :"$BRIDGE_PORT" > /dev/null 2>&1; then
     echo "🧹 Stopping existing process on port $BRIDGE_PORT..."
-    lsof -i :"$BRIDGE_PORT" -t | xargs -r kill -9 2>/dev/null || true
+    lsof -i :"$BRIDGE_PORT" -t | xargs -r kill -TERM 2>/dev/null || true
     sleep 1
+    if lsof -i :"$BRIDGE_PORT" > /dev/null 2>&1; then
+        lsof -i :"$BRIDGE_PORT" -t | xargs -r kill -9 2>/dev/null || true
+        sleep 1
+    fi
 fi
 
 echo "🔗 Starting HANA bridge (port $BRIDGE_PORT)..."
@@ -137,6 +153,17 @@ if [ "$API_TEST" != "failed" ]; then
     echo "✅ API proxy working (model: $API_TEST)"
 else
     echo "⚠️  API proxy test failed"
+fi
+
+# Start admin agent server
+echo "🛠  Starting Admin Agents Server (port 8090)..."
+$BIN_DIR/agents_admin_server > /tmp/agents_admin_server.log 2>&1 &
+ADMIN_PID=$!
+sleep 2
+if ! lsof -i :8090 > /dev/null 2>&1; then
+    echo "⚠️  Admin server failed to start; see /tmp/agents_admin_server.log"
+else
+    echo "✅ Admin server running (PID: $ADMIN_PID)"
 fi
 
 echo ""

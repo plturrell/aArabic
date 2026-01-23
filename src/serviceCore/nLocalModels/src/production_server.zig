@@ -83,6 +83,7 @@ fn sendHeadResponse(stream: net.Stream, status: u16, content_type: []const u8, c
 const HanaConfig = struct {
     bridge_url: []const u8,
     schema: []const u8,
+    timeout_seconds: u32,
 };
 
 fn loadHanaConfig(allocator: std.mem.Allocator) !HanaConfig {
@@ -90,9 +91,13 @@ fn loadHanaConfig(allocator: std.mem.Allocator) !HanaConfig {
     errdefer allocator.free(bridge);
     const schema = std.process.getEnvVarOwned(allocator, "HANA_SCHEMA") catch try allocator.dupe(u8, "DBADMIN");
     errdefer allocator.free(schema);
+    const timeout_raw = std.process.getEnvVarOwned(allocator, "HANA_TIMEOUT_SECONDS") catch try allocator.dupe(u8, "10");
+    errdefer allocator.free(timeout_raw);
+    const timeout_val = std.fmt.parseInt(u32, timeout_raw, 10) catch 10;
     return HanaConfig{
         .bridge_url = bridge,
         .schema = schema,
+        .timeout_seconds = timeout_val,
     };
 }
 
@@ -236,9 +241,21 @@ fn hanaBridgeRequest(cfg: HanaConfig, allocator: std.mem.Allocator, sql: []const
     const payload = try std.fmt.allocPrint(allocator, "{{\"sql\":\"{s}\",\"schema\":\"{s}\"}}", .{ sql, cfg.schema });
     defer allocator.free(payload);
 
+    const timeout_str = try std.fmt.allocPrint(allocator, "{d}", .{cfg.timeout_seconds});
+    defer allocator.free(timeout_str);
+
     const args = [_][]const u8{
         "curl",
         "-s",
+        "--max-time",
+        timeout_str,
+        "--connect-timeout",
+        timeout_str,
+        "--retry",
+        "1",
+        "--retry-delay",
+        "1",
+        "--retry-connrefused",
         "-X",
         "POST",
         "-H",

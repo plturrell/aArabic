@@ -3942,7 +3942,7 @@ fn handleODataRequest(method: []const u8, path: []const u8, body: ?[]const u8) !
         .port = if (getenv("HANA_PORT")) |p| std.fmt.parseInt(u16, p, 10) catch 443 else 443,
         .user = getenv("HANA_USER") orelse "NUCLEUS_APP",
         .password = getenv("HANA_PASSWORD") orelse "",
-        .schema = getenv("HANA_SCHEMA") orelse "NUCLEUS",
+        .schema = getenv("HANA_SCHEMA") orelse "DBADMIN",
     };
     
     const model_configs_config = ModelConfigsHanaConfig{
@@ -3950,7 +3950,7 @@ fn handleODataRequest(method: []const u8, path: []const u8, body: ?[]const u8) !
         .port = if (getenv("HANA_PORT")) |p| std.fmt.parseInt(u16, p, 10) catch 443 else 443,
         .user = getenv("HANA_USER") orelse "NUCLEUS_APP",
         .password = getenv("HANA_PASSWORD") orelse "",
-        .schema = getenv("HANA_SCHEMA") orelse "NUCLEUS",
+        .schema = getenv("HANA_SCHEMA") orelse "DBADMIN",
     };
     
     const user_settings_config = UserSettingsHanaConfig{
@@ -3958,7 +3958,7 @@ fn handleODataRequest(method: []const u8, path: []const u8, body: ?[]const u8) !
         .port = if (getenv("HANA_PORT")) |p| std.fmt.parseInt(u16, p, 10) catch 443 else 443,
         .user = getenv("HANA_USER") orelse "NUCLEUS_APP",
         .password = getenv("HANA_PASSWORD") orelse "",
-        .schema = getenv("HANA_SCHEMA") orelse "NUCLEUS",
+        .schema = getenv("HANA_SCHEMA") orelse "DBADMIN",
     };
     
     const notifications_config = NotificationsHanaConfig{
@@ -3966,7 +3966,7 @@ fn handleODataRequest(method: []const u8, path: []const u8, body: ?[]const u8) !
         .port = if (getenv("HANA_PORT")) |p| std.fmt.parseInt(u16, p, 10) catch 443 else 443,
         .user = getenv("HANA_USER") orelse "NUCLEUS_APP",
         .password = getenv("HANA_PASSWORD") orelse "",
-        .schema = getenv("HANA_SCHEMA") orelse "NUCLEUS",
+        .schema = getenv("HANA_SCHEMA") orelse "DBADMIN",
     };
     
     // Initialize all handlers if needed
@@ -3982,6 +3982,14 @@ fn handleODataRequest(method: []const u8, path: []const u8, body: ?[]const u8) !
     if (notifications_handler == null) {
         notifications_handler = NotificationsHandler.init(allocator, notifications_config);
     }
+
+    // Register handlers with OData service so it can route CRUD operations
+    odata_service.?.setHandlers(
+        if (prompts_handler) |*h| h else null,
+        if (model_configs_handler) |*h| h else null,
+        if (user_settings_handler) |*h| h else null,
+        if (notifications_handler) |*h| h else null,
+    );
     
     // Route the request through OData service
     const odata_response = odata_service.?.handleRequest(method, path, body) catch |err| {
