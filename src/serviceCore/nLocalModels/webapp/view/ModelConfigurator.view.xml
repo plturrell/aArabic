@@ -259,12 +259,12 @@
                                 <core:Item key="adaptive" text="Adaptive"/>
                             </Select>
                             
-                            <!-- DragonflyDB Tier -->
-                            <core:Title text="{i18n>dragonflyTier}"/>
-                            <Label text="{i18n>dragonflyMemoryLimit}"/>
+                            <!-- HANA Cache Tier -->
+                            <core:Title text="{i18n>hanaCacheTier}"/>
+                            <Label text="{i18n>hanaCacheMemoryLimit}"/>
                             <Slider
                                 id="dragonflyMemorySlider"
-                                value="{config>/tiers/dragonfly/memoryLimitGB}"
+                                value="{config>/tiers/hanaCache/memoryLimitGB}"
                                 min="0"
                                 max="64"
                                 step="1"
@@ -272,26 +272,11 @@
                                 enableTickmarks="true"
                                 inputsAsTooltips="true"
                                 liveChange=".onTierParamChange"/>
-                            <Label text="{= ${config>/tiers/dragonfly/memoryLimitGB} + ' GB'}"/>
+                            <Label text="{= ${config>/tiers/hanaCache/memoryLimitGB} + ' GB'}"/>
                             
-                            <Label text="{i18n>dragonflyEnabled}"/>
+                            <Label text="{i18n>hanaCacheEnabled}"/>
                             <Switch
-                                state="{config>/tiers/dragonfly/enabled}"
-                                change=".onTierParamChange"/>
-                            
-                            <!-- PostgreSQL Tier -->
-                            <core:Title text="{i18n>postgresqlTier}"/>
-                            <Label text="{i18n>postgresqlEnabled}"/>
-                            <Switch
-                                state="{config>/tiers/postgresql/enabled}"
-                                change=".onTierParamChange"/>
-                            
-                            <Label text="{i18n>connectionPoolSize}"/>
-                            <StepInput
-                                value="{config>/tiers/postgresql/connectionPoolSize}"
-                                min="1"
-                                max="100"
-                                step="1"
+                                state="{config>/tiers/hanaCache/enabled}"
                                 change=".onTierParamChange"/>
                             
                             <!-- SSD Tier -->
@@ -515,8 +500,8 @@
                             <VBox width="20%" class="sapUiTinyMarginEnd">
                                 <Text text="Cache" class="sapUiTinyMarginBottom"/>
                                 <ProgressIndicator
-                                    percentValue="{= (${config>/tiers/dragonfly/memoryLimitGB} / ${config>/preview/totalMemoryGB}) * 100 }"
-                                    displayValue="{config>/tiers/dragonfly/memoryLimitGB} GB"
+                                    percentValue="{= (${config>/tiers/hanaCache/memoryLimitGB} / ${config>/preview/totalMemoryGB}) * 100 }"
+                                    displayValue="{config>/tiers/hanaCache/memoryLimitGB} GB"
                                     state="Warning"/>
                             </VBox>
                             <VBox width="20%" class="sapUiTinyMarginEnd">

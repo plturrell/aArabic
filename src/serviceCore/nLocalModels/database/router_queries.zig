@@ -7,11 +7,11 @@
 // ============================================================================
 
 const std = @import("std");
-const ODataPersistence = @import("../hana/core/odata_persistence.zig").ODataPersistence;
-const ODataConfig = @import("../hana/core/odata_persistence.zig").ODataConfig;
-const AssignmentEntity = @import("../hana/core/odata_persistence.zig").AssignmentEntity;
-const RoutingDecisionEntity = @import("../hana/core/odata_persistence.zig").RoutingDecisionEntity;
-const MetricsEntity = @import("../hana/core/odata_persistence.zig").MetricsEntity;
+const ODataPersistence = @import("../../../../nLang/n-c-sdk/lib/hana/odata_persistence.zig").ODataPersistence;
+const ODataConfig = @import("../../../../nLang/n-c-sdk/lib/hana/odata_persistence.zig").ODataConfig;
+const AssignmentEntity = @import("../../../../nLang/n-c-sdk/lib/hana/odata_persistence.zig").AssignmentEntity;
+const RoutingDecisionEntity = @import("../../../../nLang/n-c-sdk/lib/hana/odata_persistence.zig").RoutingDecisionEntity;
+const MetricsEntity = @import("../../../../nLang/n-c-sdk/lib/hana/odata_persistence.zig").MetricsEntity;
 
 // ============================================================================
 // DATABASE TYPES

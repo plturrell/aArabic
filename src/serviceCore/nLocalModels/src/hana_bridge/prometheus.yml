@@ -1,0 +1,42 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+rule_files: []
+
+scrape_configs:
+  # HANA Bridge metrics
+  - job_name: 'hana-bridge'
+    static_configs:
+      - targets:
+          - 'hana-bridge:3001'
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # For scaled deployment - multiple instances
+  - job_name: 'hana-bridge-scaled'
+    dns_sd_configs:
+      - names:
+          - 'hana-bridge-scaled'
+        type: 'A'
+        port: 3001
+        refresh_interval: 30s
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Nginx metrics (if using nginx-prometheus-exporter)
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx:8080']
+    metrics_path: '/nginx_status'
+    scrape_interval: 10s
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

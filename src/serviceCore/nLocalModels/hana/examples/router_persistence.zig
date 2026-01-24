@@ -1,6 +1,6 @@
 const std = @import("std");
-const HanaClient = @import("../core/client.zig").HanaClient;
-const queries = @import("../core/queries.zig");
+const HanaClient = @import("../../../../nLang/n-c-sdk/lib/hana/client.zig").HanaClient;
+const queries = @import("../../../../nLang/n-c-sdk/lib/hana/queries.zig");
 
 /// Example: Using HANA for Router Persistence
 /// 

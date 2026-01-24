@@ -4,11 +4,12 @@ Connects Shimmy-Mojo with other services in the ecosystem
 - Embedding service
 - Translation service
 - RAG service
-- Vector DB (Qdrant)
+- SAP HANA vector store
 """
 
 from python import Python
 from collections import Dict, List
+from ../../vector/hana_vector.hana_vector_client import HanaVectorClient
 
 # ============================================================================
 # Service Configuration
@@ -75,11 +76,11 @@ struct ServiceRegistry:
             enabled=False  # Optional
         )
         
-        # Qdrant vector DB
-        self.services["qdrant"] = ServiceConfig(
-            name="qdrant",
+        # HANA vector service placeholder (configured via env)
+        self.services["hana_vector"] = ServiceConfig(
+            name="hana_vector",
             host="localhost",
-            port=6333,
+            port=443,
             enabled=False  # Optional
         )
     
@@ -244,52 +245,37 @@ struct ServiceBridge:
     
     fn store_embedding(self, text: String, embedding: List[Float32]) raises -> Bool:
         """
-        Store embedding in vector DB (Qdrant).
-        
-        Args:
-            text: Original text
-            embedding: Vector embedding
-        
-        Returns:
-            True if successful
+        Store embedding in SAP HANA vector store.
+        Configure HANA vector endpoint in hana_vector service entry.
         """
-        if not self.registry.is_enabled("qdrant"):
-            print("⚠️  Qdrant not enabled")
+        if not self.registry.is_enabled("hana_vector"):
+            print("⚠️  HANA vector store not enabled")
             return False
         
-        var config = self.registry.get("qdrant")
-        var url = config.url() + "/collections/shimmy/points"
-        
-        print(f"💾 Storing in Qdrant: {url}")
-        
-        # Build vector array
-        var py = Python.import_module("urllib.request")
-        var json_mod = Python.import_module("json")
-        
-        var vector = []
-        for i in range(len(embedding)):
-            vector.append(float(embedding[i]))
-        
-        var data = json_mod.dumps({
-            "points": [{
-                "id": 1,  # Would generate UUID
-                "vector": vector,
-                "payload": {"text": text}
-            }]
-        })
-        
-        var request = py.Request(
-            url,
-            data=data.encode(),
-            headers={"Content-Type": "application/json"}
-        )
+        var config = self.registry.get("hana_vector")
+        var client = HanaVectorClient(config.url(), "vector_store")
         
         try:
-            var response = py.urlopen(request)
-            print(f"✅ Stored in Qdrant")
-            return True
-        except:
-            print(f"❌ Qdrant unreachable")
+            client.connect()
+        except e:
+            print(f"❌ HANA vector store unreachable: {e}")
+            return False
+        
+        # Build payload JSON
+        var py = Python.import_module("json")
+        var uuid = Python.import_module("uuid")
+        let id = String(uuid.uuid4())
+        let payload_json = String(py.dumps({"text": text}))
+        
+        try:
+            let ok = client.upsert("shimmy_embeddings", id, embedding, payload_json)
+            if ok:
+                print("✅ Stored embedding in HANA vector store")
+            else:
+                print("⚠️ HANA vector store upsert returned false")
+            return ok
+        except e:
+            print(f"❌ HANA vector store upsert failed: {e}")
             return False
 
 # ============================================================================
@@ -406,7 +392,7 @@ fn main() raises:
     print(f"  • Embedding:   {bridge.registry.get('embedding').url()}")
     print(f"  • Translation: {bridge.registry.get('translation').url()}")
     print(f"  • RAG:         {bridge.registry.get('rag').url()}")
-    print(f"  • Qdrant:      {bridge.registry.get('qdrant').url()}")
+    print(f"  • HANA Vector: {bridge.registry.get('hana_vector').url()}")
     print()
     
     # Test enhanced pipeline
@@ -431,7 +417,7 @@ fn main() raises:
     print("  ✅ Embedding integration")
     print("  ✅ Translation integration")
     print("  ✅ RAG integration")
-    print("  ✅ Vector DB (Qdrant)")
+    print("  ✅ Vector DB (HANA)")
     print("  ✅ Enhanced pipeline")
     print()
     print("Usage:")

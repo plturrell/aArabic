@@ -9,7 +9,18 @@ const thread_pool = @import("thread_pool");
 const compute = @import("compute");
 const backend_cpu = @import("backend_cpu");
 const backend_metal = @import("backend_metal");
-const backend_cuda = @import("backend_cuda");
+const build_options = @import("build_options");
+const backend_cuda = if (build_options.enable_cuda)
+    @import("backend_cuda")
+else
+    struct {
+        pub const CudaBackend = struct {
+            pub fn init(allocator: std.mem.Allocator) !compute.ComputeBackend {
+                _ = allocator;
+                return error.CudaDisabled;
+            }
+        };
+    };
 
 var log_enabled: ?bool = null;
 
@@ -144,6 +155,7 @@ pub const LlamaModel = struct {
         const builtin = @import("builtin");
         const is_macos = builtin.os.tag == .macos;
         const is_linux = builtin.os.tag == .linux;
+        const cuda_enabled = build_options.enable_cuda and is_linux;
         const backend: compute.ComputeBackend = blk: {
             if (is_macos) {
                 // Try Metal first on macOS
@@ -151,7 +163,7 @@ pub const LlamaModel = struct {
                     std.debug.print("Metal backend initialization failed: {s}. Falling back to CPU.\n", .{@errorName(err)});
                     break :blk try backend_cpu.CpuBackend.init(allocator, pool);
                 };
-            } else if (is_linux) {
+            } else if (cuda_enabled) {
                 // Try CUDA first on Linux (T4/A100/H100 support)
                 break :blk backend_cuda.CudaBackend.init(allocator) catch |err| {
                     std.debug.print("CUDA backend initialization failed: {s}. Falling back to CPU.\n", .{@errorName(err)});

@@ -41,7 +41,7 @@ sap.ui.define([
                     tierConfig: {
                         gpu: { enabled: true, memoryLimitGB: 52 },
                         ram: { memoryLimitGB: 20, evictionPolicy: "lru" },
-                        dragonfly: { enabled: false, memoryLimitGB: 0 },
+                        hanaCache: { enabled: false, memoryLimitGB: 0 },
                         ssd: { storageLimitGB: 100, compressionEnabled: false }
                     }
                 },
@@ -60,7 +60,7 @@ sap.ui.define([
                     tierConfig: {
                         gpu: { enabled: true, memoryLimitGB: 36 },
                         ram: { memoryLimitGB: 28, evictionPolicy: "adaptive" },
-                        dragonfly: { enabled: true, memoryLimitGB: 8 },
+                        hanaCache: { enabled: true, memoryLimitGB: 8 },
                         ssd: { storageLimitGB: 200, compressionEnabled: true }
                     }
                 },
@@ -79,7 +79,7 @@ sap.ui.define([
                     tierConfig: {
                         gpu: { enabled: true, memoryLimitGB: 28 },
                         ram: { memoryLimitGB: 36, evictionPolicy: "adaptive" },
-                        dragonfly: { enabled: true, memoryLimitGB: 12 },
+                        hanaCache: { enabled: true, memoryLimitGB: 12 },
                         ssd: { storageLimitGB: 300, compressionEnabled: true }
                     }
                 },
@@ -98,7 +98,7 @@ sap.ui.define([
                     tierConfig: {
                         gpu: { enabled: true, memoryLimitGB: 20 },
                         ram: { memoryLimitGB: 28, evictionPolicy: "adaptive" },
-                        dragonfly: { enabled: true, memoryLimitGB: 16 },
+                        hanaCache: { enabled: true, memoryLimitGB: 16 },
                         ssd: { storageLimitGB: 500, compressionEnabled: true }
                     }
                 }
@@ -146,8 +146,8 @@ sap.ui.define([
             oCurrentTiers.gpu.memoryLimitGB = oTierConfig.gpu.memoryLimitGB;
             oCurrentTiers.ram.memoryLimitGB = oTierConfig.ram.memoryLimitGB;
             oCurrentTiers.ram.evictionPolicy = oTierConfig.ram.evictionPolicy;
-            oCurrentTiers.dragonfly.enabled = oTierConfig.dragonfly.enabled;
-            oCurrentTiers.dragonfly.memoryLimitGB = oTierConfig.dragonfly.memoryLimitGB;
+            oCurrentTiers.hanaCache.enabled = oTierConfig.hanaCache.enabled;
+            oCurrentTiers.hanaCache.memoryLimitGB = oTierConfig.hanaCache.memoryLimitGB;
             oCurrentTiers.ssd.storageLimitGB = oTierConfig.ssd.storageLimitGB;
             oCurrentTiers.ssd.compressionEnabled = oTierConfig.ssd.compressionEnabled;
             
@@ -366,13 +366,9 @@ sap.ui.define([
                         memoryLimitGB: 64,
                         evictionPolicy: "adaptive"
                     },
-                    dragonfly: {
+                    hanaCache: {
                         enabled: true,
                         memoryLimitGB: 32
-                    },
-                    postgresql: {
-                        enabled: true,
-                        connectionPoolSize: 20
                     },
                     ssd: {
                         storageLimitGB: 500,
@@ -519,8 +515,8 @@ sap.ui.define([
                 nTotalMemory += oConfig.tiers.gpu.memoryLimitGB;
             }
             nTotalMemory += oConfig.tiers.ram.memoryLimitGB;
-            if (oConfig.tiers.dragonfly.enabled) {
-                nTotalMemory += oConfig.tiers.dragonfly.memoryLimitGB;
+            if (oConfig.tiers.hanaCache.enabled) {
+                nTotalMemory += oConfig.tiers.hanaCache.memoryLimitGB;
             }
             
             // Check system limits (example: 256 GB total)
@@ -560,10 +556,9 @@ sap.ui.define([
                 nTotalMemory += oConfig.tiers.gpu.memoryLimitGB;
             }
             nTotalMemory += oConfig.tiers.ram.memoryLimitGB;
-            if (oConfig.tiers.dragonfly.enabled) {
-                nTotalMemory += oConfig.tiers.dragonfly.memoryLimitGB;
+            if (oConfig.tiers.hanaCache.enabled) {
+                nTotalMemory += oConfig.tiers.hanaCache.memoryLimitGB;
             }
-            nTotalMemory += 5; // PostgreSQL overhead
             
             // Estimate cost (simplified)
             // GPU: $2.50/GB/month, RAM: $0.50/GB/month, Dragonfly: $1.00/GB/month, SSD: $0.10/GB/month
@@ -572,8 +567,8 @@ sap.ui.define([
                 nCost += oConfig.tiers.gpu.memoryLimitGB * 2.50;
             }
             nCost += oConfig.tiers.ram.memoryLimitGB * 0.50;
-            if (oConfig.tiers.dragonfly.enabled) {
-                nCost += oConfig.tiers.dragonfly.memoryLimitGB * 1.00;
+            if (oConfig.tiers.hanaCache.enabled) {
+                nCost += oConfig.tiers.hanaCache.memoryLimitGB * 1.00;
             }
             nCost += oConfig.tiers.ssd.storageLimitGB * 0.10;
             

@@ -147,9 +147,9 @@ pub const StabilityTracker = struct {
     pub fn deinit(self: *StabilityTracker) void {
         var i: usize = 0;
         while (i < self.total_layers) : (i += 1) {
-            self.attention_metrics[i].deinit();
-            self.ffn_metrics[i].deinit();
-            self.residual_metrics[i].deinit();
+            self.attention_metrics[i].deinit(self.allocator);
+            self.ffn_metrics[i].deinit(self.allocator);
+            self.residual_metrics[i].deinit(self.allocator);
         }
         self.allocator.free(self.attention_metrics);
         self.allocator.free(self.ffn_metrics);
@@ -165,7 +165,7 @@ pub const StabilityTracker = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         
-        try self.attention_metrics[layer_id].append(metrics);
+        try self.attention_metrics[layer_id].append(self.allocator, metrics);
         if (!metrics.is_stable) {
             self.unstable_attention_count += 1;
         }
@@ -179,7 +179,7 @@ pub const StabilityTracker = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         
-        try self.ffn_metrics[layer_id].append(metrics);
+        try self.ffn_metrics[layer_id].append(self.allocator, metrics);
         if (!metrics.is_stable) {
             self.unstable_ffn_count += 1;
         }
@@ -193,7 +193,7 @@ pub const StabilityTracker = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         
-        try self.residual_metrics[layer_id].append(metrics);
+        try self.residual_metrics[layer_id].append(self.allocator, metrics);
         if (!metrics.is_stable) {
             self.unstable_residual_count += 1;
         }

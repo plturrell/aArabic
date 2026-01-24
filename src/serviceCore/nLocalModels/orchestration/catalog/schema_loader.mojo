@@ -16,7 +16,7 @@ from .schema_registry import (
 
 # Import mojo-sdk JSON parser (zero Python!)
 import sys
-sys.path.append("../../../mojo-sdk/stdlib")
+sys.path.append("../../../../nLang/n-python-sdk/stdlib")
 from json import JsonParser
 
 

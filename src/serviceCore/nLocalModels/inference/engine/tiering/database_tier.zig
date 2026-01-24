@@ -13,8 +13,8 @@ const log = @import("structured_logging.zig");
 const compression = @import("kv_compression.zig");
 
 // Import existing HANA infrastructure
-const hana_client = @import("../../hana/core/client.zig");
-const hana_queries = @import("../../hana/core/queries.zig");
+const hana_client = @import("../../../../../nLang/n-c-sdk/lib/hana/client.zig");
+const hana_queries = @import("../../../../../nLang/n-c-sdk/lib/hana/queries.zig");
 
 // ============================================================================
 // Configuration

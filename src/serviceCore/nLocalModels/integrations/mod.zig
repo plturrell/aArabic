@@ -12,14 +12,17 @@
 
 const std = @import("std");
 
-/// Document cache integration (nExtract + DragonflyDB)
+/// Document cache integration (nExtract + HANA)
 pub const DocumentCache = @import("document_cache/unified_doc_cache.zig");
 
-/// Vector embedding cache with SIMD-optimized similarity search
-pub const VectorCache = @import("cache/dragonfly/vector_cache.zig");
+/// HANA in-memory cache (replaces DragonflyDB)
+pub const HanaCache = @import("cache/hana/hana_cache.zig");
 
-/// Distributed rate limiter using DragonflyDB
-pub const RateLimiter = @import("cache/dragonfly/distributed_rate_limiter.zig");
+/// Vector embedding cache with SIMD-optimized similarity search
+pub const VectorCache = @import("cache/hana/hana_cache.zig");
+
+/// Distributed rate limiter using HANA
+pub const RateLimiter = @import("cache/hana/hana_cache.zig");
 
 /// Streaming extraction pipeline (5-stage: Parse → Extract → Transform → Cache → Index)
 pub const ExtractionPipeline = @import("pipeline/extraction_pipeline.zig");

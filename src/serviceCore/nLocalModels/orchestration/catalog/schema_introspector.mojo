@@ -66,7 +66,7 @@ struct GenericSchemaIntrospector:
     fn __init__(
         inout self,
         graph_name: String = "auto_schema",
-        db_type: String = "neo4j",
+        db_type: String = "hana",
         enabled: Bool = True,
         verbose: Bool = False
     ):
@@ -75,7 +75,7 @@ struct GenericSchemaIntrospector:
         
         Args:
             graph_name: Name for discovered schema
-            db_type: Database type ("neo4j", "memgraph", "hana")
+            db_type: Database type ("hana", "hana", "hana")
             enabled: Enable introspection
             verbose: Debug output
         """
@@ -130,11 +130,9 @@ struct GenericSchemaIntrospector:
         """Database-specific node discovery implementation"""
         var nodes = Dict[String, NodeSchema]()
         
-        if self.db_type == "neo4j":
-            return self._discover_neo4j_nodes(client)
-        elif self.db_type == "memgraph":
-            return self._discover_memgraph_nodes(client)
-        elif self.db_type == "hana":
+        if self.db_type == "hana":
+                    elif self.db_type == "hana":
+                    elif self.db_type == "hana":
             return self._discover_hana_nodes(client)
         
         return nodes
@@ -143,186 +141,14 @@ struct GenericSchemaIntrospector:
         """Database-specific relationship discovery implementation"""
         var rels = Dict[String, RelationshipSchema]()
         
-        if self.db_type == "neo4j":
-            return self._discover_neo4j_relationships(client)
-        elif self.db_type == "memgraph":
-            return self._discover_memgraph_relationships(client)
-        elif self.db_type == "hana":
+        if self.db_type == "hana":
+                    elif self.db_type == "hana":
+                    elif self.db_type == "hana":
             return self._discover_hana_relationships(client)
         
         return rels
     
-    # Database-specific implementations
-
-    fn _discover_neo4j_nodes(inout self, client: object) raises -> Dict[String, NodeSchema]:
-        """
-        Neo4j: CALL db.schema.nodeTypeProperties()
-
-        Returns rows with: nodeType, nodeLabels, propertyName, propertyTypes, mandatory
-        """
-        from python import Python
-        var nodes = Dict[String, NodeSchema]()
-
-        try:
-            # Execute Neo4j schema query
-            let query = "CALL db.schema.nodeTypeProperties() YIELD nodeType, nodeLabels, propertyName, propertyTypes, mandatory"
-            let result = client.run(query)
-
-            for record in result:
-                let labels = record["nodeLabels"]
-                if len(labels) > 0:
-                    let label = String(labels[0])
-                    let prop_name = String(record["propertyName"])
-                    let prop_types = record["propertyTypes"]
-                    let mandatory = bool(record["mandatory"])
-
-                    # Get or create node schema
-                    if label not in nodes:
-                        nodes[label] = NodeSchema(label, "Auto-discovered from Neo4j")
-
-                    # Add property
-                    let prop_type = String(prop_types[0]) if len(prop_types) > 0 else "string"
-                    var prop = PropertyMetadata(prop_name, self._normalize_type(prop_type), "", False, mandatory)
-                    nodes[label].add_property(prop)
-
-        except e:
-            if self.verbose:
-                print(f"[SchemaIntrospector] Neo4j discovery error: {e}")
-
-        return nodes
-
-    fn _discover_neo4j_relationships(inout self, client: object) raises -> Dict[String, RelationshipSchema]:
-        """
-        Neo4j: CALL db.schema.relTypeProperties()
-
-        Returns rows with: relType, propertyName, propertyTypes, mandatory
-        """
-        from python import Python
-        var rels = Dict[String, RelationshipSchema]()
-
-        try:
-            # Execute Neo4j schema query for relationships
-            let query = "CALL db.schema.relTypeProperties() YIELD relType, propertyName, propertyTypes, mandatory"
-            let result = client.run(query)
-
-            for record in result:
-                let rel_type = String(record["relType"]).replace("`", "").replace(":", "")
-                let prop_name = String(record["propertyName"])
-                let prop_types = record["propertyTypes"]
-                let mandatory = bool(record["mandatory"])
-
-                # Get or create relationship schema
-                if rel_type not in rels:
-                    rels[rel_type] = RelationshipSchema(rel_type, "Auto-discovered from Neo4j")
-
-                # Add property if present
-                if prop_name != "":
-                    let prop_type = String(prop_types[0]) if len(prop_types) > 0 else "string"
-                    var prop = PropertyMetadata(prop_name, self._normalize_type(prop_type), "", False, mandatory)
-                    rels[rel_type].add_property(prop)
-
-            # Discover relationship endpoints
-            let endpoint_query = "CALL db.schema.visualization() YIELD nodes, relationships"
-            let viz_result = client.run(endpoint_query)
-            for record in viz_result:
-                let relationships = record["relationships"]
-                for rel in relationships:
-                    let rel_type = String(rel.type)
-                    if rel_type in rels:
-                        rels[rel_type].from_node = String(rel.start_node.labels[0]) if len(rel.start_node.labels) > 0 else ""
-                        rels[rel_type].to_node = String(rel.end_node.labels[0]) if len(rel.end_node.labels) > 0 else ""
-
-        except e:
-            if self.verbose:
-                print(f"[SchemaIntrospector] Neo4j relationship discovery error: {e}")
-
-        return rels
-
-    fn _discover_memgraph_nodes(inout self, client: object) raises -> Dict[String, NodeSchema]:
-        """
-        Memgraph: Uses SHOW NODE_LABELS and property sampling
-        """
-        from python import Python
-        var nodes = Dict[String, NodeSchema]()
-
-        try:
-            # Get all node labels
-            let labels_result = client.run("SHOW NODE_LABELS")
-            for record in labels_result:
-                let label = String(record["node_labels"])
-                nodes[label] = NodeSchema(label, "Auto-discovered from Memgraph")
-
-            # Sample properties for each label
-            for label_key in nodes.keys():
-                let label = label_key[]
-                let sample_query = f"MATCH (n:{label}) RETURN n LIMIT 10"
-                let sample_result = client.run(sample_query)
-
-                var seen_props = Dict[String, String]()
-                for record in sample_result:
-                    let node = record["n"]
-                    for prop_name in node.keys():
-                        if String(prop_name) not in seen_props:
-                            let value = node[prop_name]
-                            let prop_type = self._infer_type_from_value(value)
-                            seen_props[String(prop_name)] = prop_type
-
-                # Add discovered properties
-                for prop_key in seen_props.keys():
-                    var prop = PropertyMetadata(prop_key[], seen_props[prop_key[]], "")
-                    nodes[label].add_property(prop)
-
-        except e:
-            if self.verbose:
-                print(f"[SchemaIntrospector] Memgraph discovery error: {e}")
-
-        return nodes
-
-    fn _discover_memgraph_relationships(inout self, client: object) raises -> Dict[String, RelationshipSchema]:
-        """
-        Memgraph: Uses SHOW REL_TYPES and pattern matching
-        """
-        from python import Python
-        var rels = Dict[String, RelationshipSchema]()
-
-        try:
-            # Get all relationship types
-            let types_result = client.run("SHOW REL_TYPES")
-            for record in types_result:
-                let rel_type = String(record["rel_types"])
-                rels[rel_type] = RelationshipSchema(rel_type, "Auto-discovered from Memgraph")
-
-            # Discover endpoints and properties by sampling
-            for rel_key in rels.keys():
-                let rel_type = rel_key[]
-                let sample_query = f"MATCH (a)-[r:{rel_type}]->(b) RETURN labels(a) AS from_labels, labels(b) AS to_labels, r LIMIT 10"
-                let sample_result = client.run(sample_query)
-
-                for record in sample_result:
-                    let from_labels = record["from_labels"]
-                    let to_labels = record["to_labels"]
-                    if len(from_labels) > 0:
-                        rels[rel_type].from_node = String(from_labels[0])
-                    if len(to_labels) > 0:
-                        rels[rel_type].to_node = String(to_labels[0])
-
-                    # Discover properties
-                    let rel = record["r"]
-                    for prop_name in rel.keys():
-                        if not rels[rel_type].has_property(String(prop_name)):
-                            let value = rel[prop_name]
-                            let prop_type = self._infer_type_from_value(value)
-                            var prop = PropertyMetadata(String(prop_name), prop_type, "")
-                            rels[rel_type].add_property(prop)
-                    break  # One sample is enough for structure
-
-        except e:
-            if self.verbose:
-                print(f"[SchemaIntrospector] Memgraph relationship discovery error: {e}")
-
-        return rels
-
-    fn _discover_hana_nodes(inout self, client: object) raises -> Dict[String, NodeSchema]:
+    # Database-specific implementations    fn _discover_hana_nodes(inout self, client: object) raises -> Dict[String, NodeSchema]:
         """
         HANA Graph: GET /workspaces/{workspace}/graphs/{graph}/schema
         """
@@ -548,7 +374,7 @@ fn parse_constraint_type(constraint_info: String) -> String:
 
 fn create_schema_introspector(
     graph_name: String = "auto_schema",
-    db_type: String = "neo4j",
+    db_type: String = "hana",
     enabled: Bool = True,
     verbose: Bool = False
 ) -> GenericSchemaIntrospector:
@@ -559,7 +385,7 @@ fn create_schema_introspector(
     
     Args:
         graph_name: Name for discovered schema
-        db_type: Database type ("neo4j", "memgraph", "hana")
+        db_type: Database type ("hana", "hana", "hana")
         enabled: Enable introspection
         verbose: Debug output
         

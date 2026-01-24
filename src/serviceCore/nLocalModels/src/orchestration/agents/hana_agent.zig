@@ -118,3 +118,21 @@ pub fn deleteComparison(self: *HanaAgent, id: i32) !void {
     defer self.allocator.free(sql);
     _ = try self.runSql(sql);
 }
+
+/// Best-effort audit logger. If AUDIT_LOG table is missing, errors are ignored.
+pub fn logAudit(self: *HanaAgent, action: []const u8, resource: []const u8, detail: []const u8) void {
+    const a = escape(self.allocator, action) catch return;
+    defer self.allocator.free(a);
+    const r = escape(self.allocator, resource) catch return;
+    defer self.allocator.free(r);
+    const d = escape(self.allocator, detail) catch return;
+    defer self.allocator.free(d);
+
+    const sql = std.fmt.allocPrint(
+        self.allocator,
+        "INSERT INTO AUDIT_LOG (ACTION, RESOURCE, DETAIL, CREATED_AT) VALUES ('{s}','{s}','{s}', CURRENT_TIMESTAMP)",
+        .{ a, r, d },
+    ) catch return;
+    defer self.allocator.free(sql);
+    _ = self.runSql(sql) catch {};
+}

@@ -1,11 +1,11 @@
 //! Unified Document + Cache Layer
 //!
-//! Integrates nExtract parsers with DragonflyDB for high-performance document caching.
+//! Integrates nExtract parsers with HANA for high-performance document caching.
 //! Provides zero-copy serialization and C ABI exports for Mojo integration.
 //!
 //! Features:
 //! - Document parsing via nExtract (CSV, JSON, Markdown, HTML, XML)
-//! - Caching with TTL via DragonflyDB
+//! - Caching with TTL via HANA in-memory tables
 //! - Optional vector embeddings for similarity search
 //! - Batch operations for efficiency
 //! - C ABI for Mojo integration
@@ -24,9 +24,9 @@ const markdown = nExtract.markdown;
 const html = nExtract.html;
 const xml = nExtract.xml;
 
-// Import DragonflyDB client (relative path from this file)
-const dragonfly = @import("../cache/dragonfly/dragonfly_client.zig");
-const DragonflyClient = dragonfly.DragonflyClient;
+// Import HANA cache client
+const hana_cache = @import("../cache/hana/hana_cache.zig");
+const HanaCache = hana_cache.HanaCache;
 
 // ============================================================================
 // Document Types
@@ -260,7 +260,7 @@ pub const CacheError = error{
     EmbeddingMismatch,
 };
 
-/// Unified Document Cache integrating nExtract and DragonflyDB
+/// Unified Document Cache integrating nExtract and HANA
 pub const UnifiedDocCache = struct {
     allocator: Allocator,
     client: *DragonflyClient,

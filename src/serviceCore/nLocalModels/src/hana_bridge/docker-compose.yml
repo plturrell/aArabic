@@ -1,0 +1,168 @@
+version: '3.8'
+
+services:
+  # ============================================================================
+  # HANA Bridge Service
+  # ============================================================================
+  hana-bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hana-bridge
+    restart: unless-stopped
+    ports:
+      - "${BRIDGE_PORT:-3001}:3001"
+    environment:
+      # Server
+      - BRIDGE_PORT=3001
+      - BRIDGE_HOST=0.0.0.0
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+
+      # HANA Connection
+      - HANA_HOST=${HANA_HOST}
+      - HANA_PORT=${HANA_PORT:-443}
+      - HANA_USER=${HANA_USER}
+      - HANA_PASSWORD=${HANA_PASSWORD}
+      - HANA_SCHEMA=${HANA_SCHEMA:-NUCLEUS}
+      - HANA_SSL_VALIDATE=${HANA_SSL_VALIDATE:-false}
+
+      # Connection Pool
+      - POOL_MIN=${POOL_MIN:-2}
+      - POOL_MAX=${POOL_MAX:-10}
+      - POOL_ACQUIRE_TIMEOUT=${POOL_ACQUIRE_TIMEOUT:-30000}
+      - POOL_IDLE_TIMEOUT=${POOL_IDLE_TIMEOUT:-60000}
+
+      # Retry
+      - RETRY_MAX_ATTEMPTS=${RETRY_MAX_ATTEMPTS:-3}
+      - RETRY_INITIAL_DELAY=${RETRY_INITIAL_DELAY:-1000}
+      - RETRY_MAX_DELAY=${RETRY_MAX_DELAY:-10000}
+
+      # Circuit Breaker
+      - CB_THRESHOLD=${CB_THRESHOLD:-5}
+      - CB_RESET_TIMEOUT=${CB_RESET_TIMEOUT:-30000}
+
+      # Rate Limiting
+      - RATE_LIMIT_WINDOW=${RATE_LIMIT_WINDOW:-60000}
+      - RATE_LIMIT_MAX=${RATE_LIMIT_MAX:-100}
+
+      # CORS
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 128M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - hana-network
+
+  # ============================================================================
+  # HANA Bridge - Scaled (3 replicas with load balancer)
+  # ============================================================================
+  hana-bridge-scaled:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - BRIDGE_PORT=3001
+      - HANA_HOST=${HANA_HOST}
+      - HANA_PORT=${HANA_PORT:-443}
+      - HANA_USER=${HANA_USER}
+      - HANA_PASSWORD=${HANA_PASSWORD}
+      - HANA_SCHEMA=${HANA_SCHEMA:-NUCLEUS}
+      - POOL_MIN=2
+      - POOL_MAX=5
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    deploy:
+      mode: replicated
+      replicas: 3
+      resources:
+        limits:
+          cpus: '1'
+          memory: 256M
+    networks:
+      - hana-network
+    profiles:
+      - scaled
+
+  # ============================================================================
+  # Nginx Load Balancer (for scaled deployment)
+  # ============================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: hana-bridge-lb
+    restart: unless-stopped
+    ports:
+      - "${LB_PORT:-3000}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - hana-bridge-scaled
+    networks:
+      - hana-network
+    profiles:
+      - scaled
+
+  # ============================================================================
+  # Prometheus (for monitoring)
+  # ============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: hana-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    networks:
+      - hana-network
+    profiles:
+      - monitoring
+
+  # ============================================================================
+  # Grafana (for dashboards)
+  # ============================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: hana-grafana
+    restart: unless-stopped
+    ports:
+      - "3030:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - hana-network
+    profiles:
+      - monitoring
+
+networks:
+  hana-network:
+    driver: bridge
+
+volumes:
+  prometheus-data:
+  grafana-data:

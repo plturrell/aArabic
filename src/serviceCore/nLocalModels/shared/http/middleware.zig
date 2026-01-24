@@ -38,11 +38,11 @@ pub const SystemHealth = struct {
 /// Check service health
 export fn zig_health_check(
     embedding_url: [*:0]const u8,
-    qdrant_url: [*:0]const u8
+    hana_vector_url: [*:0]const u8
 ) callconv(.c) [*:0]const u8 {
     const health = checkSystemHealth(
         mem.span(embedding_url),
-        mem.span(qdrant_url)
+        mem.span(hana_vector_url)
     ) catch {
         return "{\"status\":\"unhealthy\",\"error\":\"health check failed\"}";
     };
@@ -50,21 +50,21 @@ export fn zig_health_check(
     return health.ptr;
 }
 
-fn checkSystemHealth(embedding_url: []const u8, qdrant_url: []const u8) ![:0]const u8 {
+fn checkSystemHealth(embedding_url: []const u8, hana_vector_url: []const u8) ![:0]const u8 {
     // Check embedding service
     const embedding_healthy = checkServiceHealth(embedding_url, "/health") catch false;
     
-    // Check Qdrant
-    const qdrant_healthy = checkServiceHealth(qdrant_url, "/readyz") catch false;
+    // Check HANA vector store (placeholder health endpoint)
+    const hana_healthy = checkServiceHealth(hana_vector_url, "/health") catch false;
     
     // Get system metrics
     const memory_mb = getMemoryUsageMB();
     const uptime = getUptimeSeconds();
     
     // Determine overall status
-    const overall_status = if (embedding_healthy and qdrant_healthy)
+    const overall_status = if (embedding_healthy and hana_healthy)
         "healthy"
-    else if (embedding_healthy or qdrant_healthy)
+    else if (embedding_healthy or hana_healthy)
         "degraded"
     else
         "unhealthy";
@@ -79,7 +79,7 @@ fn checkSystemHealth(embedding_url: []const u8, qdrant_url: []const u8) ![:0]con
         "\"memory_mb\":{d:.2}," ++
         "\"components\":{{" ++
         "\"embedding_service\":{{\"healthy\":{},\"url\":\"{s}\"}}," ++
-        "\"qdrant\":{{\"healthy\":{},\"url\":\"{s}\"}}," ++
+        "\"hana_vector\":{{\"healthy\":{},\"url\":\"{s}\"}}," ++
         "\"mojo_simd\":{{\"healthy\":true}}" ++
         "}}" ++
         "}}",
@@ -90,8 +90,8 @@ fn checkSystemHealth(embedding_url: []const u8, qdrant_url: []const u8) ![:0]con
             memory_mb,
             embedding_healthy,
             embedding_url,
-            qdrant_healthy,
-            qdrant_url,
+            hana_healthy,
+            hana_vector_url,
         }
     );
     

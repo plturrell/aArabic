@@ -7,9 +7,9 @@
 // ============================================================================
 
 const std = @import("std");
-const ODataPersistence = @import("../hana/core/odata_persistence.zig").ODataPersistence;
-const AssignmentEntity = @import("../hana/core/odata_persistence.zig").AssignmentEntity;
-const RoutingStats = @import("../hana/core/odata_persistence.zig").RoutingStats;
+const ODataPersistence = @import("../../../../nLang/n-c-sdk/lib/hana/odata_persistence.zig").ODataPersistence;
+const AssignmentEntity = @import("../../../../nLang/n-c-sdk/lib/hana/odata_persistence.zig").AssignmentEntity;
+const RoutingStats = @import("../../../../nLang/n-c-sdk/lib/hana/odata_persistence.zig").RoutingStats;
 
 // ============================================================================
 // ANALYTICS TYPES

@@ -204,12 +204,13 @@ pub const ConfigParser = struct {
         
         // Parse architectures array
         const arch_array = root.get("architectures") orelse return error.MissingArchitectures;
-        var architectures = std.ArrayList([]const u8).init(self.allocator);
+        var architectures: std.ArrayList([]const u8) = .empty;
+        defer architectures.deinit(self.allocator);
 
         if (arch_array == .array) {
             for (arch_array.array.items) |item| {
                 if (item == .string) {
-                    try architectures.append(try self.allocator.dupe(u8, item.string));
+                    try architectures.append(self.allocator, try self.allocator.dupe(u8, item.string));
                 }
             }
         }
@@ -274,7 +275,7 @@ pub const ConfigParser = struct {
         std.debug.print("✅ Config loaded successfully\n", .{});
         
         return ModelConfig{
-            .architectures = try architectures.toOwnedSlice(),
+            .architectures = try architectures.toOwnedSlice(self.allocator),
             .model_type = try self.allocator.dupe(u8, model_type_str),
             .architecture = architecture,
             .vocab_size = vocab_size,

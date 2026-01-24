@@ -10,8 +10,8 @@ const std = @import("std");
 const auto_assign = @import("auto_assign.zig");
 const capability_scorer = @import("capability_scorer.zig");
 // HANA imports disabled for testing (outside module path)
-// const HanaClient = @import("../../hana/core/client.zig").HanaClient;
-// const hana_queries = @import("../../hana/core/queries.zig");
+// const HanaClient = @import("../../../../nLang/n-c-sdk/lib/hana/client.zig").HanaClient;
+// const hana_queries = @import("../../../../nLang/n-c-sdk/lib/hana/queries.zig");
 
 // Placeholder types for testing
 const HanaClient = struct {};

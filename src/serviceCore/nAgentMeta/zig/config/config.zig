@@ -26,14 +26,10 @@ pub const ServerConfig = struct {
 
 /// Database type enum
 pub const DatabaseType = enum {
-    postgres,
     hana,
-    sqlite,
 
     pub fn fromString(s: []const u8) !DatabaseType {
-        if (std.mem.eql(u8, s, "postgres")) return .postgres;
         if (std.mem.eql(u8, s, "hana")) return .hana;
-        if (std.mem.eql(u8, s, "sqlite")) return .sqlite;
         return error.InvalidValue;
     }
 };
@@ -385,11 +381,11 @@ pub fn loadFromString(allocator: std.mem.Allocator, content: []const u8) !Config
 /// Create default configuration for testing
 pub fn createDefault(allocator: std.mem.Allocator) !Config {
     const jwt_secret = try allocator.dupe(u8, "test-secret-key-min-32-characters-long");
-    const db_connection = try allocator.dupe(u8, ":memory:");
+    const db_connection = try allocator.dupe(u8, "hdbsqls://localhost:443");
 
     return Config{
         .database = .{
-            .type = .sqlite,
+            .type = .hana,
             .connection = db_connection,
         },
         .auth = .{

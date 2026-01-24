@@ -645,7 +645,7 @@ pub const MemoryPool = struct {
         // Fall back to direct allocation for oversized or when slabs full
         self.stats.cache_misses += 1;
         const buf = try self.allocator.alloc(u8, size);
-        try self.large_allocs.append(buf);
+        try self.large_allocs.append(self.allocator, buf);
         self.stats.total_allocated += size;
         self.stats.current_in_use += size;
         return buf;

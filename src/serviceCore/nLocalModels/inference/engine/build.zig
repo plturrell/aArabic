@@ -4,6 +4,9 @@ const builtin = @import("builtin");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const enable_cuda = b.option(bool, "enable-cuda", "Build CUDA GPU components (requires CUDA toolkit)") orelse false;
+    const build_options = b.addOptions();
+    build_options.addOption(bool, "enable_cuda", enable_cuda);
 
     // ========================================================================
     // Core Modules
@@ -99,122 +102,153 @@ pub fn build(b: *std.Build) void {
     backend_metal_module.addImport("gguf_loader", gguf_module);
     backend_metal_module.addImport("matrix_ops", matrix_ops_module);
 
-    // CUDA Bindings module (GPU Foundation)
-    const cuda_bindings_module = b.createModule(.{
-        .root_source_file = b.path("cuda/cuda_bindings.zig"),
-        .target = target,
-        .optimize = optimize,
-        .link_libc = true, // Required for @cImport
-    });
-    // Add CUDA include paths for @cImport to find cuda_runtime_api.h
-    cuda_bindings_module.addIncludePath(.{ .cwd_relative = "/usr/local/cuda/include" });
-    cuda_bindings_module.addIncludePath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/include" });
-    cuda_bindings_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
-    cuda_bindings_module.linkSystemLibrary("cudart", .{});
+    var cuda_bindings_module: ?*std.Build.Module = null;
+    var cuda_memory_module: ?*std.Build.Module = null;
+    var cuda_streams_module: ?*std.Build.Module = null;
+    var cuda_context_module: ?*std.Build.Module = null;
+    var cublas_bindings_module: ?*std.Build.Module = null;
+    var dequant_bindings_module: ?*std.Build.Module = null;
+    var nvidia_smi_module: ?*std.Build.Module = null;
+    var cuda_manager_module: ?*std.Build.Module = null;
+    var backend_cuda_module: ?*std.Build.Module = null;
+    var gpu_tensor_module: ?*std.Build.Module = null;
+    var gpu_weight_cache_module: ?*std.Build.Module = null;
+    var transformer_kernels_module: ?*std.Build.Module = null;
+    var gpu_inference_module: ?*std.Build.Module = null;
+    var gpu_inference_server_module: ?*std.Build.Module = null;
 
-    // CUDA Memory module
-    const cuda_memory_module = b.createModule(.{
-        .root_source_file = b.path("cuda/cuda_memory.zig"),
-    });
-    cuda_memory_module.addImport("cuda_bindings", cuda_bindings_module);
+    if (enable_cuda) {
+        // CUDA Bindings module (GPU Foundation)
+        const bindings = b.createModule(.{
+            .root_source_file = b.path("cuda/cuda_bindings.zig"),
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true, // Required for @cImport
+        });
+        // Add CUDA include paths for @cImport to find cuda_runtime_api.h
+        bindings.addIncludePath(.{ .cwd_relative = "/usr/local/cuda/include" });
+        bindings.addIncludePath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/include" });
+        bindings.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+        bindings.linkSystemLibrary("cudart", .{});
+        cuda_bindings_module = bindings;
 
-    // CUDA Streams module
-    const cuda_streams_module = b.createModule(.{
-        .root_source_file = b.path("cuda/cuda_streams.zig"),
-    });
-    cuda_streams_module.addImport("cuda_bindings", cuda_bindings_module);
+        // CUDA Memory module
+        const cuda_memory = b.createModule(.{
+            .root_source_file = b.path("cuda/cuda_memory.zig"),
+        });
+        cuda_memory.addImport("cuda_bindings", bindings);
+        cuda_memory_module = cuda_memory;
 
-    // CUDA Context module
-    const cuda_context_module = b.createModule(.{
-        .root_source_file = b.path("cuda/cuda_context.zig"),
-    });
-    cuda_context_module.addImport("cuda_bindings", cuda_bindings_module);
+        // CUDA Streams module
+        const cuda_streams = b.createModule(.{
+            .root_source_file = b.path("cuda/cuda_streams.zig"),
+        });
+        cuda_streams.addImport("cuda_bindings", bindings);
+        cuda_streams_module = cuda_streams;
 
-    // cuBLAS Bindings module (Tensor Core acceleration)
-    const cublas_bindings_module = b.createModule(.{
-        .root_source_file = b.path("cuda/cublas_bindings.zig"),
-    });
-    cublas_bindings_module.addImport("cuda_bindings", cuda_bindings_module);
+        // CUDA Context module
+        const cuda_context = b.createModule(.{
+            .root_source_file = b.path("cuda/cuda_context.zig"),
+        });
+        cuda_context.addImport("cuda_bindings", bindings);
+        cuda_context_module = cuda_context;
 
-    // Dequantization Bindings module (GPU dequant for Tensor Core input)
-    // NOTE: Library linking is done at the executable level, not the module level
-    // because modules don't have a known target at this point
-    const dequant_bindings_module = b.createModule(.{
-        .root_source_file = b.path("cuda/dequant_bindings.zig"),
-    });
-    dequant_bindings_module.addImport("cuda_bindings", cuda_bindings_module);
-    dequant_bindings_module.addImport("gguf_loader", gguf_module);
+        // cuBLAS Bindings module (Tensor Core acceleration)
+        const cublas_bindings = b.createModule(.{
+            .root_source_file = b.path("cuda/cublas_bindings.zig"),
+        });
+        cublas_bindings.addImport("cuda_bindings", bindings);
+        cublas_bindings_module = cublas_bindings;
 
-    // NVIDIA SMI module (GPU detection and monitoring)
-    const nvidia_smi_module = b.createModule(.{
-        .root_source_file = b.path("cuda/nvidia_smi.zig"),
-    });
+        // Dequantization Bindings module (GPU dequant for Tensor Core input)
+        // NOTE: Library linking is done at the executable level, not the module level
+        // because modules don't have a known target at this point
+        const dequant_bindings = b.createModule(.{
+            .root_source_file = b.path("cuda/dequant_bindings.zig"),
+        });
+        dequant_bindings.addImport("cuda_bindings", bindings);
+        dequant_bindings.addImport("gguf_loader", gguf_module);
+        dequant_bindings_module = dequant_bindings;
 
-    // CUDA Manager module (unified GPU management interface)
-    const cuda_manager_module = b.createModule(.{
-        .root_source_file = b.path("cuda/cuda_manager.zig"),
-    });
-    cuda_manager_module.addImport("cuda_bindings", cuda_bindings_module);
-    cuda_manager_module.addImport("nvidia_smi", nvidia_smi_module);
-    cuda_manager_module.addImport("cuda_context", cuda_context_module);
-    cuda_manager_module.addImport("cuda_memory", cuda_memory_module);
-    cuda_manager_module.addImport("cuda_streams", cuda_streams_module);
+        // NVIDIA SMI module (GPU detection and monitoring)
+        const nvidia_smi = b.createModule(.{
+            .root_source_file = b.path("cuda/nvidia_smi.zig"),
+        });
+        nvidia_smi_module = nvidia_smi;
 
-    // CUDA Backend module (Step 6 - T4 GPU support)
-    const backend_cuda_module = b.createModule(.{
-        .root_source_file = b.path("core/backend_cuda.zig"),
-    });
-    backend_cuda_module.addImport("compute", compute_module);
-    backend_cuda_module.addImport("gguf_loader", gguf_module);
-    backend_cuda_module.addImport("matrix_ops", matrix_ops_module);
-    backend_cuda_module.addImport("cuda_bindings", cuda_bindings_module);
-    backend_cuda_module.addImport("cuda_memory", cuda_memory_module);
-    backend_cuda_module.addImport("cuda_streams", cuda_streams_module);
-    backend_cuda_module.addImport("cuda_context", cuda_context_module);
-    backend_cuda_module.addImport("cublas_bindings", cublas_bindings_module);
-    backend_cuda_module.addImport("dequant_bindings", dequant_bindings_module);
+        // CUDA Manager module (unified GPU management interface)
+        const cuda_manager = b.createModule(.{
+            .root_source_file = b.path("cuda/cuda_manager.zig"),
+        });
+        cuda_manager.addImport("cuda_bindings", bindings);
+        cuda_manager.addImport("nvidia_smi", nvidia_smi);
+        cuda_manager.addImport("cuda_context", cuda_context);
+        cuda_manager.addImport("cuda_memory", cuda_memory);
+        cuda_manager.addImport("cuda_streams", cuda_streams);
+        cuda_manager_module = cuda_manager;
 
-    // GPU Tensor module (FP16 tensors living on GPU)
-    const gpu_tensor_module = b.createModule(.{
-        .root_source_file = b.path("cuda/gpu_tensor.zig"),
-    });
-    gpu_tensor_module.addImport("cuda_bindings", cuda_bindings_module);
+        // CUDA Backend module (Step 6 - T4 GPU support)
+        const backend_cuda = b.createModule(.{
+            .root_source_file = b.path("core/backend_cuda.zig"),
+        });
+        backend_cuda.addImport("compute", compute_module);
+        backend_cuda.addImport("gguf_loader", gguf_module);
+        backend_cuda.addImport("matrix_ops", matrix_ops_module);
+        backend_cuda.addImport("cuda_bindings", bindings);
+        backend_cuda.addImport("cuda_memory", cuda_memory);
+        backend_cuda.addImport("cuda_streams", cuda_streams);
+        backend_cuda.addImport("cuda_context", cuda_context);
+        backend_cuda.addImport("cublas_bindings", cublas_bindings);
+        backend_cuda.addImport("dequant_bindings", dequant_bindings);
+        backend_cuda_module = backend_cuda;
 
-    // GPU Weight Cache module (pre-loads weights to GPU)
-    const gpu_weight_cache_module = b.createModule(.{
-        .root_source_file = b.path("cuda/gpu_weight_cache.zig"),
-    });
-    gpu_weight_cache_module.addImport("cuda_bindings", cuda_bindings_module);
-    gpu_weight_cache_module.addImport("gpu_tensor", gpu_tensor_module);
-    gpu_weight_cache_module.addImport("dequant_bindings", dequant_bindings_module);
-    gpu_weight_cache_module.addImport("gguf_loader", gguf_module);
-    gpu_weight_cache_module.addImport("matrix_ops", matrix_ops_module);
+        // GPU Tensor module (FP16 tensors living on GPU)
+        const gpu_tensor = b.createModule(.{
+            .root_source_file = b.path("cuda/gpu_tensor.zig"),
+        });
+        gpu_tensor.addImport("cuda_bindings", bindings);
+        gpu_tensor_module = gpu_tensor;
 
-    // Transformer Kernels module (RMSNorm, SiLU, etc. for GPU inference)
-    const transformer_kernels_module = b.createModule(.{
-        .root_source_file = b.path("cuda/transformer_kernels.zig"),
-    });
-    transformer_kernels_module.addImport("cuda_bindings", cuda_bindings_module);
-    transformer_kernels_module.addImport("gpu_tensor", gpu_tensor_module);
+        // GPU Weight Cache module (pre-loads weights to GPU)
+        const gpu_weight_cache = b.createModule(.{
+            .root_source_file = b.path("cuda/gpu_weight_cache.zig"),
+        });
+        gpu_weight_cache.addImport("cuda_bindings", bindings);
+        gpu_weight_cache.addImport("gpu_tensor", gpu_tensor);
+        gpu_weight_cache.addImport("dequant_bindings", dequant_bindings);
+        gpu_weight_cache.addImport("gguf_loader", gguf_module);
+        gpu_weight_cache.addImport("matrix_ops", matrix_ops_module);
+        gpu_weight_cache_module = gpu_weight_cache;
 
-    // GPU Inference module (GPU-native forward pass)
-    const gpu_inference_module = b.createModule(.{
-        .root_source_file = b.path("cuda/gpu_inference.zig"),
-    });
-    gpu_inference_module.addImport("cuda_bindings", cuda_bindings_module);
-    gpu_inference_module.addImport("cublas_bindings", cublas_bindings_module);
-    gpu_inference_module.addImport("gpu_tensor", gpu_tensor_module);
-    gpu_inference_module.addImport("gpu_weight_cache", gpu_weight_cache_module);
-    gpu_inference_module.addImport("transformer_kernels", transformer_kernels_module);
+        // Transformer Kernels module (RMSNorm, SiLU, etc. for GPU inference)
+        const transformer_kernels = b.createModule(.{
+            .root_source_file = b.path("cuda/transformer_kernels.zig"),
+        });
+        transformer_kernels.addImport("cuda_bindings", bindings);
+        transformer_kernels.addImport("gpu_tensor", gpu_tensor);
+        transformer_kernels_module = transformer_kernels;
 
-    // GPU Inference Server module (batched inference with continuous batching)
-    const gpu_inference_server_module = b.createModule(.{
-        .root_source_file = b.path("cuda/gpu_inference_server.zig"),
-    });
-    gpu_inference_server_module.addImport("cuda_bindings", cuda_bindings_module);
-    gpu_inference_server_module.addImport("gpu_inference", gpu_inference_module);
-    gpu_inference_server_module.addImport("gpu_weight_cache", gpu_weight_cache_module);
-    gpu_inference_server_module.addImport("gpu_tensor", gpu_tensor_module);
+        // GPU Inference module (GPU-native forward pass)
+        const gpu_inference = b.createModule(.{
+            .root_source_file = b.path("cuda/gpu_inference.zig"),
+        });
+        gpu_inference.addImport("cuda_bindings", bindings);
+        gpu_inference.addImport("cublas_bindings", cublas_bindings);
+        gpu_inference.addImport("gpu_tensor", gpu_tensor);
+        gpu_inference.addImport("gpu_weight_cache", gpu_weight_cache);
+        gpu_inference.addImport("transformer_kernels", transformer_kernels);
+        gpu_inference_module = gpu_inference;
+
+        // GPU Inference Server module (batched inference with continuous batching)
+        const gpu_inference_server = b.createModule(.{
+            .root_source_file = b.path("cuda/gpu_inference_server.zig"),
+        });
+        gpu_inference_server.addImport("cuda_bindings", bindings);
+        gpu_inference_server.addImport("gpu_inference", gpu_inference);
+        gpu_inference_server.addImport("gpu_weight_cache", gpu_weight_cache);
+        gpu_inference_server.addImport("gpu_tensor", gpu_tensor);
+        gpu_inference_server_module = gpu_inference_server;
+    }
 
     // ========================================================================
     // AI Core Integration Modules (Phase 3)
@@ -306,7 +340,10 @@ pub fn build(b: *std.Build) void {
     llama_model_module.addImport("compute", compute_module);
     llama_model_module.addImport("backend_cpu", backend_cpu_module);
     llama_model_module.addImport("backend_metal", backend_metal_module);
-    llama_model_module.addImport("backend_cuda", backend_cuda_module);
+    if (backend_cuda_module) |backend_cuda_mod| {
+        llama_model_module.addImport("backend_cuda", backend_cuda_mod);
+    }
+    llama_model_module.addOptions("build_options", build_options);
 
     // LFM2 Model module
     const lfm2_model_module = b.createModule(.{
@@ -499,53 +536,55 @@ pub fn build(b: *std.Build) void {
     // Mojo Bridge Test (C API for Mojo integration)
     // ========================================================================
 
-    const inference_lib = b.addLibrary(.{
-        .name = "inference",
-        .linkage = .dynamic,
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("mojo_bridge.zig"),
-            .target = target,
-            .optimize = optimize,
-        }),
-    });
-    inference_lib.root_module.addImport("huggingface_loader", huggingface_loader_module);
-    inference_lib.root_module.addImport("hf_to_llama_bridge", hf_to_llama_bridge_module);
-    inference_lib.root_module.addImport("llama_model", llama_model_module);
-    inference_lib.root_module.addImport("gguf_model_loader", gguf_model_loader_module);
-    inference_lib.root_module.addImport("lfm2_model", lfm2_model_module);
-    // AI Core integration modules (Phase 3)
-    inference_lib.root_module.addImport("aicore_health", aicore_health_module);
-    inference_lib.root_module.addImport("aicore_config", aicore_config_module);
-    inference_lib.root_module.addImport("serving_template", serving_template_module);
-    // GPU inference modules (high-throughput batched inference)
-    inference_lib.root_module.addImport("gpu_inference_server", gpu_inference_server_module);
-    inference_lib.root_module.addImport("gpu_weight_cache", gpu_weight_cache_module);
-    inference_lib.root_module.addImport("gpu_inference", gpu_inference_module);
-    inference_lib.root_module.addImport("gpu_tensor", gpu_tensor_module);
+    if (enable_cuda) {
+        const inference_lib = b.addLibrary(.{
+            .name = "inference",
+            .linkage = .dynamic,
+            .root_module = b.createModule(.{
+                .root_source_file = b.path("mojo_bridge.zig"),
+                .target = target,
+                .optimize = optimize,
+            }),
+        });
+        inference_lib.root_module.addImport("huggingface_loader", huggingface_loader_module);
+        inference_lib.root_module.addImport("hf_to_llama_bridge", hf_to_llama_bridge_module);
+        inference_lib.root_module.addImport("llama_model", llama_model_module);
+        inference_lib.root_module.addImport("gguf_model_loader", gguf_model_loader_module);
+        inference_lib.root_module.addImport("lfm2_model", lfm2_model_module);
+        // AI Core integration modules (Phase 3)
+        inference_lib.root_module.addImport("aicore_health", aicore_health_module);
+        inference_lib.root_module.addImport("aicore_config", aicore_config_module);
+        inference_lib.root_module.addImport("serving_template", serving_template_module);
+        // GPU inference modules (high-throughput batched inference)
+        inference_lib.root_module.addImport("gpu_inference_server", gpu_inference_server_module.?);
+        inference_lib.root_module.addImport("gpu_weight_cache", gpu_weight_cache_module.?);
+        inference_lib.root_module.addImport("gpu_inference", gpu_inference_module.?);
+        inference_lib.root_module.addImport("gpu_tensor", gpu_tensor_module.?);
 
-    // Additional GPU module imports (required for weight cache dequantization)
-    inference_lib.root_module.addImport("dequant_bindings", dequant_bindings_module);
-    inference_lib.root_module.addImport("cuda_bindings", cuda_bindings_module);
-    inference_lib.root_module.addImport("cublas_bindings", cublas_bindings_module);
-    inference_lib.root_module.addImport("gguf_loader", gguf_module);
+        // Additional GPU module imports (required for weight cache dequantization)
+        inference_lib.root_module.addImport("dequant_bindings", dequant_bindings_module.?);
+        inference_lib.root_module.addImport("cuda_bindings", cuda_bindings_module.?);
+        inference_lib.root_module.addImport("cublas_bindings", cublas_bindings_module.?);
+        inference_lib.root_module.addImport("gguf_loader", gguf_module);
 
-    // CUDA library linking for inference library (GPU acceleration)
-    if (target.result.os.tag == .linux) {
-        inference_lib.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
-        inference_lib.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
-        inference_lib.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
-        inference_lib.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
-        inference_lib.linkSystemLibrary("cuda");
-        inference_lib.linkSystemLibrary("cublas");
-        inference_lib.linkSystemLibrary("cudart");
-        // Link dequant kernels library for GPU weight dequantization
-        inference_lib.root_module.addLibraryPath(b.path("cuda/kernels"));
-        inference_lib.root_module.addRPath(b.path("cuda/kernels"));
-        inference_lib.linkSystemLibrary("dequant_kernels");
-        inference_lib.linkSystemLibrary("transformer_kernels");
+        // CUDA library linking for inference library (GPU acceleration)
+        if (target.result.os.tag == .linux) {
+            inference_lib.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+            inference_lib.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+            inference_lib.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+            inference_lib.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+            inference_lib.linkSystemLibrary("cuda");
+            inference_lib.linkSystemLibrary("cublas");
+            inference_lib.linkSystemLibrary("cudart");
+            // Link dequant kernels library for GPU weight dequantization
+            inference_lib.root_module.addLibraryPath(b.path("cuda/kernels"));
+            inference_lib.root_module.addRPath(b.path("cuda/kernels"));
+            inference_lib.linkSystemLibrary("dequant_kernels");
+            inference_lib.linkSystemLibrary("transformer_kernels");
+        }
+
+        b.installArtifact(inference_lib);
     }
-
-    b.installArtifact(inference_lib);
 
     // Note: mojo_bridge.zig is a library module without main(), used only via inference lib
     // const test_mojo_bridge = b.addExecutable(.{
@@ -1210,137 +1249,139 @@ pub fn build(b: *std.Build) void {
     const test_all_models_step = b.step("test-all-models", "Dynamically discover and test all models");
     test_all_models_step.dependOn(&run_test_all_models.step);
 
-    // ========================================================================
-    // GPU Dequant Kernels Test
-    // ========================================================================
+    if (enable_cuda) {
+        // ====================================================================
+        // GPU Dequant Kernels Test
+        // ====================================================================
 
-    const test_dequant_kernels = b.addExecutable(.{
-        .name = "test_dequant_kernels",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("cuda/test_dequant_kernels.zig"),
-            .target = target,
-            .optimize = optimize,
-        }),
-    });
-    test_dequant_kernels.root_module.addImport("dequant_bindings", dequant_bindings_module);
-    test_dequant_kernels.root_module.addImport("cuda_bindings", cuda_bindings_module);
-    test_dequant_kernels.root_module.addImport("gguf_loader", gguf_module);
+        const test_dequant_kernels = b.addExecutable(.{
+            .name = "test_dequant_kernels",
+            .root_module = b.createModule(.{
+                .root_source_file = b.path("cuda/test_dequant_kernels.zig"),
+                .target = target,
+                .optimize = optimize,
+            }),
+        });
+        test_dequant_kernels.root_module.addImport("dequant_bindings", dequant_bindings_module.?);
+        test_dequant_kernels.root_module.addImport("cuda_bindings", cuda_bindings_module.?);
+        test_dequant_kernels.root_module.addImport("gguf_loader", gguf_module);
 
-    // Link CUDA libraries for GPU tests
-    if (builtin.os.tag == .linux) {
-        test_dequant_kernels.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
-        test_dequant_kernels.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
-        test_dequant_kernels.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
-        test_dequant_kernels.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
-        test_dequant_kernels.linkSystemLibrary("cuda");
-        test_dequant_kernels.linkSystemLibrary("cudart");
-        // Link dequant kernels library
-        test_dequant_kernels.root_module.addLibraryPath(b.path("cuda/kernels"));
-        test_dequant_kernels.root_module.addRPath(b.path("cuda/kernels"));
-        test_dequant_kernels.linkSystemLibrary("dequant_kernels");
+        // Link CUDA libraries for GPU tests
+        if (builtin.os.tag == .linux) {
+            test_dequant_kernels.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+            test_dequant_kernels.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+            test_dequant_kernels.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+            test_dequant_kernels.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+            test_dequant_kernels.linkSystemLibrary("cuda");
+            test_dequant_kernels.linkSystemLibrary("cudart");
+            // Link dequant kernels library
+            test_dequant_kernels.root_module.addLibraryPath(b.path("cuda/kernels"));
+            test_dequant_kernels.root_module.addRPath(b.path("cuda/kernels"));
+            test_dequant_kernels.linkSystemLibrary("dequant_kernels");
+        }
+
+        b.installArtifact(test_dequant_kernels);
+
+        const run_test_dequant_kernels = b.addRunArtifact(test_dequant_kernels);
+        run_test_dequant_kernels.step.dependOn(b.getInstallStep());
+
+        const test_dequant_kernels_step = b.step("test-dequant-kernels", "Run GPU dequant kernel tests");
+        test_dequant_kernels_step.dependOn(&run_test_dequant_kernels.step);
+
+        // ====================================================================
+        // GPU Inference Benchmark (500 tok/s target)
+        // ====================================================================
+
+        const bench_gpu_inference = b.addExecutable(.{
+            .name = "bench_gpu_inference",
+            .root_module = b.createModule(.{
+                .root_source_file = b.path("cuda/bench_gpu_inference.zig"),
+                .target = target,
+                .optimize = .ReleaseFast, // Always optimize for benchmarks
+            }),
+        });
+        bench_gpu_inference.root_module.addImport("gpu_inference", gpu_inference_module.?);
+        bench_gpu_inference.root_module.addImport("gpu_weight_cache", gpu_weight_cache_module.?);
+        bench_gpu_inference.root_module.addImport("gpu_tensor", gpu_tensor_module.?);
+        bench_gpu_inference.root_module.addImport("cuda_bindings", cuda_bindings_module.?);
+        bench_gpu_inference.root_module.addImport("cublas_bindings", cublas_bindings_module.?);
+        bench_gpu_inference.root_module.addImport("dequant_bindings", dequant_bindings_module.?);
+        bench_gpu_inference.root_module.addImport("gguf_loader", gguf_module);
+
+        // Link CUDA libraries
+        if (builtin.os.tag == .linux) {
+            bench_gpu_inference.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+            bench_gpu_inference.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+            bench_gpu_inference.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+            bench_gpu_inference.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+            bench_gpu_inference.linkSystemLibrary("cuda");
+            bench_gpu_inference.linkSystemLibrary("cublas");
+            bench_gpu_inference.linkSystemLibrary("cudart");
+            // Link dequant kernels library
+            bench_gpu_inference.root_module.addLibraryPath(b.path("cuda/kernels"));
+            bench_gpu_inference.root_module.addRPath(b.path("cuda/kernels"));
+            bench_gpu_inference.linkSystemLibrary("dequant_kernels");
+            bench_gpu_inference.linkSystemLibrary("transformer_kernels");
+        }
+
+        b.installArtifact(bench_gpu_inference);
+
+        const run_bench_gpu_inference = b.addRunArtifact(bench_gpu_inference);
+        run_bench_gpu_inference.step.dependOn(b.getInstallStep());
+        if (b.args) |args| {
+            run_bench_gpu_inference.addArgs(args);
+        }
+
+        const bench_gpu_inference_step = b.step("bench-gpu", "Run GPU inference benchmark (target: 500 tok/s)");
+        bench_gpu_inference_step.dependOn(&run_bench_gpu_inference.step);
+
+        // ====================================================================
+        // Perplexity Benchmark
+        // ====================================================================
+
+        const bench_perplexity = b.addExecutable(.{
+            .name = "bench_perplexity",
+            .root_module = b.createModule(.{
+                .root_source_file = b.path("cuda/bench_perplexity.zig"),
+                .target = target,
+                .optimize = .ReleaseFast,
+            }),
+        });
+        bench_perplexity.root_module.addImport("gpu_inference", gpu_inference_module.?);
+        bench_perplexity.root_module.addImport("gpu_weight_cache", gpu_weight_cache_module.?);
+        bench_perplexity.root_module.addImport("gpu_tensor", gpu_tensor_module.?);
+        bench_perplexity.root_module.addImport("cuda_bindings", cuda_bindings_module.?);
+        bench_perplexity.root_module.addImport("cublas_bindings", cublas_bindings_module.?);
+        bench_perplexity.root_module.addImport("dequant_bindings", dequant_bindings_module.?);
+        bench_perplexity.root_module.addImport("transformer_kernels", transformer_kernels_module.?);
+        bench_perplexity.root_module.addImport("gguf_loader", gguf_module);
+        bench_perplexity.root_module.addImport("tokenizer", tokenizer_module);
+
+        if (builtin.os.tag == .linux) {
+            bench_perplexity.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+            bench_perplexity.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+            bench_perplexity.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+            bench_perplexity.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+            bench_perplexity.linkSystemLibrary("cuda");
+            bench_perplexity.linkSystemLibrary("cublas");
+            bench_perplexity.linkSystemLibrary("cudart");
+            bench_perplexity.root_module.addLibraryPath(b.path("cuda/kernels"));
+            bench_perplexity.root_module.addRPath(b.path("cuda/kernels"));
+            bench_perplexity.linkSystemLibrary("dequant_kernels");
+            bench_perplexity.linkSystemLibrary("transformer_kernels");
+        }
+
+        b.installArtifact(bench_perplexity);
+
+        const run_bench_perplexity = b.addRunArtifact(bench_perplexity);
+        run_bench_perplexity.step.dependOn(b.getInstallStep());
+        if (b.args) |args| {
+            run_bench_perplexity.addArgs(args);
+        }
+
+        const bench_perplexity_step = b.step("bench-ppl", "Run perplexity benchmark on WikiText-2");
+        bench_perplexity_step.dependOn(&run_bench_perplexity.step);
     }
-
-    b.installArtifact(test_dequant_kernels);
-
-    const run_test_dequant_kernels = b.addRunArtifact(test_dequant_kernels);
-    run_test_dequant_kernels.step.dependOn(b.getInstallStep());
-
-    const test_dequant_kernels_step = b.step("test-dequant-kernels", "Run GPU dequant kernel tests");
-    test_dequant_kernels_step.dependOn(&run_test_dequant_kernels.step);
-
-    // ========================================================================
-    // GPU Inference Benchmark (500 tok/s target)
-    // ========================================================================
-
-    const bench_gpu_inference = b.addExecutable(.{
-        .name = "bench_gpu_inference",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("cuda/bench_gpu_inference.zig"),
-            .target = target,
-            .optimize = .ReleaseFast, // Always optimize for benchmarks
-        }),
-    });
-    bench_gpu_inference.root_module.addImport("gpu_inference", gpu_inference_module);
-    bench_gpu_inference.root_module.addImport("gpu_weight_cache", gpu_weight_cache_module);
-    bench_gpu_inference.root_module.addImport("gpu_tensor", gpu_tensor_module);
-    bench_gpu_inference.root_module.addImport("cuda_bindings", cuda_bindings_module);
-    bench_gpu_inference.root_module.addImport("cublas_bindings", cublas_bindings_module);
-    bench_gpu_inference.root_module.addImport("dequant_bindings", dequant_bindings_module);
-    bench_gpu_inference.root_module.addImport("gguf_loader", gguf_module);
-
-    // Link CUDA libraries
-    if (builtin.os.tag == .linux) {
-        bench_gpu_inference.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
-        bench_gpu_inference.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
-        bench_gpu_inference.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
-        bench_gpu_inference.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
-        bench_gpu_inference.linkSystemLibrary("cuda");
-        bench_gpu_inference.linkSystemLibrary("cublas");
-        bench_gpu_inference.linkSystemLibrary("cudart");
-        // Link dequant kernels library
-        bench_gpu_inference.root_module.addLibraryPath(b.path("cuda/kernels"));
-        bench_gpu_inference.root_module.addRPath(b.path("cuda/kernels"));
-        bench_gpu_inference.linkSystemLibrary("dequant_kernels");
-        bench_gpu_inference.linkSystemLibrary("transformer_kernels");
-    }
-
-    b.installArtifact(bench_gpu_inference);
-
-    const run_bench_gpu_inference = b.addRunArtifact(bench_gpu_inference);
-    run_bench_gpu_inference.step.dependOn(b.getInstallStep());
-    if (b.args) |args| {
-        run_bench_gpu_inference.addArgs(args);
-    }
-
-    const bench_gpu_inference_step = b.step("bench-gpu", "Run GPU inference benchmark (target: 500 tok/s)");
-    bench_gpu_inference_step.dependOn(&run_bench_gpu_inference.step);
-
-    // ========================================================================
-    // Perplexity Benchmark
-    // ========================================================================
-
-    const bench_perplexity = b.addExecutable(.{
-        .name = "bench_perplexity",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("cuda/bench_perplexity.zig"),
-            .target = target,
-            .optimize = .ReleaseFast,
-        }),
-    });
-    bench_perplexity.root_module.addImport("gpu_inference", gpu_inference_module);
-    bench_perplexity.root_module.addImport("gpu_weight_cache", gpu_weight_cache_module);
-    bench_perplexity.root_module.addImport("gpu_tensor", gpu_tensor_module);
-    bench_perplexity.root_module.addImport("cuda_bindings", cuda_bindings_module);
-    bench_perplexity.root_module.addImport("cublas_bindings", cublas_bindings_module);
-    bench_perplexity.root_module.addImport("dequant_bindings", dequant_bindings_module);
-    bench_perplexity.root_module.addImport("transformer_kernels", transformer_kernels_module);
-    bench_perplexity.root_module.addImport("gguf_loader", gguf_module);
-    bench_perplexity.root_module.addImport("tokenizer", tokenizer_module);
-
-    if (builtin.os.tag == .linux) {
-        bench_perplexity.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
-        bench_perplexity.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
-        bench_perplexity.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
-        bench_perplexity.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
-        bench_perplexity.linkSystemLibrary("cuda");
-        bench_perplexity.linkSystemLibrary("cublas");
-        bench_perplexity.linkSystemLibrary("cudart");
-        bench_perplexity.root_module.addLibraryPath(b.path("cuda/kernels"));
-        bench_perplexity.root_module.addRPath(b.path("cuda/kernels"));
-        bench_perplexity.linkSystemLibrary("dequant_kernels");
-        bench_perplexity.linkSystemLibrary("transformer_kernels");
-    }
-
-    b.installArtifact(bench_perplexity);
-
-    const run_bench_perplexity = b.addRunArtifact(bench_perplexity);
-    run_bench_perplexity.step.dependOn(b.getInstallStep());
-    if (b.args) |args| {
-        run_bench_perplexity.addArgs(args);
-    }
-
-    const bench_perplexity_step = b.step("bench-ppl", "Run perplexity benchmark on WikiText-2");
-    bench_perplexity_step.dependOn(&run_bench_perplexity.step);
 
     // ========================================================================
     // Combined Test

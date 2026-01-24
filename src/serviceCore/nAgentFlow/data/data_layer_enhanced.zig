@@ -543,25 +543,6 @@ pub fn ConnectionPool(comptime T: type, comptime ConnectorFn: type) type {
 // Data Layer Configuration
 // ============================================================================
 
-/// PostgreSQL configuration
-pub const PostgresConfig = struct {
-    host: []const u8 = "localhost",
-    port: u16 = 5432,
-    database: []const u8 = "nworkflow",
-    user: []const u8 = "postgres",
-    password: []const u8 = "",
-    ssl_mode: []const u8 = "prefer",
-    pool: ConnectionPoolConfig = .{},
-};
-
-/// DragonflyDB configuration
-pub const DragonflyConfig = struct {
-    host: []const u8 = "localhost",
-    port: u16 = 6379,
-    password: ?[]const u8 = null,
-    db_index: u8 = 0,
-    pool: ConnectionPoolConfig = .{},
-};
 
 /// Qdrant configuration
 pub const QdrantConfig = struct {
@@ -615,12 +596,10 @@ pub const HanaPoolConfig = struct {
 
 /// Complete data layer configuration
 pub const DataLayerConfig = struct {
-    postgres: PostgresConfig = .{},
-    dragonfly: DragonflyConfig = .{},
+    hana: HanaPoolConfig,
     qdrant: QdrantConfig = .{},
     memgraph: MemgraphConfig = .{},
     marquez: MarquezConfig = .{},
-    hana: ?HanaPoolConfig = null,
     health_check_interval_ms: u32 = 30000,
     enable_metrics: bool = true,
     enable_circuit_breakers: bool = true,
@@ -785,30 +764,6 @@ pub const HealthChecker = struct {
         self.allocator.destroy(self);
     }
 
-    /// Check PostgreSQL health
-    pub fn checkPostgres(self: *HealthChecker, conn_string: []const u8) !HealthStatus {
-        _ = conn_string;
-        const start = std.time.milliTimestamp();
-
-        // Simulate health check - in production would actually connect
-        // try { execute "SELECT 1" }
-        const latency = @as(u64, @intCast(std.time.milliTimestamp() - start));
-        const status = ServiceStatus.fromLatency(latency + 1, self.config.health_check_interval_ms / 10);
-
-        return HealthStatus.init(self.allocator, "postgres", status, latency + 1);
-    }
-
-    /// Check DragonflyDB health
-    pub fn checkDragonfly(self: *HealthChecker, conn_string: []const u8) !HealthStatus {
-        _ = conn_string;
-        const start = std.time.milliTimestamp();
-
-        // Simulate health check - in production would execute PING
-        const latency = @as(u64, @intCast(std.time.milliTimestamp() - start));
-        const status = ServiceStatus.fromLatency(latency + 1, self.config.health_check_interval_ms / 10);
-
-        return HealthStatus.init(self.allocator, "dragonfly", status, latency + 1);
-    }
 
     /// Check Qdrant health
     pub fn checkQdrant(self: *HealthChecker, url: []const u8) !HealthStatus {
@@ -875,22 +830,15 @@ pub const HealthChecker = struct {
             self.mutex.unlock();
         }
 
-        // Determine number of services to check (HANA is optional)
-        const service_count: usize = if (self.config.hana != null) 6 else 5;
+        const service_count: usize = 4; // HANA + Qdrant + Memgraph + Marquez
 
         var results = try self.allocator.alloc(HealthStatus, service_count);
         errdefer self.allocator.free(results);
 
-        results[0] = try self.checkPostgres("placeholder");
-        results[1] = try self.checkDragonfly("placeholder");
-        results[2] = try self.checkQdrant(self.config.qdrant.url);
-        results[3] = try self.checkMemgraph("placeholder");
-        results[4] = try self.checkMarquez(self.config.marquez.url);
-
-        // Check HANA if configured
-        if (self.config.hana) |hana_config| {
-            results[5] = try self.checkHana(hana_config);
-        }
+        results[0] = try self.checkHana(self.config.hana);
+        results[1] = try self.checkQdrant(self.config.qdrant.url);
+        results[2] = try self.checkMemgraph("placeholder");
+        results[3] = try self.checkMarquez(self.config.marquez.url);
 
         // Store results
         self.mutex.lock();

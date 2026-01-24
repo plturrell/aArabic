@@ -1,13 +1,49 @@
 {
   "name": "hana-sql-bridge",
-  "version": "1.0.0",
-  "description": "HTTP bridge for HANA Cloud SQL execution",
-  "main": "server.js",
+  "version": "2.0.0",
+  "description": "Production-ready HTTP bridge for HANA Cloud SQL execution",
+  "main": "server.prod.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "start": "node server.js",
-    "install-hana": "npm install @sap/hana-client"
+    "start:prod": "node server.prod.js",
+    "start:cluster": "CLUSTER_ENABLED=true node server.prod.js",
+    "start:bun": "bun run server.bun.ts",
+    "start:fast": "bun run server.fast.ts",
+    "benchmark": "bash scripts/benchmark.sh",
+    "pm2:start": "pm2 start ecosystem.config.js --env production",
+    "pm2:stop": "pm2 stop hana-bridge",
+    "pm2:restart": "pm2 reload hana-bridge",
+    "pm2:logs": "pm2 logs hana-bridge",
+    "pm2:status": "pm2 status",
+    "docker:build": "docker build -t hana-bridge .",
+    "docker:run": "docker run -d --name hana-bridge --env-file .env -p 3001:3001 hana-bridge",
+    "docker:stop": "docker stop hana-bridge && docker rm hana-bridge",
+    "compose:up": "docker-compose up -d",
+    "compose:down": "docker-compose down",
+    "compose:scaled": "docker-compose --profile scaled up -d",
+    "compose:monitoring": "docker-compose --profile monitoring up -d",
+    "compose:full": "docker-compose --profile scaled --profile monitoring up -d",
+    "compose:logs": "docker-compose logs -f",
+    "deploy": "bash scripts/deploy.sh",
+    "health": "curl -s http://localhost:3001/health | jq",
+    "test": "curl -s http://localhost:3001/test | jq",
+    "metrics": "curl -s http://localhost:3001/metrics"
   },
   "dependencies": {
     "@sap/hana-client": "^2.21.31"
-  }
+  },
+  "devDependencies": {},
+  "keywords": [
+    "hana",
+    "sap",
+    "sql",
+    "bridge",
+    "database",
+    "cloud"
+  ],
+  "author": "",
+  "license": "MIT"
 }

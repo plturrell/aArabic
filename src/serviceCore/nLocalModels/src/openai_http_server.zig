@@ -1738,7 +1738,7 @@ fn resolveModelPath(model_id: []const u8) ![]u8 {
     // Check vendor: prefix first (before "/" check since vendor:Qwen/... contains "/")
     if (mem.startsWith(u8, model_id, "vendor:")) {
         const suffix = model_id["vendor:".len..];
-        // Go up to repo root from src/serviceCore/serviceShimmy-mojo/
+        // Go up to repo root from src/serviceCore/nLocalModels/src
         return try std.fmt.allocPrint(allocator, "../../../vendor/layerModels/huggingFace/{s}", .{suffix});
     }
     if (mem.indexOf(u8, model_id, "/") != null or mem.startsWith(u8, model_id, ".")) {
@@ -3291,8 +3291,8 @@ fn handleAgents() !Response {
         \\  {{"id":"ncode-agent","name":"nCode Intelligence","description":"SCIP-based code analysis: references, definitions, symbols via nCode server port 18003","type":"tool","model_id":"scip_index_code","status":"ready","total_requests":0,"avg_latency":45,"success_rate":99.0,"next_agents":["validation-agent"]}},
         \\  {{"id":"translation-agent","name":"Translation Agent","description":"Arabic-English translation using HY-MT 1.5 7B Q6_K","type":"translation","model_id":"hymt-1.5-7b-q6_k","status":"ready","total_requests":0,"avg_latency":156,"success_rate":99.1,"next_agents":["quality-agent"]}},
         \\  {{"id":"quality-agent","name":"Quality Assurance","description":"Validates translation quality using LFM2.5","type":"quality","model_id":"lfm2.5-1.2b-q4_k_m","status":"ready","total_requests":0,"avg_latency":45,"success_rate":98.9,"next_agents":["validation-agent"]}},
-        \\  {{"id":"rag-agent","name":"RAG Knowledge Engine","description":"Retrieval-augmented generation with Qdrant vector search","type":"rag","model_id":"lfm2.5-1.2b-f16","status":"ready","total_requests":0,"avg_latency":198,"success_rate":96.8,"next_agents":["memgraph-agent","validation-agent"]}},
-        \\  {{"id":"memgraph-agent","name":"Graph Query Agent","description":"Code relationship queries via Memgraph Cypher (bolt://localhost:7687)","type":"tool","model_id":"memgraph_query_graph","status":"ready","total_requests":0,"avg_latency":35,"success_rate":99.5,"next_agents":["validation-agent"]}},
+        \\  {{"id":"rag-agent","name":"RAG Knowledge Engine","description":"Retrieval-augmented generation with HANA vector search","type":"rag","model_id":"lfm2.5-1.2b-f16","status":"ready","total_requests":0,"avg_latency":198,"success_rate":96.8,"next_agents":["hana-graph-agent","validation-agent"]}},
+        \\  {{"id":"hana-graph-agent","name":"Graph Query Agent","description":"Code relationship queries via SAP HANA Graph","type":"tool","model_id":"hana_graph_queries","status":"ready","total_requests":0,"avg_latency":35,"success_rate":99.5,"next_agents":["validation-agent"]}},
         \\  {{"id":"validation-agent","name":"Output Validator","description":"Validates all agent outputs before delivery","type":"validation","model_id":"lfm2.5-1.2b-q4_0","status":"healthy","total_requests":0,"avg_latency":32,"success_rate":99.5,"next_agents":[]}}
         \\]}}
         ,
@@ -3571,9 +3571,9 @@ fn handleWorkflows() !Response {
     const body = try std.fmt.allocPrint(
         allocator,
         \\{{"workflows":[
-        \\  {{"id":"code-analysis-workflow","name":"Code Analysis Pipeline","description":"Index code with SCIP, analyze with nCode, query with Memgraph","status":"ready","nodes":["router-main","ncode-agent","memgraph-agent","validation-agent"],"connections":[{{"from":"router-main","to":"ncode-agent"}},{{"from":"ncode-agent","to":"memgraph-agent"}},{{"from":"memgraph-agent","to":"validation-agent"}}]}},
+        \\  {{"id":"code-analysis-workflow","name":"Code Analysis Pipeline","description":"Index code with SCIP, analyze with nCode, query with HANA Graph","status":"ready","nodes":["router-main","ncode-agent","hana-graph-agent","validation-agent"],"connections":[{{"from":"router-main","to":"ncode-agent"}},{{"from":"ncode-agent","to":"hana-graph-agent"}},{{"from":"hana-graph-agent","to":"validation-agent"}}]}},
         \\  {{"id":"translation-workflow","name":"Translation Pipeline","description":"Translate with HY-MT, verify quality, validate output","status":"ready","nodes":["router-main","translation-agent","quality-agent","validation-agent"],"connections":[{{"from":"router-main","to":"translation-agent"}},{{"from":"translation-agent","to":"quality-agent"}},{{"from":"quality-agent","to":"validation-agent"}}]}},
-        \\  {{"id":"rag-search-workflow","name":"RAG Search Pipeline","description":"Semantic search with Qdrant, graph query with Memgraph, synthesize results","status":"ready","nodes":["router-main","rag-agent","memgraph-agent","validation-agent"],"connections":[{{"from":"router-main","to":"rag-agent"}},{{"from":"rag-agent","to":"memgraph-agent"}},{{"from":"memgraph-agent","to":"validation-agent"}}]}},
+        \\  {{"id":"rag-search-workflow","name":"RAG Search Pipeline","description":"Semantic search with HANA vector store, graph query with HANA Graph, synthesize results","status":"ready","nodes":["router-main","rag-agent","hana-graph-agent","validation-agent"],"connections":[{{"from":"router-main","to":"rag-agent"}},{{"from":"rag-agent","to":"hana-graph-agent"}},{{"from":"hana-graph-agent","to":"validation-agent"}}]}},
         \\  {{"id":"multi-agent-orchestration","name":"Multi-Agent Orchestration","description":"Complex workflow coordinated by Orchestrator-8B with multiple tool calls","status":"ready","nodes":["router-main","orchestrator","code-agent","ncode-agent","validation-agent"],"connections":[{{"from":"router-main","to":"orchestrator"}},{{"from":"orchestrator","to":"code-agent"}},{{"from":"orchestrator","to":"ncode-agent"}},{{"from":"code-agent","to":"validation-agent"}},{{"from":"ncode-agent","to":"validation-agent"}}]}}
         \\]}}
         ,

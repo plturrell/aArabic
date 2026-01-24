@@ -1042,7 +1042,7 @@ fn patch(inout self, path: String, body: String) raises -> String:
 
 ### 23-35. Mojo SDK Async/Macro Features
 
-**Files**: Multiple files in `mojo-sdk/`
+**Files**: Multiple files in `src/nLang/n-python-sdk`
 - `stdlib/async/` - Async I/O, channels, synchronization
 - `compiler/frontend/` - Macro system, derive macros
 - `tools/fuzz/` - Fuzzing infrastructure

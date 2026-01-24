@@ -45,6 +45,7 @@ services:
 
   # ===========================================================================
   # nWebServe - API Gateway & Web Server (Zig)
+  # Integrated from http_server library in n-c-sdk
   # ===========================================================================
   nwebserve:
     build:

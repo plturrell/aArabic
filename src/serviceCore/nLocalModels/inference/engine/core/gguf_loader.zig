@@ -456,10 +456,10 @@ pub const GGUFModel = struct {
         var vocab_tokens = try std.ArrayList([]u8).initCapacity(allocator, 256);
         errdefer {
             for (vocab_tokens.items) |t| allocator.free(t);
-            vocab_tokens.deinit();
+            vocab_tokens.deinit(allocator);
         }
         var vocab_scores = try std.ArrayList(f32).initCapacity(allocator, 256);
-        errdefer vocab_scores.deinit();
+        errdefer vocab_scores.deinit(allocator);
 
         // Parse metadata
         const metadata = try parseMetadata(allocator, file, header.metadata_kv_count, &vocab_tokens, &vocab_scores);
@@ -480,8 +480,8 @@ pub const GGUFModel = struct {
             .header = header,
             .metadata = metadata,
             .tensors = tensors,
-            .vocab_tokens = try vocab_tokens.toOwnedSlice(),
-            .vocab_scores = try vocab_scores.toOwnedSlice(),
+            .vocab_tokens = try vocab_tokens.toOwnedSlice(allocator),
+            .vocab_scores = try vocab_scores.toOwnedSlice(allocator),
             .tensor_data_offset = tensor_data_offset,
         };
     }
@@ -695,14 +695,14 @@ fn parseMetadataValue(
                     _ = try file.read(mem.asBytes(&str_len));
                     const token_bytes = try allocator.alloc(u8, str_len);
                     _ = try file.read(token_bytes);
-                    try vocab_tokens.append(token_bytes);
+                    try vocab_tokens.append(allocator, token_bytes);
                 }
             } else if (mem.eql(u8, key, "tokenizer.ggml.scores") and item_type == .Float32) {
                 std.debug.print("   Loading scores ({d} values)...\n", .{len});
                 for (0..len) |_| {
                     var score: f32 = undefined;
                     _ = try file.read(mem.asBytes(&score));
-                    try vocab_scores.append(score);
+                    try vocab_scores.append(allocator, score);
                 }
             } else {
                 // Skip array

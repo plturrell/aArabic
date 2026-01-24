@@ -161,7 +161,7 @@ Need to create HTTP server (~300 lines) with:
 
 ```bash
 # Build
-cd src/serviceCore/serviceShimmy-mojo/services/llm_http_service
+cd src/serviceCore/nLocalModels/services/llm_http_service
 zig build
 
 # Run

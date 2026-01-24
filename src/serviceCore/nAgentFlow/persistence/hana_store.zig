@@ -700,3 +700,6 @@ test "SQL schema constants - HANA DDL syntax" {
     try std.testing.expect(std.mem.indexOf(u8, CREATE_VERSIONS_TABLE, "VARBINARY") != null);
     try std.testing.expect(std.mem.indexOf(u8, CREATE_INDEXES, "CREATE INDEX") != null);
 }
+
+}
+;

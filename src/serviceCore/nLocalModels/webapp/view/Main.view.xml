@@ -387,25 +387,14 @@
 									class="sapUiTinyMarginTop"/>
 							</layout:VerticalLayout>
 							<layout:VerticalLayout class="sapUiTinyMargin">
-								<Title text="Cache" level="H3"/>
+								<Title text="HANA Cache" level="H3"/>
 								<ProgressIndicator
-									percentValue="{= ${metrics>/tiers/dragonfly/total} > 0 ? Math.round(${metrics>/tiers/dragonfly/used} / ${metrics>/tiers/dragonfly/total} * 100) : 0 }"
-									displayValue="{= Math.round((${metrics>/tiers/dragonfly/hitRate} || 0) * 100) + '% Hit Rate' }"
+									percentValue="{= ${metrics>/tiers/hana/total} > 0 ? Math.round(${metrics>/tiers/hana/used} / ${metrics>/tiers/hana/total} * 100) : 0 }"
+									displayValue="{= Math.round((${metrics>/tiers/hana/hitRate} || 0) * 100) + '% Hit Rate' }"
 									state="Warning"
 									class="sapUiSmallMarginTop"/>
 								<ObjectStatus
-									text="{metrics>/tiers/dragonfly/used} / {metrics>/tiers/dragonfly/total} GB"
-									class="sapUiTinyMarginTop"/>
-							</layout:VerticalLayout>
-							<layout:VerticalLayout class="sapUiTinyMargin">
-								<Title text="Knowledge Engine" level="H3"/>
-								<ProgressIndicator
-									percentValue="{= ${metrics>/tiers/postgres/total} > 0 ? Math.round(${metrics>/tiers/postgres/used} / ${metrics>/tiers/postgres/total} * 100) : 0 }"
-									displayValue="{= Math.round((${metrics>/tiers/postgres/hitRate} || 0) * 100) + '% Hit Rate' }"
-									state="None"
-									class="sapUiSmallMarginTop"/>
-								<ObjectStatus
-									text="{metrics>/tiers/postgres/used} / {metrics>/tiers/postgres/total} GB"
+									text="{metrics>/tiers/hana/used} / {metrics>/tiers/hana/total} GB"
 									class="sapUiTinyMarginTop"/>
 							</layout:VerticalLayout>
 							<layout:VerticalLayout class="sapUiTinyMargin">

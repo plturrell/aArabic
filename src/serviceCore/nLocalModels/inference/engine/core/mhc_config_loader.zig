@@ -331,7 +331,7 @@ pub const MHCConfigLoader = struct {
         const copy = self.allocator.dupe(u8, str) catch {
             return ConfigError.OutOfMemory;
         };
-        self.owned_strings.append(copy) catch {
+        self.owned_strings.append(self.allocator, copy) catch {
             self.allocator.free(copy);
             return ConfigError.OutOfMemory;
         };
@@ -506,7 +506,7 @@ pub const MHCConfigLoader = struct {
 
     /// Register update callback
     pub fn onUpdate(self: *Self, callback: ConfigUpdateCallback) ConfigError!void {
-        self.callbacks.append(callback) catch {
+        self.callbacks.append(self.allocator, callback) catch {
             return ConfigError.OutOfMemory;
         };
     }
@@ -765,4 +765,3 @@ test "parseLayerRange returns null for null value" {
     const range = try MHCConfigLoader.parseLayerRange(.null);
     try std.testing.expect(range == null);
 }
-

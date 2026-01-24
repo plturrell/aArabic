@@ -9,8 +9,8 @@
 const std = @import("std");
 const router_analytics = @import("../database/router_analytics.zig");
 const router_queries = @import("../database/router_queries.zig");
-const ODataPersistence = @import("../hana/core/odata_persistence.zig").ODataPersistence;
-const ODataConfig = @import("../hana/core/odata_persistence.zig").ODataConfig;
+const ODataPersistence = @import("../../../../nLang/n-c-sdk/lib/hana/odata_persistence.zig").ODataPersistence;
+const ODataConfig = @import("../../../../nLang/n-c-sdk/lib/hana/odata_persistence.zig").ODataConfig;
 
 // ============================================================================
 // API RESPONSE TYPES

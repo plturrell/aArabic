@@ -226,9 +226,9 @@ pub const TieredKVCache = struct {
             .config = config,
             .hot_cache = hot_cache,
             .hot_start_pos = 0,
-            .hot_entries = std.ArrayList(HotEntry){},  // Day 3
+            .hot_entries = std.ArrayList(HotEntry).init(allocator),  // Day 3
             .ssd_storage = ssd_storage,
-            .cold_blocks = .{},
+            .cold_blocks = std.ArrayList(ColdBlock).init(allocator),
             .seq_pos = 0,
             .stats = .{},
         };
@@ -249,8 +249,8 @@ pub const TieredKVCache = struct {
             self.allocator.free(layer);
         }
         self.allocator.free(self.hot_cache);
-        self.hot_entries.deinit(self.allocator);  // Day 3
-        self.cold_blocks.deinit(self.allocator);
+        self.hot_entries.deinit();  // Day 3
+        self.cold_blocks.deinit();
         self.ssd_storage.deinit();
         self.allocator.destroy(self);
     }

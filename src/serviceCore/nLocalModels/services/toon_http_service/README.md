@@ -229,7 +229,7 @@ brew install zig
 ### Build
 
 ```bash
-cd src/serviceCore/serviceShimmy-mojo/services/toon_http_service
+cd src/serviceCore/nLocalModels/services/toon_http_service
 
 # Build Zig HTTP server
 zig build -Doptimize=ReleaseFast

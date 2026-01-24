@@ -354,14 +354,14 @@ fn forwardToLLM(allocator: mem.Allocator, endpoint: []const u8, path: []const u8
     _ = try stream.write(http_request);
 
     // Read response
-    var response_buf = std.ArrayList(u8).init(allocator);
-    defer response_buf.deinit();
+    var response_buf = std.ArrayList(u8){};
+    defer response_buf.deinit(allocator);
 
     var read_buf: [4096]u8 = undefined;
     while (true) {
         const bytes_read = stream.read(&read_buf) catch break;
         if (bytes_read == 0) break;
-        try response_buf.appendSlice(read_buf[0..bytes_read]);
+        try response_buf.appendSlice(allocator, read_buf[0..bytes_read]);
     }
 
     // Extract response body

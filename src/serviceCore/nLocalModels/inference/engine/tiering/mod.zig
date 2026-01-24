@@ -5,7 +5,7 @@
 // - SSD-backed KV cache for 100K+ context on limited RAM
 // - Memory-mapped GGUF loading for zero-copy model weights
 // - Tiered tensor storage (hot/warm/cold)
-// - Distributed caching via DragonflyDB
+// - Distributed caching via SAP HANA
 // - Unified API for all tiering operations
 //
 // Architecture inspired by DragonflyDB's tiering system
@@ -84,7 +84,6 @@ pub const AsyncIOConfig = async_io.AsyncIOConfig;
 //        .max_ram_mb = 4096,
 //        .max_ssd_mb = 32768,
 //        .enable_distributed = true,
-//        .dragonfly_host = "localhost",
 //    });
 //    defer tier.deinit();
 //
@@ -127,4 +126,3 @@ pub const AsyncIOConfig = async_io.AsyncIOConfig;
 //
 // This enables running 70B models on consumer hardware!
 //
-

@@ -196,7 +196,7 @@ struct SchemaMetadata:
     var version: String
     var graph_name: String
     var description: String
-    var source: String  # "manual", "neo4j", "memgraph", "hana", "merged"
+    var source: String  # "manual", "hana", "merged"
     var last_updated: String
     
     fn __init__(

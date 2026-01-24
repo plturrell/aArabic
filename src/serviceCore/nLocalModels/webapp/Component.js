@@ -41,8 +41,7 @@ sap.ui.define([
 				tiers: {
 					gpu: { used: 0, total: 0, hitRate: 0 },
 					ram: { used: 0, total: 0, hitRate: 0 },
-					dragonfly: { used: 0, total: 0, hitRate: 0 },
-					postgres: { used: 0, total: 0, hitRate: 0 },
+					hana: { used: 0, total: 0, hitRate: 0 },
 					ssd: { used: 0, total: 0, hitRate: 0 }
 				},
 				cache: { totalHitRate: 0, sharingRatio: 0, compressionRatio: 0, evictions: 0 },

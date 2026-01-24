@@ -35,7 +35,7 @@ This project implements a complete transformer-based language model inference sy
 
 ```bash
 # Clone the repository
-cd src/serviceCore/serviceShimmy-mojo/inference
+cd src/serviceCore/nLocalModels/inference
 
 # Build the project
 zig build

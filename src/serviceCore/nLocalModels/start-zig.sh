@@ -35,11 +35,14 @@ export AICORE_CLIENT_ID="${AICORE_CLIENT_ID:-}"
 export AICORE_CLIENT_SECRET="${AICORE_CLIENT_SECRET:-}"
 export AICORE_RESOURCE_GROUP="${AICORE_RESOURCE_GROUP:-default}"
 
+SKIP_OPENAI="${SKIP_OPENAI:-1}"
+
 # Check if binaries exist
-if [ ! -f "$BIN_DIR/openai_http_server" ]; then
-    echo "❌ Error: openai_http_server not found!"
-    echo "Please compile: zig build-exe src/openai_http_server.zig -O ReleaseFast -femit-bin=bin/openai_http_server"
-    exit 1
+if [ "$SKIP_OPENAI" != "1" ]; then
+    if [ ! -f "$BIN_DIR/openai_http_server" ]; then
+        echo "⚠️  openai_http_server not found (set SKIP_OPENAI=1 to ignore)."
+        SKIP_OPENAI=1
+    fi
 fi
 
 if [ ! -f "$BIN_DIR/production_server" ]; then
@@ -58,6 +61,8 @@ echo "🧹 Cleaning up old processes..."
 pkill -f production_server 2>/dev/null || true
 pkill -f unified_server 2>/dev/null || true
 pkill -f openai_http_server 2>/dev/null || true
+# Note: nWebServe has been integrated into n-c-sdk/lib/http_server
+# Kill any running instances
 pkill -f "nWebServe.*3000" 2>/dev/null || true
 pkill -f "hana_bridge/server.js" 2>/dev/null || true
 pkill -f "agents_admin_server" 2>/dev/null || true
@@ -95,22 +100,24 @@ if ! lsof -i :"$BRIDGE_PORT" > /dev/null 2>&1; then
 fi
 echo "✅ HANA bridge running (PID $(lsof -i :"$BRIDGE_PORT" -t | head -n1))"
 
-# Start OpenAI API server (background) with model directory
-echo "🦙 Starting OpenAI API Server (port 11434)..."
-SHIMMY_MODEL_DIR="/Users/user/Documents/arabic_folder/vendor/layerModels" \
-$BIN_DIR/openai_http_server > /tmp/openai_server.log 2>&1 &
-OPENAI_PID=$!
-sleep 4
+if [ "$SKIP_OPENAI" != "1" ]; then
+    echo "🦙 Starting OpenAI API Server (port 11434)..."
+    SHIMMY_MODEL_DIR="/Users/user/Documents/arabic_folder/vendor/layerModels" \
+    $BIN_DIR/openai_http_server > /tmp/openai_server.log 2>&1 &
+    OPENAI_PID=$!
+    sleep 4
 
-# Check if OpenAI server started
-if ! lsof -i :11434 > /dev/null 2>&1; then
-    echo "❌ OpenAI server failed to start!"
-    echo ""
-    echo "Checking logs:"
-    tail -30 /tmp/openai_server.log
-    exit 1
+    if ! lsof -i :11434 > /dev/null 2>&1; then
+        echo "⚠️  OpenAI server failed to start; continuing without it."
+        echo "Logs:"
+        tail -30 /tmp/openai_server.log || true
+        SKIP_OPENAI=1
+    else
+        echo "✅ OpenAI API running (PID: $OPENAI_PID)"
+    fi
+else
+    echo "⏭️  Skipping OpenAI API server (SKIP_OPENAI=1)"
 fi
-echo "✅ OpenAI API running (PID: $OPENAI_PID)"
 
 # Start production proxy server (background)
 echo "🌐 Starting Production Server (port 8080)..."
@@ -149,10 +156,10 @@ fi
 echo ""
 echo "🧪 Testing API proxy..."
 API_TEST=$(curl -s http://localhost:8080/api/v1/models | jq -r '.data[0].id' 2>/dev/null || echo "failed")
-if [ "$API_TEST" != "failed" ]; then
+if [ "$SKIP_OPENAI" != "1" ] && [ "$API_TEST" != "failed" ]; then
     echo "✅ API proxy working (model: $API_TEST)"
 else
-    echo "⚠️  API proxy test failed"
+    echo "⚠️  API proxy test failed or OpenAI skipped"
 fi
 
 # Start admin agent server

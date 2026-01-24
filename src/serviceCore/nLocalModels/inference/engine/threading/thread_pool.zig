@@ -68,7 +68,7 @@ pub const ThreadPool = struct {
         };
         
         // Initialize ArrayList properly
-        pool.task_queue = std.ArrayList(Task).init(allocator);
+        pool.task_queue = try std.ArrayList(Task).initCapacity(allocator, config.queue_size);
         
         // DON'T start threads yet - they would have invalid pointer after return
         // Threads will be started after pool is in its final memory location
@@ -96,7 +96,7 @@ pub const ThreadPool = struct {
         }
         
         self.allocator.free(self.threads);
-        self.task_queue.deinit();
+        self.task_queue.deinit(self.allocator);
     }
     
     /// Submit a task to the thread pool
@@ -108,7 +108,7 @@ pub const ThreadPool = struct {
             return error.PoolShutdown;
         }
         
-        try self.task_queue.append(task);
+        try self.task_queue.append(self.allocator, task);
         self.condition.signal();
     }
     

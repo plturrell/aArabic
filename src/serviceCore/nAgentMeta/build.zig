@@ -14,10 +14,6 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
-    // Add C library for SQLite (testing only)
-    exe.linkLibC();
-    exe.linkSystemLibrary("sqlite3");
-
     b.installArtifact(exe);
 
     // Run command
@@ -38,8 +34,6 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }),
     });
-    unit_tests.linkLibC();
-    unit_tests.linkSystemLibrary("sqlite3");
 
     const run_unit_tests = b.addRunArtifact(unit_tests);
     const test_step = b.step("test", "Run unit tests");

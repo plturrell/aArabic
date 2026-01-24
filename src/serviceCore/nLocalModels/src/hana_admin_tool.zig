@@ -25,7 +25,7 @@ pub fn main() !void {
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    var args = try std.process.argsAlloc(allocator);
+    const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
     if (args.len < 2) {
         usage();
@@ -49,7 +49,7 @@ pub fn main() !void {
         const offset = if (args.len > 3) std.fmt.parseInt(usize, args[3], 10) catch 0 else 0;
         const data = try agent.listPrompts(limit, offset);
         defer allocator.free(data);
-        try std.io.getStdOut().writeAll(data);
+        std.debug.print("{s}", .{data});
         return;
     }
 
@@ -83,7 +83,7 @@ pub fn main() !void {
         const offset = if (args.len > 3) std.fmt.parseInt(usize, args[3], 10) catch 0 else 0;
         const data = try agent.listComparisons(limit, offset);
         defer allocator.free(data);
-        try std.io.getStdOut().writeAll(data);
+        std.debug.print("{s}", .{data});
         return;
     }
 

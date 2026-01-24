@@ -27,9 +27,9 @@ const markdown = nExtract.markdown;
 const html = nExtract.html;
 const xml = nExtract.xml;
 
-// Import DragonflyDB client
-const dragonfly = @import("../cache/dragonfly/dragonfly_client.zig");
-const DragonflyClient = dragonfly.DragonflyClient;
+// Import HANA cache client
+const hana_cache = @import("../cache/hana/hana_cache.zig");
+const HanaCache = hana_cache.HanaCache;
 
 // Import unified doc cache
 const unified_cache = @import("../document_cache/unified_doc_cache.zig");
@@ -226,10 +226,16 @@ pub const PipelineMetrics = struct {
 pub const PipelineConfig = struct {
     /// Max items per stage queue (backpressure threshold)
     max_queue_size: usize = 100,
-    /// DragonflyDB host
-    cache_host: []const u8 = "127.0.0.1",
-    /// DragonflyDB port
-    cache_port: u16 = 6379,
+    /// HANA host
+    cache_host: []const u8 = "localhost",
+    /// HANA port
+    cache_port: u16 = 30015,
+    /// HANA database
+    cache_database: []const u8 = "NOPENAI_DB",
+    /// HANA user
+    cache_user: []const u8 = "SHIMMY_USER",
+    /// HANA password
+    cache_password: []const u8 = "",
     /// Default TTL for cached documents (seconds)
     default_ttl: u32 = 3600,
     /// Batch size for efficient processing
@@ -586,7 +592,7 @@ pub const ExtractionPipeline = struct {
         item.parsed_content = parsed;
     }
 
-    /// Cache stage: Store in DragonflyDB
+    /// Cache stage: Store in HANA
     fn executeCache(self: *Self, item: *PipelineItem) !void {
         if (self.cache_client) |client| {
             const content = item.parsed_content orelse item.content;

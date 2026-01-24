@@ -61,7 +61,7 @@ pub const SafeTensorsSharded = struct {
             .base_path = base_path,
             .index = ShardIndex.init(allocator),
             .shards = std.StringHashMap(safetensors.SafeTensorsFile).init(allocator),
-            .shard_files = std.ArrayList([]const u8).init(allocator),
+            .shard_files = .empty,
         };
     }
     
@@ -78,7 +78,7 @@ pub const SafeTensorsSharded = struct {
         for (self.shard_files.items) |shard_file| {
             self.allocator.free(shard_file);
         }
-        self.shard_files.deinit();
+        self.shard_files.deinit(self.allocator);
         
         self.index.deinit();
     }
@@ -146,7 +146,7 @@ pub const SafeTensorsSharded = struct {
                         }
                         
                         if (!found) {
-                            try self.shard_files.append(try self.allocator.dupe(u8, shard_file.string));
+                            try self.shard_files.append(self.allocator, try self.allocator.dupe(u8, shard_file.string));
                         }
                     }
                 }

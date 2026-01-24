@@ -41,10 +41,13 @@ pub const UnifiedTierConfig = struct {
     ssd_path: []const u8 = "/tmp/shimmy_tier",
     max_ssd_mb: u64 = 32768,       // 32GB SSD budget
     
-    // Distributed settings
+    // Distributed settings (HANA-backed)
     enable_distributed: bool = false,
-    dragonfly_host: []const u8 = "127.0.0.1",
-    dragonfly_port: u16 = 6379,
+    hana_host: []const u8 = "localhost",
+    hana_port: u16 = 30015,
+    hana_database: []const u8 = "NOPENAI_DB",
+    hana_user: []const u8 = "SHIMMY_USER",
+    hana_password: []const u8 = "",
     
     // Feature flags
     enable_kv_tiering: bool = true,
@@ -119,12 +122,15 @@ pub const UnifiedTierManager = struct {
             kv_cache = try tiered_kv.TieredKVCache.init(allocator, kv_config);
         }
         
-        // Initialize distributed tier
+        // Initialize distributed tier (HANA-backed)
         var distributed_tier: ?*distributed.DistributedKVTier = null;
         if (config.enable_distributed) {
             const dist_config = distributed.DistributedConfig{
-                .dragonfly_host = config.dragonfly_host,
-                .dragonfly_port = config.dragonfly_port,
+                .hana_host = config.hana_host,
+                .hana_port = config.hana_port,
+                .hana_database = config.hana_database,
+                .hana_user = config.hana_user,
+                .hana_password = config.hana_password,
             };
             distributed_tier = distributed.DistributedKVTier.init(allocator, dist_config) catch |err| {
                 std.debug.print("   ⚠️  Distributed tier unavailable: {}\n", .{err});

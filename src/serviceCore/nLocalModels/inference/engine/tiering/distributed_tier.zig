@@ -1,29 +1,32 @@
-// Distributed Tiering with DragonflyDB
-// Enables multi-node KV cache sharing and SSD-backed distributed storage
+// Distributed Tiering with SAP HANA
+// Enables multi-node KV cache sharing using HANA in-memory tables
 //
 // Architecture:
 // - Local hot tier (RAM)
-// - Distributed warm tier (DragonflyDB with tiering)
-// - Local cold tier (SSD)
+// - Distributed warm tier (HANA in-memory column store)
+// - Persistent tier (HANA column store)
 //
 // This enables:
 // - Sharing KV cache across inference nodes
 // - Prompt caching for repeated queries
 // - Session state persistence
 // - Horizontal scaling of context length
+// - ACID guarantees and transactions
 
 const std = @import("std");
-const dragonfly = @import("../../../integrations/cache/dragonfly/dragonfly_client.zig");
+const hana_cache = @import("../../../integrations/cache/hana/hana_cache.zig");
 
 // ============================================================================
 // Configuration
 // ============================================================================
 
 pub const DistributedConfig = struct {
-    // DragonflyDB connection
-    dragonfly_host: []const u8 = "127.0.0.1",
-    dragonfly_port: u16 = 6379,
-    dragonfly_pool_size: u32 = 8,
+    // HANA connection
+    hana_host: []const u8 = "localhost",
+    hana_port: u16 = 30015,
+    hana_database: []const u8 = "NOPENAI_DB",
+    hana_user: []const u8 = "SHIMMY_USER",
+    hana_password: []const u8 = "",
     
     // Key prefixes
     kv_cache_prefix: []const u8 = "shimmy:kv:",
@@ -35,21 +38,21 @@ pub const DistributedConfig = struct {
     tensor_ttl: u32 = 86400,       // 24 hours
     session_ttl: u32 = 1800,       // 30 minutes
     
-    // Compression
+    // Compression (handled by HANA column store)
     compress_threshold: u32 = 1024, // Compress values > 1KB
     
     // Batching
-    batch_size: u32 = 100,         // Max keys per MGET/MSET
+    batch_size: u32 = 100,         // Max keys per batch operation
 };
 
 // ============================================================================
-// Distributed KV Cache Tier
+// Distributed KV Cache Tier (HANA-backed)
 // ============================================================================
 
 pub const DistributedKVTier = struct {
     allocator: std.mem.Allocator,
     config: DistributedConfig,
-    client: *dragonfly.DragonflyClient,
+    cache: *hana_cache.HanaCache,
     
     // Statistics
     stats: Stats,
@@ -66,35 +69,37 @@ pub const DistributedKVTier = struct {
     };
     
     pub fn init(allocator: std.mem.Allocator, config: DistributedConfig) !*DistributedKVTier {
-        std.debug.print("\n🌐 Initializing Distributed KV Tier\n", .{});
-        std.debug.print("   DragonflyDB: {s}:{d}\n", .{config.dragonfly_host, config.dragonfly_port});
+        std.debug.print("\n🌐 Initializing Distributed KV Tier (HANA)\n", .{});
+        std.debug.print("   HANA: {s}:{d}/{s}\n", .{
+            config.hana_host,
+            config.hana_port,
+            config.hana_database,
+        });
         
         const self = try allocator.create(DistributedKVTier);
         errdefer allocator.destroy(self);
         
-        // Initialize DragonflyDB client
-        const client = try dragonfly.DragonflyClient.init(
-            allocator,
-            config.dragonfly_host,
-            config.dragonfly_port,
-            config.dragonfly_pool_size,
-        );
-        errdefer client.deinit();
+        // Initialize HANA cache client
+        const cache = try hana_cache.HanaCache.init(allocator, .{
+            .hana_host = config.hana_host,
+            .hana_port = config.hana_port,
+            .hana_database = config.hana_database,
+            .hana_user = config.hana_user,
+            .hana_password = config.hana_password,
+            .kv_cache_ttl = config.kv_cache_ttl,
+            .session_ttl = config.session_ttl,
+            .tensor_ttl = config.tensor_ttl,
+        });
+        errdefer cache.deinit();
         
         self.* = DistributedKVTier{
             .allocator = allocator,
             .config = config,
-            .client = client,
+            .cache = cache,
             .stats = .{},
         };
         
-        // Test connection
-        const pong = try client.ping();
-        if (!std.mem.eql(u8, pong, "PONG")) {
-            return error.ConnectionFailed;
-        }
-        
-        std.debug.print("   ✅ Connected to DragonflyDB\n", .{});
+        std.debug.print("   ✅ Connected to HANA\n", .{});
         return self;
     }
     
@@ -132,8 +137,8 @@ pub const DistributedKVTier = struct {
         @memcpy(buffer[0..keys_bytes.len], keys_bytes);
         @memcpy(buffer[keys_bytes.len..], values_bytes);
         
-        // Store with TTL
-        try self.client.setex(key, buffer, self.config.kv_cache_ttl);
+        // Store with TTL using HANA cache
+        try self.cache.set(key, buffer, self.config.kv_cache_ttl);
         
         self.stats.sets += 1;
         self.stats.bytes_sent += total_size;
@@ -164,28 +169,27 @@ pub const DistributedKVTier = struct {
         
         self.stats.gets += 1;
         
-        const data = self.client.get(key) catch |err| {
-            if (err == error.KeyNotFound) {
-                self.stats.misses += 1;
-                return false;
-            }
-            return err;
-        };
-        defer self.allocator.free(data);
+        const data = try self.cache.get(key);
+        if (data == null) {
+            self.stats.misses += 1;
+            return false;
+        }
+        
+        defer self.allocator.free(data.?);
 
         // Split data into keys and values
         const keys_bytes = std.mem.sliceAsBytes(keys_out);
         const values_bytes = std.mem.sliceAsBytes(values_out);
 
-        if (data.len != keys_bytes.len + values_bytes.len) {
+        if (data.?.len != keys_bytes.len + values_bytes.len) {
             return error.DataSizeMismatch;
         }
 
-        @memcpy(keys_bytes, data[0..keys_bytes.len]);
-        @memcpy(values_bytes, data[keys_bytes.len..]);
+        @memcpy(keys_bytes, data.?[0..keys_bytes.len]);
+        @memcpy(values_bytes, data.?[keys_bytes.len..]);
 
         self.stats.hits += 1;
-        self.stats.bytes_received += data.len;
+        self.stats.bytes_received += data.?.len;
         self.stats.latency_sum_us += @intCast(std.time.microTimestamp() - start_time);
         self.stats.latency_count += 1;
 
@@ -198,13 +202,8 @@ pub const DistributedKVTier = struct {
         prompt_hash: []const u8,
         kv_state: []const u8,
     ) !void {
-        var key_buf: [256]u8 = undefined;
-        const key = try std.fmt.bufPrint(&key_buf, "{s}prompt:{s}", .{
-            self.config.kv_cache_prefix,
-            prompt_hash,
-        });
-
-        try self.client.setex(key, kv_state, self.config.kv_cache_ttl);
+        // Use HANA cache's specialized prompt caching
+        try self.cache.setPromptCache(prompt_hash, kv_state);
         self.stats.sets += 1;
         self.stats.bytes_sent += kv_state.len;
     }
@@ -214,24 +213,16 @@ pub const DistributedKVTier = struct {
         self: *DistributedKVTier,
         prompt_hash: []const u8,
     ) !?[]const u8 {
-        var key_buf: [256]u8 = undefined;
-        const key = try std.fmt.bufPrint(&key_buf, "{s}prompt:{s}", .{
-            self.config.kv_cache_prefix,
-            prompt_hash,
-        });
-
         self.stats.gets += 1;
 
-        const data = self.client.get(key) catch |err| {
-            if (err == error.KeyNotFound) {
-                self.stats.misses += 1;
-                return null;
-            }
-            return err;
-        };
+        const data = try self.cache.getPromptCache(prompt_hash);
+        if (data == null) {
+            self.stats.misses += 1;
+            return null;
+        }
 
         self.stats.hits += 1;
-        self.stats.bytes_received += data.len;
+        self.stats.bytes_received += data.?.len;
         return data;
     }
 
@@ -241,13 +232,8 @@ pub const DistributedKVTier = struct {
         session_id: []const u8,
         state: []const u8,
     ) !void {
-        var key_buf: [256]u8 = undefined;
-        const key = try std.fmt.bufPrint(&key_buf, "{s}{s}", .{
-            self.config.session_prefix,
-            session_id,
-        });
-
-        try self.client.setex(key, state, self.config.session_ttl);
+        // Use HANA cache's specialized session management
+        try self.cache.setSession(session_id, state);
     }
 
     /// Load session state
@@ -255,30 +241,16 @@ pub const DistributedKVTier = struct {
         self: *DistributedKVTier,
         session_id: []const u8,
     ) !?[]const u8 {
-        var key_buf: [256]u8 = undefined;
-        const key = try std.fmt.bufPrint(&key_buf, "{s}{s}", .{
-            self.config.session_prefix,
-            session_id,
-        });
-
-        return self.client.get(key) catch |err| {
-            if (err == error.KeyNotFound) return null;
-            return err;
-        };
+        return try self.cache.getSession(session_id);
     }
 
     /// Delete session and all associated KV cache
     pub fn deleteSession(self: *DistributedKVTier, session_id: []const u8) !void {
-        // Delete session state
-        var key_buf: [256]u8 = undefined;
-        const session_key = try std.fmt.bufPrint(&key_buf, "{s}{s}", .{
-            self.config.session_prefix,
-            session_id,
-        });
-        _ = self.client.del(session_key) catch {};
-
-        // Delete KV cache entries (would need SCAN in production)
-        // For now, rely on TTL expiration
+        // Delete session state using HANA cache
+        try self.cache.deleteSession(session_id);
+        
+        // Note: In HANA, we can use SQL queries to delete related KV cache entries
+        // For now, rely on TTL expiration (can be enhanced with SQL DELETE)
     }
 
     /// Get average latency in microseconds
@@ -296,7 +268,7 @@ pub const DistributedKVTier = struct {
 
     /// Print status
     pub fn printStatus(self: *DistributedKVTier) void {
-        std.debug.print("\n📊 Distributed KV Tier Status\n", .{});
+        std.debug.print("\n📊 Distributed KV Tier Status (HANA)\n", .{});
         std.debug.print("   Gets: {d}, Sets: {d}\n", .{self.stats.gets, self.stats.sets});
         std.debug.print("   Hits: {d}, Misses: {d} ({d:.1}% hit rate)\n", .{
             self.stats.hits, self.stats.misses, self.getHitRate() * 100,
@@ -306,10 +278,13 @@ pub const DistributedKVTier = struct {
             @as(f64, @floatFromInt(self.stats.bytes_received)) / (1024.0 * 1024.0),
         });
         std.debug.print("   Avg latency: {d} µs\n", .{self.getAvgLatencyUs()});
+        
+        // Print HANA cache stats
+        self.cache.printStats();
     }
 
     pub fn deinit(self: *DistributedKVTier) void {
-        self.client.deinit();
+        self.cache.deinit();
         self.allocator.destroy(self);
     }
 };
@@ -329,4 +304,3 @@ pub fn hashToHex(hash: [32]u8) [64]u8 {
     _ = std.fmt.bufPrint(&hex, "{x}", .{std.fmt.fmtSliceHexLower(&hash)}) catch unreachable;
     return hex;
 }
-

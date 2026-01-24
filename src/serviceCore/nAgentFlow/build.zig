@@ -4,24 +4,44 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    // Core Petri Net module
+    // zig-libc Configuration
+    const zig_libc_options = b.addOptions();
+    zig_libc_options.addOption(bool, "use_zig_libc", true);
+    const zig_libc_config = zig_libc_options.createModule();
+
+    // zig-libc Module (Rooted at src/lib.zig to allow internal relative imports)
+    const zig_libc_mod = b.addModule("zig_libc", .{
+        .root_source_file = b.path("../../nLang/n-c-sdk/lib/libc/zig-libc/src/lib.zig"),
+    });
+    zig_libc_mod.addImport("config", zig_libc_config);
+
+    // Core Petri Net module (compatibility wrapper)
     const petri_net_mod = b.addModule("petri_net", .{
         .root_source_file = b.path("core/petri_net.zig"),
     });
+    petri_net_mod.addImport("zig_libc", zig_libc_mod);
 
     // Create a single test step that will run all tests
     const test_step = b.step("test", "Run unit tests");
 
     // Tests for Petri Net
+    // Tests for Petri Net - Create module first to add dependencies
+    const petri_net_test_mod = b.createModule(.{
+        .root_source_file = b.path("core/petri_net.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    petri_net_test_mod.addImport("zig_libc", zig_libc_mod);
+
     const petri_net_tests = b.addTest(.{
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("core/petri_net.zig"),
-            .target = target,
-            .optimize = optimize,
-        }),
+        .root_module = petri_net_test_mod,
     });
     const run_petri_net_tests = b.addRunArtifact(petri_net_tests);
     test_step.dependOn(&run_petri_net_tests.step);
+    
+    // Focused test step for verification
+    const test_petri_step = b.step("test-petri", "Run Petri net tests");
+    test_petri_step.dependOn(&run_petri_net_tests.step);
 
     // Tests for Executor
     const executor_test_mod = b.createModule(.{
@@ -802,26 +822,6 @@ pub fn build(b: *std.Build) void {
     const run_vector_stores_tests = b.addRunArtifact(vector_stores_tests);
     test_step.dependOn(&run_vector_stores_tests.step);
 
-    // Day 37 PostgreSQL nodes module
-    const postgres_nodes_mod = b.addModule("postgres_nodes", .{
-        .root_source_file = b.path("nodes/postgres/postgres_nodes.zig"),
-    });
-    postgres_nodes_mod.addImport("node_types", node_types_mod);
-    
-    // Tests for PostgreSQL Nodes (Day 37)
-    const postgres_nodes_test_mod = b.createModule(.{
-        .root_source_file = b.path("nodes/postgres/postgres_nodes.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    postgres_nodes_test_mod.addImport("node_types", node_types_mod);
-    
-    const postgres_nodes_tests = b.addTest(.{
-        .root_module = postgres_nodes_test_mod,
-    });
-    const run_postgres_nodes_tests = b.addRunArtifact(postgres_nodes_tests);
-    test_step.dependOn(&run_postgres_nodes_tests.step);
-
     // HANA nodes module
     const hana_nodes_mod = b.addModule("hana_nodes", .{
         .root_source_file = b.path("nodes/hana/hana_nodes.zig"),
@@ -943,26 +943,6 @@ pub fn build(b: *std.Build) void {
     const run_keycloak_integration_tests = b.addRunArtifact(keycloak_integration_tests);
     test_step.dependOn(&run_keycloak_integration_tests.step);
 
-    // Day 39 DragonflyDB nodes module
-    const dragonfly_nodes_mod = b.addModule("dragonfly_nodes", .{
-        .root_source_file = b.path("nodes/dragonflydb/dragonfly_nodes.zig"),
-    });
-    dragonfly_nodes_mod.addImport("node_types", node_types_mod);
-
-    // Tests for DragonflyDB Nodes (Day 39)
-    const dragonfly_nodes_test_mod = b.createModule(.{
-        .root_source_file = b.path("nodes/dragonflydb/dragonfly_nodes.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    dragonfly_nodes_test_mod.addImport("node_types", node_types_mod);
-
-    const dragonfly_nodes_tests = b.addTest(.{
-        .root_module = dragonfly_nodes_test_mod,
-    });
-    const run_dragonfly_nodes_tests = b.addRunArtifact(dragonfly_nodes_tests);
-    test_step.dependOn(&run_dragonfly_nodes_tests.step);
-
     // Lean4 nLeanProof Integration Nodes
     const lean_nodes_mod = b.addModule("lean_nodes", .{
         .root_source_file = b.path("nodes/lean/lean_nodes.zig"),
@@ -1072,27 +1052,16 @@ pub fn build(b: *std.Build) void {
     const run_auth_tests = b.addRunArtifact(auth_tests);
     test_step.dependOn(&run_auth_tests.step);
 
-    // Tests for DragonflyDB Client
-    const dragonfly_client_tests = b.addTest(.{
+    // Tests for HANA Cache
+    const hana_cache_tests = b.addTest(.{
         .root_module = b.createModule(.{
-            .root_source_file = b.path("cache/dragonfly_client.zig"),
+            .root_source_file = b.path("cache/hana_cache.zig"),
             .target = target,
             .optimize = optimize,
         }),
     });
-    const run_dragonfly_client_tests = b.addRunArtifact(dragonfly_client_tests);
-    test_step.dependOn(&run_dragonfly_client_tests.step);
-
-    // Tests for PostgreSQL Store
-    const postgres_store_tests = b.addTest(.{
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("persistence/postgres_store.zig"),
-            .target = target,
-            .optimize = optimize,
-        }),
-    });
-    const run_postgres_store_tests = b.addRunArtifact(postgres_store_tests);
-    test_step.dependOn(&run_postgres_store_tests.step);
+    const run_hana_cache_tests = b.addRunArtifact(hana_cache_tests);
+    test_step.dependOn(&run_hana_cache_tests.step);
 
     // Tests for HANA Store
     const hana_store_tests = b.addTest(.{

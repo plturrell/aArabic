@@ -1,6 +1,6 @@
 //! Mojo Compiler Integration for nLocalModels Orchestration
-//! Bridges the Custom Mojo SDK (in codeCore) with nLocalModels orchestration system
-//!
+//! Bridges the Custom Mojo SDK (from src/nLang/n-python-sdk) with nLocalModels orchestration system
+//! 
 //! Purpose:
 //! - Integrate mojo-sdk for `code` category tasks
 //! - Provide JIT and AOT compilation capabilities
@@ -8,7 +8,7 @@
 //! - Support model-generated code execution
 //!
 //! Architecture:
-//! nLocalModels → ModelSelector → MojoCompilerBridge → mojo-sdk (codeCore)
+//! nLocalModels → ModelSelector → MojoCompilerBridge → mojo-sdk (nLang)
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
@@ -94,7 +94,7 @@ pub const MojoCompilerBridge = struct {
     mojo_binary_path: []const u8,
     
     /// Initialize the bridge
-    /// mojo_sdk_path: Path to mojo-sdk directory (e.g., "../../codeCore/mojo-sdk")
+    /// mojo_sdk_path: Path to mojo-sdk directory (e.g., "../../nLang/n-python-sdk")
     pub fn init(allocator: Allocator, mojo_sdk_path: []const u8) !*MojoCompilerBridge {
         const bridge = try allocator.create(MojoCompilerBridge);
         
@@ -401,7 +401,7 @@ test "MojoCompilerBridge initialization" {
     
     const bridge = try MojoCompilerBridge.init(
         allocator,
-        "../../../codeCore/mojo-sdk",
+        "../../../nLang/n-python-sdk",
     );
     defer bridge.deinit();
     
@@ -429,7 +429,7 @@ test "CodeCategoryHandler initialization" {
     
     const handler = try CodeCategoryHandler.init(
         allocator,
-        "../../../codeCore/mojo-sdk",
+        "../../../nLang/n-python-sdk",
     );
     defer handler.deinit();
     

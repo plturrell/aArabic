@@ -10,8 +10,8 @@ const std = @import("std");
 const capability_scorer = @import("capability_scorer.zig");
 const auto_assign = @import("auto_assign.zig");
 const performance_metrics = @import("performance_metrics.zig");
-const HanaClient = @import("../../hana/core/client.zig").HanaClient;
-const hana_queries = @import("../../hana/core/queries.zig");
+const HanaClient = @import("../../../../nLang/n-c-sdk/lib/hana/client.zig").HanaClient;
+const hana_queries = @import("../../../../nLang/n-c-sdk/lib/hana/queries.zig");
 
 // Type aliases
 const ModelCapabilityProfile = capability_scorer.ModelCapabilityProfile;

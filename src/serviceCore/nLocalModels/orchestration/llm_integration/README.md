@@ -40,7 +40,7 @@ Natural Language Query
 ### 1. Start shimmy_openai_server
 
 ```bash
-cd src/serviceCore/serviceShimmy-mojo
+cd src/serviceCore/nLocalModels
 ./shimmy_openai_server
 ```
 
@@ -271,7 +271,7 @@ var query = translator.translate("Find suppliers with delays")
 **Solution:**
 ```bash
 # Start shimmy_openai_server
-cd src/serviceCore/serviceShimmy-mojo
+cd src/serviceCore/nLocalModels
 ./shimmy_openai_server
 ```
 
@@ -327,7 +327,7 @@ test_llm_translator()
 
 ```bash
 # Run comprehensive tests
-cd src/serviceCore/serviceShimmy-mojo
+cd src/serviceCore/nLocalModels
 mojo orchestration/tests/llm_integration_test.mojo
 ```
 

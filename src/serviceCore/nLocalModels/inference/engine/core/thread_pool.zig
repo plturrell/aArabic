@@ -65,7 +65,7 @@ pub const ThreadPool = struct {
         _ = self.pending_count.fetchAdd(1, .seq_cst);
         self.mutex.lock();
         defer self.mutex.unlock();
-        self.queue.append(work_item) catch {
+        self.queue.append(self.allocator, work_item) catch {
             _ = self.pending_count.fetchSub(1, .seq_cst);
             return;
         };
@@ -152,4 +152,3 @@ test "thread pool serial mode" {
     pool.submit(.{ .work_fn = Context.work, .context = @ptrCast(&ctx) });
     try std.testing.expectEqual(@as(usize, 1), value);
 }
-

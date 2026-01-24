@@ -122,7 +122,7 @@ pub const AICoreConfig = struct {
     /// Allocate and track a string copy
     fn allocString(self: *Self, source: []const u8) ![]const u8 {
         const copy = try self.allocator.dupe(u8, source);
-        try self.owned_strings.append(copy);
+        try self.owned_strings.append(self.allocator, copy);
         return copy;
     }
 
@@ -384,4 +384,3 @@ test "GpuType: toString and fromString" {
     try std.testing.expectEqual(GpuType.A100, GpuType.fromString("A100").?);
     try std.testing.expectEqual(@as(?GpuType, null), GpuType.fromString("INVALID"));
 }
-

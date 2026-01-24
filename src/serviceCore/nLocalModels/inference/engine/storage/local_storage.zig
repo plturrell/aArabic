@@ -128,12 +128,12 @@ pub const LocalStorage = struct {
         var result: std.ArrayListUnmanaged([]const u8) = .empty;
         errdefer {
             for (result.items) |item| allocator.free(item);
-            result.deinit();
+            result.deinit(allocator);
         }
 
         const search_dir = if (search_path.len == 0) "." else search_path;
         var dir = std.fs.cwd().openDir(search_dir, .{ .iterate = true }) catch |err| {
-            if (err == error.FileNotFound) return result.toOwnedSlice();
+            if (err == error.FileNotFound) return result.toOwnedSlice(allocator);
             return mapOpenError(err);
         };
         defer dir.close();
@@ -146,11 +146,11 @@ pub const LocalStorage = struct {
                     try std.fmt.allocPrint(allocator, "{s}/{s}", .{ dir_path, entry.name })
                 else
                     try allocator.dupe(u8, entry.name);
-                try result.append(full_name);
+                try result.append(allocator, full_name);
             }
         }
 
-        return result.toOwnedSlice();
+        return result.toOwnedSlice(allocator);
     }
 
     fn deleteFile(ctx: *anyopaque, path: []const u8) anyerror!void {

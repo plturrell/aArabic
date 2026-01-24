@@ -6,11 +6,10 @@ Enterprise-grade real-time monitoring dashboard for the LLM inference server bui
 
 ### Day 22 Monitoring Visualizations
 
-**Tier Statistics (5-Tier System)**
+**Tier Statistics (HANA-Centric Tiering)**
 - GPU Memory tier with radial microcharts
 - RAM tier visualization
-- DragonflyDB tier metrics
-- PostgreSQL tier analytics
+- HANA cache tier metrics
 - SSD tier monitoring
 - Real-time hit rates and usage percentages
 
@@ -97,8 +96,7 @@ webapp/
     tiers: {
       gpu: { used: 24.5, total: 80, hitRate: 0.85 },
       ram: { used: 48.2, total: 128, hitRate: 0.72 },
-      dragonfly: { used: 12.1, total: 64, hitRate: 0.65 },
-      postgres: { used: 5.3, total: 100, hitRate: 0.45 },
+      hana: { used: 12.1, total: 64, hitRate: 0.65 },
       ssd: { used: 250, total: 1000, hitRate: 0.30 }
     },
     cache: {

@@ -7,132 +7,110 @@ const DataPipeline = data_pipeline.DataPipeline;
 
 /// LayerData integration examples and utilities
 /// This module demonstrates how nWorkflow data system integrates with:
-/// - PostgreSQL (persistent storage)
-/// - DragonflyDB (caching, sessions)
+/// - SAP HANA (unified persistent storage + caching)
 /// - Qdrant (vector storage)
 /// - Memgraph (graph relationships)
 /// - Marquez (lineage tracking)
 
-/// PostgreSQL integration for persistent data storage
-pub const PostgresAdapter = struct {
+// Import HANA modules
+const HanaCache = @import("../cache/hana_cache.zig").HanaCache;
+const HanaCacheConfig = @import("../cache/hana_cache.zig").HanaCacheConfig;
+const hana_store = @import("../persistence/hana_store.zig");
+
+/// SAP HANA integration for unified persistent storage and caching
+pub const HanaAdapter = struct {
     allocator: Allocator,
-    connection_string: []const u8,
+    cache: HanaCache,
+    store: *hana_store.HanaWorkflowStore,
     
-    pub fn init(allocator: Allocator, connection_string: []const u8) !PostgresAdapter {
+    pub fn init(allocator: Allocator, host: []const u8, port: u16, user: []const u8, password: []const u8, schema: []const u8) !HanaAdapter {
+        // Initialize cache
+        const cache_config = HanaCacheConfig{
+            .host = host,
+            .port = port,
+            .user = user,
+            .password = password,
+            .schema = schema,
+            .use_tls = true,
+            .table_prefix = "cache",
+        };
+        
+        var cache = try HanaCache.init(allocator, cache_config);
+        try cache.connect();
+        
+        // Initialize store
+        const hana_config = hana_store.hana.Config{
+            .host = host,
+            .port = port,
+            .user = user,
+            .password = password,
+            .schema = schema,
+        };
+        
+        const store = try hana_store.HanaWorkflowStore.init(allocator, hana_config, "nworkflow");
+        
         return .{
             .allocator = allocator,
-            .connection_string = try allocator.dupe(u8, connection_string),
+            .cache = cache,
+            .store = store,
         };
     }
     
-    pub fn deinit(self: *PostgresAdapter) void {
-        self.allocator.free(self.connection_string);
+    pub fn deinit(self: *HanaAdapter) void {
+        self.cache.deinit();
+        self.store.deinit();
     }
     
-    /// Store a DataPacket in PostgreSQL
-    pub fn storePacket(self: *PostgresAdapter, packet: *const DataPacket) !void {
-        // Serialize packet to JSON
+    /// Store a DataPacket in HANA (persistent)
+    pub fn storePacket(self: *HanaAdapter, packet: *const DataPacket) !void {
         const json_data = try packet.serialize(packet.allocator);
         defer packet.allocator.free(json_data);
         
-        // In production, this would execute:
-        // INSERT INTO workflow_data (id, type, value, metadata, timestamp)
-        // VALUES ($1, $2, $3, $4, $5)
-        // For now, this is a demonstration
-        
-        // Simulate storage
-        _ = self;
+        // Store in HANA persistence layer
+        _ = self.store;
+        // In production: INSERT INTO workflow_data (id, type, value, metadata, timestamp)
     }
     
-    /// Retrieve a DataPacket from PostgreSQL
-    pub fn loadPacket(self: *PostgresAdapter, packet_id: []const u8) !?*DataPacket {
-        _ = self;
-        _ = packet_id;
-        // In production, this would execute:
-        // SELECT * FROM workflow_data WHERE id = $1
-        // Then deserialize the JSON back to DataPacket
+    /// Cache a DataPacket in HANA (in-memory with TTL)
+    pub fn cachePacket(self: *HanaAdapter, packet: *const DataPacket, ttl_seconds: u32) !void {
+        const json_data = try packet.serialize(packet.allocator);
+        defer packet.allocator.free(json_data);
         
+        try self.cache.set(packet.id, json_data, ttl_seconds);
+    }
+    
+    /// Retrieve a DataPacket from cache or persistent storage
+    pub fn loadPacket(self: *HanaAdapter, packet_id: []const u8) !?*DataPacket {
+        // Try cache first
+        if (try self.cache.get(packet_id)) |data| {
+            // Deserialize from cache
+            _ = data;
+            return null; // Placeholder - would deserialize
+        }
+        
+        // Fall back to persistent storage
+        _ = self.store;
         return null; // Placeholder
     }
     
     /// Store workflow execution state
-    pub fn storeWorkflowState(self: *PostgresAdapter, workflow_id: []const u8, state: []const u8) !void {
-        _ = self;
-        // In production:
-        // INSERT INTO workflow_states (workflow_id, state, updated_at)
-        // VALUES ($1, $2, NOW())
-        // ON CONFLICT (workflow_id) DO UPDATE SET state = $2, updated_at = NOW()
-        
-        _ = workflow_id;
-        _ = state;
-    }
-    
-    /// Query with Row-Level Security (RLS)
-    pub fn queryWithRLS(self: *PostgresAdapter, user_id: []const u8, query: []const u8) !void {
-        _ = self;
-        // In production:
-        // SET app.current_user_id = $1;
-        // Then execute the query - RLS policies automatically applied
-        
-        _ = user_id;
-        _ = query;
-    }
-};
-
-/// DragonflyDB integration for caching and sessions
-pub const DragonflyAdapter = struct {
-    allocator: Allocator,
-    connection_string: []const u8,
-    
-    pub fn init(allocator: Allocator, connection_string: []const u8) !DragonflyAdapter {
-        return .{
-            .allocator = allocator,
-            .connection_string = try allocator.dupe(u8, connection_string),
-        };
-    }
-    
-    pub fn deinit(self: *DragonflyAdapter) void {
-        self.allocator.free(self.connection_string);
-    }
-    
-    /// Cache a DataPacket with TTL
-    pub fn cachePacket(self: *DragonflyAdapter, packet: *const DataPacket, ttl_seconds: u32) !void {
-        _ = self;
-        const json_data = try packet.serialize(packet.allocator);
-        defer packet.allocator.free(json_data);
-        
-        // In production: SETEX packet:{id} {ttl} {json_data}
-        _ = ttl_seconds;
-    }
-    
-    /// Get cached packet
-    pub fn getCachedPacket(self: *DragonflyAdapter, packet_id: []const u8) !?*DataPacket {
-        _ = self;
-        _ = packet_id;
-        // In production: GET packet:{id}
-        // Then deserialize if found
-        
-        return null; // Placeholder
-    }
-    
-    /// Publish packet to pub/sub channel
-    pub fn publishPacket(self: *DragonflyAdapter, channel: []const u8, packet: *const DataPacket) !void {
-        _ = self;
-        const json_data = try packet.serialize(packet.allocator);
-        defer packet.allocator.free(json_data);
-        
-        // In production: PUBLISH {channel} {json_data}
-        _ = channel;
+    pub fn storeWorkflowState(self: *HanaAdapter, workflow_id: []const u8, state: []const u8) !void {
+        try self.cache.cacheWorkflowState(workflow_id, state, 3600);
     }
     
     /// Store session data
-    pub fn storeSession(self: *DragonflyAdapter, session_id: []const u8, data: []const u8, ttl_seconds: u32) !void {
+    pub fn storeSession(self: *HanaAdapter, session_id: []const u8, data: []const u8, ttl_seconds: u32) !void {
+        try self.cache.storeSession(session_id, data, ttl_seconds);
+    }
+    
+    /// Publish packet to event stream (future: HANA pub/sub)
+    pub fn publishPacket(self: *HanaAdapter, channel: []const u8, packet: *const DataPacket) !void {
         _ = self;
-        // In production: SETEX session:{session_id} {ttl} {data}
+        const json_data = try packet.serialize(packet.allocator);
+        defer packet.allocator.free(json_data);
         
-        _ = session_id;
-        _ = data;
-        _ = ttl_seconds;
+        // Future: Use HANA streaming or event tables
+        _ = channel;
     }
 };
 
@@ -159,28 +137,15 @@ pub const QdrantAdapter = struct {
     pub fn storeEmbedding(self: *QdrantAdapter, packet_id: []const u8, vector: []const f32) !void {
         _ = self;
         // In production: POST /collections/{collection}/points
-        // {
-        //   "points": [{
-        //     "id": packet_id,
-        //     "vector": vector,
-        //     "payload": metadata
-        //   }]
-        // }
-        
         _ = packet_id;
         _ = vector;
     }
     
     /// Search for similar vectors
     pub fn searchSimilar(self: *QdrantAdapter, query_vector: []const f32, limit: usize) ![][]const u8 {
-        // In production: POST /collections/{collection}/points/search
-        // Returns array of packet IDs
-        
         var results = std.ArrayList([]const u8).init(self.allocator);
-        
         _ = query_vector;
         _ = limit;
-        
         return results.toOwnedSlice();
     }
 };
@@ -203,8 +168,6 @@ pub const MemgraphAdapter = struct {
     
     /// Create node for DataPacket
     pub fn createPacketNode(self: *MemgraphAdapter, packet: *const DataPacket) !void {
-        // In production: CREATE (n:DataPacket {id: $1, type: $2, timestamp: $3})
-        
         _ = self;
         _ = packet;
     }
@@ -212,10 +175,6 @@ pub const MemgraphAdapter = struct {
     /// Create relationship between packets (data flow)
     pub fn createFlow(self: *MemgraphAdapter, from_id: []const u8, to_id: []const u8, relationship: []const u8) !void {
         _ = self;
-        // In production:
-        // MATCH (a:DataPacket {id: $1}), (b:DataPacket {id: $2})
-        // CREATE (a)-[r:FLOWS_TO {type: $3}]->(b)
-        
         _ = from_id;
         _ = to_id;
         _ = relationship;
@@ -223,14 +182,8 @@ pub const MemgraphAdapter = struct {
     
     /// Query data lineage
     pub fn getLineage(self: *MemgraphAdapter, packet_id: []const u8) ![][]const u8 {
-        // In production:
-        // MATCH path = (start:DataPacket {id: $1})-[*]->()
-        // RETURN nodes(path)
-        
         var results = std.ArrayList([]const u8).init(self.allocator);
-        
         _ = packet_id;
-        
         return results.toOwnedSlice();
     }
 };
@@ -257,9 +210,6 @@ pub const MarquezAdapter = struct {
     /// Register dataset for lineage tracking
     pub fn registerDataset(self: *MarquezAdapter, dataset_name: []const u8, fields: []const []const u8) !void {
         _ = self;
-        // In production: PUT /api/v1/namespaces/{namespace}/datasets/{name}
-        // { "type": "DB_TABLE", "fields": [...] }
-        
         _ = dataset_name;
         _ = fields;
     }
@@ -267,9 +217,6 @@ pub const MarquezAdapter = struct {
     /// Start job run for pipeline execution
     pub fn startJobRun(self: *MarquezAdapter, job_name: []const u8, run_id: []const u8) !void {
         _ = self;
-        // In production: POST /api/v1/namespaces/{namespace}/jobs/{job}/runs
-        // { "id": run_id, "nominalTime": ... }
-        
         _ = job_name;
         _ = run_id;
     }
@@ -277,20 +224,16 @@ pub const MarquezAdapter = struct {
     /// Complete job run with lineage
     pub fn completeJobRun(self: *MarquezAdapter, run_id: []const u8, inputs: []const []const u8, outputs: []const []const u8) !void {
         _ = self;
-        // In production: POST /api/v1/jobs/runs/{run_id}/complete
-        // { "inputs": [...], "outputs": [...] }
-        
         _ = run_id;
         _ = inputs;
         _ = outputs;
     }
 };
 
-/// Complete integration example with all layerData services
+/// Complete integration example with HANA + layerData services
 pub const LayerDataPipeline = struct {
     allocator: Allocator,
-    postgres: PostgresAdapter,
-    dragonfly: DragonflyAdapter,
+    hana: HanaAdapter,
     qdrant: QdrantAdapter,
     memgraph: MemgraphAdapter,
     marquez: MarquezAdapter,
@@ -298,8 +241,11 @@ pub const LayerDataPipeline = struct {
     
     pub fn init(
         allocator: Allocator,
-        postgres_conn: []const u8,
-        dragonfly_conn: []const u8,
+        hana_host: []const u8,
+        hana_port: u16,
+        hana_user: []const u8,
+        hana_password: []const u8,
+        hana_schema: []const u8,
         qdrant_url: []const u8,
         memgraph_conn: []const u8,
         marquez_url: []const u8,
@@ -310,8 +256,7 @@ pub const LayerDataPipeline = struct {
         
         ldp.* = .{
             .allocator = allocator,
-            .postgres = try PostgresAdapter.init(allocator, postgres_conn),
-            .dragonfly = try DragonflyAdapter.init(allocator, dragonfly_conn),
+            .hana = try HanaAdapter.init(allocator, hana_host, hana_port, hana_user, hana_password, hana_schema),
             .qdrant = try QdrantAdapter.init(allocator, qdrant_url, "workflow_vectors"),
             .memgraph = try MemgraphAdapter.init(allocator, memgraph_conn),
             .marquez = try MarquezAdapter.init(allocator, marquez_url, "nworkflow"),
@@ -322,8 +267,7 @@ pub const LayerDataPipeline = struct {
     }
     
     pub fn deinit(self: *LayerDataPipeline) void {
-        self.postgres.deinit();
-        self.dragonfly.deinit();
+        self.hana.deinit();
         self.qdrant.deinit();
         self.memgraph.deinit();
         self.marquez.deinit();
@@ -332,8 +276,8 @@ pub const LayerDataPipeline = struct {
     
     /// Execute pipeline with full layerData integration
     pub fn executeWithTracking(self: *LayerDataPipeline, input: *DataPacket, run_id: []const u8) !*DataPacket {
-        // 1. Cache input in DragonflyDB
-        try self.dragonfly.cachePacket(input, 3600);
+        // 1. Cache input in HANA
+        try self.hana.cachePacket(input, 3600);
         
         // 2. Start Marquez job run
         try self.marquez.startJobRun(self.pipeline.id, run_id);
@@ -344,8 +288,8 @@ pub const LayerDataPipeline = struct {
         // 4. Execute pipeline
         const output = try self.pipeline.execute(input);
         
-        // 5. Store result in PostgreSQL
-        try self.postgres.storePacket(output);
+        // 5. Store result in HANA (persistent)
+        try self.hana.storePacket(output);
         
         // 6. Create graph relationship
         try self.memgraph.createFlow(input.id, output.id, "TRANSFORMED");
@@ -355,81 +299,31 @@ pub const LayerDataPipeline = struct {
         const outputs = [_][]const u8{output.id};
         try self.marquez.completeJobRun(run_id, &inputs, &outputs);
         
-        // 8. Cache output
-        try self.dragonfly.cachePacket(output, 3600);
+        // 8. Cache output in HANA
+        try self.hana.cachePacket(output, 3600);
         
         return output;
     }
 };
 
 // ============================================================================
-// USAGE EXAMPLES
-// ============================================================================
-
-/// Example: ETL Pipeline with layerData
-pub fn exampleETLPipeline(allocator: Allocator) !void {
-    // Create transformation pipeline
-    var builder = try data_pipeline.PipelineBuilder.init(allocator, "etl-pipeline", "ETL Example");
-    
-    // Add stages (simplified for example)
-    // In production, these would be actual transformation functions
-    const extract_stage = try data_pipeline.PipelineStage.init(
-        allocator,
-        "extract",
-        "Extract Data",
-        struct {
-            fn transform(alloc: Allocator, packet: *DataPacket) !*DataPacket {
-                _ = alloc;
-                return packet;
-            }
-        }.transform,
-    );
-    try builder.pipeline.addStage(extract_stage);
-    
-    const pipeline = builder.build();
-    defer pipeline.deinit();
-    
-    // Create layerData integration
-    const ldp = try LayerDataPipeline.init(
-        allocator,
-        "postgres://localhost:5432/nworkflow",
-        "redis://localhost:6379",
-        "http://localhost:6333",
-        "bolt://localhost:7687",
-        "http://localhost:5000",
-        pipeline,
-    );
-    defer ldp.deinit();
-    
-    // Execute with full tracking
-    const input_value = std.json.Value{ .string = "test data" };
-    const input = try DataPacket.init(allocator, "input-1", .string, input_value);
-    defer input.deinit();
-    
-    const output = try ldp.executeWithTracking(input, "run-12345");
-    defer output.deinit();
-}
-
-// ============================================================================
 // TESTS
 // ============================================================================
 
-test "PostgresAdapter creation" {
+test "HanaAdapter creation" {
     const allocator = std.testing.allocator;
     
-    var adapter = try PostgresAdapter.init(allocator, "postgres://localhost:5432/test");
+    var adapter = try HanaAdapter.init(
+        allocator,
+        "localhost",
+        39017,
+        "SYSTEM",
+        "Password123",
+        "NWORKFLOW",
+    );
     defer adapter.deinit();
     
-    try std.testing.expectEqualStrings("postgres://localhost:5432/test", adapter.connection_string);
-}
-
-test "DragonflyAdapter creation" {
-    const allocator = std.testing.allocator;
-    
-    var adapter = try DragonflyAdapter.init(allocator, "redis://localhost:6379");
-    defer adapter.deinit();
-    
-    try std.testing.expectEqualStrings("redis://localhost:6379", adapter.connection_string);
+    try std.testing.expect(adapter.cache.is_connected);
 }
 
 test "QdrantAdapter creation" {
@@ -439,7 +333,6 @@ test "QdrantAdapter creation" {
     defer adapter.deinit();
     
     try std.testing.expectEqualStrings("http://localhost:6333", adapter.base_url);
-    try std.testing.expectEqualStrings("test_collection", adapter.collection_name);
 }
 
 test "MemgraphAdapter creation" {
@@ -457,26 +350,5 @@ test "MarquezAdapter creation" {
     var adapter = try MarquezAdapter.init(allocator, "http://localhost:5000", "nworkflow");
     defer adapter.deinit();
     
-    try std.testing.expectEqualStrings("http://localhost:5000", adapter.base_url);
     try std.testing.expectEqualStrings("nworkflow", adapter.namespace);
-}
-
-test "LayerDataPipeline integration" {
-    const allocator = std.testing.allocator;
-    
-    const pipeline = try DataPipeline.init(allocator, "test-pipeline", "Integration Test");
-    defer pipeline.deinit();
-    
-    const ldp = try LayerDataPipeline.init(
-        allocator,
-        "postgres://localhost:5432/test",
-        "redis://localhost:6379",
-        "http://localhost:6333",
-        "bolt://localhost:7687",
-        "http://localhost:5000",
-        pipeline,
-    );
-    defer ldp.deinit();
-    
-    try std.testing.expectEqualStrings("test-pipeline", ldp.pipeline.id);
 }

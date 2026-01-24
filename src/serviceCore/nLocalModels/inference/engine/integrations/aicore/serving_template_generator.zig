@@ -58,108 +58,108 @@ pub const ServingTemplate = struct {
 
     /// Generate YAML serving template string
     pub fn generateYaml(self: ServingTemplate, allocator: std.mem.Allocator) ![]const u8 {
-        var buffer = std.ArrayList(u8){};
-        errdefer buffer.deinit(allocator);
+        var buffer = std.ArrayList(u8).init(allocator);
+        errdefer buffer.deinit();
 
         // Header and metadata
-        try buffer.appendSlice(allocator, "apiVersion: ai.sap.com/v1alpha1\n");
-        try buffer.appendSlice(allocator, "kind: ServingTemplate\n");
-        try buffer.appendSlice(allocator, "metadata:\n");
-        try buffer.appendSlice(allocator, "  name: ");
-        try buffer.appendSlice(allocator, self.name);
-        try buffer.appendSlice(allocator, "\n");
+        try buffer.appendSlice("apiVersion: ai.sap.com/v1alpha1\n");
+        try buffer.appendSlice("kind: ServingTemplate\n");
+        try buffer.appendSlice("metadata:\n");
+        try buffer.appendSlice("  name: ");
+        try buffer.appendSlice(self.name);
+        try buffer.appendSlice("\n");
 
         // Labels
         if (self.labels.len > 0) {
-            try buffer.appendSlice(allocator, "  labels:\n");
+            try buffer.appendSlice("  labels:\n");
             var i: usize = 0;
             while (i + 1 < self.labels.len) : (i += 2) {
-                try buffer.appendSlice(allocator, "    ");
-                try buffer.appendSlice(allocator, self.labels[i]);
-                try buffer.appendSlice(allocator, ": \"");
-                try buffer.appendSlice(allocator, self.labels[i + 1]);
-                try buffer.appendSlice(allocator, "\"\n");
+                try buffer.appendSlice("    ");
+                try buffer.appendSlice(self.labels[i]);
+                try buffer.appendSlice(": \"");
+                try buffer.appendSlice(self.labels[i + 1]);
+                try buffer.appendSlice("\"\n");
             }
         }
 
         // Annotations
         if (self.annotations.len > 0) {
-            try buffer.appendSlice(allocator, "  annotations:\n");
+            try buffer.appendSlice("  annotations:\n");
             var i: usize = 0;
             while (i + 1 < self.annotations.len) : (i += 2) {
-                try buffer.appendSlice(allocator, "    ");
-                try buffer.appendSlice(allocator, self.annotations[i]);
-                try buffer.appendSlice(allocator, ": \"");
-                try buffer.appendSlice(allocator, self.annotations[i + 1]);
-                try buffer.appendSlice(allocator, "\"\n");
+                try buffer.appendSlice("    ");
+                try buffer.appendSlice(self.annotations[i]);
+                try buffer.appendSlice(": \"");
+                try buffer.appendSlice(self.annotations[i + 1]);
+                try buffer.appendSlice("\"\n");
             }
         }
 
         // Spec section
-        try buffer.appendSlice(allocator, "spec:\n");
-        try buffer.appendSlice(allocator, "  template:\n");
-        try buffer.appendSlice(allocator, "    apiVersion: serving.kserve.io/v1beta1\n");
-        try buffer.appendSlice(allocator, "    metadata:\n");
-        try buffer.appendSlice(allocator, "      labels:\n");
-        try buffer.appendSlice(allocator, "        ai.sap.com/resourcePlan: \"");
-        try buffer.appendSlice(allocator, self.resource_plan.toString());
-        try buffer.appendSlice(allocator, "\"\n");
-        try buffer.appendSlice(allocator, "    spec:\n");
-        try buffer.appendSlice(allocator, "      predictor:\n");
-        try buffer.appendSlice(allocator, "        containers:\n");
-        try buffer.appendSlice(allocator, "        - name: kserve-container\n");
-        try buffer.appendSlice(allocator, "          image: \"");
-        try buffer.appendSlice(allocator, self.image);
-        try buffer.appendSlice(allocator, "\"\n");
-        try buffer.appendSlice(allocator, "          ports:\n");
-        try buffer.appendSlice(allocator, "          - containerPort: ");
-        try appendPort(allocator, &buffer, self.port);
-        try buffer.appendSlice(allocator, "\n");
-        try buffer.appendSlice(allocator, "            protocol: TCP\n");
+        try buffer.appendSlice("spec:\n");
+        try buffer.appendSlice("  template:\n");
+        try buffer.appendSlice("    apiVersion: serving.kserve.io/v1beta1\n");
+        try buffer.appendSlice("    metadata:\n");
+        try buffer.appendSlice("      labels:\n");
+        try buffer.appendSlice("        ai.sap.com/resourcePlan: \"");
+        try buffer.appendSlice(self.resource_plan.toString());
+        try buffer.appendSlice("\"\n");
+        try buffer.appendSlice("    spec:\n");
+        try buffer.appendSlice("      predictor:\n");
+        try buffer.appendSlice("        containers:\n");
+        try buffer.appendSlice("        - name: kserve-container\n");
+        try buffer.appendSlice("          image: \"");
+        try buffer.appendSlice(self.image);
+        try buffer.appendSlice("\"\n");
+        try buffer.appendSlice("          ports:\n");
+        try buffer.appendSlice("          - containerPort: ");
+        try appendPort(&buffer, self.port);
+        try buffer.appendSlice("\n");
+        try buffer.appendSlice("            protocol: TCP\n");
 
         // Environment variables
         if (self.env_vars.len > 0) {
-            try buffer.appendSlice(allocator, "          env:\n");
+            try buffer.appendSlice("          env:\n");
             for (self.env_vars) |env| {
-                try buffer.appendSlice(allocator, "          - name: ");
-                try buffer.appendSlice(allocator, env.name);
-                try buffer.appendSlice(allocator, "\n            value: \"");
-                try buffer.appendSlice(allocator, env.value);
-                try buffer.appendSlice(allocator, "\"\n");
+                try buffer.appendSlice("          - name: ");
+                try buffer.appendSlice(env.name);
+                try buffer.appendSlice("\n            value: \"");
+                try buffer.appendSlice(env.value);
+                try buffer.appendSlice("\"\n");
             }
         }
 
         // Health probes
-        try buffer.appendSlice(allocator, "          livenessProbe:\n");
-        try buffer.appendSlice(allocator, "            httpGet:\n");
-        try buffer.appendSlice(allocator, "              path: ");
-        try buffer.appendSlice(allocator, self.liveness_path);
-        try buffer.appendSlice(allocator, "\n");
-        try buffer.appendSlice(allocator, "              port: ");
-        try appendPort(allocator, &buffer, self.port);
-        try buffer.appendSlice(allocator, "\n");
-        try buffer.appendSlice(allocator, "            initialDelaySeconds: 60\n");
-        try buffer.appendSlice(allocator, "            periodSeconds: 30\n");
-        try buffer.appendSlice(allocator, "          readinessProbe:\n");
-        try buffer.appendSlice(allocator, "            httpGet:\n");
-        try buffer.appendSlice(allocator, "              path: ");
-        try buffer.appendSlice(allocator, self.health_check_path);
-        try buffer.appendSlice(allocator, "\n");
-        try buffer.appendSlice(allocator, "              port: ");
-        try appendPort(allocator, &buffer, self.port);
-        try buffer.appendSlice(allocator, "\n");
-        try buffer.appendSlice(allocator, "            initialDelaySeconds: 30\n");
-        try buffer.appendSlice(allocator, "            periodSeconds: 10\n");
+        try buffer.appendSlice("          livenessProbe:\n");
+        try buffer.appendSlice("            httpGet:\n");
+        try buffer.appendSlice("              path: ");
+        try buffer.appendSlice(self.liveness_path);
+        try buffer.appendSlice("\n");
+        try buffer.appendSlice("              port: ");
+        try appendPort(&buffer, self.port);
+        try buffer.appendSlice("\n");
+        try buffer.appendSlice("            initialDelaySeconds: 60\n");
+        try buffer.appendSlice("            periodSeconds: 30\n");
+        try buffer.appendSlice("          readinessProbe:\n");
+        try buffer.appendSlice("            httpGet:\n");
+        try buffer.appendSlice("              path: ");
+        try buffer.appendSlice(self.health_check_path);
+        try buffer.appendSlice("\n");
+        try buffer.appendSlice("              port: ");
+        try appendPort(&buffer, self.port);
+        try buffer.appendSlice("\n");
+        try buffer.appendSlice("            initialDelaySeconds: 30\n");
+        try buffer.appendSlice("            periodSeconds: 10\n");
 
         return buffer.toOwnedSlice();
     }
 };
 
 /// Helper to append port number to buffer
-fn appendPort(allocator: std.mem.Allocator, buffer: *std.ArrayList(u8), port: u16) !void {
+fn appendPort(buffer: *std.ArrayList(u8), port: u16) !void {
     var port_buf: [5]u8 = undefined;
     const port_str = std.fmt.bufPrint(&port_buf, "{d}", .{port}) catch unreachable;
-    try buffer.appendSlice(allocator, port_str);
+    try buffer.appendSlice(port_str);
 }
 
 /// Generate a ServingTemplate from AICoreConfig
@@ -274,4 +274,3 @@ test "generateFromConfig - creates valid template" {
     try testing.expectEqualStrings(config.scenario_id, template.name);
     try testing.expectEqualStrings("docker.io/nopena/server:latest", template.image);
 }
-

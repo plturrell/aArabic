@@ -1,7 +1,7 @@
 const std = @import("std");
 const testing = std.testing;
-const HanaClient = @import("../hana/core/client.zig").HanaClient;
-const hana_queries = @import("../hana/core/queries.zig");
+const HanaClient = @import("../../../nLang/n-c-sdk/lib/hana/client.zig").HanaClient;
+const hana_queries = @import("../../../nLang/n-c-sdk/lib/hana/queries.zig");
 
 /// Comprehensive HANA Integration Test Suite - Day 53
 /// Tests connection pool, persistence operations, and query functionality

@@ -2,9 +2,7 @@ const std = @import("std");
 
 /// Database dialect enum
 pub const Dialect = enum {
-    postgres,
     hana,
-    sqlite,
 
     pub fn format(self: Dialect, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
         _ = fmt;
@@ -469,23 +467,13 @@ test "ResultSet - iterator" {
 }
 
 test "Dialect - format" {
-    const postgres = Dialect.postgres;
     const hana = Dialect.hana;
-    const sqlite = Dialect.sqlite;
 
     var buf: [20]u8 = undefined;
     var fbs = std.io.fixedBufferStream(&buf);
     
-    try fbs.writer().print("{}", .{postgres});
-    try std.testing.expectEqualStrings("postgres", fbs.getWritten());
-
-    fbs.reset();
     try fbs.writer().print("{}", .{hana});
     try std.testing.expectEqualStrings("hana", fbs.getWritten());
-
-    fbs.reset();
-    try fbs.writer().print("{}", .{sqlite});
-    try std.testing.expectEqualStrings("sqlite", fbs.getWritten());
 }
 
 test "IsolationLevel - toSQL" {

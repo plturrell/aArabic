@@ -241,15 +241,13 @@ from tool_orchestration import (
     ExecutionStrategy,
     load_registry_from_json
 )
-from clients.dragonfly.dragonfly_cache import DragonflyClient
 
 # Initialize components
 let registry = load_registry_from_json("config/toolorchestra_tools.json")
-let cache = DragonflyClient(host="localhost", port=6379)
 let engine = ExecutionEngine(
     registry=registry,
-    cache=cache,
-    enable_caching=True
+    cache=None,
+    enable_caching=False
 )
 
 # Execute single tool
@@ -293,7 +291,7 @@ print("Total cost:", workflow_result.total_cost)
 
 ```bash
 # Run all tests (when implemented)
-mojo test src/serviceCore/serviceShimmy-mojo/core/tool_orchestration/
+mojo test core/tool_orchestration/
 
 # Run specific test
 mojo test test_registry.mojo

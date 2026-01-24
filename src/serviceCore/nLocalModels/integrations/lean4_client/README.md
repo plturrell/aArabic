@@ -5,7 +5,7 @@ Zig SDK for the Lean4 HTTP service.
 ## Build
 
 ```bash
-cd src/serviceCore/serviceShimmy-mojo/integrations/lean4_client
+cd src/serviceCore/nLocalModels/integrations/lean4_client
 zig build
 ```
 

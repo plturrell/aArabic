@@ -353,8 +353,8 @@ fn handleGraphQuery(body: []const u8) !Response {
     // 2. Query Translation
     const cypher_query = try query_translator.translate(nl_query);
     
-    // 3. Execute on graph database
-    const graph_result = try neo4j.execute(cypher_query.query);
+    // 3. Execute on HANA Graph
+    const graph_result = try hana_graph.execute(cypher_query.query);
     
     // 4. Guardrails: Output (check graph results)
     const output_check = try guardrails.validateOutput(graph_result);

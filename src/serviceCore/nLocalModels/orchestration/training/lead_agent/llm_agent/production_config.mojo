@@ -71,10 +71,9 @@ struct ProductionConfig:
     var api_key: String
     var model_name: String
     
-    # Qdrant Configuration
-    var qdrant_host: String
-    var qdrant_port: Int
-    var qdrant_collection: String
+    # HANA Vector Configuration
+    var hana_vector_endpoint: String
+    var hana_vector_collection: String
     
     # Sandbox Configuration
     var sandbox_url: String
@@ -112,10 +111,9 @@ struct ProductionConfig:
         self.api_key = env_get_string("LLM_API_KEY", "")
         self.model_name = env_get_string("LLM_MODEL", "llama-3.3-70b")
         
-        # Qdrant
-        self.qdrant_host = env_get_string("QDRANT_HOST", "127.0.0.1")
-        self.qdrant_port = int(env_get_string("QDRANT_PORT", "6333"))
-        self.qdrant_collection = env_get_string("QDRANT_COLLECTION", "documents")
+        # HANA Vector
+        self.hana_vector_endpoint = env_get_string("HANA_VECTOR_ENDPOINT", "https://hana-vector.example.com")
+        self.hana_vector_collection = env_get_string("HANA_VECTOR_COLLECTION", "documents")
         
         # Sandbox
         self.sandbox_url = env_get_string("SANDBOX_URL", "http://localhost:8000/execute")
@@ -156,9 +154,9 @@ struct ProductionConfig:
         config_str += f"  Model: {self.model_name}\n"
         config_str += f"  Auth: {'enabled' if len(self.api_key) > 0 else 'disabled'}\n\n"
         
-        config_str += "Qdrant Configuration:\n"
-        config_str += f"  Host: {self.qdrant_host}:{self.qdrant_port}\n"
-        config_str += f"  Collection: {self.qdrant_collection}\n\n"
+        config_str += "HANA Vector Configuration:\n"
+        config_str += f"  Endpoint: {self.hana_vector_endpoint}\n"
+        config_str += f"  Collection: {self.hana_vector_collection}\n\n"
         
         config_str += "Sandbox Configuration:\n"
         config_str += f"  URL: {self.sandbox_url}\n"
@@ -191,7 +189,7 @@ struct ProductionConfig:
 struct HealthCheck:
     """System health check"""
     var llm_api_healthy: Bool
-    var qdrant_healthy: Bool
+    var hana_vector_healthy: Bool
     var sandbox_healthy: Bool
     var memory_usage_mb: Float64
     var cpu_usage_percent: Float64
@@ -199,7 +197,7 @@ struct HealthCheck:
     
     fn __init__(inout self):
         self.llm_api_healthy = False
-        self.qdrant_healthy = False
+        self.hana_vector_healthy = False
         self.sandbox_healthy = False
         self.memory_usage_mb = 0.0
         self.cpu_usage_percent = 0.0
@@ -207,14 +205,14 @@ struct HealthCheck:
     
     fn is_healthy(self) -> Bool:
         """Check if system is healthy"""
-        return self.llm_api_healthy and self.qdrant_healthy and self.sandbox_healthy
+        return self.llm_api_healthy and self.hana_vector_healthy and self.sandbox_healthy
     
     fn get_status_string(self) -> String:
         """Get health status as string"""
         var status = String("Health Status:\n")
         status += "=" * 60 + "\n"
         status += f"LLM API: {'✅ OK' if self.llm_api_healthy else '❌ Down'}\n"
-        status += f"Qdrant: {'✅ OK' if self.qdrant_healthy else '❌ Down'}\n"
+        status += f"HANA Vector: {'✅ OK' if self.hana_vector_healthy else '❌ Down'}\n"
         status += f"Sandbox: {'✅ OK' if self.sandbox_healthy else '❌ Down'}\n"
         status += f"Memory: {self.memory_usage_mb:.2f}MB\n"
         status += f"CPU: {self.cpu_usage_percent:.1f}%\n"
@@ -253,8 +251,8 @@ struct ProductionManager:
         # Check LLM API (simplified)
         self.health.llm_api_healthy = len(self.config.api_url) > 0
         
-        # Check Qdrant (simplified)
-        self.health.qdrant_healthy = True  # Would actually ping Qdrant
+        # Check HANA Vector (simplified)
+        self.health.hana_vector_healthy = len(self.config.hana_vector_endpoint) > 0
         
         # Check Sandbox (simplified)
         self.health.sandbox_healthy = len(self.config.sandbox_url) > 0
@@ -326,13 +324,12 @@ services:
     environment:
       - LLM_API_URL=${LLM_API_URL}
       - LLM_API_KEY=${LLM_API_KEY}
-      - QDRANT_HOST=qdrant
-      - QDRANT_PORT=6333
+      - HANA_VECTOR_ENDPOINT=${HANA_VECTOR_ENDPOINT}
+      - HANA_VECTOR_COLLECTION=${HANA_VECTOR_COLLECTION}
       - SANDBOX_URL=http://sandbox:8000
       - MAX_TURNS=5
       - ENABLE_METRICS=true
     depends_on:
-      - qdrant
       - sandbox
     restart: unless-stopped
     deploy:
@@ -340,14 +337,6 @@ services:
         limits:
           cpus: '2.0'
           memory: 4G
-
-  qdrant:
-    image: qdrant/qdrant:latest
-    ports:
-      - "6333:6333"
-    volumes:
-      - qdrant_data:/qdrant/storage
-    restart: unless-stopped
 
   sandbox:
     build:
@@ -364,9 +353,6 @@ services:
         limits:
           cpus: '1.0'
           memory: 1G
-
-volumes:
-  qdrant_data:
 """
 
 
@@ -405,8 +391,13 @@ spec:
             secretKeyRef:
               name: llm-secrets
               key: api-key
-        - name: QDRANT_HOST
-          value: "qdrant-service"
+        - name: HANA_VECTOR_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: llm-secrets
+              key: hana-vector-endpoint
+        - name: HANA_VECTOR_COLLECTION
+          value: "documents"
         resources:
           limits:
             cpu: "2"

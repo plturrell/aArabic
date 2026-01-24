@@ -168,7 +168,7 @@ pub const SSDStorage = struct {
             // Day 2: Initialize prefetch tracking
             .last_read_offset = std.atomic.Value(u64).init(0),
             .sequential_reads = std.atomic.Value(u32).init(0),
-            .prefetch_cache = std.ArrayList(PrefetchEntry){},
+            .prefetch_cache = std.ArrayList(PrefetchEntry).init(allocator),
         };
         
         return self;
@@ -345,7 +345,7 @@ pub const SSDStorage = struct {
     pub fn deinit(self: *SSDStorage) void {
         self.close();
         self.allocator.free(self.block_bitmap);
-        self.prefetch_cache.deinit(self.allocator);
+        self.prefetch_cache.deinit();
         self.allocator.destroy(self);
     }
 

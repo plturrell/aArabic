@@ -129,15 +129,15 @@ const server = http.createServer(async (req, res) => {
                     return;
                 }
 
-                // Optional schema override
-                let fullSql = sql;
+                // Optional schema override (execute as separate statement)
                 if (schema && schema !== config.schema) {
-                    fullSql = `SET SCHEMA ${schema}; ${sql}`;
+                    console.log(`📝 Switching to schema: ${schema}`);
+                    await executeSQL(`SET SCHEMA ${schema}`);
                 }
 
                 console.log(`📝 Executing: ${sql.substring(0, 100)}...`);
 
-                const result = await executeSQL(fullSql);
+                const result = await executeSQL(sql);
 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({

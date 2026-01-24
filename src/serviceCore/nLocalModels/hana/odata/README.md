@@ -50,7 +50,7 @@ The SAP toolkit integrates with `graph-toolkit-mojo` for graph operations:
 ### 1. Build Zig Library
 
 ```bash
-cd /Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo
+cd /Users/user/Documents/arabic_folder/src/serviceCore/nLocalModels/hana/odata
 zig build-lib zig_odata_sap.zig -dynamic -OReleaseFast
 ```
 

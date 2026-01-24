@@ -385,7 +385,7 @@ sap.ui.define([], function() {
                 'translation-agent': 'processing',
                 'quality-agent': 'processing',
                 'rag-agent': 'processing',
-                'memgraph-agent': 'processing',
+                'hana-graph-agent': 'processing',
                 'validation-agent': 'output'
             };
 

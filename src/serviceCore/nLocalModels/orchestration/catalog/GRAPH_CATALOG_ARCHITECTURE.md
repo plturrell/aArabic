@@ -223,19 +223,19 @@ print("Loaded", len(manual_schema.node_types), "node types")
 print("Loaded", len(manual_schema.relationship_types), "relationship types")
 ```
 
-### Example 2: Introspect Database
+### Example 2: Introspect HANA Graph
 
 ```mojo
-from orchestration.catalog.schema_introspector import Neo4jIntrospector
-from graph_toolkit.lib.clients.neo4j_client import Neo4jClient
+from orchestration.catalog.schema_introspector import GenericSchemaIntrospector
+from graph_toolkit.lib.clients.hana_graph_client import HanaGraphClient
 
-# Connect to Neo4j
-var client = Neo4jClient(uri="bolt://localhost:7687")
+# Connect to HANA Graph
+var client = HanaGraphClient("https://hana.example.com/graph", "workspace", "user", "password")
 client.connect()
 
 # Introspect schema
-var introspector = Neo4jIntrospector(client)
-var auto_schema = introspector.discover_schema()
+var introspector = GenericSchemaIntrospector(graph_name="hana_schema", db_type="hana")
+var auto_schema = introspector.discover(client)
 
 print("Discovered", len(auto_schema.node_types), "node types")
 ```
@@ -300,7 +300,7 @@ All schemas are cached in DragonflyDB for fast access:
 ```
 Cache Keys:
 - schema:supply_chain:manual          # Manual schema
-- schema:supply_chain:auto:neo4j      # Auto schema from Neo4j
+- schema:supply_chain:auto:hana       # Auto schema from HANA Graph
 - schema:supply_chain:unified         # Merged schema
 - schema:index:property:delay         # Property index
 
@@ -321,12 +321,10 @@ TTL: 1 hour (auto-refresh from database)
 3. Implement schema_introspector.mojo (database discovery)
 4. Implement schema_merger.mojo (merge logic)
 5. Create config/graph_schemas.json (sample schemas)
-6. Integration tests with Neo4j/Memgraph/HANA
+6. Integration tests with HANA Graph
 
 ## 📚 References
 
-- Neo4j Schema API: https://neo4j.com/docs/cypher-manual/current/schema/
-- Memgraph Schema: https://memgraph.com/docs/memgraph/reference-guide/schema
 - HANA Graph: https://help.sap.com/docs/HANA_SERVICE_CF/11afa2e60a5f4192a381df30f94863f9/
 
 ---

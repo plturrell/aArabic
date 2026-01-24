@@ -204,7 +204,7 @@ const result = rlm_recursive_completion_with_toon(
 ### **Run All Tests**
 
 ```bash
-cd src/serviceCore/serviceShimmy-mojo
+cd src/serviceCore/nLocalModels
 ./scripts/test_shimmy.sh
 ```
 

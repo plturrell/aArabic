@@ -6,17 +6,18 @@
 from collections import Dict, List
 from sys import env_get_string
 
-# Import Qdrant client
-from ../../../../../../integrations/vector/qdrant_client/qdrant_client import QdrantClient, QdrantResult
-
 # Import inference components
 from ../../../../../../inference/tokenization/tokenizer import BPETokenizer, SentencePieceTokenizer
+# Import HANA vector client
+from ../../../../../../integrations/vector/hana_vector.hana_vector_client import (
+    HanaVectorClient,
+    HanaVectorResult
+)
 
 
 struct SearchConfig:
     """Configuration for vector search"""
-    var qdrant_host: String
-    var qdrant_port: Int
+    var hana_endpoint: String
     var collection_name: String
     var top_k: Int
     var score_threshold: Float32
@@ -24,15 +25,13 @@ struct SearchConfig:
     
     fn __init__(
         inout self,
-        qdrant_host: String = "127.0.0.1",
-        qdrant_port: Int = 6333,
+        hana_endpoint: String = "https://hana-vector.example.com",
         collection_name: String = "documents",
         top_k: Int = 5,
         score_threshold: Float32 = 0.7,
         include_vectors: Bool = False
     ):
-        self.qdrant_host = qdrant_host
-        self.qdrant_port = qdrant_port
+        self.hana_endpoint = hana_endpoint
         self.collection_name = collection_name
         self.top_k = top_k
         self.score_threshold = score_threshold
@@ -59,26 +58,24 @@ struct Document:
 
 struct VectorSearchEngine:
     """
-    Vector search engine using Qdrant for document retrieval.
+    Vector search engine using SAP HANA vector store for document retrieval.
     Integrates with the LLM generation pipeline.
     """
     var config: SearchConfig
-    var qdrant_client: QdrantClient
+    var hana_client: HanaVectorClient
     var is_connected: Bool
     
     fn __init__(inout self, config: SearchConfig) raises:
         self.config = config
+        self.hana_client = HanaVectorClient(config.hana_endpoint, "vector_store")
         self.is_connected = False
         
-        # Initialize Qdrant client
         try:
-            self.qdrant_client = QdrantClient(config.qdrant_host, config.qdrant_port)
+            self.hana_client.connect()
             self.is_connected = True
-            print(f"✅ Connected to Qdrant at {config.qdrant_host}:{config.qdrant_port}")
+            print(f"✅ Connected to HANA vector endpoint: {config.hana_endpoint}")
         except e:
-            print(f"⚠️  Failed to connect to Qdrant: {e}")
-            # Create with default constructor as fallback
-            self.qdrant_client = QdrantClient()
+            print(f"⚠️  Failed to connect to HANA vector store: {e}")
             self.is_connected = False
     
     fn search_documents(
@@ -91,32 +88,25 @@ struct VectorSearchEngine:
         Returns ranked list of documents.
         """
         if not self.is_connected:
-            print("⚠️  Qdrant not connected, returning empty results")
+            print("⚠️  HANA vector store not connected, returning empty results")
             return List[Document]()
         
-        print(f"🔍 Searching for: '{query[:50]}...'")
+        print(f"🔍 Searching HANA vector store for: '{query[:50]}...'")
         
-        # Search Qdrant
-        let results = self.qdrant_client.search(
+        let results = self.hana_client.search(
             self.config.collection_name,
             query_vector,
             limit=self.config.top_k,
-            include_vectors=self.config.include_vectors
+            include_vectors=self.config.include_vectors,
+            min_score=self.config.score_threshold
         )
         
-        # Convert QdrantResults to Documents
         var documents = List[Document]()
-        
         for i in range(len(results)):
             let result = results[i]
-            
-            # Filter by score threshold
             if result.score < self.config.score_threshold:
                 continue
-            
-            # Parse payload JSON to extract content
             let content = self._extract_content_from_payload(result.payload_json)
-            
             var doc = Document(result.id, content, result.score)
             documents.append(doc)
         
@@ -290,15 +280,14 @@ fn main() raises:
     
     # Create search config
     let config = SearchConfig(
-        qdrant_host="127.0.0.1",
-        qdrant_port=6333,
+        hana_endpoint="https://hana-vector.example.com",
         collection_name="documents",
         top_k=5,
         score_threshold=0.5
     )
     
     print("Configuration:")
-    print(f"  Qdrant: {config.qdrant_host}:{config.qdrant_port}")
+    print(f"  HANA Vector Endpoint: {config.hana_endpoint}")
     print(f"  Collection: {config.collection_name}")
     print(f"  Top K: {config.top_k}")
     print(f"  Score threshold: {config.score_threshold}")
@@ -332,14 +321,14 @@ fn main() raises:
         else:
             print("  No documents found above threshold")
     else:
-        print("⚠️  Skipping search (not connected to Qdrant)")
+        print("⚠️  Skipping search (not connected to HANA vector store)")
     
     print("\n" + "=" * 80)
     print("✅ Vector Search Integration Test Complete")
     print("=" * 80)
     print("")
     print("Integration Features:")
-    print("  ✅ Qdrant client integration")
+    print("  ✅ HANA vector store integration")
     print("  ✅ Vector search with scoring")
     print("  ✅ Document formatting for prompts")
     print("  ✅ Multi-query search support")

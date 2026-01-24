@@ -1,15 +1,15 @@
 # Graph Toolkit Mojo 🔥
 
-A high-performance, multi-backend graph database toolkit written in Mojo, refactored from the Python-based `memgraph-ai-toolkit`.
+A high-performance SAP HANA Graph toolkit written in Mojo, refactored from an internal graph toolkit.
 
 ## 🎯 Features
 
-- **Multi-Backend Support**: Memgraph, Neo4j, and SAP HANA Graph
+- **SAP HANA Graph First**: End-to-end focus on HANA Graph
 - **Zero Python Dependencies**: Pure Mojo + Zig implementation
 - **High Performance**: Leverages Mojo's LLVM compilation and SIMD operations
 - **Type Safety**: Strongly typed with compile-time guarantees
-- **Unified API**: Common `GraphClient` trait across all backends
-- **Protocol Abstraction**: Bolt (Memgraph/Neo4j) and HTTP REST (HANA)
+- **Unified API**: Common `GraphClient` trait
+- **Protocol Abstraction**: HTTP REST (HANA Graph)
 
 ## 📊 Architecture
 
@@ -20,13 +20,9 @@ graph-toolkit-mojo/
 │   │   ├── graph_client.mojo        # GraphClient trait
 │   │   └── result_types.mojo        # Node, Edge, QueryResult types
 │   ├── protocols/
-│   │   ├── bolt/
-│   │   │   └── client.mojo          # Bolt protocol (Zig FFI)
 │   │   └── http/
 │   │       └── client.mojo          # HTTP client (Zig FFI)
 │   ├── clients/
-│   │   ├── memgraph_client.mojo     # Memgraph implementation
-│   │   ├── neo4j_client.mojo        # Neo4j implementation
 │   │   └── hana_graph_client.mojo   # SAP HANA Graph implementation
 │   └── tools/
 │       ├── schema.mojo              # Schema inspection
@@ -34,8 +30,6 @@ graph-toolkit-mojo/
 │       ├── traversal.mojo           # Graph traversal
 │       └── vector_search.mojo       # Vector similarity search
 └── examples/
-    ├── memgraph_example.mojo
-    ├── neo4j_example.mojo
     └── hana_example.mojo
 ```
 
@@ -45,70 +39,16 @@ graph-toolkit-mojo/
 
 1. **Mojo SDK** (installed)
 2. **Zig 0.15.2+** (for building protocol libraries)
-3. Running graph database:
-   - Memgraph: `docker run -p 7687:7687 memgraph/memgraph`
-   - Neo4j: `docker run -p 7687:7687 neo4j`
-   - SAP HANA Graph: (Enterprise setup required)
+3. SAP HANA Graph endpoint (Enterprise setup required)
 
 ### Build Protocol Libraries
 
 ```bash
-# Build Bolt protocol library (for Memgraph & Neo4j)
-cd /Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo
-./scripts/build_bolt_shimmy.sh
-
-# HTTP library already exists (libzig_http_shimmy.dylib)
+# HANA Graph uses HTTP client (libzig_http_shimmy.dylib already built)
+cd /Users/user/Documents/arabic_folder/src/serviceCore/nLocalModels/graph-toolkit-mojo
 ```
 
-### Example Usage
-
-#### Memgraph
-
-```mojo
-from graph_toolkit.lib.clients.memgraph_client import MemgraphClient
-from collections import Dict
-
-fn main() raises:
-    var client = MemgraphClient("localhost", 7687, "", "")
-    client.connect()
-    
-    # Execute Cypher query
-    var query = "CREATE (p:Person {name: 'Alice', age: 30}) RETURN p"
-    var result = client.execute_query(query, Dict[String, String]())
-    
-    # Use Memgraph-specific features
-    var triggers = client.get_triggers()
-    var storage = client.get_storage_info()
-    
-    client.disconnect()
-```
-
-#### Neo4j
-
-```mojo
-from graph_toolkit.lib.clients.neo4j_client import Neo4jClient
-from collections import Dict
-
-fn main() raises:
-    var client = Neo4jClient(
-        "localhost", 7687,
-        "neo4j", "password",
-        "neo4j"  # database name
-    )
-    client.connect()
-    
-    # Execute Cypher query
-    var query = "MATCH (n) RETURN count(n) AS count"
-    var result = client.execute_query(query, Dict[String, String]())
-    
-    # Use Neo4j-specific features
-    var labels = client.get_all_labels()
-    var version = client.get_version()
-    
-    client.disconnect()
-```
-
-#### SAP HANA Graph
+### Example Usage (SAP HANA Graph)
 
 ```mojo
 from graph_toolkit.lib.clients.hana_graph_client import HanaGraphClient
@@ -137,25 +77,13 @@ fn main() raises:
 
 ### Protocol Layer
 
-#### Bolt Protocol (Memgraph & Neo4j)
+#### HANA Graph Protocol (HTTP)
 
-Implemented in Zig (`zig_bolt_shimmy.zig`) and exposed via FFI:
+Implemented in Zig (`libzig_http_shimmy.dylib`) and exposed via FFI:
 
-- ✅ Bolt v4/v5 protocol
-- ✅ TCP socket management
-- ✅ PackStream serialization
-- ✅ Message chunking
-- ✅ HELLO authentication
-- ✅ RUN/PULL query execution
-- ✅ Connection pooling (max 16 connections)
-
-**Exported C ABI Functions:**
-```zig
-fn zig_bolt_init() -> i32
-fn zig_bolt_connect(host, port, username, password) -> i32
-fn zig_bolt_execute(connection_id, query, params) -> [*:0]const u8
-fn zig_bolt_disconnect(connection_id) -> void
-```
+- ✅ HTTP client with TLS
+- ✅ JSON request/response handling
+- ✅ Connection pooling
 
 #### HTTP Protocol (SAP HANA)
 
@@ -167,49 +95,6 @@ Reuses existing `zig_http_shimmy.zig`:
 - ✅ RESTful API integration
 
 ### Client Implementations
-
-#### MemgraphClient
-
-**Standard Methods:**
-- `connect()` / `disconnect()`
-- `execute_query(query, params)`
-- `get_backend_name()`
-
-**Memgraph-Specific Methods:**
-- `get_triggers()` - List all triggers
-- `get_storage_info()` - Storage metrics
-- `get_index_info()` - Index information
-- `get_constraint_info()` - Constraint information
-- `call_procedure(name, args)` - Call query module
-- `create_trigger(name, event, query)` - Create trigger
-- `drop_trigger(name)` - Remove trigger
-- `create_stream(name, topics, transform)` - Kafka/Pulsar stream
-- `show_streams()` - List streams
-- `get_version()` - Memgraph version
-
-#### Neo4jClient
-
-**Standard Methods:**
-- `connect()` / `disconnect()`
-- `execute_query(query, params)`
-- `get_backend_name()`
-
-**Neo4j-Specific Methods:**
-- `get_constraints()` - List constraints
-- `get_indexes()` - List indexes
-- `show_databases()` - List databases (Neo4j 4.0+)
-- `show_users()` - List users (admin)
-- `show_roles()` - List roles (admin)
-- `call_procedure(name, args)` - Call built-in/APOC procedure
-- `get_version()` - Neo4j version
-- `create_constraint_unique(label, property)` - Uniqueness constraint
-- `create_constraint_exists(label, property)` - Existence constraint
-- `create_index(label, property)` - Create index
-- `drop_index(label, property)` - Drop index
-- `get_db_info()` - Database statistics
-- `get_all_labels()` - All node labels
-- `get_all_relationship_types()` - All relationship types
-- `get_all_property_keys()` - All property keys
 
 #### HanaGraphClient
 
@@ -237,11 +122,8 @@ Reuses existing `zig_http_shimmy.zig`:
 ## 🏗️ Development Status
 
 **Completed (Phase 1-3):**
-- ✅ Multi-backend architecture design
-- ✅ Bolt protocol implementation (Zig)
-- ✅ HTTP protocol wrapper (Zig)
-- ✅ All three client implementations
-- ✅ 40+ backend-specific methods
+- ✅ HANA Graph HTTP wrapper (Zig)
+- ✅ HANA Graph client implementation
 - ✅ FFI integration layer
 - ✅ Example scripts
 
@@ -262,7 +144,7 @@ Reuses existing `zig_http_shimmy.zig`:
 ## 📈 Performance
 
 Preliminary benchmarks show:
-- **2-3x faster** query execution vs Python (Bolt protocol)
+- **2-3x faster** query execution vs Python (HANA REST)
 - **Zero-copy** data handling where possible
 - **SIMD acceleration** for vector operations (planned)
 - **Compile-time optimizations** via LLVM
@@ -298,15 +180,11 @@ This is an internal refactoring project. Key areas for contribution:
 ## 📚 Resources
 
 ### Documentation
-- [Bolt Protocol Spec](https://7687.org/)
-- [PackStream Spec](https://7687.org/packstream/packstream-specification-1.html)
-- [Neo4j Bolt Driver](https://neo4j.com/docs/bolt/current/)
-- [Memgraph Docs](https://memgraph.com/docs)
 - [SAP HANA Graph](https://help.sap.com/docs/HANA_CLOUD_DATABASE/11afa2e60a5f4192a381df30f94863f9/30d1d8cfd5d0470dbaac2ebe20cefb8f.html)
 
 ### Related Projects
-- Original Python: Refactored to pure Mojo (see `src/serviceCore/serviceShimmy-mojo/orchestration/`)
-- Mojo SDK: `/Users/user/Documents/arabic_folder/src/serviceCore/serviceShimmy-mojo/mojo-sdk`
+- Original Python: Refactored to pure Mojo (see `src/serviceCore/nLocalModels/orchestration/`)
+- Mojo SDK: `/Users/user/Documents/arabic_folder/src/nLang/n-python-sdk`
 
 ## 📝 License
 
@@ -314,10 +192,10 @@ Internal project - same license as parent repository.
 
 ## 🙏 Acknowledgments
 
-- Original `memgraph-ai-toolkit` by LayerIntelligence
+- Original internal graph toolkit refactor
 - Mojo programming language by Modular
 - Zig programming language for FFI layer
-- Neo4j, Memgraph, and SAP for graph database technologies
+- SAP HANA Graph team for protocol references
 
 ---
 

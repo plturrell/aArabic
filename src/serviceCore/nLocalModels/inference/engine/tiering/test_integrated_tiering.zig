@@ -1,5 +1,5 @@
 // Integrated Multi-Tier Testing
-// Tests all 5 tiers working together: GPU → RAM → DragonflyDB → SSD → Archive
+// Tests tiers working together: GPU → RAM → HANA → SSD → Archive
 
 const std = @import("std");
 const testing = std.testing;
@@ -31,8 +31,11 @@ fn getIntegratedConfig() struct {
         },
         .database = .{
             .enabled = true,
-            .dragonfly_host = "localhost",
-            .dragonfly_port = 6379,
+            .hana_host = "localhost",
+            .hana_port = 30015,
+            .hana_database = "NOPENAI_DB",
+            .hana_user = "NUCLEUS_APP",
+            .hana_password = "test",
             .use_compression = true,
         },
         .sharing = .{
@@ -47,7 +50,7 @@ fn getIntegratedConfig() struct {
 // Integration Tests
 // ============================================================================
 
-test "5-Tier Integration: GPU → RAM → Dragonfly → SSD" {
+test "Tier Integration: GPU → RAM → HANA → SSD" {
     const allocator = testing.allocator;
     const config = getIntegratedConfig();
     
@@ -83,9 +86,9 @@ test "Multi-Tier: Cache hit path optimization" {
     const allocator = testing.allocator;
     
     // Test that cache hits avoid lower tiers
-    // GPU hit → skip RAM, Dragonfly, SSD
-    // RAM hit → skip Dragonfly, SSD
-    // Dragonfly hit → skip SSD
+    // GPU hit → skip RAM, HANA, SSD
+    // RAM hit → skip HANA, SSD
+    // HANA hit → skip SSD
     
     // This validates the waterfall pattern
     try testing.expect(true); // Placeholder
@@ -96,8 +99,8 @@ test "Multi-Tier: Eviction cascade" {
     
     // Test that eviction from one tier moves data to next tier
     // GPU full → evict to RAM (compressed)
-    // RAM full → evict to Dragonfly (compressed)
-    // Dragonfly full → evict to SSD
+    // RAM full → evict to HANA (compressed)
+    // HANA full → evict to SSD
     
     try testing.expect(true); // Placeholder
 }
@@ -180,7 +183,7 @@ test "Multi-Tier: End-to-end latency measurement" {
     // Measure latency for each tier
     // GPU: <500ns
     // RAM: <2ms
-    // Dragonfly: <100μs
+    // HANA: <5ms
     // SSD: <5ms
     
     const start = std.time.microTimestamp();

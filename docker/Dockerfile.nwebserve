@@ -1,4 +1,5 @@
 # nWebServe Dockerfile (Zig Web Server & API Gateway)
+# Now builds from integrated http_server library in n-c-sdk
 FROM debian:bookworm-slim AS builder
 
 # Install Zig
@@ -15,10 +16,10 @@ RUN curl -L https://ziglang.org/download/0.13.0/zig-linux-x86_64-0.13.0.tar.xz -
 
 WORKDIR /app
 
-# Copy source
-COPY src/serviceCore/nWebServe/ ./
+# Copy http_server library from n-c-sdk
+COPY src/nLang/n-c-sdk/lib/http_server/ ./
 
-# Build
+# Build nWebServe executable
 RUN zig build -Doptimize=ReleaseFast
 
 # Runtime image
@@ -32,7 +33,7 @@ RUN apt-get update && apt-get install -y \
 RUN useradd -m -u 1000 appuser
 WORKDIR /app
 
-COPY --from=builder /app/zig-out/bin/nwebserve /app/nwebserve
+COPY --from=builder /app/zig-out/bin/nWebServe /app/nWebServe
 RUN chown -R appuser:appuser /app
 
 USER appuser
@@ -42,4 +43,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=10s \
   CMD curl -sf http://localhost:8080/health || exit 1
 
-CMD ["./nwebserve"]
+CMD ["./nWebServe"]
