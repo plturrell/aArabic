@@ -84,8 +84,7 @@ pub const GPUProfile = enum {
     }
 };
 
-// Re-export for convenience
-pub usingnamespace model_selector;
+// Re-export for convenience (explicit aliases above)
 
 test "nLocalModels integration" {
     const allocator = std.testing.allocator;

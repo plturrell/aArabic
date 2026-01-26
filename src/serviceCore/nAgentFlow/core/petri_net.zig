@@ -169,9 +169,11 @@ pub const PetriNet = struct {
     allocator: Allocator,
     handle: *pn_net_t,
     name: []const u8,
+    storage_allocator: Allocator,
     places_map: std.StringHashMap(*Place),
     transitions_map: std.StringHashMap(*Transition),
     arcs_list: std.ArrayList(*Arc),
+    transitions_list: std.ArrayList([]const u8),
     next_token_id: u64,
     
     pub fn init(allocator: Allocator, name: []const u8) !PetriNet {
@@ -181,13 +183,17 @@ pub const PetriNet = struct {
         
         const handle = petri_core.pn_create(name_z.ptr, 0) orelse return error.PetriNetCreationFailed;
         
+        const storage_alloc = std.heap.page_allocator;
+
         return PetriNet{
             .allocator = allocator,
             .handle = handle,
             .name = try allocator.dupe(u8, name),
-            .places_map = std.StringHashMap(*Place).init(allocator),
-            .transitions_map = std.StringHashMap(*Transition).init(allocator),
+            .storage_allocator = storage_alloc,
+            .places_map = std.StringHashMap(*Place).init(storage_alloc),
+            .transitions_map = std.StringHashMap(*Transition).init(storage_alloc),
             .arcs_list = std.ArrayList(*Arc).empty,
+            .transitions_list = std.ArrayList([]const u8).empty,
             .next_token_id = 1,
         };
     }
@@ -196,23 +202,31 @@ pub const PetriNet = struct {
         // Clean up wrappers
         var place_it = self.places_map.valueIterator();
         while (place_it.next()) |place_ptr| {
-            self.allocator.destroy(place_ptr.*);
+            self.storage_allocator.free(place_ptr.*.id);
+            self.storage_allocator.free(place_ptr.*.name);
+            self.storage_allocator.destroy(place_ptr.*);
         }
         self.places_map.deinit();
-        
+
         var trans_it = self.transitions_map.valueIterator();
-        while (trans_it.next()) |trans_ptr| {
-            if (trans_ptr.*.guard) |*g| {
-                g.deinit(self.allocator);
+        while (trans_it.next()) |trans| {
+            self.storage_allocator.free(trans.*.id);
+            self.storage_allocator.free(trans.*.name);
+            if (trans.*.guard) |*g| {
+                g.deinit(self.storage_allocator);
             }
-            self.allocator.destroy(trans_ptr.*);
+            self.storage_allocator.destroy(trans.*);
         }
+        self.transitions_list.deinit(self.storage_allocator);
         self.transitions_map.deinit();
-        
+
         for (self.arcs_list.items) |arc| {
-            self.allocator.destroy(arc);
+            self.storage_allocator.free(arc.id);
+            self.storage_allocator.free(arc.source_id);
+            self.storage_allocator.free(arc.target_id);
+            self.storage_allocator.destroy(arc);
         }
-        self.arcs_list.deinit(self.allocator);
+        self.arcs_list.deinit(self.storage_allocator);
         
         self.allocator.free(self.name);
         
@@ -234,11 +248,11 @@ pub const PetriNet = struct {
             _ = petri_core.pn_place_set_capacity(handle, cap);
         }
         
-        const place = try self.allocator.create(Place);
+        const place = try self.storage_allocator.create(Place);
         place.* = Place{
             .handle = handle,
-            .id = try self.allocator.dupe(u8, id),
-            .name = try self.allocator.dupe(u8, name),
+            .id = try self.storage_allocator.dupe(u8, id),
+            .name = try self.storage_allocator.dupe(u8, name),
         };
         
         try self.places_map.put(place.id, place);
@@ -257,17 +271,19 @@ pub const PetriNet = struct {
         
         _ = petri_core.pn_trans_set_priority(handle, priority);
         
-        const trans = try self.allocator.create(Transition);
+        const trans = try self.storage_allocator.create(Transition);
         trans.* = Transition{
             .handle = handle,
-            .id = try self.allocator.dupe(u8, id),
-            .name = try self.allocator.dupe(u8, name),
+            .id = try self.storage_allocator.dupe(u8, id),
+            .name = try self.storage_allocator.dupe(u8, name),
             .guard = null,
             .priority = priority,
             .enabled = true,
         };
         
         try self.transitions_map.put(trans.id, trans);
+        errdefer _ = self.transitions_map.remove(trans.id);
+        try self.transitions_list.append(self.storage_allocator, trans.id);
         return trans;
     }
     
@@ -288,17 +304,17 @@ pub const PetriNet = struct {
         
         _ = petri_core.pn_arc_connect(handle, source_z.ptr, target_z.ptr);
         
-        const arc = try self.allocator.create(Arc);
+        const arc = try self.storage_allocator.create(Arc);
         arc.* = Arc{
             .handle = handle,
-            .id = try self.allocator.dupe(u8, id),
+            .id = try self.storage_allocator.dupe(u8, id),
             .arc_type = arc_type,
             .weight = weight,
-            .source_id = try self.allocator.dupe(u8, source_id),
-            .target_id = try self.allocator.dupe(u8, target_id),
+            .source_id = try self.storage_allocator.dupe(u8, source_id),
+            .target_id = try self.storage_allocator.dupe(u8, target_id),
         };
         
-        try self.arcs_list.append(self.allocator, arc);
+        try self.arcs_list.append(self.storage_allocator, arc);
         return arc;
     }
     
@@ -342,6 +358,16 @@ pub const PetriNet = struct {
         return self.places_map.get(id);
     }
 
+    pub fn clearPlaceTokens(self: *PetriNet, place_id: []const u8) !void {
+        const place_id_z = try self.allocator.dupeZ(u8, place_id);
+        defer self.allocator.free(place_id_z);
+
+        const place = petri_core.pn_place_get(self.handle, place_id_z.ptr) orelse
+            return error.PlaceNotFound;
+
+        _ = petri_core.pn_place_reset(place);
+    }
+
     pub fn transitionIterator(self: *PetriNet) std.StringHashMap(*Transition).Iterator {
         return self.transitions_map.iterator();
     }
@@ -362,13 +388,14 @@ pub const PetriNet = struct {
         
         errdefer enabled.deinit(self.allocator);
         
-        var it = self.transitions_map.iterator();
-        while (it.next()) |entry| {
-            if (self.isTransitionEnabled(entry.key_ptr.*)) {
-                try enabled.append(self.allocator, entry.key_ptr.*);
+        for (self.transitions_list.items) |trans_id| {
+            if (self.transitions_map.get(trans_id)) |trans| {
+                if (petri_core.pn_trans_is_enabled(trans.handle) == 1) {
+                    try enabled.append(self.allocator, trans_id);
+                }
             }
         }
-        
+
         return enabled;
     }
     
@@ -385,10 +412,11 @@ pub const PetriNet = struct {
     
     /// Check if the net is deadlocked
     pub fn isDeadlocked(self: *PetriNet) bool {
-        var it = self.transitions_map.iterator();
-        while (it.next()) |entry| {
-            if (petri_core.pn_trans_is_enabled(entry.value_ptr.*.handle) == 1) {
-                return false;
+        for (self.transitions_list.items) |trans_id| {
+            if (self.transitions_map.get(trans_id)) |trans| {
+                if (petri_core.pn_trans_is_enabled(trans.handle) == 1) {
+                    return false;
+                }
             }
         }
         return true;
