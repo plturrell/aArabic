@@ -1,0 +1,104 @@
+# TrialBalance App Dockerfile
+# Multi-tier application: UI5 frontend + Zig backend + HANA integration
+# Uses custom SDK base image with pre-built n-c-sdk (Zig) and n-python-sdk (Mojo)
+
+# =============================================================================
+# Stage 1: Build Backend (Zig)
+# =============================================================================
+FROM plturrell/nservices:sdk-base AS backend-builder
+
+# Copy n-c-sdk for the build (referenced in build.zig)
+COPY src/nLang/n-c-sdk /usr/local/n-c-sdk
+
+# Copy backend source
+WORKDIR /app/backend
+COPY src/nApps/Process/TrialBalance/backend ./
+
+# Verify build.zig exists and build
+RUN echo "=== Building TrialBalance Backend ===" && \
+    ls -la && \
+    test -f build.zig || (echo "ERROR: build.zig not found" && exit 1) && \
+    zig build -Doptimize=ReleaseFast && \
+    ls -la zig-out/bin/ && \
+    test -f zig-out/bin/trial-balance-backend && echo "✓ Backend built successfully"
+
+# =============================================================================
+# Stage 2: Build Frontend (UI5)
+# =============================================================================
+FROM node:20-slim AS frontend-builder
+
+WORKDIR /app/webapp
+COPY src/nApps/Process/TrialBalance/webapp/package.json ./
+RUN npm install
+
+COPY src/nApps/Process/TrialBalance/webapp ./
+RUN npm run build || echo "No build script - using source files directly"
+
+# =============================================================================
+# Stage 3: Runtime Image
+# =============================================================================
+FROM debian:bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    libgomp1 \
+    nginx \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app user
+RUN useradd -m -u 1000 appuser
+
+# Copy backend binaries
+RUN mkdir -p /app/backend
+COPY --from=backend-builder /app/backend/zig-out/bin/trial-balance-backend /app/backend/
+RUN if [ -f /app/backend/zig-out/bin/trial-balance-benchmark ]; then \
+    cp /app/backend/zig-out/bin/trial-balance-benchmark /app/backend/; \
+    fi || true
+
+# Copy frontend files
+COPY --from=frontend-builder /app/webapp/ /app/webapp/
+
+# Copy configuration files
+COPY src/nApps/Process/TrialBalance/config/ /app/config/
+COPY src/nApps/Process/TrialBalance/xs-security.json /app/xs-security.json
+COPY src/nApps/Process/TrialBalance/mta.yaml /app/mta.yaml
+
+# Set up nginx for UI5 frontend
+RUN mkdir -p /var/www/html && \
+    cp -r /app/webapp/* /var/www/html/ && \
+    chown -R appuser:appuser /app /var/www/html
+
+# Basic nginx config for UI5
+RUN echo 'server { \n\
+    listen 8080; \n\
+    root /var/www/html; \n\
+    index index.html; \n\
+    location / { \n\
+        try_files $uri $uri/ /index.html; \n\
+    } \n\
+    location /api/ { \n\
+        proxy_pass http://localhost:8081/; \n\
+    } \n\
+}' > /etc/nginx/sites-available/default
+
+WORKDIR /app
+
+# Health check script
+RUN echo '#!/bin/sh\n\
+curl -sf http://localhost:8080/ > /dev/null && \
+curl -sf http://localhost:8081/health > /dev/null' > /app/healthcheck.sh && \
+    chmod +x /app/healthcheck.sh
+
+USER appuser
+
+# Expose ports
+EXPOSE 8080 8081
+
+# Frontend on 8080, Backend on 8081
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s \
+  CMD /app/healthcheck.sh || exit 1
+
+# Start script (run both frontend and backend)
+CMD ["sh", "-c", "nginx && /app/backend/trial-balance-backend"]

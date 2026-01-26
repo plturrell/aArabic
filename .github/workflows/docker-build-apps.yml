@@ -1,0 +1,176 @@
+name: Docker Build - Process Apps
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'src/nApps/Process/**'
+      - 'docker/Dockerfile.trial-balance'
+      - '.github/workflows/docker-build-apps.yml'
+  pull_request:
+    branches:
+      - main
+      - master
+    paths:
+      - 'src/nApps/Process/**'
+      - 'docker/Dockerfile.trial-balance'
+  workflow_dispatch:
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: plturrell/nservices
+
+jobs:
+  # =============================================================================
+  # Check SDK Base Image Exists
+  # =============================================================================
+  check-sdk-base:
+    name: Check SDK Base Image
+    runs-on: ubuntu-latest
+    outputs:
+      sdk-base-exists: ${{ steps.check.outputs.exists }}
+    steps:
+      - name: Check if SDK base image exists
+        id: check
+        run: |
+          echo "Checking for plturrell/nservices:sdk-base..."
+          if docker pull plturrell/nservices:sdk-base 2>/dev/null; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "✅ SDK base image found"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️  SDK base image not found - build will fail"
+            echo "::error::SDK base image not found. Run 'Docker Build - SDK Base Image' workflow first."
+            exit 1
+          fi
+
+  # =============================================================================
+  # Build Matrix - Process Apps
+  # =============================================================================
+  build-apps:
+    needs: check-sdk-base
+    name: Build ${{ matrix.app.name }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        app:
+          - name: TrialBalance
+            dockerfile: docker/Dockerfile.trial-balance
+            context: .
+            platforms: linux/amd64,linux/arm64
+
+    steps:
+      # -----------------------------------------------------------------------
+      # Checkout
+      # -----------------------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # -----------------------------------------------------------------------
+      # Docker Buildx Setup
+      # -----------------------------------------------------------------------
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          version: latest
+          driver: docker-container
+          driver-opts: network=host
+
+      # -----------------------------------------------------------------------
+      # Registry Authentication - Docker Hub
+      # -----------------------------------------------------------------------
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # -----------------------------------------------------------------------
+      # Docker Metadata
+      # Tags: plturrell/nservices:TrialBalance-latest
+      # -----------------------------------------------------------------------
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ matrix.app.name }}-latest,enable={{is_default_branch}}
+            type=raw,value=${{ matrix.app.name }}-{{branch}}
+            type=raw,value=${{ matrix.app.name }}-{{sha}}
+            type=raw,value=${{ matrix.app.name }}-{{date 'YYYYMMDD-HHmmss'}}
+
+      # -----------------------------------------------------------------------
+      # Build and Push
+      # -----------------------------------------------------------------------
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.app.context }}
+          file: ${{ matrix.app.dockerfile }}
+          platforms: ${{ matrix.app.platforms }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: |
+            type=registry,ref=${{ env.IMAGE_NAME }}:${{ matrix.app.name }}-buildcache
+          cache-to: |
+            type=registry,ref=${{ env.IMAGE_NAME }}:${{ matrix.app.name }}-buildcache,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+      # -----------------------------------------------------------------------
+      # Security Scanning with Snyk
+      # -----------------------------------------------------------------------
+      - name: Run Snyk security scan
+        uses: snyk/actions/docker@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: ${{ env.IMAGE_NAME }}:${{ matrix.app.name }}-latest
+          args: --severity-threshold=high
+
+      # -----------------------------------------------------------------------
+      # Output Summary
+      # -----------------------------------------------------------------------
+      - name: Image digest
+        run: |
+          echo "### ✅ ${{ matrix.app.name }} Build Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** \`${{ env.IMAGE_NAME }}:${{ matrix.app.name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Type:** Process Application" >> $GITHUB_STEP_SUMMARY
+          echo "**Components:**" >> $GITHUB_STEP_SUMMARY
+          echo "- UI5 Frontend (port 8080)" >> $GITHUB_STEP_SUMMARY
+          echo "- Zig Backend (port 8081)" >> $GITHUB_STEP_SUMMARY
+          echo "- HANA Integration" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags:** ${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Platforms:** ${{ matrix.app.platforms }}" >> $GITHUB_STEP_SUMMARY
+
+  # =============================================================================
+  # Summary Job
+  # =============================================================================
+  summary:
+    name: Build Summary
+    runs-on: ubuntu-latest
+    needs: build-apps
+    if: always()
+    steps:
+      - name: Check build status
+        run: |
+          if [ "${{ needs.build-apps.result }}" == "success" ]; then
+            echo "✅ All process apps built successfully"
+            exit 0
+          else
+            echo "❌ Some process apps failed to build"
+            exit 1
+          fi
