@@ -23,7 +23,7 @@ COPY src/nLang/n-c-sdk/ ./n-c-sdk/
 # Build http_server from SDK
 WORKDIR /app/n-c-sdk/lib/http_server
 RUN zig version && \
-    zig build -Drelease && \
+    zig build --release && \
     ls -la zig-out/bin/
 
 # Runtime image

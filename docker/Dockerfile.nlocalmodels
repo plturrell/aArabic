@@ -33,7 +33,7 @@ RUN echo "=== Building nLocalModels Service ===" && \
     ls -la && \
     test -f build.zig || (echo "ERROR: build.zig not found" && exit 1) && \
     zig version && \
-    zig build -Drelease && \
+    zig build --release && \
     ls -la zig-out/bin/ && \
     echo "✓ nLocalModels service built successfully"
 
