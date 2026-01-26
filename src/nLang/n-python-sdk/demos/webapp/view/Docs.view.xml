@@ -1,0 +1,56 @@
+<mvc:View
+    controllerName="galaxy.sim.controller.Docs"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:core="sap.ui.core"
+    xmlns:l="sap.ui.layout"
+    height="100%">
+
+    <Page
+        title="Documentation"
+        showNavButton="true"
+        navButtonPress=".onNavBack"
+        class="docsPage">
+
+        <content>
+            <VBox class="sapUiMediumMargin">
+                <Title text="n-c-sdkHPC Documentation" level="H2" class="sapUiSmallMarginBottom" />
+                <Text text="Comprehensive guides and API references for the Nucleus HPC SDK" class="sapUiMediumMarginBottom" />
+
+                <List
+                    headerText="Getting Started"
+                    items="{docs>/gettingStarted}">
+                    <StandardListItem
+                        title="{title}"
+                        description="{description}"
+                        icon="sap-icon://document"
+                        type="Navigation"
+                        press=".onDocPress" />
+                </List>
+
+                <List
+                    headerText="API Reference"
+                    items="{docs>/apiReference}">
+                    <StandardListItem
+                        title="{title}"
+                        description="{description}"
+                        icon="sap-icon://syntax"
+                        type="Navigation"
+                        press=".onDocPress" />
+                </List>
+
+                <List
+                    headerText="Guides & Tutorials"
+                    items="{docs>/guides}">
+                    <StandardListItem
+                        title="{title}"
+                        description="{description}"
+                        icon="sap-icon://education"
+                        type="Navigation"
+                        press=".onDocPress" />
+                </List>
+            </VBox>
+        </content>
+    </Page>
+
+</mvc:View>

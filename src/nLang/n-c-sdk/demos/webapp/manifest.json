@@ -1,0 +1,155 @@
+
+  "_version": "1.58.0",
+  "sap.app": {
+    "id": "galaxy.sim",
+    "type": "application",
+    "i18n": "i18n/i18n.properties",
+    "title": "n-c-sdkHPC process",
+    "description": "High-performance computing SDK with SIMD optimization, Barnes-Hut algorithms, and WebAssembly compilation",
+    "applicationVersion": {
+      "version": "1.0.0"
+    },
+    "dataSources": {
+      "simulation": {
+        "uri": "./wasm/barnes_hut.wasm",
+        "type": "WASM"
+      }
+    }
+  },
+  "sap.ui": {
+    "technology": "UI5",
+    "deviceTypes": {
+      "desktop": true,
+      "tablet": true,
+      "phone": false
+    }
+  },
+  "sap.ui5": {
+    "flexEnabled": false,
+    "componentUsages": {},
+    "dependencies": {
+      "minUI5Version": "1.120.0",
+      "libs": {
+        "sap.m": {},
+        "sap.ui.core": {},
+        "sap.ui.layout": {},
+        "sap.tnt": {},
+        "sap.f": {}
+      }
+    },
+    "resourceRoots": {
+      "galaxy.sim": "./"
+    },
+    "contentDensities": {
+      "compact": true,
+      "cozy": true
+    },
+    "models": {
+      "i18n": {
+        "type": "sap.ui.model.resource.ResourceModel",
+        "settings": {
+          "bundleName": "galaxy.sim.i18n.i18n"
+        }
+      }
+    },
+    "rootView": {
+      "viewName": "galaxy.sim.view.App",
+      "type": "XML",
+      "async": true,
+      "id": "app"
+    },
+    "routing": {
+      "config": {
+        "routerClass": "sap.m.routing.Router",
+        "viewType": "XML",
+        "viewPath": "galaxy.sim.view",
+        "controlId": "appContainer",
+        "controlAggregation": "pages",
+        "async": true
+      },
+      "routes": [
+        {
+          "pattern": "",
+          "name": "home",
+          "target": "home"
+        },
+        {
+          "pattern": "demo-fractals",
+          "name": "demo-fractals",
+          "target": "demo-fractals"
+        },
+        {
+          "pattern": "demo-physics",
+          "name": "demo-physics",
+          "target": "demo-physics"
+        },
+        {
+          "pattern": "galaxy",
+          "name": "galaxy",
+          "target": "galaxy"
+        },
+        {
+          "pattern": "demo-agentflow",
+          "name": "demo-agentflow",
+          "target": "demo-agentflow"
+        },
+        {
+          "pattern": "demo-sudoku",
+          "name": "demo-sudoku",
+          "target": "demo-sudoku"
+        },
+        {
+          "pattern": "docs",
+          "name": "docs",
+          "target": "docs"
+        },
+        {
+          "pattern": "benchmarks",
+          "name": "benchmarks",
+          "target": "benchmarks"
+        }
+      ],
+      "targets": {
+        "home": {
+          "viewId": "home",
+          "viewName": "Home"
+        },
+        "demo-fractals": {
+          "viewId": "fractals",
+          "viewName": "Fractals"
+        },
+        "demo-physics": {
+          "viewId": "particlephysics",
+          "viewName": "ParticlePhysics"
+        },
+        "galaxy": {
+          "viewId": "galaxy",
+          "viewName": "GalaxySimulation"
+        },
+        "demo-agentflow": {
+          "viewId": "agentflow",
+          "viewName": "AgentFlow"
+        },
+        "demo-sudoku": {
+          "viewId": "sudoku",
+          "viewName": "Sudoku"
+        },
+        "docs": {
+          "viewId": "docs",
+          "viewName": "Docs"
+        },
+        "benchmarks": {
+          "viewId": "benchmarks",
+          "viewName": "Benchmarks"
+        }
+      }
+    },
+    "resources": {
+      "css": [
+        {
+          "uri": "css/style.css"
+        }
+      ]
+    }
+  }
+}

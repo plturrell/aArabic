@@ -1,0 +1,211 @@
+<mvc:View
+    controllerName="galaxy.sim.controller.Home"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:core="sap.ui.core"
+    xmlns:l="sap.ui.layout"
+    xmlns:f="sap.f"
+    xmlns:card="sap.f.cards"
+    xmlns:html="http://www.w3.org/1999/xhtml"
+    height="100%">
+
+    <Page
+        showHeader="false"
+        enableScrolling="true"
+        class="homePage">
+
+        <content>
+
+            <!-- ============================================
+                 HERO SECTION - ⚛ process sdk
+                 ============================================ -->
+            <VBox class="appleHero">
+                <VBox class="appleHeroContent">
+                    <Title text="⚛ process sdk" level="H1" class="appleHeroTitle" />
+                    <Text class="appleHeroDescription" text="HPC Kernel powering Flow, Agents, Metadata and Enterprise Private AI" />
+                </VBox>
+            </VBox>
+
+            <!-- ============================================
+                 PLATFORM ICONS BAR
+                 ============================================ -->
+            <HBox class="platformBar" justifyContent="Center" alignItems="Center">
+                <VBox class="platformItem" alignItems="Center">
+                    <core:Icon src="sap-icon://batch-payments" class="platformIcon" />
+                    <Text text="SIMD" class="platformLabel" />
+                </VBox>
+                <VBox class="platformItem" alignItems="Center">
+                    <core:Icon src="sap-icon://tree" class="platformIcon" />
+                    <Text text="Barnes-Hut" class="platformLabel" />
+                </VBox>
+                <VBox class="platformItem" alignItems="Center">
+                    <core:Icon src="sap-icon://developer-settings" class="platformIcon" />
+                    <Text text="WebAssembly" class="platformLabel" />
+                </VBox>
+                <VBox class="platformItem" alignItems="Center">
+                    <core:Icon src="sap-icon://source-code" class="platformIcon" />
+                    <Text text="Zig" class="platformLabel" />
+                </VBox>
+                <VBox class="platformItem" alignItems="Center">
+                    <core:Icon src="sap-icon://database" class="platformIcon" />
+                    <Text text="Enterprise" class="platformLabel" />
+                </VBox>
+                <VBox class="platformItem" alignItems="Center">
+                    <core:Icon src="sap-icon://cloud" class="platformIcon" />
+                    <Text text="Cloud" class="platformLabel" />
+                </VBox>
+            </HBox>
+
+            <!-- ============================================
+                 LIVE HPC METRICS - Real-Time Performance Dashboard
+                 Data bound to WebSocket stream from Zig server
+                 ============================================ -->
+            <VBox class="analyticalSection">
+                <HBox class="sectionHeaderRow" justifyContent="Center" alignItems="Center">
+                    <Title text="At a glance" level="H2" class="sectionTitleCentered" />
+                    <core:Icon src="sap-icon://connected" class="liveIndicator {= ${hpc>/connected} ? 'connected' : 'disconnected' }" />
+                    <Text text="{= ${hpc>/connected} ? 'LIVE' : 'CONNECTING...' }" class="liveLabel {= ${hpc>/connected} ? 'connected' : 'disconnected' }" />
+                </HBox>
+
+                <f:GridContainer class="analyticalGrid">
+                    <!-- Card 1: SIMD Speedup - LIVE -->
+                    <f:Card class="analyticalCard liquidGlassCard clickableCard" press="onSIMDCardPress">
+                        <f:header>
+                            <card:NumericHeader
+                                title="SIMD Vectorization"
+                                subtitle="vs. Scalar Operations"
+                                number="{hpc>/simd/speedup}"
+                                scale="x"
+                                trend="Up"
+                                state="Good"
+                                details="{hpc>/simd/efficiency}% of 8-wide theoretical max" />
+                        </f:header>
+                        <f:content>
+                            <VBox class="cardContentBox">
+                                <HBox class="liveMetricRow" alignItems="Center">
+                                    <Text text="Scalar: " class="metricLabel" />
+                                    <Text text="{hpc>/simd/scalarMs} ms" class="metricValue" />
+                                    <Text text=" → SIMD: " class="metricLabel" />
+                                    <Text text="{hpc>/simd/simdMs} ms" class="metricValue simdValue" />
+                                </HBox>
+                                <Link text="Drill down to benchmark history →" press="onSIMDCardPress" class="cardLink drillDownLink" />
+                            </VBox>
+                        </f:content>
+                    </f:Card>
+
+                    <!-- Card 2: N-Body Simulation - LIVE -->
+                    <f:Card class="analyticalCard liquidGlassCard clickableCard" press="onSimulationCardPress">
+                        <f:header>
+                            <card:NumericHeader
+                                title="N-Body Simulation"
+                                subtitle="Real-time Physics"
+                                number="{hpc>/simulation/fps}"
+                                scale="FPS"
+                                trend="{= ${hpc>/simulation/fps} >= 55 ? 'Up' : 'Down' }"
+                                state="{= ${hpc>/simulation/fps} >= 55 ? 'Good' : 'Critical' }"
+                                details="{hpc>/simulation/bodies} bodies" />
+                        </f:header>
+                        <f:content>
+                            <VBox class="cardContentBox">
+                                <HBox class="liveMetricRow" alignItems="Center">
+                                    <Text text="Frame: " class="metricLabel" />
+                                    <Text text="{hpc>/simulation/frameMs} ms" class="metricValue" />
+                                    <Text text=" Tree: " class="metricLabel" />
+                                    <Text text="{hpc>/simulation/treeBuildMs} ms" class="metricValue" />
+                                </HBox>
+                                <Link text="Drill down to frame timing →" press="onSimulationCardPress" class="cardLink drillDownLink" />
+                            </VBox>
+                        </f:content>
+                    </f:Card>
+
+                    <!-- Card 3: Memory Performance - LIVE -->
+                    <f:Card class="analyticalCard liquidGlassCard clickableCard" press="onMemoryCardPress">
+                        <f:header>
+                            <card:NumericHeader
+                                title="Memory Performance"
+                                subtitle="Cache-Optimized Layout"
+                                number="{hpc>/memory/cacheHitRate}"
+                                scale="%"
+                                trend="Up"
+                                state="{= ${hpc>/memory/cacheHitRate} >= 90 ? 'Good' : 'Critical' }"
+                                details="{hpc>/memory/bandwidthGbps} GB/s bandwidth" />
+                        </f:header>
+                        <f:content>
+                            <VBox class="cardContentBox">
+                                <HBox class="liveMetricRow" alignItems="Center">
+                                    <Text text="Heap: " class="metricLabel" />
+                                    <Text text="{hpc>/memory/heapMb} MB" class="metricValue" />
+                                    <Text text=" Bandwidth: " class="metricLabel" />
+                                    <Text text="{hpc>/memory/bandwidthGbps} GB/s" class="metricValue" />
+                                </HBox>
+                                <Link text="Drill down to memory metrics →" press="onMemoryCardPress" class="cardLink drillDownLink" />
+                            </VBox>
+                        </f:content>
+                    </f:Card>
+
+                    <!-- Card 4: System Uptime - LIVE -->
+                    <f:Card class="analyticalCard liquidGlassCard clickableCard" press="onSystemCardPress">
+                        <f:header>
+                            <card:NumericHeader
+                                title="System Uptime"
+                                subtitle="HPC Server Status"
+                                number="{hpc>/uptime/display}"
+                                scale=""
+                                trend="Up"
+                                state="Good"
+                                details="{= ${hpc>/connected} ? 'Streaming real-time metrics' : 'Waiting for connection' }" />
+                        </f:header>
+                        <f:content>
+                            <VBox class="cardContentBox">
+                                <HBox class="liveMetricRow" alignItems="Center">
+                                    <Text text="WASM: " class="metricLabel" />
+                                    <Text text="{hpc>/wasm/sizeKb} KB" class="metricValue" />
+                                    <Text text=" Load: " class="metricLabel" />
+                                    <Text text="{hpc>/wasm/loadMs} ms" class="metricValue" />
+                                </HBox>
+                                <Link text="View full system analytics →" press="onNavigateToAnalytics" class="cardLink drillDownLink" />
+                            </VBox>
+                        </f:content>
+                    </f:Card>
+                </f:GridContainer>
+            </VBox>
+
+            <!-- ============================================
+                 QUICK LINKS FOOTER
+                 ============================================ -->
+            <HBox class="quickLinksSection" justifyContent="Center" wrap="Wrap">
+                <HBox class="quickLinkItem" alignItems="Center">
+                    <core:Icon src="sap-icon://download" class="quickLinkIcon" />
+                    <Link text="Get the latest SDK" press="onGetStarted" class="quickLinkText" />
+                </HBox>
+                <HBox class="quickLinkItem" alignItems="Center">
+                    <core:Icon src="sap-icon://document" class="quickLinkIcon" />
+                    <Link text="Browse documentation" press="onNavigateToDocs" class="quickLinkText" />
+                </HBox>
+                <HBox class="quickLinkItem" alignItems="Center">
+                    <core:Icon src="sap-icon://video" class="quickLinkIcon" />
+                    <Link text="Watch tutorials" press="onNavigateToDocs" class="quickLinkText" />
+                </HBox>
+                <HBox class="quickLinkItem" alignItems="Center">
+                    <core:Icon src="sap-icon://discussion" class="quickLinkIcon" />
+                    <Link text="Join the community" href="https://github.com/nLang/n-c-sdk" target="_blank" class="quickLinkText" />
+                </HBox>
+            </HBox>
+
+            <!-- ============================================
+                 FOOTER
+                 ============================================ -->
+            <VBox class="footerSection">
+                <HBox class="footerContent" justifyContent="SpaceBetween" alignItems="Center">
+                    <Text text="© 2026 n-c-sdk" class="footerText" />
+                    <HBox class="footerLinks">
+                        <Link text="Documentation" press="onNavigateToDocs" class="footerLink" />
+                        <Link text="GitHub" href="https://github.com/nLang/n-c-sdk" target="_blank" class="footerLink" />
+                    </HBox>
+                    <Text text="Built with Zig and WebAssembly" class="footerText" />
+                </HBox>
+            </VBox>
+
+        </content>
+    </Page>
+</mvc:View>

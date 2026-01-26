@@ -1,0 +1,55 @@
+{
+  "name": "galaxy-simulation-ui5",
+  "version": "1.0.0",
+  "description": "High-performance Barnes-Hut N-Body Galaxy Simulation with SAP Fiori UI",
+  "main": "index.html",
+  "scripts": {
+    "serve": "ui5 serve --port 8080 --open index.html",
+    "serve:live": "node server.js",
+    "build": "ui5 build --all",
+    "build:wasm": "cd .. && zig build wasm-galaxy -Doptimize=ReleaseFast && mkdir -p wasm && cp ../zig-out/webapp/wasm/barnes_hut.wasm wasm/",
+    "build:all": "npm run build:wasm && npm run build",
+    "lint": "eslint .",
+    "test": "karma start",
+    "start": "npm run build:wasm && npm run serve:live"
+  },
+  "keywords": [
+    "n-body",
+    "barnes-hut",
+    "galaxy",
+    "simulation",
+    "zig",
+    "webassembly",
+    "threejs",
+    "sapui5",
+    "fiori"
+  ],
+  "author": "Galaxy Simulation Team",
+  "license": "MIT",
+  "dependencies": {
+    "@openui5/sap.m": "^1.120.0",
+    "@openui5/sap.ui.core": "^1.120.0",
+    "@openui5/sap.ui.layout": "^1.120.0",
+    "@openui5/themelib_sap_horizon": "^1.120.0",
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "@ui5/cli": "^3.0.0",
+    "@ui5/fs": "^3.0.0",
+    "@ui5/logger": "^3.0.0",
+    "eslint": "^8.50.0",
+    "karma": "^6.4.0",
+    "karma-chrome-launcher": "^3.2.0",
+    "karma-ui5": "^3.0.0"
+  },
+  "ui5": {
+    "dependencies": [
+      "@openui5/sap.m",
+      "@openui5/sap.ui.core",
+      "@openui5/sap.ui.layout",
+      "@openui5/themelib_sap_horizon"
+    ]
+  }
+}

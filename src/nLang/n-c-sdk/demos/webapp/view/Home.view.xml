@@ -1,0 +1,280 @@
+<mvc:View
+    controllerName="galaxy.sim.controller.Home"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:core="sap.ui.core"
+    xmlns:l="sap.ui.layout"
+    height="100%">
+
+    <Page
+        showHeader="false"
+        enableScrolling="true"
+        class="homePage">
+
+        <content>
+
+            <!-- ============================================
+                 HERO SECTION - ⚛ process sdk
+                 ============================================ -->
+            <VBox class="appleHero">
+                <VBox class="appleHeroContent">
+                    <Title text="⚛ process sdk" level="H1" class="appleHeroTitle" />
+                    <Text class="appleHeroDescription" text="HPC Kernel powering Flow, Agents, Metadata and Enterprise Private AI" />
+                </VBox>
+            </VBox>
+
+            <!-- ============================================
+                 BUILDING BLOCKS SECTION
+            claims o      ============================================ -->
+            <VBox class="buildingBlocksSection">
+                <VBox class="sectionHeader">
+                    <Title text="Explore the building blocks" level="H2" class="sectionTitle" />
+                    <Text text="8 enterprise capabilities that differentiate n-c-sdk from standard Zig" class="sectionSubtitle" />
+                </VBox>
+
+                <l:Grid defaultSpan="L3 M6 S12" class="buildingBlocksGrid">
+                    
+                    <!-- 1. HPC Streaming Server -->
+                    <VBox class="buildingBlock blockWithImage blockImageHttp">
+                        <VBox class="blockOverlay">
+                            <core:Icon src="sap-icon://globe" class="blockIcon" />
+                            <Title text="HPC Streaming" level="H3" class="blockTitle" />
+                            <Text text="Real-time WebSocket streaming at 40 FPS delivering live galaxy simulations to browser" class="blockDescription" />
+                            <Text text="40 FPS • WebSocket • HTTP/1.1" class="blockStats" />
+                        </VBox>
+                    </VBox>
+
+                    <!-- 2. SIMD Computing -->
+                    <VBox class="buildingBlock blockWithImage blockImageSimd">
+                        <VBox class="blockOverlay">
+                            <core:Icon src="sap-icon://Chart-Tree-Map" class="blockIcon" />
+                            <Title text="SIMD Computing" level="H3" class="blockTitle" />
+                            <Text text="8-wide f64 vector operations with AVX-512/AVX2 and Barnes-Hut octree acceleration" class="blockDescription" />
+                            <Text text="8x parallel • Cache-aligned" class="blockStats" />
+                        </VBox>
+                    </VBox>
+
+                    <!-- 3. SCIP Protocol -->
+                    <VBox class="buildingBlock blockWithImage blockImageScip">
+                        <VBox class="blockOverlay">
+                            <core:Icon src="sap-icon://syntax" class="blockIcon" />
+                            <Title text="SCIP Protocol" level="H3" class="blockTitle" />
+                            <Text text="Source Code Intelligence Protocol enabling multi-language indexing and code navigation" class="blockDescription" />
+                            <Text text="2-3x faster • Multi-language" class="blockStats" />
+                        </VBox>
+                    </VBox>
+
+                    <!-- 4. Petri Nets -->
+                    <VBox class="buildingBlock blockWithImage blockImagePetrinet">
+                        <VBox class="blockOverlay">
+                            <core:Icon src="sap-icon://journey-diagram" class="blockIcon" />
+                            <Title text="Petri Nets" level="H3" class="blockTitle" />
+                            <Text text="Native workflow engine with 50+ functions for places, transitions, arcs, and tokens" class="blockDescription" />
+                            <Text text="50+ functions • Thread-safe" class="blockStats" />
+                        </VBox>
+                    </VBox>
+
+                    <!-- 5. HANA Integration -->
+                    <VBox class="buildingBlock blockWithImage blockImageHana">
+                        <VBox class="blockOverlay">
+                            <core:Icon src="sap-icon://database" class="blockIcon" />
+                            <Title text="HANA Integration" level="H3" class="blockTitle" />
+                            <Text text="Multi-backend queries across SQL, Graph (Cypher), Vector search, and Datalake" class="blockDescription" />
+                            <Text text="Unified client • CSN schema" class="blockStats" />
+                        </VBox>
+                    </VBox>
+
+                    <!-- 6. Advanced Math -->
+                    <VBox class="buildingBlock blockWithImage blockImageMaths">
+                        <VBox class="blockOverlay">
+                            <core:Icon src="sap-icon://learning-assistant" class="blockIcon" />
+                            <Title text="Advanced Math" level="H3" class="blockTitle" />
+                            <Text text="165+ optimized functions for linear algebra, FFT, numerical methods, and statistics" class="blockDescription" />
+                            <Text text="165+ functions • Optimized" class="blockStats" />
+                        </VBox>
+                    </VBox>
+
+                    <!-- 7. Zero Dependencies -->
+                    <VBox class="buildingBlock blockWithImage blockImageNoC">
+                        <VBox class="blockOverlay">
+                            <core:Icon src="sap-icon://shield" class="blockIcon" />
+                            <Title text="Zero Dependencies" level="H3" class="blockTitle" />
+                            <Text text="422 reimplemented C functions with bounds checking and no external dependencies" class="blockDescription" />
+                            <Text text="422 functions • No supply chain" class="blockStats" />
+                        </VBox>
+                    </VBox>
+
+                    <!-- 8. ReleaseSafe Mode -->
+                    <VBox class="buildingBlock blockWithImage blockImageReleasesafe">
+                        <VBox class="blockOverlay">
+                            <core:Icon src="sap-icon://performance" class="blockIcon" />
+                            <Title text="ReleaseSafe Mode" level="H3" class="blockTitle" />
+                            <Text text="Production compiler defaults with 2-3x performance boost and safety checks intact" class="blockDescription" />
+                            <Text text="2-3x faster • LTO • 10-20% smaller" class="blockStats" />
+                        </VBox>
+                    </VBox>
+
+                </l:Grid>
+            </VBox>
+
+            <!-- ============================================
+                 LIVE HPC BENCHMARKS SECTION
+                 ============================================ -->
+            <VBox class="liveBenchmarksSection">
+                <VBox class="sectionHeader">
+                    <HBox justifyContent="SpaceBetween" alignItems="Center" width="100%">
+                        <VBox>
+                            <Title text="Live HPC Benchmarks" level="H2" class="sectionTitle" />
+                            <Text text="Real-time performance metrics streaming from n-c-sdk kernel" class="sectionSubtitle" />
+                        </VBox>
+                        <HBox class="liveIndicatorBox">
+                            <core:Icon src="sap-icon://circle-task" color="#34c759" class="liveIndicator" />
+                            <Text text="LIVE" class="liveLabel" />
+                        </HBox>
+                    </HBox>
+                </VBox>
+
+                <l:Grid defaultSpan="L4 M6 S12" class="benchmarksGrid">
+                    
+                    <!-- STREAM Bandwidth Card with Line Chart -->
+                    <VBox class="benchmarkCard">
+                        <VBox class="cardHeader">
+                            <Title text="STREAM Bandwidth" level="H3" class="cardTitle" />
+                            <Text text="Memory bandwidth (GB/s)" class="cardSubtitle" />
+                        </VBox>
+                        <VBox class="cardContent">
+                            <HBox class="metricRow">
+                                <Text text="COPY:" class="metricLabel" />
+                                <Text text="{hpcModel>/stream/copy_bw_gbs} GB/s" class="metricValue streamValue" />
+                            </HBox>
+                            <HBox class="metricRow">
+                                <Text text="TRIAD:" class="metricLabel" />
+                                <Text text="{hpcModel>/stream/triad_bw_gbs} GB/s" class="metricValue streamValue" />
+                            </HBox>
+                            <VBox class="microChartContainer">
+                                <core:HTML content="&lt;canvas id='streamChart' class='lineChart'&gt;&lt;/canvas&gt;" />
+                            </VBox>
+                        </VBox>
+                    </VBox>
+
+                    <!-- LINPACK FLOPs Card with Bullet Chart -->
+                    <VBox class="benchmarkCard">
+                        <VBox class="cardHeader">
+                            <Title text="LINPACK FLOPs" level="H3" class="cardTitle" />
+                            <Text text="Floating-point performance" class="cardSubtitle" />
+                        </VBox>
+                        <VBox class="cardContent">
+                            <HBox class="metricRow">
+                                <Text text="Achieved:" class="metricLabel" />
+                                <Text text="{hpcModel>/linpack/achieved_gflops} GFLOPS" class="metricValue linpackValue" />
+                            </HBox>
+                            <HBox class="metricRow">
+                                <Text text="Efficiency:" class="metricLabel" />
+                                <Text text="{hpcModel>/linpack/efficiency_percent}%" class="metricValue" />
+                            </HBox>
+                            <VBox class="bulletChartContainer">
+                                <core:HTML content="&lt;div class='bulletChart'&gt;&lt;div id='linpackBullet' class='bulletBar'&gt;&lt;/div&gt;&lt;/div&gt;" />
+                            </VBox>
+                        </VBox>
+                    </VBox>
+
+                    <!-- Memory Latency Card with Line Chart -->
+                    <VBox class="benchmarkCard">
+                        <VBox class="cardHeader">
+                            <Title text="Memory Latency" level="H3" class="cardTitle" />
+                            <Text text="Cache hierarchy (ns)" class="cardSubtitle" />
+                        </VBox>
+                        <VBox class="cardContent">
+                            <HBox class="metricRow">
+                                <Text text="L1:" class="metricLabel" />
+                                <Text text="{hpcModel>/latency/l1_ns} ns" class="metricValue latencyValue" />
+                            </HBox>
+                            <HBox class="metricRow">
+                                <Text text="DRAM:" class="metricLabel" />
+                                <Text text="{hpcModel>/latency/dram_ns} ns" class="metricValue" />
+                            </HBox>
+                            <VBox class="microChartContainer">
+                                <core:HTML content="&lt;canvas id='latencyChart' class='lineChart'&gt;&lt;/canvas&gt;" />
+                            </VBox>
+                        </VBox>
+                    </VBox>
+
+                    <!-- SIMD Utilization Card with Bullet Chart -->
+                    <VBox class="benchmarkCard">
+                        <VBox class="cardHeader">
+                            <Title text="SIMD Utilization" level="H3" class="cardTitle" />
+                            <Text text="Vector performance" class="cardSubtitle" />
+                        </VBox>
+                        <VBox class="cardContent">
+                            <HBox class="metricRow">
+                                <Text text="Speedup:" class="metricLabel" />
+                                <Text text="{hpcModel>/simd/speedup}x" class="metricValue simdValue" />
+                            </HBox>
+                            <HBox class="metricRow">
+                                <Text text="Efficiency:" class="metricLabel" />
+                                <Text text="{hpcModel>/simd/utilization_percent}%" class="metricValue" />
+                            </HBox>
+                            <VBox class="bulletChartContainer">
+                                <core:HTML content="&lt;div class='bulletChart'&gt;&lt;div id='simdBullet' class='bulletBar'&gt;&lt;/div&gt;&lt;/div&gt;" />
+                            </VBox>
+                        </VBox>
+                    </VBox>
+
+                    <!-- Strong Scaling Card with Line Chart -->
+                    <VBox class="benchmarkCard">
+                        <VBox class="cardHeader">
+                            <Title text="Strong Scaling" level="H3" class="cardTitle" />
+                            <Text text="Parallel efficiency" class="cardSubtitle" />
+                        </VBox>
+                        <VBox class="cardContent">
+                            <HBox class="metricRow">
+                                <Text text="16 threads:" class="metricLabel" />
+                                <Text text="{hpcModel>/strong_scaling/4/speedup}x speedup" class="metricValue scalingValue" />
+                            </HBox>
+                            <HBox class="metricRow">
+                                <Text text="Efficiency:" class="metricLabel" />
+                                <Text text="{hpcModel>/strong_scaling/4/efficiency_percent}%" class="metricValue" />
+                            </HBox>
+                            <VBox class="microChartContainer">
+                                <core:HTML content="&lt;canvas id='scalingChart' class='lineChart'&gt;&lt;/canvas&gt;" />
+                            </VBox>
+                        </VBox>
+                    </VBox>
+
+                    <!-- Weak Scaling Card with Bullet Chart -->
+                    <VBox class="benchmarkCard">
+                        <VBox class="cardHeader">
+                            <Title text="Weak Scaling" level="H3" class="cardTitle" />
+                            <Text text="Gustafson's Law efficiency" class="cardSubtitle" />
+                        </VBox>
+                        <VBox class="cardContent">
+                            <HBox class="metricRow">
+                                <Text text="16 threads:" class="metricLabel" />
+                                <Text text="{hpcModel>/weak_scaling/4/efficiency_percent}%" class="metricValue weakValue" />
+                            </HBox>
+                            <HBox class="metricRow">
+                                <Text text="Time:" class="metricLabel" />
+                                <Text text="{hpcModel>/weak_scaling/4/time_ms} ms" class="metricValue" />
+                            </HBox>
+                            <VBox class="bulletChartContainer">
+                                <core:HTML content="&lt;div class='bulletChart'&gt;&lt;div id='weakBullet' class='bulletBar'&gt;&lt;/div&gt;&lt;/div&gt;" />
+                            </VBox>
+                        </VBox>
+                    </VBox>
+
+                </l:Grid>
+
+                <!-- View All Benchmarks Button -->
+                <HBox justifyContent="Center" class="benchmarksFooter">
+                    <Button 
+                        text="View Detailed Benchmarks" 
+                        icon="sap-icon://performance"
+                        type="Emphasized"
+                        press=".onNavigateToBenchmarks"
+                        class="viewAllButton" />
+                </HBox>
+            </VBox>
+
+        </content>
+    </Page>
+</mvc:View>

@@ -1,0 +1,37 @@
+# Build artifacts
+zig-out/
+zig-cache/
+.zig-cache/
+
+# Object files
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+
+# Executables
+*.exe
+*.out
+test_hello
+test_hello_v2
+test_manual
+
+# LLVM IR files (generated)
+*.ll
+*.ll.tmp
+*.bc
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test files
+test_*.mojo
+*_test

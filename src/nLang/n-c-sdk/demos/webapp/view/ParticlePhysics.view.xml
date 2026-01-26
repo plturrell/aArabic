@@ -1,0 +1,173 @@
+<mvc:View
+    controllerName="galaxy.sim.controller.ParticlePhysics"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:l="sap.ui.layout"
+    xmlns:core="sap.ui.core"
+    xmlns:html="http://www.w3.org/1999/xhtml"
+    displayBlock="true">
+
+    <Page
+        id="particlePhysicsPage"
+        title="Particle Physics - Real-time Simulation"
+        showNavButton="false"
+        class="sapUiContentPadding">
+
+        <headerContent>
+            <SegmentedButton
+                id="algorithmButton"
+                selectedKey="barneshut"
+                selectionChange=".onAlgorithmChange">
+                <items>
+                    <SegmentedButtonItem key="barneshut" text="Barnes-Hut"/>
+                    <SegmentedButtonItem key="bruteforce" text="Brute Force"/>
+                </items>
+            </SegmentedButton>
+        </headerContent>
+
+        <content>
+            <VBox height="100%" class="sapUiSmallMargin">
+
+                <!-- Info Panel -->
+                <Panel
+                    headerText="About N-Body Simulation"
+                    expandable="true"
+                    expanded="false"
+                    class="sapUiSmallMarginBottom">
+                    <content>
+                        <Text text="N-body simulation calculates gravitational interactions between particles. The Barnes-Hut algorithm optimizes this from O(n²) to O(n log n) complexity using spatial subdivision. This demo shows real-time particle physics with collision detection and SIMD acceleration."/>
+                    </content>
+                </Panel>
+
+                <!-- Canvas Container -->
+                <VBox class="sapUiSmallMarginBottom">
+                    <Title text="Physics Simulation" level="H3" class="sapUiSmallMarginBottom"/>
+                    <html:canvas
+                        id="physicsCanvas"
+                        width="1200"
+                        height="600"
+                        style="border: 1px solid #ccc; border-radius: 4px; background: #000; cursor: pointer; max-width: 100%;"/>
+                </VBox>
+
+                <!-- Control Panel -->
+                <Panel
+                    headerText="Physics Parameters"
+                    expandable="true"
+                    expanded="true">
+                    <content>
+                        <l:Grid
+                            defaultSpan="L3 M6 S12"
+                            class="sapUiSmallMargin">
+                            <VBox>
+                                <Label text="Particles:" class="sapUiTinyMarginBottom"/>
+                                <Slider
+                                    id="particleCountSlider"
+                                    value="100"
+                                    min="10"
+                                    max="1000"
+                                    step="10"
+                                    width="200px"
+                                    change=".onParameterChange"/>
+                                <Text id="particleCountValue" text="100"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Gravity:" class="sapUiTinyMarginBottom"/>
+                                <Slider
+                                    id="gravitySlider"
+                                    value="0.5"
+                                    min="0"
+                                    max="2"
+                                    step="0.1"
+                                    width="200px"
+                                    change=".onParameterChange"/>
+                                <Text id="gravityValue" text="0.5"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Damping:" class="sapUiTinyMarginBottom"/>
+                                <Slider
+                                    id="dampingSlider"
+                                    value="0.99"
+                                    min="0.9"
+                                    max="1.0"
+                                    step="0.01"
+                                    width="200px"
+                                    change=".onParameterChange"/>
+                                <Text id="dampingValue" text="0.99"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Options:" class="sapUiTinyMarginBottom"/>
+                                <CheckBox
+                                    id="showQuadtreeCheck"
+                                    text="Show Quadtree"
+                                    selected="false"
+                                    select=".onOptionChange"/>
+                                <CheckBox
+                                    id="showVelocityCheck"
+                                    text="Show Velocity"
+                                    selected="false"
+                                    select=".onOptionChange"
+                                    class="sapUiTinyMarginTop"/>
+                            </VBox>
+                        </l:Grid>
+                    </content>
+                </Panel>
+
+                <!-- Statistics -->
+                <Panel
+                    headerText="Performance Metrics"
+                    class="sapUiSmallMarginTop">
+                    <content>
+                        <l:HorizontalLayout>
+                            <l:VerticalLayout class="sapUiSmallMarginEnd">
+                                <Label text="FPS:"/>
+                                <Text id="fpsValue" text="0" class="sapUiTinyMarginTop"/>
+                            </l:VerticalLayout>
+                            <l:VerticalLayout class="sapUiSmallMarginEnd">
+                                <Label text="Compute Time:"/>
+                                <Text id="computeTime" text="0ms" class="sapUiTinyMarginTop"/>
+                            </l:VerticalLayout>
+                            <l:VerticalLayout class="sapUiSmallMarginEnd">
+                                <Label text="Collisions:"/>
+                                <Text id="collisionCount" text="0" class="sapUiTinyMarginTop"/>
+                            </l:VerticalLayout>
+                            <l:VerticalLayout>
+                                <Label text="Total Energy:"/>
+                                <Text id="energyValue" text="0" class="sapUiTinyMarginTop"/>
+                            </l:VerticalLayout>
+                        </l:HorizontalLayout>
+                    </content>
+                </Panel>
+
+            </VBox>
+        </content>
+
+        <footer>
+            <Toolbar>
+                <Button
+                    id="playButton"
+                    icon="sap-icon://play"
+                    text="Play"
+                    type="Emphasized"
+                    press=".onPlay"/>
+                <Button
+                    id="pauseButton"
+                    icon="sap-icon://pause"
+                    text="Pause"
+                    enabled="false"
+                    press=".onPause"/>
+                <Button
+                    icon="sap-icon://reset"
+                    text="Reset"
+                    press=".onReset"/>
+                <Button
+                    icon="sap-icon://add"
+                    text="Add Particle"
+                    press=".onAddParticle"/>
+                <ToolbarSpacer/>
+                <Text text="Click to add particles, drag to apply force"/>
+            </Toolbar>
+        </footer>
+
+    </Page>
+
+</mvc:View>

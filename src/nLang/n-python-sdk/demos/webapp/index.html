@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>nLang SDK - Developer Portal</title>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script src="/socket.io/socket.io.js"></script>
+
+    <script
+        id="sap-ui-bootstrap"
+        src="https://sdk.openui5.org/resources/sap-ui-core.js"
+        data-sap-ui-theme="sap_horizon"
+        data-sap-ui-libs="sap.m,sap.ui.layout,sap.f,sap.ui.core,sap.tnt"
+        data-sap-ui-resourceroots='{
+            "galaxy.sim": "./"
+        }'
+        data-sap-ui-onInit="module:sap/ui/core/ComponentSupport"
+        data-sap-ui-compatVersion="edge"
+        data-sap-ui-async="true"
+        data-sap-ui-frameOptions="trusted"
+        data-sap-ui-xx-componentPreload="off"
+        data-sap-ui-preload="">
+    </script>
+    
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        
+        #content {
+            height: 100%;
+        }
+        
+        .sapUiBody {
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="sapUiBody" id="content">
+    <div
+        data-sap-ui-component
+        data-name="galaxy.sim"
+        data-id="container"
+        data-settings='{"id" : "galaxy-sim"}'
+        style="height: 100%;">
+    </div>
+</body>
+</html>

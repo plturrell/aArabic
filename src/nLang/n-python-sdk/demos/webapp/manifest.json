@@ -1,0 +1,141 @@
+{
+  "_version": "1.58.0",
+  "sap.app": {
+    "id": "intelligence.ai",
+    "type": "application",
+    "i18n": "i18n/i18n.properties",
+    "title": "⚛ Intelligence SDK",
+    "description": "AI/ML Intelligence SDK with Translation, Agent Orchestration, Extraction, and AI2UI capabilities",
+    "applicationVersion": {
+      "version": "1.0.0"
+    },
+    "dataSources": {}
+  },
+  "sap.ui": {
+    "technology": "UI5",
+    "deviceTypes": {
+      "desktop": true,
+      "tablet": true,
+      "phone": false
+    }
+  },
+  "sap.ui5": {
+    "flexEnabled": false,
+    "componentUsages": {},
+    "dependencies": {
+      "minUI5Version": "1.120.0",
+      "libs": {
+        "sap.m": {},
+        "sap.ui.core": {},
+        "sap.ui.layout": {},
+        "sap.tnt": {},
+        "sap.f": {}
+      }
+    },
+    "resourceRoots": {
+      "intelligence.ai": "./"
+    },
+    "contentDensities": {
+      "compact": true,
+      "cozy": true
+    },
+    "models": {
+      "i18n": {
+        "type": "sap.ui.model.resource.ResourceModel",
+        "settings": {
+          "bundleName": "intelligence.ai.i18n.i18n"
+        }
+      }
+    },
+    "rootView": {
+      "viewName": "intelligence.ai.view.App",
+      "type": "XML",
+      "async": true,
+      "id": "app"
+    },
+    "routing": {
+      "config": {
+        "routerClass": "sap.m.routing.Router",
+        "viewType": "XML",
+        "viewPath": "intelligence.ai.view",
+        "controlId": "appContainer",
+        "controlAggregation": "pages",
+        "async": true
+      },
+      "routes": [
+        {
+          "pattern": "",
+          "name": "home",
+          "target": "home"
+        },
+        {
+          "pattern": "demo-translation",
+          "name": "demo-translation",
+          "target": "demo-translation"
+        },
+        {
+          "pattern": "demo-agents",
+          "name": "demo-agents",
+          "target": "demo-agents"
+        },
+        {
+          "pattern": "demo-extraction",
+          "name": "demo-extraction",
+          "target": "demo-extraction"
+        },
+        {
+          "pattern": "demo-ai2ui",
+          "name": "demo-ai2ui",
+          "target": "demo-ai2ui"
+        },
+        {
+          "pattern": "demo-redqueen",
+          "name": "demo-redqueen",
+          "target": "demo-redqueen"
+        },
+        {
+          "pattern": "docs",
+          "name": "docs",
+          "target": "docs"
+        }
+      ],
+      "targets": {
+        "home": {
+          "viewId": "home",
+          "viewName": "Home"
+        },
+        "demo-translation": {
+          "viewId": "translation",
+          "viewName": "Translation"
+        },
+        "demo-agents": {
+          "viewId": "agents",
+          "viewName": "Agents"
+        },
+        "demo-extraction": {
+          "viewId": "extraction",
+          "viewName": "Extraction"
+        },
+        "demo-ai2ui": {
+          "viewId": "ai2ui",
+          "viewName": "AI2UI"
+        },
+        "demo-redqueen": {
+          "viewId": "redqueen",
+          "viewName": "RedQueen"
+        },
+        "docs": {
+          "viewId": "docs",
+          "viewName": "Docs"
+        }
+      }
+    },
+    "resources": {
+      "css": [
+        {
+          "uri": "css/style.css"
+        }
+      ]
+    }
+  }
+}

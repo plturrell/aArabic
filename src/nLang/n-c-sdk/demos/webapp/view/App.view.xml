@@ -1,0 +1,94 @@
+<mvc:View
+    controllerName="galaxy.sim.controller.App"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:core="sap.ui.core"
+    xmlns:tnt="sap.tnt"
+    xmlns:f="sap.f"
+    displayBlock="true">
+
+    <tnt:ToolPage id="toolPage">
+
+        <!-- Header with ShellBar -->
+        <tnt:header>
+            <f:ShellBar
+                id="shellBar"
+                title="n-c-sdkHPC"
+                secondTitle="process"
+                showMenuButton="true"
+                showNavButton="false"
+                showCopilot="false"
+                showSearch="false"
+                showNotifications="false"
+                menuButtonPressed=".onMenuButtonPress">
+                <f:additionalContent>
+                    <OverflowToolbarButton
+                        icon="sap-icon://grid"
+                        type="Transparent"
+                        tooltip="Product Switch"
+                        press=".onProductSwitchPress"/>
+                </f:additionalContent>
+            </f:ShellBar>
+        </tnt:header>
+
+        <!-- Sidebar Navigation -->
+        <tnt:sideContent>
+            <tnt:SideNavigation
+                id="sideNavigation"
+                expanded="true"
+                itemSelect=".onNavigationSelect">
+                <tnt:NavigationList>
+                    <!-- Main Navigation Group -->
+                    <tnt:NavigationListItem
+                        text="Home"
+                        icon="sap-icon://home"
+                        key="home"/>
+
+                    <!-- Demos Group -->
+                    <tnt:NavigationListItem
+                        text="Demos"
+                        icon="sap-icon://play"
+                        expanded="true">
+                        <tnt:items>
+                            <tnt:NavigationListItem
+                                text="Fractals"
+                                icon="sap-icon://puzzle"
+                                key="demo-fractals"/>
+                            <tnt:NavigationListItem
+                                text="Particle Physics"
+                                icon="sap-icon://umberlla"
+                                key="demo-physics"/>
+                            <tnt:NavigationListItem
+                                text="Galaxy Simulation"
+                                icon="sap-icon://world"
+                                key="galaxy"/>
+                            <tnt:NavigationListItem
+                                text="Agent Flow"
+                                icon="sap-icon://process"
+                                key="demo-agentflow"/>
+                        </tnt:items>
+                    </tnt:NavigationListItem>
+
+                    <!-- HPC Benchmarks -->
+                    <tnt:NavigationListItem
+                        text="HPC Benchmarks"
+                        icon="sap-icon://performance"
+                        key="benchmarks"/>
+
+                    <!-- Documentation -->
+                    <tnt:NavigationListItem
+                        text="Documentation"
+                        icon="sap-icon://learning-assistant"
+                        key="docs"/>
+                </tnt:NavigationList>
+            </tnt:SideNavigation>
+        </tnt:sideContent>
+
+        <!-- Main Content -->
+        <tnt:mainContents>
+            <NavContainer id="appContainer"/>
+        </tnt:mainContents>
+
+    </tnt:ToolPage>
+
+</mvc:View>

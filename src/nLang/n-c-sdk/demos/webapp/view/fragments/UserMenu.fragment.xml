@@ -1,0 +1,35 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core">
+
+    <ActionSheet
+        id="userMenuActionSheet"
+        title="Account"
+        showCancelButton="true"
+        placement="Bottom">
+
+        <!-- User Profile Header -->
+        <Button
+            text="John Doe"
+            icon="sap-icon://person-placeholder"
+            type="Transparent"
+            enabled="false"
+            class="userMenuHeaderButton"/>
+
+        <!-- Menu Items -->
+        <Button
+            text="My Profile"
+            icon="sap-icon://account"
+            type="Transparent"
+            press=".onUserMenuProfile"/>
+
+        <Button
+            text="Settings"
+            icon="sap-icon://action-settings"
+            type="Transparent"
+            press=".onUserMenuSettings"/>
+
+    </ActionSheet>
+
+</core:FragmentDefinition>
+

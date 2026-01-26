@@ -1,0 +1,86 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:l="sap.ui.layout">
+
+    <!-- Drill-Down Dialog for Live HPC Chart Analytics -->
+    <Dialog
+        id="drillDownDialog"
+        title="{drillDown>/title}"
+        contentWidth="800px"
+        contentHeight="500px"
+        draggable="true"
+        resizable="true"
+        class="drillDownDialog liquidGlassPanel">
+        
+        <customHeader>
+            <Bar class="drillDownHeader">
+                <contentLeft>
+                    <Title text="{drillDown>/title}" level="H4" />
+                    <core:Icon src="sap-icon://connected" class="dialogLiveIndicator connected" />
+                    <Text text="LIVE" class="dialogLiveLabel" />
+                </contentLeft>
+                <contentRight>
+                    <Button icon="sap-icon://decline" press="onCloseDrillDown" type="Transparent" />
+                </contentRight>
+            </Bar>
+        </customHeader>
+        
+        <content>
+            <VBox class="drillDownContent" width="100%">
+                <!-- Current Value Display -->
+                <HBox class="currentValueBox liquidGlassCard" justifyContent="SpaceBetween" alignItems="Center">
+                    <VBox>
+                        <Text text="Current Value" class="currentValueLabel" />
+                        <Title text="{drillDown>/currentValue}" level="H1" class="currentValueDisplay" />
+                    </VBox>
+                    <VBox alignItems="End">
+                        <Text text="{drillDown>/trend}" class="trendLabel {drillDown>/trendClass}" />
+                        <Text text="{drillDown>/details}" class="detailsText" />
+                    </VBox>
+                </HBox>
+                
+                <!-- Live Chart Canvas -->
+                <VBox class="chartContainer liquidGlassCard" width="100%">
+                    <HBox justifyContent="SpaceBetween" alignItems="Center" class="chartHeader">
+                        <Text text="60-Second History" class="chartTitle" />
+                        <SegmentedButton selectedKey="{drillDown>/chartType}">
+                            <items>
+                                <SegmentedButtonItem key="line" text="Line" />
+                                <SegmentedButtonItem key="bar" text="Bar" />
+                            </items>
+                        </SegmentedButton>
+                    </HBox>
+                    <core:HTML content="&lt;canvas id='drillDownCanvas' width='760' height='280' class='drillDownCanvas'&gt;&lt;/canvas&gt;" />
+                </VBox>
+                
+                <!-- Stats Summary -->
+                <HBox class="statsSummary" justifyContent="SpaceAround" width="100%">
+                    <VBox class="statItem liquidGlassCard" alignItems="Center">
+                        <Text text="Min" class="statLabel" />
+                        <Text text="{drillDown>/min}" class="statValue" />
+                    </VBox>
+                    <VBox class="statItem liquidGlassCard" alignItems="Center">
+                        <Text text="Max" class="statLabel" />
+                        <Text text="{drillDown>/max}" class="statValue" />
+                    </VBox>
+                    <VBox class="statItem liquidGlassCard" alignItems="Center">
+                        <Text text="Average" class="statLabel" />
+                        <Text text="{drillDown>/avg}" class="statValue" />
+                    </VBox>
+                    <VBox class="statItem liquidGlassCard" alignItems="Center">
+                        <Text text="Std Dev" class="statLabel" />
+                        <Text text="{drillDown>/stdDev}" class="statValue" />
+                    </VBox>
+                </HBox>
+            </VBox>
+        </content>
+        
+        <buttons>
+            <Button text="View Full Analytics" press="onNavigateToAnalytics" type="Emphasized" />
+            <Button text="Close" press="onCloseDrillDown" />
+        </buttons>
+    </Dialog>
+
+</core:FragmentDefinition>
+

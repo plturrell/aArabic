@@ -1,0 +1,129 @@
+<mvc:View
+    controllerName="galaxy.sim.controller.Lineage"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:l="sap.ui.layout"
+    xmlns:core="sap.ui.core"
+    height="100%">
+    
+    <Page title="OpenLineage" showNavButton="true" navButtonPress="onNavBack" enableScrolling="true" class="lineagePage">
+        <content>
+            <!-- Breadcrumbs Navigation -->
+            <Breadcrumbs class="pageBreadcrumbs" currentLocationText="OpenLineage">
+                <links>
+                    <Link text="n-c-sdk" press="onBreadcrumbHome" />
+                    <Link text="SDK Tools" press="onBreadcrumbTools" />
+                </links>
+            </Breadcrumbs>
+
+            <!-- Description Section -->
+            <VBox class="sapUiMediumMargin liquidGlassPanel">
+                <Title text="Data Lineage Tracking" level="H2" class="sapUiSmallMarginBottom" />
+                <Text text="OpenLineage provides comprehensive data lineage tracking for your data pipelines. Track the flow of data from source to destination, understand data transformations, and maintain a complete audit trail of your data assets. This SDK tool integrates seamlessly with your HPC workflows to capture lineage events automatically." class="sapUiSmallMarginBottom" />
+            </VBox>
+
+            <l:Splitter width="100%" height="600px" class="sapUiSmallMarginTop">
+                <!-- Left Panel: Lineage Graph Visualization -->
+                <l:contentAreas>
+                    <l:SplitterLayoutData size="60%" resizable="true" />
+                    <Panel headerText="Lineage Graph" class="liquidGlassPanel">
+                        <headerToolbar>
+                            <Toolbar>
+                                <Button icon="sap-icon://zoom-in" tooltip="Zoom In" press="onZoomIn" />
+                                <Button icon="sap-icon://zoom-out" tooltip="Zoom Out" press="onZoomOut" />
+                                <Button icon="sap-icon://reset" tooltip="Reset View" press="onResetView" />
+                                <ToolbarSpacer />
+                                <SegmentedButton selectedKey="{/viewMode}">
+                                    <items>
+                                        <SegmentedButtonItem key="graph" text="Graph" />
+                                        <SegmentedButtonItem key="timeline" text="Timeline" />
+                                    </items>
+                                </SegmentedButton>
+                            </Toolbar>
+                        </headerToolbar>
+                        <content>
+                            <core:HTML
+                                id="lineageCanvas"
+                                content="&lt;canvas id='lineage-graph' style='width:100%; height:450px; display:block; background: linear-gradient(135deg, rgba(30,40,60,0.8) 0%, rgba(20,30,50,0.9) 100%); border-radius: 8px;'&gt;&lt;/canvas&gt;"
+                                afterRendering="onCanvasReady" />
+                        </content>
+                    </Panel>
+                </l:contentAreas>
+
+                <!-- Right Panel: Controls and Event Log -->
+                <l:contentAreas>
+                    <l:SplitterLayoutData size="40%" resizable="true" />
+                    <VBox class="sapUiSmallMargin liquidGlassCard">
+                        <!-- Add Lineage Event Panel -->
+                        <Panel headerText="Add Lineage Event" class="sapUiSmallMarginBottom liquidGlassPanel">
+                            <content>
+                                <VBox class="sapUiTinyMargin liquidGlassCard">
+                                    <Label text="Event Type" labelFor="eventTypeSelect" />
+                                    <Select id="eventTypeSelect" selectedKey="{/newEvent/type}" width="100%">
+                                        <core:Item key="START" text="Run Start" />
+                                        <core:Item key="COMPLETE" text="Run Complete" />
+                                        <core:Item key="FAIL" text="Run Failed" />
+                                        <core:Item key="ABORT" text="Run Aborted" />
+                                    </Select>
+
+                                    <Label text="Job Name" class="sapUiTinyMarginTop" />
+                                    <Input value="{/newEvent/jobName}" placeholder="e.g., data_transform_job" width="100%" />
+
+                                    <Label text="Namespace" class="sapUiTinyMarginTop" />
+                                    <Input value="{/newEvent/namespace}" placeholder="e.g., hpc.pipeline" width="100%" />
+
+                                    <Label text="Input Dataset" class="sapUiTinyMarginTop" />
+                                    <Input value="{/newEvent/inputDataset}" placeholder="e.g., raw_data_source" width="100%" />
+
+                                    <Label text="Output Dataset" class="sapUiTinyMarginTop" />
+                                    <Input value="{/newEvent/outputDataset}" placeholder="e.g., processed_output" width="100%" />
+
+                                    <Button text="Add Event" type="Emphasized" icon="sap-icon://add" press="onAddEvent" class="sapUiSmallMarginTop" width="100%" />
+                                </VBox>
+                            </content>
+                        </Panel>
+
+                        <!-- Event Log Panel -->
+                        <Panel headerText="Event Log" class="liquidGlassPanel">
+                            <headerToolbar>
+                                <Toolbar>
+                                    <SearchField placeholder="Filter events..." liveChange="onFilterEvents" width="100%" />
+                                </Toolbar>
+                            </headerToolbar>
+                            <content>
+                                <List id="eventLogList" items="{/lineageEvents}" noDataText="No lineage events recorded" mode="SingleSelectMaster" selectionChange="onEventSelect">
+                                    <items>
+                                        <StandardListItem
+                                            title="{jobName}"
+                                            description="{namespace} | {timestamp}"
+                                            icon="{= ${type} === 'START' ? 'sap-icon://begin' : ${type} === 'COMPLETE' ? 'sap-icon://accept' : ${type} === 'FAIL' ? 'sap-icon://error' : 'sap-icon://stop'}"
+                                            info="{type}"
+                                            infoState="{= ${type} === 'COMPLETE' ? 'Success' : ${type} === 'FAIL' ? 'Error' : 'Information'}" />
+                                    </items>
+                                </List>
+                            </content>
+                        </Panel>
+                    </VBox>
+                </l:contentAreas>
+            </l:Splitter>
+
+            <!-- Export/Import Actions -->
+            <Toolbar class="sapUiMediumMargin liquidGlassToolbar">
+                <ToolbarSpacer />
+                <Button text="Import Lineage" icon="sap-icon://upload" press="onImportLineage" type="Default" />
+                <Button text="Export as JSON" icon="sap-icon://download" press="onExportJSON" type="Default" />
+                <Button text="Export as OpenLineage" icon="sap-icon://action" press="onExportOpenLineage" type="Emphasized" />
+                <Button text="Clear All" icon="sap-icon://delete" press="onClearAll" type="Reject" />
+            </Toolbar>
+        </content>
+
+        <footer>
+            <Toolbar design="Info" class="liquidGlassFooter">
+                <ToolbarSpacer />
+                <Text text="OpenLineage SDK | Data Lineage Tracking for HPC Pipelines" />
+                <ToolbarSpacer />
+            </Toolbar>
+        </footer>
+    </Page>
+</mvc:View>
+

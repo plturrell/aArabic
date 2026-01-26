@@ -1,0 +1,200 @@
+<mvc:View
+    controllerName="galaxy.sim.controller.GalaxySimulation"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:l="sap.ui.layout"
+    xmlns:core="sap.ui.core"
+    height="100%">
+    
+    <Page title="Galaxy N-Body Simulation" showNavButton="true" navButtonPress="onNavBack" enableScrolling="false" class="galaxyPage">
+        <content>
+            <l:Splitter width="100%" height="100%">
+                
+                <!-- Left Panel: Controls -->
+                <VBox class="sapUiSmallMargin liquidGlassCard">
+                    <layoutData>
+                        <l:SplitterLayoutData size="320px" resizable="true" />
+                    </layoutData>
+
+                        <!-- Scenario Selection -->
+                        <Panel headerText="Scenario" class="sapUiSmallMarginBottom liquidGlassPanel">
+                            <content>
+                                <VBox class="sapUiTinyMargin">
+                                    <Label text="Galaxy Type" labelFor="scenarioSelect" />
+                                    <Select
+                                        id="scenarioSelect"
+                                        selectedKey="{/scenario}"
+                                        change="onScenarioChange"
+                                        width="100%">
+                                        <core:Item key="disk" text="Disk Galaxy" />
+                                        <core:Item key="merge" text="Galaxy Merger" />
+                                        <core:Item key="collapse" text="Sphere Collapse" />
+                                    </Select>
+                                </VBox>
+                            </content>
+                        </Panel>
+                        
+                        <!-- Simulation Parameters -->
+                        <Panel headerText="Parameters" class="sapUiSmallMarginBottom liquidGlassPanel">
+                            <content>
+                                <VBox class="sapUiTinyMargin">
+                                    <Label text="Body Count: {/bodyCount}" />
+                                    <Slider
+                                        value="{/bodyCount}"
+                                        min="10000"
+                                        max="1000000"
+                                        step="10000"
+                                        width="100%"
+                                        liveChange="onBodyCountChange" />
+                                    
+                                    <Label text="Theta (Accuracy): {/theta}" class="sapUiTinyMarginTop" />
+                                    <Slider
+                                        value="{/theta}"
+                                        min="0.1"
+                                        max="1.0"
+                                        step="0.05"
+                                        width="100%" />
+                                    
+                                    <Label text="Time Step: {/dt}" class="sapUiTinyMarginTop" />
+                                    <Slider
+                                        value="{/dt}"
+                                        min="0.001"
+                                        max="0.1"
+                                        step="0.001"
+                                        width="100%" />
+                                </VBox>
+                            </content>
+                        </Panel>
+                        
+                        <!-- Control Buttons -->
+                        <Panel headerText="Controls" class="sapUiSmallMarginBottom liquidGlassPanel">
+                            <content>
+                                <Toolbar>
+                                    <Button
+                                        text="Start"
+                                        type="Emphasized"
+                                        icon="sap-icon://media-play"
+                                        press="onStart"
+                                        enabled="{= !${/running}}" />
+                                    <Button
+                                        text="Pause"
+                                        type="Default"
+                                        icon="sap-icon://media-pause"
+                                        press="onPause"
+                                        enabled="{/running}" />
+                                    <Button
+                                        text="Reset"
+                                        type="Reject"
+                                        icon="sap-icon://reset"
+                                        press="onReset" />
+                                </Toolbar>
+                            </content>
+                        </Panel>
+                        
+                        <!-- Statistics -->
+                        <Panel headerText="Performance" class="sapUiSmallMarginBottom liquidGlassPanel">
+                            <content>
+                                <VBox class="sapUiTinyMargin">
+                                    <HBox justifyContent="SpaceBetween">
+                                        <Label text="FPS:" />
+                                        <Text text="{/stats/fps}" />
+                                    </HBox>
+                                    <HBox justifyContent="SpaceBetween">
+                                        <Label text="Frame Time:" />
+                                        <Text text="{/stats/frameTime} ms" />
+                                    </HBox>
+                                    <HBox justifyContent="SpaceBetween">
+                                        <Label text="Bodies:" />
+                                        <Text text="{/stats/bodyCount}" />
+                                    </HBox>
+                                    
+                                    <Label text="CPU Usage" class="sapUiTinyMarginTop" />
+                                    <ProgressIndicator
+                                        percentValue="{/stats/cpuUsage}"
+                                        displayValue="{/stats/cpuUsage}%"
+                                        state="Information" />
+                                </VBox>
+                            </content>
+                        </Panel>
+                        
+                        <!-- Physics Breakdown -->
+                        <Panel headerText="Physics Timing" class="sapUiSmallMarginBottom liquidGlassPanel">
+                            <content>
+                                <VBox class="sapUiTinyMargin">
+                                    <HBox justifyContent="SpaceBetween">
+                                        <Label text="Tree Build:" />
+                                        <Text text="{/stats/treeBuild} ms" />
+                                    </HBox>
+                                    <HBox justifyContent="SpaceBetween">
+                                        <Label text="Force Calc:" />
+                                        <Text text="{/stats/forceCalc} ms" />
+                                    </HBox>
+                                    <HBox justifyContent="SpaceBetween">
+                                        <Label text="Integration:" />
+                                        <Text text="{/stats/integration} ms" />
+                                    </HBox>
+                                </VBox>
+                            </content>
+                        </Panel>
+                        
+                        <!-- Energy Conservation -->
+                        <Panel headerText="Energy" class="liquidGlassPanel">
+                            <content>
+                                <VBox class="sapUiTinyMargin">
+                                    <HBox justifyContent="SpaceBetween">
+                                        <Label text="Kinetic:" />
+                                        <Text text="{/stats/kineticEnergy}" />
+                                    </HBox>
+                                    <HBox justifyContent="SpaceBetween">
+                                        <Label text="Potential:" />
+                                        <Text text="{/stats/potentialEnergy}" />
+                                    </HBox>
+                                    <HBox justifyContent="SpaceBetween">
+                                        <Label text="Drift:" />
+                                        <Text text="{/stats/energyDrift}%" />
+                                    </HBox>
+                                </VBox>
+                            </content>
+                        </Panel>
+                        
+                </VBox>
+                
+                <!-- Right Panel: 3D Viewport -->
+                <Panel headerText="3D Viewport" height="100%" class="liquidGlassPanel">
+                    <layoutData>
+                        <l:SplitterLayoutData size="auto" resizable="false" />
+                    </layoutData>
+                        <content>
+                            <core:HTML
+                                id="galaxyCanvas"
+                                content="&lt;script type='module'&gt;
+                                    import { GalaxySimulation } from './lib/GalaxySimulation.js';
+                                    window.GalaxySimulation = GalaxySimulation;
+                                &lt;/script&gt;
+                                &lt;canvas id='galaxy-render' style='width:100%; height:100%; display:block;'&gt;&lt;/canvas&gt;"
+                                afterRendering="onCanvasReady" />
+                        </content>
+                        <headerToolbar>
+                            <Toolbar>
+                                <Button
+                                    icon="sap-icon://refresh"
+                                    tooltip="Reset Camera"
+                                    press="onResetCamera" />
+                                <ToolbarSpacer />
+                                <Label text="Fiori-Styled 3D Visualization" />
+                            </Toolbar>
+                        </headerToolbar>
+                </Panel>
+                
+            </l:Splitter>
+        </content>
+        
+        <footer>
+            <Toolbar design="Info">
+                <ToolbarSpacer />
+                <Text text="Barnes-Hut N-Body Simulation | Powered by Zig + WebAssembly + Three.js" />
+                <ToolbarSpacer />
+            </Toolbar>
+        </footer>
+    </Page>
+</mvc:View>

@@ -1,0 +1,66 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core">
+
+    <ResponsivePopover
+        id="productSwitchPopover"
+        title="Related Apps"
+        placement="Bottom"
+        contentWidth="280px"
+        class="sapUiContentPadding">
+
+        <content>
+            <List
+                noDataText="No related apps available"
+                class="productSwitchList">
+
+                <!-- Developer SDKs -->
+                <GroupHeaderListItem title="Developer" />
+                
+                <StandardListItem
+                    title="process sdk"
+                    type="Inactive"
+                    highlight="Information"/>
+
+                <StandardListItem
+                    title="⚛ intelligence sdk"
+                    type="Navigation"
+                    press=".onProductPythonSDK"/>
+
+                <!-- Apps -->
+                <GroupHeaderListItem title="Apps" />
+                
+                <StandardListItem
+                    title="Embedded AI"
+                    type="Navigation"
+                    press=".onProductEmbeddedAI"/>
+
+                <!-- Services -->
+                <GroupHeaderListItem title="Services" />
+                
+                <StandardListItem
+                    title="AI Inference"
+                    type="Navigation"
+                    press=".onProductLocalModels"/>
+
+                <StandardListItem
+                    title="Agent Flow"
+                    type="Navigation"
+                    press=".onProductAgentFlow"/>
+
+                <StandardListItem
+                    title="Meta Data"
+                    type="Navigation"
+                    press=".onProductAgentMeta"/>
+
+                <StandardListItem
+                    title="Grounding Policies"
+                    type="Navigation"
+                    press=".onProductGrounding"/>
+
+            </List>
+        </content>
+
+    </ResponsivePopover>
+
+</core:FragmentDefinition>

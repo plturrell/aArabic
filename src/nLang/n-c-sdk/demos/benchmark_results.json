@@ -1,0 +1,90 @@
+{
+  "timestamp": "2026-01-26T10:12:00Z",
+  "system": {
+    "architecture": "x86_64",
+    "vector_width": 8,
+    "cache_line_bytes": 64
+  },
+  "stream": {
+    "copy_bw_gbs": 45.23,
+    "scale_bw_gbs": 42.87,
+    "add_bw_gbs": 48.91,
+    "triad_bw_gbs": 51.34
+  },
+  "linpack": {
+    "achieved_gflops": 12.45,
+    "theoretical_peak_gflops": 64.00,
+    "efficiency_percent": 19.5
+  },
+  "latency": {
+    "l1_ns": 1.2,
+    "l2_ns": 4.5,
+    "l3_ns": 12.8,
+    "dram_ns": 85.3
+  },
+  "strong_scaling": [
+    {
+      "threads": 1,
+      "time_ms": 1234.56,
+      "speedup": 1.00,
+      "efficiency_percent": 100.0
+    },
+    {
+      "threads": 2,
+      "time_ms": 645.23,
+      "speedup": 1.91,
+      "efficiency_percent": 95.7
+    },
+    {
+      "threads": 4,
+      "time_ms": 334.12,
+      "speedup": 3.69,
+      "efficiency_percent": 92.3
+    },
+    {
+      "threads": 8,
+      "time_ms": 178.45,
+      "speedup": 6.92,
+      "efficiency_percent": 86.5
+    },
+    {
+      "threads": 16,
+      "time_ms": 95.67,
+      "speedup": 12.90,
+      "efficiency_percent": 80.6
+    }
+  ],
+  "weak_scaling": [
+    {
+      "threads": 1,
+      "time_ms": 523.45,
+      "efficiency_percent": 100.0
+    },
+    {
+      "threads": 2,
+      "time_ms": 534.12,
+      "efficiency_percent": 98.0
+    },
+    {
+      "threads": 4,
+      "time_ms": 556.78,
+      "efficiency_percent": 94.0
+    },
+    {
+      "threads": 8,
+      "time_ms": 589.23,
+      "efficiency_percent": 88.8
+    },
+    {
+      "threads": 16,
+      "time_ms": 645.90,
+      "efficiency_percent": 81.0
+    }
+  ],
+  "simd": {
+    "scalar_gflops": 5.67,
+    "vector_gflops": 38.92,
+    "speedup": 6.87,
+    "utilization_percent": 85.9
+  }
+}

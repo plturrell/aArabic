@@ -1,0 +1,172 @@
+<mvc:View
+    controllerName="galaxy.sim.controller.Fractals"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:l="sap.ui.layout"
+    xmlns:core="sap.ui.core"
+    xmlns:html="http://www.w3.org/1999/xhtml"
+    displayBlock="true">
+
+    <Page
+        id="fractalsPage"
+        title="Fractals - Mathematical Visualization"
+        showNavButton="false"
+        class="sapUiContentPadding">
+
+        <headerContent>
+            <SegmentedButton
+                id="fractalTypeButton"
+                selectedKey="mandelbrot"
+                selectionChange=".onFractalTypeChange">
+                <items>
+                    <SegmentedButtonItem key="mandelbrot" text="Mandelbrot"/>
+                    <SegmentedButtonItem key="julia" text="Julia Set"/>
+                    <SegmentedButtonItem key="sierpinski" text="Sierpinski"/>
+                </items>
+            </SegmentedButton>
+        </headerContent>
+
+        <content>
+            <VBox height="100%" class="sapUiSmallMargin">
+
+                <!-- Info Panel -->
+                <Panel
+                    headerText="About Fractals"
+                    expandable="true"
+                    expanded="false"
+                    class="sapUiSmallMarginBottom">
+                    <content>
+                        <Text text="Fractals are infinitely complex patterns that are self-similar across different scales. The Mandelbrot set, Julia sets, and Sierpinski triangle demonstrate the beauty of mathematical recursion and iteration in nature and computation."/>
+                    </content>
+                </Panel>
+
+                <!-- Canvas Container -->
+                <VBox class="sapUiSmallMarginBottom">
+                    <Title text="Fractal Visualization" level="H3" class="sapUiSmallMarginBottom"/>
+                    <html:canvas
+                        id="fractalCanvas"
+                        width="1200"
+                        height="600"
+                        style="border: 1px solid #ccc; border-radius: 4px; cursor: crosshair; max-width: 100%;"/>
+                </VBox>
+
+                <!-- Control Panel -->
+                <Panel
+                    headerText="Controls"
+                    expandable="true"
+                    expanded="true">
+                    <content>
+                        <l:Grid
+                            defaultSpan="L3 M6 S12"
+                            class="sapUiSmallMargin">
+                            <VBox>
+                                <Label text="Iterations:" class="sapUiTinyMarginBottom"/>
+                                <Slider
+                                    id="iterationsSlider"
+                                    value="100"
+                                    min="10"
+                                    max="500"
+                                    step="10"
+                                    width="200px"
+                                    enableTickmarks="false"
+                                    change=".onParameterChange"/>
+                                <Text id="iterationsValue" text="100"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Zoom:" class="sapUiTinyMarginBottom"/>
+                                <Slider
+                                    id="zoomSlider"
+                                    value="1"
+                                    min="0.1"
+                                    max="100"
+                                    step="0.1"
+                                    width="200px"
+                                    enableTickmarks="false"
+                                    change=".onParameterChange"/>
+                                <Text id="zoomValue" text="1.0x"/>
+                            </VBox>
+                            <VBox>
+                                <Label text="Color Scheme:" class="sapUiTinyMarginBottom"/>
+                                <Select
+                                    id="colorSchemeSelect"
+                                    selectedKey="rainbow"
+                                    change=".onColorSchemeChange">
+                                    <items>
+                                        <core:Item key="rainbow" text="Rainbow"/>
+                                        <core:Item key="fire" text="Fire"/>
+                                        <core:Item key="ice" text="Ice"/>
+                                        <core:Item key="grayscale" text="Grayscale"/>
+                                    </items>
+                                </Select>
+                            </VBox>
+                            <VBox>
+                                <Label text="Actions:" class="sapUiTinyMarginBottom"/>
+                                <Button
+                                    text="Reset View"
+                                    icon="sap-icon://reset"
+                                    press=".onResetView"
+                                    class="sapUiTinyMarginBottom"/>
+                                <Button
+                                    text="Download"
+                                    icon="sap-icon://download"
+                                    press=".onDownload"/>
+                            </VBox>
+                        </l:Grid>
+                    </content>
+                </Panel>
+
+                <!-- Statistics -->
+                <Panel
+                    headerText="Statistics"
+                    class="sapUiSmallMarginTop">
+                    <content>
+                        <l:HorizontalLayout>
+                            <l:VerticalLayout class="sapUiSmallMarginEnd">
+                                <Label text="Render Time:"/>
+                                <Text id="renderTime" text="0ms" class="sapUiTinyMarginTop"/>
+                            </l:VerticalLayout>
+                            <l:VerticalLayout class="sapUiSmallMarginEnd">
+                                <Label text="Pixels:"/>
+                                <Text id="pixelCount" text="0" class="sapUiTinyMarginTop"/>
+                            </l:VerticalLayout>
+                            <l:VerticalLayout class="sapUiSmallMarginEnd">
+                                <Label text="Center:"/>
+                                <Text id="centerCoords" text="(0, 0)" class="sapUiTinyMarginTop"/>
+                            </l:VerticalLayout>
+                            <l:VerticalLayout>
+                                <Label text="Zoom Level:"/>
+                                <Text id="zoomLevel" text="1.0x" class="sapUiTinyMarginTop"/>
+                            </l:VerticalLayout>
+                        </l:HorizontalLayout>
+                    </content>
+                </Panel>
+
+            </VBox>
+        </content>
+
+        <footer>
+            <Toolbar>
+                <Button
+                    icon="sap-icon://zoom-in"
+                    text="Zoom In"
+                    press=".onZoomIn"/>
+                <Button
+                    icon="sap-icon://zoom-out"
+                    text="Zoom Out"
+                    press=".onZoomOut"/>
+                <Button
+                    icon="sap-icon://arrow-left"
+                    text="Pan Left"
+                    press=".onPanLeft"/>
+                <Button
+                    icon="sap-icon://arrow-right"
+                    text="Pan Right"
+                    press=".onPanRight"/>
+                <ToolbarSpacer/>
+                <Text text="Click and drag to zoom into an area"/>
+            </Toolbar>
+        </footer>
+
+    </Page>
+
+</mvc:View>

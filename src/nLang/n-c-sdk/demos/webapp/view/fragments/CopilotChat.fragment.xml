@@ -1,0 +1,32 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:html="http://www.w3.org/1999/xhtml">
+
+    <Dialog
+        id="copilotDialog"
+        title="AI Copilot - nLocalModels"
+        contentWidth="800px"
+        contentHeight="600px"
+        resizable="true"
+        draggable="true"
+        class="copilotDialog">
+
+        <content>
+            <VBox height="100%" width="100%">
+                <html:iframe
+                    id="copilotFrame"
+                    src="/src/serviceCore/nLocalModels/index.html"
+                    style="width: 100%; height: 550px; border: none;"/>
+            </VBox>
+        </content>
+
+        <beginButton>
+            <Button
+                text="Close"
+                press=".onCloseCopilot"/>
+        </beginButton>
+
+    </Dialog>
+
+</core:FragmentDefinition>

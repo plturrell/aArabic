@@ -1,0 +1,244 @@
+<mvc:View
+    controllerName="galaxy.sim.controller.Benchmarks"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:core="sap.ui.core"
+    xmlns:l="sap.ui.layout"
+    xmlns:viz="sap.viz.ui5.controls"
+    height="100%">
+
+    <Page
+        title="HPC Benchmarks"
+        showNavButton="true"
+        navButtonPress=".onNavBack"
+        class="benchmarksPage">
+
+        <content>
+
+            <!-- Hero Section -->
+            <VBox class="benchmarkHero">
+                <VBox class="heroContent">
+                    <core:Icon src="sap-icon://performance" class="heroIcon" color="#0070f3" />
+                    <Title text="HPC Performance Metrics" level="H1" class="heroTitle" />
+                    <Text text="Industry-standard benchmarks: STREAM, LINPACK, Latency, Scaling, SIMD" class="heroSubtitle" />
+                </VBox>
+            </VBox>
+
+            <!-- Core HPC Metrics Grid -->
+            <VBox class="metricsSection">
+                <Title text="Core HPC Metrics" level="H2" class="sectionTitle" />
+                
+                <l:Grid defaultSpan="L4 M6 S12" class="metricsGrid">
+                    
+                    <!-- 1. STREAM Bandwidth -->
+                    <VBox class="metricCard">
+                        <HBox class="metricHeader">
+                            <core:Icon src="sap-icon://arobase" class="metricIcon" />
+                            <Title text="STREAM Bandwidth" level="H3" />
+                        </HBox>
+                        <VBox class="metricBody">
+                            <HBox justifyContent="SpaceBetween">
+                                <Text text="COPY:" />
+                                <Text text="{hpcModel>/stream/copy_bw_gbs} GB/s" class="metricValue" />
+                            </HBox>
+                            <HBox justifyContent="SpaceBetween">
+                                <Text text="SCALE:" />
+                                <Text text="{hpcModel>/stream/scale_bw_gbs} GB/s" class="metricValue" />
+                            </HBox>
+                            <HBox justifyContent="SpaceBetween">
+                                <Text text="ADD:" />
+                                <Text text="{hpcModel>/stream/add_bw_gbs} GB/s" class="metricValue" />
+                            </HBox>
+                            <HBox justifyContent="SpaceBetween">
+                                <Text text="TRIAD:" />
+                                <Text text="{hpcModel>/stream/triad_bw_gbs} GB/s" class="metricValue" />
+                            </HBox>
+                        </VBox>
+                    </VBox>
+
+                    <!-- 2. LINPACK FLOPs -->
+                    <VBox class="metricCard">
+                        <HBox class="metricHeader">
+                            <core:Icon src="sap-icon://Chart-Tree-Map" class="metricIcon" />
+                            <Title text="LINPACK FLOPs" level="H3" />
+                        </HBox>
+                        <VBox class="metricBody">
+                            <HBox justifyContent="SpaceBetween">
+                                <Text text="Achieved:" />
+                                <Text text="{hpcModel>/linpack/achieved_gflops} GFLOPS" class="metricValue" />
+                            </HBox>
+                            <HBox justifyContent="SpaceBetween">
+                                <Text text="Peak:" />
+                                <Text text="{hpcModel>/linpack/theoretical_peak_gflops} GFLOPS" class="metricValue" />
+                            </HBox>
+                            <HBox justifyContent="SpaceBetween">
+                                <Text text="Efficiency:" />
+                                <Text text="{hpcModel>/linpack/efficiency_percent}%" class="metricValue success" />
+                            </HBox>
+                        </VBox>
+                    </VBox>
+
+                    <!-- 3. Memory Latency -->
+                    <VBox class="metricCard">
+                        <HBox class="metricHeader">
+                            <core:Icon src="sap-icon://memory" class="metricIcon" />
+                            <Title text="Memory Latency" level="H3" />
+                        </HBox>
+                        <VBox class="metricBody">
+                            <HBox justifyContent="SpaceBetween">
+                                <Text text="L1 Cache:" />
+                                <Text text="{hpcModel>/latency/l1_ns} ns" class="metricValue success" />
+                            </HBox>
+                            <HBox justifyContent="SpaceBetween">
+                                <Text text="L2 Cache:" />
+                                <Text text="{hpcModel>/latency/l2_ns} ns" class="metricValue" />
+                            </HBox>
+                            <HBox justifyContent="SpaceBetween">
+                                <Text text="L3 Cache:" />
+                                <Text text="{hpcModel>/latency/l3_ns} ns" class="metricValue warning" />
+                            </HBox>
+                            <HBox justifyContent="SpaceBetween">
+                                <Text text="DRAM:" />
+                                <Text text="{hpcModel>/latency/dram_ns} ns" class="metricValue error" />
+                            </HBox>
+                        </VBox>
+                    </VBox>
+
+                    <!-- 4. Strong Scaling -->
+                    <VBox class="metricCard">
+                        <HBox class="metricHeader">
+                            <core:Icon src="sap-icon://upstacked-chart" class="metricIcon" />
+                            <Title text="Strong Scaling" level="H3" />
+                        </HBox>
+                        <VBox class="metricBody">
+                            <Text text="Fixed problem size, variable threads" class="metricSubtitle" />
+                            <List
+                                items="{hpcModel>/strong_scaling}"
+                                noDataText="No data available">
+                                <StandardListItem
+                                    title="{hpcModel>threads} threads"
+                                    info="{hpcModel>speedup}x speedup"
+                                    description="{hpcModel>efficiency_percent}% efficiency" />
+                            </List>
+                        </VBox>
+                    </VBox>
+
+                    <!-- 5. Weak Scaling -->
+                    <VBox class="metricCard">
+                        <HBox class="metricHeader">
+                            <core:Icon src="sap-icon://vertical-bar-chart" class="metricIcon" />
+                            <Title text="Weak Scaling" level="H3" />
+                        </HBox>
+                        <VBox class="metricBody">
+                            <Text text="Constant work per thread" class="metricSubtitle" />
+                            <List
+                                items="{hpcModel>/weak_scaling}"
+                                noDataText="No data available">
+                                <StandardListItem
+                                    title="{hpcModel>threads} threads"
+                                    description="{hpcModel>efficiency_percent}% efficiency" />
+                            </List>
+                        </VBox>
+                    </VBox>
+
+                    <!-- 6. SIMD Utilization -->
+                    <VBox class="metricCard">
+                        <HBox class="metricHeader">
+                            <core:Icon src="sap-icon://multiple-line-chart" class="metricIcon" />
+                            <Title text="SIMD Utilization" level="H3" />
+                        </HBox>
+                        <VBox class="metricBody">
+                            <HBox justifyContent="SpaceBetween">
+                                <Text text="Scalar:" />
+                                <Text text="{hpcModel>/simd/scalar_gflops} GFLOPS" class="metricValue" />
+                            </HBox>
+                            <HBox justifyContent="SpaceBetween">
+                                <Text text="Vector:" />
+                                <Text text="{hpcModel>/simd/vector_gflops} GFLOPS" class="metricValue success" />
+                            </HBox>
+                            <HBox justifyContent="SpaceBetween">
+                                <Text text="Speedup:" />
+                                <Text text="{hpcModel>/simd/speedup}x" class="metricValue" />
+                            </HBox>
+                            <HBox justifyContent="SpaceBetween">
+                                <Text text="Utilization:" />
+                                <Text text="{hpcModel>/simd/utilization_percent}%" class="metricValue success" />
+                            </HBox>
+                        </VBox>
+                    </VBox>
+
+                </l:Grid>
+            </VBox>
+
+            <!-- Sudoku Demo Section -->
+            <VBox class="sudokuSection">
+                <Title text="Sudoku HPC Demo" level="H2" class="sectionTitle" />
+                <Text text="Practical algorithm performance comparison solving Sudoku puzzles" class="sectionSubtitle" />
+                
+                <VBox class="sudokuCard">
+                    <Title text="Algorithm Comparison" level="H3" />
+                    
+                    <Table
+                        items="{hpcModel>/sudoku_demo/algorithms}"
+                        class="sudokuTable">
+                        <columns>
+                            <Column width="40%">
+                                <Text text="Algorithm" />
+                            </Column>
+                            <Column width="20%" hAlign="End">
+                                <Text text="Time (ms)" />
+                            </Column>
+                            <Column width="20%" hAlign="End">
+                                <Text text="FLOPs (M)" />
+                            </Column>
+                            <Column width="20%" hAlign="Center">
+                                <Text text="Status" />
+                            </Column>
+                        </columns>
+                        <items>
+                            <ColumnListItem>
+                                <cells>
+                                    <Text text="{hpcModel>name}" />
+                                    <Text text="{hpcModel>time_ms}" class="monospace" />
+                                    <Text text="{hpcModel>flops_m}" class="monospace" />
+                                    <Text text="{= ${hpcModel>solved} ? '✓ Solved' : '✗ Failed' }" />
+                                </cells>
+                            </ColumnListItem>
+                        </items>
+                    </Table>
+
+                    <!-- Speedups -->
+                    <VBox class="speedupsBox">
+                        <Title text="Speedups (vs Backtracking)" level="H4" />
+                        <HBox justifyContent="SpaceBetween">
+                            <Text text="Bitmask Optimization:" />
+                            <Text text="{hpcModel>/sudoku_demo/speedups/bitmask_vs_backtracking}x faster" class="speedupValue" />
+                        </HBox>
+                        <HBox justifyContent="SpaceBetween">
+                            <Text text="Constraint Propagation:" />
+                            <Text text="{hpcModel>/sudoku_demo/speedups/constraint_vs_backtracking}x faster" class="speedupValue" />
+                        </HBox>
+                    </VBox>
+                </VBox>
+            </VBox>
+
+            <!-- System Info Footer -->
+            <VBox class="systemInfo">
+                <Title text="System Information" level="H3" />
+                <HBox>
+                    <Label text="Architecture:" />
+                    <Text text="{hpcModel>/system/architecture}" />
+                </HBox>
+                <HBox>
+                    <Label text="Vector Width:" />
+                    <Text text="{hpcModel>/system/vector_width}" />
+                </HBox>
+                <HBox>
+                    <Label text="Benchmark Time:" />
+                    <Text text="{hpcModel>/timestamp}" />
+                </HBox>
+            </VBox>
+
+        </content>
+    </Page>
+</mvc:View>
