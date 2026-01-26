@@ -11,7 +11,7 @@ const StringHashMap = std.StringHashMap;
 const hana = @import("../data/hana_client.zig");
 const HanaConfig = hana.HanaConfig;
 const HanaClient = hana.HanaClient;
-const HanaResult = hana.HanaResult;
+const HanaResult = hana.QueryResult;
 const HanaRow = hana.HanaRow;
 const HanaValue = hana.HanaValue;
 
@@ -215,10 +215,7 @@ pub const HanaWorkflowStore = struct {
         const store = try allocator.create(Self);
         errdefer allocator.destroy(store);
 
-        const client = try allocator.create(HanaClient);
-        errdefer allocator.destroy(client);
-        client.* = HanaClient.init(allocator, config);
-        try client.connect();
+        const client = try hana.connectWithAllocator(allocator, config);
 
         store.* = .{
             .allocator = allocator,
@@ -231,7 +228,6 @@ pub const HanaWorkflowStore = struct {
 
     pub fn deinit(self: *Self) void {
         self.client.deinit();
-        self.allocator.destroy(self.client);
         self.allocator.free(self.table_prefix);
         self.allocator.destroy(self);
     }
@@ -248,12 +244,12 @@ pub const HanaWorkflowStore = struct {
         return std.fmt.allocPrint(self.allocator, "{s}_workflow_versions", .{self.table_prefix});
     }
 
-    fn runQuery(self: *Self, sql: []const u8) hana.HanaError!HanaResult {
-        return self.client.query(sql);
+    fn runQuery(self: *Self, sql: []const u8) !HanaResult {
+        return hana.queryWithAllocator(self.client, self.allocator, sql);
     }
 
-    fn runExecute(self: *Self, sql: []const u8) hana.HanaError!usize {
-        return self.client.execute(sql);
+    fn runExecute(self: *Self, sql: []const u8) !void {
+        return hana.execute(self.client, sql);
     }
 
     fn replacePrefix(self: *Self, template: []const u8) ![]u8 {
@@ -261,7 +257,6 @@ pub const HanaWorkflowStore = struct {
     }
 
     pub fn createSchema(self: *Self) !void {
-        try self.config.validate();
         const ddl_workflows = try self.replacePrefix(CREATE_WORKFLOWS_TABLE);
         defer self.allocator.free(ddl_workflows);
         const ddl_executions = try self.replacePrefix(CREATE_EXECUTIONS_TABLE);
@@ -271,10 +266,10 @@ pub const HanaWorkflowStore = struct {
         const ddl_indexes = try self.replacePrefix(CREATE_INDEXES);
         defer self.allocator.free(ddl_indexes);
 
-        _ = try self.runExecute(ddl_workflows);
-        _ = try self.runExecute(ddl_executions);
-        _ = try self.runExecute(ddl_versions);
-        _ = try self.runExecute(ddl_indexes);
+        try self.runExecute(ddl_workflows);
+        try self.runExecute(ddl_executions);
+        try self.runExecute(ddl_versions);
+        try self.runExecute(ddl_indexes);
     }
 
     pub fn saveWorkflow(self: *Self, workflow: WorkflowRecord) !void {
@@ -297,7 +292,7 @@ pub const HanaWorkflowStore = struct {
             },
         );
         defer self.allocator.free(sql);
-        _ = try self.runExecute(sql);
+        try self.runExecute(sql);
     }
 
     pub fn loadWorkflow(self: *Self, id: []const u8) !?WorkflowRecord {
@@ -307,7 +302,7 @@ pub const HanaWorkflowStore = struct {
         defer self.allocator.free(sql);
 
         var result = try self.runQuery(sql);
-        defer result.deinit(self.allocator);
+        defer result.deinit();
         if (result.rows.len == 0) return null;
         return try self.rowToWorkflow(result.rows[0]);
     }
@@ -337,7 +332,7 @@ pub const HanaWorkflowStore = struct {
     fn extractText(self: *Self, row: HanaRow, column: []const u8) ![]const u8 {
         if (row.getValue(column)) |value| {
             return switch (value) {
-                .text_value => |s| try self.allocator.dupe(u8, s),
+                .string => |s| try self.allocator.dupe(u8, s),
                 .null_value => try self.allocator.dupe(u8, ""),
                 else => error.InvalidField,
             };
@@ -348,8 +343,8 @@ pub const HanaWorkflowStore = struct {
     fn extractInt(self: *Self, row: HanaRow, column: []const u8) !i64 {
         if (row.getValue(column)) |value| {
             return switch (value) {
-                .int_value => |v| v,
-                .float_value => |v| @intFromFloat(i64, v),
+                .int => |v| v,
+                .float => |v| @intFromFloat(i64, v),
                 else => error.InvalidField,
             };
         }
@@ -359,8 +354,8 @@ pub const HanaWorkflowStore = struct {
     fn extractOptionalInt(self: *Self, row: HanaRow, column: []const u8) !?i64 {
         if (row.getValue(column)) |value| {
             return switch (value) {
-                .int_value => |v| v,
-                .float_value => |v| @intFromFloat(i64, v),
+                .int => |v| v,
+                .float => |v| @intFromFloat(i64, v),
                 .null_value => null,
                 else => error.InvalidField,
             };
@@ -371,7 +366,7 @@ pub const HanaWorkflowStore = struct {
     fn extractOptionalText(self: *Self, row: HanaRow, column: []const u8) !?[]const u8 {
         if (row.getValue(column)) |value| {
             return switch (value) {
-                .text_value => |s| try self.allocator.dupe(u8, s),
+                .string => |s| try self.allocator.dupe(u8, s),
                 .null_value => null,
                 else => error.InvalidField,
             };
@@ -384,8 +379,7 @@ pub const HanaWorkflowStore = struct {
         defer self.allocator.free(table);
         const sql = try std.fmt.allocPrint(self.allocator, "UPDATE \"{s}\" SET status = 'deleted', updated_at = {d} WHERE id = '{s}'", .{ table, std.time.timestamp(), id });
         defer self.allocator.free(sql);
-        const affected = try self.runExecute(sql);
-        if (affected == 0) return error.WorkflowNotFound;
+        try self.runExecute(sql);
     }
 
     pub fn listWorkflows(self: *Self, tenant_id: ?[]const u8, limit: u32, offset: u32) ![]WorkflowSummary {
@@ -397,7 +391,7 @@ pub const HanaWorkflowStore = struct {
         defer self.allocator.free(sql);
 
         var result = try self.runQuery(sql);
-        defer result.deinit(self.allocator);
+        defer result.deinit();
 
         var summaries = std.ArrayList(WorkflowSummary).init(self.allocator);
         errdefer {
@@ -453,7 +447,7 @@ pub const HanaWorkflowStore = struct {
         );
         defer self.allocator.free(sql);
 
-        _ = try self.runExecute(sql);
+        try self.runExecute(sql);
     }
 
     pub fn getExecution(self: *Self, id: []const u8) !?ExecutionRecord {
@@ -463,7 +457,7 @@ pub const HanaWorkflowStore = struct {
         defer self.allocator.free(sql);
 
         var result = try self.runQuery(sql);
-        defer result.deinit(self.allocator);
+        defer result.deinit();
         if (result.rows.len == 0) return null;
         return try self.rowToExecution(result.rows[0]);
     }
@@ -475,7 +469,7 @@ pub const HanaWorkflowStore = struct {
         defer self.allocator.free(sql);
 
         var result = try self.runQuery(sql);
-        defer result.deinit(self.allocator);
+        defer result.deinit();
 
         var executions = std.ArrayList(ExecutionRecord).init(self.allocator);
         errdefer {
@@ -507,11 +501,11 @@ pub const HanaWorkflowStore = struct {
 
         const delete_sql = try std.fmt.allocPrint(self.allocator, "DELETE FROM \"{s}\" WHERE workflow_id = '{s}' AND version = {d}", .{ table, workflow_id, version });
         defer self.allocator.free(delete_sql);
-        _ = try self.runExecute(delete_sql);
+        try self.runExecute(delete_sql);
 
         const insert_sql = try std.fmt.allocPrint(self.allocator, "INSERT INTO \"{s}\" (workflow_id, version, data, created_at) VALUES ('{s}', {d}, '{s}', {d})", .{ table, workflow_id, version, data, std.time.timestamp() });
         defer self.allocator.free(insert_sql);
-        _ = try self.runExecute(insert_sql);
+        try self.runExecute(insert_sql);
     }
 
     pub fn getWorkflowVersion(self: *Self, workflow_id: []const u8, version: u32) !?[]const u8 {
@@ -521,7 +515,7 @@ pub const HanaWorkflowStore = struct {
         defer self.allocator.free(sql);
 
         var result = try self.runQuery(sql);
-        defer result.deinit(self.allocator);
+        defer result.deinit();
         if (result.rows.len == 0) return null;
 
         if (result.rows[0].getValue("data")) |value| {
@@ -544,7 +538,7 @@ pub const HanaWorkflowStore = struct {
 // ===== TESTS =====
 
 fn testConfig() HanaConfig {
-    return .{ .host = "test.hana.ondemand.com", .port = 443, .user = "DBADMIN", .password = "secret", .schema = "WORKFLOW" };
+    return .{ .host = "test.hana.ondemand.com", .port = 443, .user = "DBADMIN", .password = "secret", .database = "WORKFLOW" };
 }
 
 test "ExecutionStatus - toString and fromString" {

@@ -1,7 +1,7 @@
 //! SAP HANA Client for nAgentFlow - Uses the centralized HANA SDK
 //!
 //! This module provides a lightweight wrapper around the HANA SDK located at:
-//! /Users/user/Documents/arabic_folder/src/nLang/n-c-sdk/zig-out/lib/zig/hana/
+//! /Users/user/Documents/arabic_folder/src/nLang/n-c-sdk/lib/hana/
 //!
 //! The SDK provides:
 //! - Native SAP HANA SQL Command Network Protocol v2.0
@@ -17,64 +17,20 @@
 
 const std = @import("std");
 
-// Import the centralized HANA SDK
-const hana_sdk_path = "../../../nLang/n-c-sdk/zig-out/lib/zig/hana/hana.zig";
-const hana = @import(hana_sdk_path);
+// Import the centralized HANA SDK directly from source (no zig-out dependency)
+const hana = @import("../../../nLang/n-c-sdk/lib/hana/hana.zig");
+const hana_client = hana.client;
 
-// Re-export types from HANA SDK for convenience
-pub const HanaError = error{
-    ConnectionFailed,
-    AuthenticationFailed,
-    TlsInitFailed,
-    TlsHandshakeFailed,
-    QueryFailed,
-    ExecuteFailed,
-    TransactionError,
-    PrepareStatementFailed,
-    InvalidParameter,
-    Timeout,
-    PoolExhausted,
-    AlreadyConnected,
-    NotConnected,
-    AlreadyInTransaction,
-    NotInTransaction,
-    InvalidConfig,
-    ProtocolError,
-    EndOfStream,
-    OutOfMemory,
-    UnsupportedAuthType,
-    PasswordRequired,
-    SchemaNotSet,
-    StatementNotPrepared,
-    InvalidResponse,
-};
-
-// Re-export SDK types
+// Re-export SDK types (only those that exist in the SDK)
+pub const HanaError = anyerror;
 pub const HanaConfig = hana.Config;
 pub const HanaClient = hana.Client;
 pub const QueryResult = hana.QueryResult;
+pub const Row = hana_client.Row;
+pub const Value = hana_client.Value;
+pub const Parameter = hana_client.Parameter;
 
-// Re-export native protocol types
-pub const HanaConnection = hana.HanaConnection;
-pub const HanaConnectionConfig = hana.HanaConnectionConfig;
-pub const Protocol = hana.Protocol;
-pub const Auth = hana.Auth;
-
-// Re-export query execution types
-pub const Query = hana.Query;
-pub const ResultSet = hana.Query.ResultSet;
-pub const Row = hana.Query.Row;
-pub const Value = hana.Query.Value;
-
-// Re-export Graph Engine
-pub const Graph = hana.Graph;
-
-// Re-export OData
-pub const ODataClient = hana.ODataClient;
-pub const ODataConfig = hana.ODataConfig;
-pub const ODataConfigWithToken = hana.ODataConfigWithToken;
-
-// Re-export caching
+// Re-export caching helpers
 pub const LRUCache = hana.LRUCache;
 pub const QueryCache = hana.QueryCache;
 pub const CacheStats = hana.CacheStats;
@@ -93,14 +49,19 @@ pub fn connectWithAllocator(allocator: std.mem.Allocator, config: HanaConfig) !*
     return hana.connectWithAllocator(allocator, config);
 }
 
-/// Connect using OData with JWT token
-pub fn odataConnectWithToken(allocator: std.mem.Allocator, config: ODataConfigWithToken) !*ODataClient {
-    return hana.odataConnectWithToken(allocator, config);
-}
-
 /// Load configuration from environment variables
 pub fn loadConfigFromEnv(allocator: std.mem.Allocator) !HanaConfig {
     return hana.client.loadConfigFromEnv(allocator);
+}
+
+/// Execute a query using the provided allocator (compat helper)
+pub fn queryWithAllocator(client: *HanaClient, allocator: std.mem.Allocator, sql: []const u8) !QueryResult {
+    return client.query(sql, allocator);
+}
+
+/// Execute a statement (compat helper)
+pub fn execute(client: *HanaClient, sql: []const u8) !void {
+    return client.execute(sql);
 }
 
 // ============================================================================

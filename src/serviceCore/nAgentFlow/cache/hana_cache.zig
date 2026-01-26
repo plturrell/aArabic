@@ -18,9 +18,7 @@ const Allocator = std.mem.Allocator;
 const hana = @import("../data/hana_client.zig");
 const HanaClient = hana.HanaClient;
 const HanaConfig = hana.HanaConfig;
-const HanaConnection = hana.HanaConnection;
-const HanaConnectionConfig = hana.HanaConnectionConfig;
-const Query = hana.Query;
+const QueryResult = hana.QueryResult;
 
 /// HANA cache configuration
 pub const HanaCacheConfig = struct {
@@ -28,8 +26,7 @@ pub const HanaCacheConfig = struct {
     port: u16 = 443,
     user: []const u8,
     password: []const u8,
-    schema: []const u8 = "NWORKFLOW_CACHE",
-    use_tls: bool = true,
+    database: []const u8 = "NWORKFLOW_CACHE",
     table_prefix: []const u8 = "cache",
 };
 
@@ -37,7 +34,7 @@ pub const HanaCacheConfig = struct {
 pub const HanaCache = struct {
     allocator: Allocator,
     config: HanaCacheConfig,
-    connection: HanaConnection,
+    client: *HanaClient,
     is_connected: bool,
 
     const Self = @This();
@@ -71,21 +68,20 @@ pub const HanaCache = struct {
     ;
 
     pub fn init(allocator: Allocator, config: HanaCacheConfig) !Self {
-        const conn_config = HanaConnectionConfig{
+        const hana_config = HanaConfig{
             .host = config.host,
             .port = config.port,
+            .database = config.database,
             .user = config.user,
             .password = config.password,
-            .database = config.schema,
-            .use_tls = config.use_tls,
         };
 
-        var connection = try HanaConnection.init(allocator, conn_config);
+        const client = try hana.connectWithAllocator(allocator, hana_config);
 
         return Self{
             .allocator = allocator,
             .config = config,
-            .connection = connection,
+            .client = client,
             .is_connected = false,
         };
     }
@@ -94,19 +90,16 @@ pub const HanaCache = struct {
         if (self.is_connected) {
             self.disconnect();
         }
-        self.connection.deinit();
+        self.client.deinit();
     }
 
     pub fn connect(self: *Self) !void {
-        try self.connection.connect();
+        if (self.is_connected) return;
         self.is_connected = true;
-
-        // Initialize schema
         try self.initializeSchema();
     }
 
     pub fn disconnect(self: *Self) void {
-        self.connection.disconnect();
         self.is_connected = false;
     }
 
@@ -116,7 +109,7 @@ pub const HanaCache = struct {
             self.allocator,
             CREATE_CACHE_TABLE,
             "{schema}",
-            self.config.schema,
+            self.config.database,
         );
         defer self.allocator.free(cache_ddl);
 
@@ -129,8 +122,7 @@ pub const HanaCache = struct {
         );
         defer self.allocator.free(cache_ddl_final);
 
-        var executor = Query.Executor.init(self.allocator, &self.connection);
-        _ = try executor.executeQuery(cache_ddl_final);
+        try self.execute(cache_ddl_final);
 
         // Create session table
         const session_ddl = try std.mem.replaceOwned(
@@ -138,7 +130,7 @@ pub const HanaCache = struct {
             self.allocator,
             CREATE_SESSION_TABLE,
             "{schema}",
-            self.config.schema,
+            self.config.database,
         );
         defer self.allocator.free(session_ddl);
 
@@ -151,7 +143,7 @@ pub const HanaCache = struct {
         );
         defer self.allocator.free(session_ddl_final);
 
-        _ = try executor.executeQuery(session_ddl_final);
+        try self.execute(session_ddl_final);
 
         // Create state table
         const state_ddl = try std.mem.replaceOwned(
@@ -159,7 +151,7 @@ pub const HanaCache = struct {
             self.allocator,
             CREATE_STATE_TABLE,
             "{schema}",
-            self.config.schema,
+            self.config.database,
         );
         defer self.allocator.free(state_ddl);
 
@@ -172,7 +164,15 @@ pub const HanaCache = struct {
         );
         defer self.allocator.free(state_ddl_final);
 
-        _ = try executor.executeQuery(state_ddl_final);
+        try self.execute(state_ddl_final);
+    }
+
+    fn execute(self: *Self, sql: []const u8) !void {
+        try hana.execute(self.client, sql);
+    }
+
+    fn query(self: *Self, sql: []const u8) !QueryResult {
+        return hana.queryWithAllocator(self.client, self.allocator, sql);
     }
 
     // ========================================================================
@@ -191,12 +191,11 @@ pub const HanaCache = struct {
         const sql = try std.fmt.allocPrint(
             self.allocator,
             "UPSERT {s}.{s}_kv (key, value, ttl) VALUES ('{s}', '{s}', {d})",
-            .{ self.config.schema, self.config.table_prefix, key, value, ttl_val },
+            .{ self.config.database, self.config.table_prefix, key, value, ttl_val },
         );
         defer self.allocator.free(sql);
 
-        var executor = Query.Executor.init(self.allocator, &self.connection);
-        _ = try executor.executeQuery(sql);
+        try self.execute(sql);
     }
 
     /// Get a value by key, returns null if not found or expired
@@ -207,20 +206,19 @@ pub const HanaCache = struct {
         const sql = try std.fmt.allocPrint(
             self.allocator,
             "SELECT value FROM {s}.{s}_kv WHERE key = '{s}' AND (ttl = 0 OR ttl > {d})",
-            .{ self.config.schema, self.config.table_prefix, key, now },
+            .{ self.config.database, self.config.table_prefix, key, now },
         );
         defer self.allocator.free(sql);
 
-        var executor = Query.Executor.init(self.allocator, &self.connection);
-        var result = try executor.executeQuery(sql);
+        var result = try self.query(sql);
         defer result.deinit();
 
-        if (result.next()) |row| {
-            if (row.getValue(0)) |val| {
-                return try val.asString();
+        if (result.rows.len == 0) return null;
+        if (result.rows[0].get(0)) |val| {
+            if (val.asString()) |s| {
+                return try self.allocator.dupe(u8, s);
             }
         }
-
         return null;
     }
 
@@ -231,12 +229,11 @@ pub const HanaCache = struct {
         const sql = try std.fmt.allocPrint(
             self.allocator,
             "DELETE FROM {s}.{s}_kv WHERE key = '{s}'",
-            .{ self.config.schema, self.config.table_prefix, key },
+            .{ self.config.database, self.config.table_prefix, key },
         );
         defer self.allocator.free(sql);
 
-        var executor = Query.Executor.init(self.allocator, &self.connection);
-        _ = try executor.executeQuery(sql);
+        try self.execute(sql);
         return true;
     }
 
@@ -248,7 +245,7 @@ pub const HanaCache = struct {
         const sql = try std.fmt.allocPrint(
             self.allocator,
             "SELECT COUNT(*) FROM {s}.{s}_kv WHERE key = '{s}' AND (ttl = 0 OR ttl > {d})",
-            .{ self.config.schema, self.config.table_prefix, key, now },
+            .{ self.config.database, self.config.table_prefix, key, now },
         );
         defer self.allocator.free(sql);
 
@@ -274,7 +271,7 @@ pub const HanaCache = struct {
         const sql = try std.fmt.allocPrint(
             self.allocator,
             "UPDATE {s}.{s}_kv SET ttl = {d} WHERE key = '{s}'",
-            .{ self.config.schema, self.config.table_prefix, ttl, key },
+            .{ self.config.database, self.config.table_prefix, ttl, key },
         );
         defer self.allocator.free(sql);
 
@@ -290,7 +287,7 @@ pub const HanaCache = struct {
         const sql = try std.fmt.allocPrint(
             self.allocator,
             "SELECT ttl FROM {s}.{s}_kv WHERE key = '{s}'",
-            .{ self.config.schema, self.config.table_prefix, key },
+            .{ self.config.database, self.config.table_prefix, key },
         );
         defer self.allocator.free(sql);
 
@@ -322,7 +319,7 @@ pub const HanaCache = struct {
         const sql = try std.fmt.allocPrint(
             self.allocator,
             "UPSERT {s}.{s}_sessions (session_id, data, ttl) VALUES ('{s}', '{s}', {d})",
-            .{ self.config.schema, self.config.table_prefix, session_id, data, ttl },
+            .{ self.config.database, self.config.table_prefix, session_id, data, ttl },
         );
         defer self.allocator.free(sql);
 
@@ -338,7 +335,7 @@ pub const HanaCache = struct {
         const sql = try std.fmt.allocPrint(
             self.allocator,
             "SELECT data FROM {s}.{s}_sessions WHERE session_id = '{s}' AND ttl > {d}",
-            .{ self.config.schema, self.config.table_prefix, session_id, now },
+            .{ self.config.database, self.config.table_prefix, session_id, now },
         );
         defer self.allocator.free(sql);
 
@@ -362,7 +359,7 @@ pub const HanaCache = struct {
         const sql = try std.fmt.allocPrint(
             self.allocator,
             "DELETE FROM {s}.{s}_sessions WHERE session_id = '{s}'",
-            .{ self.config.schema, self.config.table_prefix, session_id },
+            .{ self.config.database, self.config.table_prefix, session_id },
         );
         defer self.allocator.free(sql);
 
@@ -382,7 +379,7 @@ pub const HanaCache = struct {
         const sql = try std.fmt.allocPrint(
             self.allocator,
             "UPSERT {s}.{s}_workflow_state (workflow_id, state_json, ttl) VALUES ('{s}', '{s}', {d})",
-            .{ self.config.schema, self.config.table_prefix, workflow_id, state_json, ttl },
+            .{ self.config.database, self.config.table_prefix, workflow_id, state_json, ttl },
         );
         defer self.allocator.free(sql);
 
@@ -398,7 +395,7 @@ pub const HanaCache = struct {
         const sql = try std.fmt.allocPrint(
             self.allocator,
             "SELECT state_json FROM {s}.{s}_workflow_state WHERE workflow_id = '{s}' AND ttl > {d}",
-            .{ self.config.schema, self.config.table_prefix, workflow_id, now },
+            .{ self.config.database, self.config.table_prefix, workflow_id, now },
         );
         defer self.allocator.free(sql);
 
@@ -422,7 +419,7 @@ pub const HanaCache = struct {
         const sql = try std.fmt.allocPrint(
             self.allocator,
             "DELETE FROM {s}.{s}_workflow_state WHERE workflow_id = '{s}'",
-            .{ self.config.schema, self.config.table_prefix, workflow_id },
+            .{ self.config.database, self.config.table_prefix, workflow_id },
         );
         defer self.allocator.free(sql);
 
@@ -445,7 +442,7 @@ pub const HanaCache = struct {
         const kv_sql = try std.fmt.allocPrint(
             self.allocator,
             "DELETE FROM {s}.{s}_kv WHERE ttl > 0 AND ttl < {d}",
-            .{ self.config.schema, self.config.table_prefix, now },
+            .{ self.config.database, self.config.table_prefix, now },
         );
         defer self.allocator.free(kv_sql);
         _ = try executor.executeQuery(kv_sql);
@@ -454,7 +451,7 @@ pub const HanaCache = struct {
         const session_sql = try std.fmt.allocPrint(
             self.allocator,
             "DELETE FROM {s}.{s}_sessions WHERE ttl < {d}",
-            .{ self.config.schema, self.config.table_prefix, now },
+            .{ self.config.database, self.config.table_prefix, now },
         );
         defer self.allocator.free(session_sql);
         _ = try executor.executeQuery(session_sql);
@@ -463,7 +460,7 @@ pub const HanaCache = struct {
         const state_sql = try std.fmt.allocPrint(
             self.allocator,
             "DELETE FROM {s}.{s}_workflow_state WHERE ttl < {d}",
-            .{ self.config.schema, self.config.table_prefix, now },
+            .{ self.config.database, self.config.table_prefix, now },
         );
         defer self.allocator.free(state_sql);
         _ = try executor.executeQuery(state_sql);

@@ -468,8 +468,8 @@ pub const Analytics = struct {
         _ = self;
         var buf: [64]u8 = undefined;
         const now = std.time.timestamp();
-        _ = epoch_day; // const epoch_day = @divFloor(now, 86400);
-        _ = day_seconds; // const day_seconds = @mod(now, 86400);
+        _ = epoch_day; // _ = epoch_day; // const epoch_day = @divFloor(now, 86400);
+        _ = day_seconds; // _ = day_seconds; // const day_seconds = @mod(now, 86400);
         
         // Simple timestamp format
         return try std.fmt.bufPrint(&buf, "{d}", .{now});
