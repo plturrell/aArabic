@@ -792,7 +792,7 @@ pub const WorkflowParser = struct {
     
     /// Simple YAML to JSON converter (subset of YAML)
     fn yamlToJson(self: *WorkflowParser, yaml_str: []const u8) ![]const u8 {
-        var json = std.ArrayList(u8).init(self.allocator);
+        var json = try std.ArrayList(u8).initCapacity(self.allocator, 0);
         errdefer json.deinit();
         
         var lines = std.mem.split(u8, yaml_str, "\n");
@@ -850,10 +850,10 @@ pub const WorkflowParser = struct {
         // Parse Lean4 structure definitions
         var lines = std.mem.split(u8, lean_str, "\n");
         
-        var nodes_list = std.ArrayList(WorkflowNode).init(self.allocator);
+        var nodes_list = try std.ArrayList(WorkflowNode).initCapacity(self.allocator, 0);
         defer nodes_list.deinit();
         
-        var edges_list = std.ArrayList(WorkflowEdge).init(self.allocator);
+        var edges_list = try std.ArrayList(WorkflowEdge).initCapacity(self.allocator, 0);
         defer edges_list.deinit();
         
         while (lines.next()) |line| {
@@ -970,7 +970,7 @@ pub const WorkflowParser = struct {
         var server_header_buffer: [4096]u8 = undefined;
 
         // Build JSON request body
-        var request_body = std.ArrayList(u8).init(self.allocator);
+        var request_body = try std.ArrayList(u8).initCapacity(self.allocator, 0);
         defer request_body.deinit();
         try request_body.appendSlice("{\"source\":\"");
         // Escape source for JSON
@@ -1006,7 +1006,7 @@ pub const WorkflowParser = struct {
         }
 
         // Parse response
-        var response_body = std.ArrayList(u8).init(self.allocator);
+        var response_body = try std.ArrayList(u8).initCapacity(self.allocator, 0);
         defer response_body.deinit();
         try request.reader().readAllArrayList(&response_body, 10 * 1024 * 1024);
 

@@ -112,7 +112,7 @@ pub const Analytics = struct {
         self.* = .{
             .allocator = allocator,
             .metrics_file = try allocator.dupe(u8, metrics_file),
-            .metrics = std.ArrayList(SelectionMetric).init(allocator),
+            .metrics = try std.ArrayList(SelectionMetric).initCapacity(allocator, 0),
             .category_stats = std.StringHashMap(CategoryStats).init(allocator),
             .model_stats = std.StringHashMap(ModelStats).init(allocator),
         };
@@ -123,7 +123,7 @@ pub const Analytics = struct {
         for (self.metrics.items) |*metric| {
             metric.deinit(self.allocator);
         }
-        self.metrics.deinit();
+        self.metrics.deinit(self.allocator);
         
         var cat_it = self.category_stats.iterator();
         while (cat_it.next()) |entry| {
@@ -160,7 +160,7 @@ pub const Analytics = struct {
             if (line.len == 0) continue;
             
             const metric = try self.parseCSVLine(line);
-            try self.metrics.append(metric);
+            try self.metrics.append(self.allocator, metric);
         }
     }
     
@@ -414,11 +414,13 @@ pub const Analytics = struct {
         var effectiveness = try self.calculateEffectiveness();
         defer effectiveness.deinit();
         
-        const stdout = std.io.getStdOut().writer();
+        const stdout_file = std.fs.File.stdout();
+        const stdout = stdout_file.deprecatedWriter();
         
-        try stdout.print("\n{'=':**60}\n", .{});
+        try stdout.print("\n", .{});
+        try stdout.print("============================================================\n", .{});
         try stdout.print("MULTI-CATEGORY ROUTING SUMMARY\n", .{});
-        try stdout.print("{'=':**60}\n\n", .{});
+        try stdout.print("============================================================\n\n", .{});
         
         try stdout.print("Total Requests: {d}\n", .{effectiveness.total_requests});
         try stdout.print("Unique Models: {d}\n", .{effectiveness.unique_models_used});
@@ -431,12 +433,12 @@ pub const Analytics = struct {
         
         try stdout.print("Top Models by Usage:\n", .{});
         // Sort and print top 5 models
-        var models_list = std.ArrayList(struct { name: []const u8, count: usize, categories: usize }).init(self.allocator);
-        defer models_list.deinit();
+        var models_list = try std.ArrayList(struct { name: []const u8, count: usize, categories: usize }).initCapacity(self.allocator, 0);
+        defer models_list.deinit(self.allocator);
         
         var model_it = self.model_stats.iterator();
         while (model_it.next()) |entry| {
-            try models_list.append(.{
+            try models_list.append(self.allocator, .{
                 .name = entry.key_ptr.*,
                 .count = entry.value_ptr.total_requests,
                 .categories = entry.value_ptr.categories_served.count(),
@@ -461,7 +463,8 @@ pub const Analytics = struct {
             }
         }
         
-        try stdout.print("\n{'=':**60}\n\n", .{});
+        try stdout.print("\n", .{});
+        try stdout.print("============================================================\n\n", .{});
     }
     
     fn getTimestamp(self: *Analytics) ![]const u8 {
@@ -519,7 +522,8 @@ pub fn main() !void {
     // Generate report if requested
     if (generate_report) {
         if (std.mem.eql(u8, format, "markdown")) {
-            const stdout = std.io.getStdOut().writer();
+            const stdout_file = std.fs.File.stdout();
+            const stdout = stdout_file.deprecatedWriter();
             try analytics.generateMarkdownReport(stdout);
         } else if (std.mem.eql(u8, format, "json")) {
             // TODO: Implement JSON output

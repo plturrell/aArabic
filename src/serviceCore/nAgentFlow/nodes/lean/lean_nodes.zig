@@ -119,21 +119,21 @@ pub const ProofResult = struct {
         try obj.put("success", .{ .bool = self.success });
 
         // Add errors array
-        var errors_array = std.ArrayList(std.json.Value).init(self.allocator);
+        var errors_array = try std.ArrayList(std.json.Value).initCapacity(self.allocator, 0);
         for (self.errors) |err| {
             try errors_array.append(.{ .string = err });
         }
         try obj.put("errors", .{ .array = try errors_array.toOwnedSlice() });
 
         // Add warnings array
-        var warnings_array = std.ArrayList(std.json.Value).init(self.allocator);
+        var warnings_array = try std.ArrayList(std.json.Value).initCapacity(self.allocator, 0);
         for (self.warnings) |warn| {
             try warnings_array.append(.{ .string = warn });
         }
         try obj.put("warnings", .{ .array = try warnings_array.toOwnedSlice() });
 
         // Add declarations array
-        var decls_array = std.ArrayList(std.json.Value).init(self.allocator);
+        var decls_array = try std.ArrayList(std.json.Value).initCapacity(self.allocator, 0);
         for (self.elaborated_decls) |decl| {
             try decls_array.append(.{ .string = decl });
         }
@@ -242,7 +242,7 @@ pub const LeanHttpClient = struct {
         }
 
         // Read response body
-        var response_body = std.ArrayList(u8).init(self.allocator);
+        var response_body = try std.ArrayList(u8).initCapacity(self.allocator, 0);
         errdefer response_body.deinit();
 
         const max_size = 50 * 1024 * 1024; // 50MB max for large proofs
@@ -278,7 +278,7 @@ pub const LeanHttpClient = struct {
         // Parse errors array
         if (obj.get("errors")) |errors_val| {
             if (errors_val == .array) {
-                var errors_list = std.ArrayList([]const u8).init(self.allocator);
+                var errors_list = try std.ArrayList([]const u8).initCapacity(self.allocator, 0);
                 for (errors_val.array.items) |item| {
                     if (item == .string) {
                         try errors_list.append(try self.allocator.dupe(u8, item.string));
@@ -291,7 +291,7 @@ pub const LeanHttpClient = struct {
         // Parse warnings array
         if (obj.get("warnings")) |warnings_val| {
             if (warnings_val == .array) {
-                var warnings_list = std.ArrayList([]const u8).init(self.allocator);
+                var warnings_list = try std.ArrayList([]const u8).initCapacity(self.allocator, 0);
                 for (warnings_val.array.items) |item| {
                     if (item == .string) {
                         try warnings_list.append(try self.allocator.dupe(u8, item.string));
@@ -304,7 +304,7 @@ pub const LeanHttpClient = struct {
         // Parse elaborated declarations
         if (obj.get("declarations") orelse obj.get("elaborated_decls")) |decls_val| {
             if (decls_val == .array) {
-                var decls_list = std.ArrayList([]const u8).init(self.allocator);
+                var decls_list = try std.ArrayList([]const u8).initCapacity(self.allocator, 0);
                 for (decls_val.array.items) |item| {
                     if (item == .string) {
                         try decls_list.append(try self.allocator.dupe(u8, item.string));
@@ -432,7 +432,7 @@ pub const LeanCheckNode = struct {
         defer request_obj.deinit();
         try request_obj.put("source", .{ .string = source });
 
-        var request_str = std.ArrayList(u8).init(self.allocator);
+        var request_str = try std.ArrayList(u8).initCapacity(self.allocator, 0);
         defer request_str.deinit();
         try std.json.stringify(.{ .object = request_obj }, .{}, request_str.writer());
 
@@ -550,7 +550,7 @@ pub const LeanRunNode = struct {
         defer request_obj.deinit();
         try request_obj.put("source", .{ .string = source });
 
-        var request_str = std.ArrayList(u8).init(self.allocator);
+        var request_str = try std.ArrayList(u8).initCapacity(self.allocator, 0);
         defer request_str.deinit();
         try std.json.stringify(.{ .object = request_obj }, .{}, request_str.writer());
 
@@ -834,7 +834,7 @@ pub const LeanProofVerifyNode = struct {
         try result.put("compilation_ready", .{ .bool = proof_result.success and proof_result.errors.len == 0 });
 
         // Add proof results array
-        var proof_results = std.ArrayList(std.json.Value).init(self.allocator);
+        var proof_results = try std.ArrayList(std.json.Value).initCapacity(self.allocator, 0);
         for (self.theorems_to_verify) |theorem_name| {
             var theorem_result = std.json.ObjectMap.init(self.allocator);
             try theorem_result.put("theorem", .{ .string = theorem_name });
@@ -954,7 +954,7 @@ pub const LeanWorkflowCompilerNode = struct {
             defer request_obj.deinit();
             try request_obj.put("source", .{ .string = source });
 
-            var request_str = std.ArrayList(u8).init(self.allocator);
+            var request_str = try std.ArrayList(u8).initCapacity(self.allocator, 0);
             defer request_str.deinit();
             try std.json.stringify(.{ .object = request_obj }, .{}, request_str.writer());
 

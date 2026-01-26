@@ -32,6 +32,28 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     
+    // Tokenizer module
+    const tokenizer_mod = b.createModule(.{
+        .root_source_file = b.path("inference/engine/tokenization/tokenizer.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    
+    // Thread pool module
+    const thread_pool_mod = b.createModule(.{
+        .root_source_file = b.path("inference/engine/core/thread_pool.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    
+    // Compute module - depends on gguf_loader
+    const compute_mod = b.createModule(.{
+        .root_source_file = b.path("inference/engine/core/compute.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    compute_mod.addImport("gguf_loader", gguf_loader_mod);
+    
     // Transformer module - depends on matrix_ops
     const transformer_mod = b.createModule(.{
         .root_source_file = b.path("inference/engine/core/transformer.zig"),
@@ -51,6 +73,9 @@ pub fn build(b: *std.Build) void {
     llama_model_mod.addImport("performance", performance_mod);
     llama_model_mod.addImport("transformer", transformer_mod);
     llama_model_mod.addImport("kv_cache", kv_cache_mod);
+    llama_model_mod.addImport("tokenizer", tokenizer_mod);
+    llama_model_mod.addImport("thread_pool", thread_pool_mod);
+    llama_model_mod.addImport("compute", compute_mod);
     
     // GGUF model loader - depends on llama_model and gguf_loader
     const gguf_model_loader_mod = b.createModule(.{
