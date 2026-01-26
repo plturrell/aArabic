@@ -21,7 +21,6 @@ on:
 env:
   REGISTRY: docker.io
   IMAGE_NAME: plturrell/nservices
-  DOCKER_BUILDX_BUILDER: plturrell/anewmodel
 
 jobs:
   # =============================================================================
@@ -74,14 +73,14 @@ jobs:
         uses: actions/checkout@v4
 
       # -----------------------------------------------------------------------
-      # Docker Build Cloud Setup
+      # Docker Buildx Setup
       # -----------------------------------------------------------------------
-      - name: Set up Docker Buildx with Build Cloud
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
           version: latest
-          driver: cloud
-          endpoint: ${{ env.DOCKER_BUILDX_BUILDER }}
+          driver: docker-container
+          driver-opts: network=host
 
       # -----------------------------------------------------------------------
       # Registry Authentication - Docker Hub
