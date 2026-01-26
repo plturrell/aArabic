@@ -35,6 +35,7 @@ pub fn build(b: *std.Build) void {
     });
     // Link stub C implementation to satisfy extern symbols when Mojo lib is missing
     server_exe.addCSourceFile(.{ .file = b.path("bridge/stub.c") });
+    server_exe.linkLibC();
 
     b.installArtifact(server_exe);
 
