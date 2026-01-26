@@ -25,17 +25,22 @@ RUN curl -L https://ziglang.org/download/0.13.0/zig-linux-x86_64-0.13.0.tar.xz -
     /usr/local/zig-bootstrap/zig version
 
 # Build custom n-c-sdk (Custom Zig SDK)
-COPY src/nLang/n-c-sdk /build/n-c-sdk
-WORKDIR /build/n-c-sdk
+# Note: Avoid using /build/ directory name as it's in .gitignore
+COPY src/nLang/n-c-sdk /sdk-build/n-c-sdk
+WORKDIR /sdk-build/n-c-sdk
 RUN echo "Building custom n-c-sdk..." && \
+    ls -la && \
+    test -f build.zig || (echo "ERROR: build.zig not found" && exit 1) && \
     /usr/local/zig-bootstrap/zig build -Doptimize=ReleaseFast && \
     ls -la zig-out/bin/ && \
     test -f zig-out/bin/zig && echo "✓ n-c-sdk zig binary built successfully"
 
 # Build custom n-python-sdk (Custom Mojo SDK)
-COPY src/nLang/n-python-sdk /build/n-python-sdk
-WORKDIR /build/n-python-sdk
+COPY src/nLang/n-python-sdk /sdk-build/n-python-sdk
+WORKDIR /sdk-build/n-python-sdk
 RUN echo "Building custom n-python-sdk..." && \
+    ls -la && \
+    test -f build.zig || (echo "WARNING: build.zig not found in n-python-sdk" && exit 0) && \
     /usr/local/zig-bootstrap/zig build -Doptimize=ReleaseFast && \
     ls -la zig-out/bin/ || echo "Warning: n-python-sdk build completed, checking for mojo binary..." && \
     test -f zig-out/bin/mojo && echo "✓ n-python-sdk mojo binary built successfully" || echo "⚠ mojo binary not found, continuing..."
@@ -53,8 +58,8 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy built custom SDKs from builder
-COPY --from=builder /build/n-c-sdk /usr/local/n-c-sdk
-COPY --from=builder /build/n-python-sdk /usr/local/n-python-sdk
+COPY --from=builder /sdk-build/n-c-sdk /usr/local/n-c-sdk
+COPY --from=builder /sdk-build/n-python-sdk /usr/local/n-python-sdk
 
 # Set PATH to use custom SDK binaries
 ENV PATH="/usr/local/n-c-sdk/zig-out/bin:/usr/local/n-python-sdk/zig-out/bin:${PATH}"
