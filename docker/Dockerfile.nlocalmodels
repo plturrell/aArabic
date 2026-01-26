@@ -2,56 +2,54 @@
 # Formerly nOpenaiServer - now consolidated as nLocalModels
 # 
 # Version Requirements:
-#   - Zig: 0.15.2 (matches local development)
-#   - Mojo: 0.26.1 (uses bundled mojo-sdk)
+#   - Zig: Custom n-c-sdk from src/nLang/n-c-sdk
+#   - Mojo: Custom n-python-sdk from src/nLang/n-python-sdk
 FROM debian:bookworm-slim AS builder
 
-# Install build dependencies
+# Install minimal build dependencies
 RUN apt-get update && apt-get install -y \
-    curl \
-    xz-utils \
-    git \
     ca-certificates \
+    libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Zig 0.15.2 (matches local development environment)
-# Note: Filename format is zig-x86_64-linux-VERSION (not zig-linux-x86_64-VERSION)
-WORKDIR /tmp
-RUN curl -L https://ziglang.org/download/0.15.2/zig-x86_64-linux-0.15.2.tar.xz -o zig.tar.xz \
-    && tar -xf zig.tar.xz \
-    && mv zig-x86_64-linux-0.15.2 /usr/local/zig \
-    && ln -s /usr/local/zig/zig /usr/local/bin/zig \
-    && zig version
+# Copy custom Zig SDK (n-c-sdk)
+COPY src/nLang/n-c-sdk /usr/local/n-c-sdk
 
-# Install Mojo 0.26.1 via magic CLI (optional - if fails, build continues with Zig only)
-# Magic CLI requires specific environment setup that may not work in all Docker contexts
-RUN curl -ssL https://magic.modular.com/install.sh | bash || echo "Magic CLI installation skipped"
-ENV PATH="/root/.modular/bin:/root/.magic/bin:${PATH}"
-RUN magic install mojo==0.26.1 2>/dev/null || magic install mojo 2>/dev/null || echo "Mojo installation skipped - building Zig components only"
+# Copy custom Mojo SDK (n-python-sdk)
+COPY src/nLang/n-python-sdk /usr/local/n-python-sdk
+
+# Set up PATH to use custom SDKs
+# Priority order: n-c-sdk binaries, n-python-sdk binaries, then system
+ENV PATH="/usr/local/n-c-sdk/zig-out/bin:/usr/local/n-python-sdk/zig-out/bin:${PATH}"
+
+# Alternative: If zig binary is in different location, adjust accordingly
+# ENV PATH="/usr/local/n-c-sdk:${PATH}"
 
 WORKDIR /app
 
 # Copy source (updated path to nLocalModels)
-# IMPORTANT: Includes local mojo-sdk for consistent builds
 COPY src/serviceCore/nLocalModels/ ./
 
-# Verify versions match development environment
-RUN echo "=== Build Environment ===" && \
-    echo "Zig version: $(zig version)" && \
-    echo "Mojo version: $(mojo --version)" && \
+# Verify custom SDK versions
+RUN echo "=== Build Environment (Custom SDKs) ===" && \
+    echo "Custom Zig SDK: /usr/local/n-c-sdk" && \
+    echo "Custom Mojo SDK: /usr/local/n-python-sdk" && \
+    which zig || echo "zig not in PATH" && \
+    which mojo || echo "mojo not in PATH" && \
+    zig version 2>/dev/null || echo "zig command not available" && \
+    mojo --version 2>/dev/null || echo "mojo command not available" && \
     echo "======================="
 
-# Build Zig components
+# Build Zig components using custom n-c-sdk
 RUN zig build -Doptimize=ReleaseFast
 
-# Build Mojo components using bundled mojo-sdk (if Mojo is available)
-# The mojo-sdk directory contains our custom SDK build
-RUN if [ -d "mojo" ] && command -v mojo >/dev/null 2>&1; then \
-    echo "Building Mojo components with local SDK..." && \
+# Build Mojo components using custom n-python-sdk (if available)
+RUN if command -v mojo >/dev/null 2>&1 && [ -d "mojo" ]; then \
+    echo "Building Mojo components with custom n-python-sdk..." && \
     cd mojo && \
-    mojo build main.mojo -o ../zig-out/bin/nlocalmodels-mojo 2>/dev/null || echo "Mojo build skipped"; \
+    mojo build main.mojo -o ../zig-out/bin/nlocalmodels-mojo || echo "Mojo build failed - continuing with Zig only"; \
     else \
-    echo "Mojo not available or mojo directory not found - skipping Mojo components"; \
+    echo "Mojo not available or mojo directory not found - building Zig components only"; \
     fi
 
 # Runtime image
