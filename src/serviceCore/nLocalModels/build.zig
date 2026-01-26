@@ -59,6 +59,15 @@ pub fn build(b: *std.Build) void {
 
     // Test step - runs inference engine tests
     const test_step = b.step("test", "Run all tests");
-    // Tests are in inference/engine subdirectory
-    // Users should run: cd inference/engine && zig build test
+    
+    const tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("inference/engine/cli/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    
+    const run_tests = b.addRunArtifact(tests);
+    test_step.dependOn(&run_tests.step);
 }
