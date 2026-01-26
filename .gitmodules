@@ -1,0 +1,8 @@
+[submodule "src/nLang/n-c-sdk"]
+	path = src/nLang/n-c-sdk
+	url = https://github.com/plturrell/n-c-sdk.git
+	branch = scb-main
+[submodule "src/nLang/n-python-sdk"]
+	path = src/nLang/n-python-sdk
+	url = https://github.com/plturrell/n-python-sdk.git
+	branch = main

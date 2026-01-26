@@ -46,11 +46,12 @@ jobs:
 
     steps:
       # -----------------------------------------------------------------------
-      # Checkout
+      # Checkout with Submodules
       # -----------------------------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          submodules: 'recursive'
           fetch-depth: 0
 
       # -----------------------------------------------------------------------
