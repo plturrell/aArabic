@@ -183,15 +183,15 @@ pub const HanaCache = struct {
     pub fn set(self: *Self, key: []const u8, value: []const u8, ttl_seconds: ?u32) !void {
         if (!self.is_connected) return error.NotConnected;
 
-        const ttl_val: i64 = if (ttl_seconds) |ttl|
-            std.time.timestamp() + @as(i64, ttl)
+        const expiry_ts: i64 = if (ttl_seconds) |seconds|
+            std.time.timestamp() + @as(i64, seconds)
         else
             0;
 
         const sql = try std.fmt.allocPrint(
             self.allocator,
             "UPSERT {s}.{s}_kv (key, value, ttl) VALUES ('{s}', '{s}', {d})",
-            .{ self.config.database, self.config.table_prefix, key, value, ttl_val },
+            .{ self.config.database, self.config.table_prefix, key, value, expiry_ts },
         );
         defer self.allocator.free(sql);
 
@@ -266,11 +266,11 @@ pub const HanaCache = struct {
     pub fn expire(self: *Self, key: []const u8, seconds: u32) !bool {
         if (!self.is_connected) return error.NotConnected;
 
-        const ttl = std.time.timestamp() + @as(i64, seconds);
+        const expiry_ts = std.time.timestamp() + @as(i64, seconds);
         const sql = try std.fmt.allocPrint(
             self.allocator,
             "UPDATE {s}.{s}_kv SET ttl = {d} WHERE key = '{s}'",
-            .{ self.config.database, self.config.table_prefix, ttl, key },
+            .{ self.config.database, self.config.table_prefix, expiry_ts, key },
         );
         defer self.allocator.free(sql);
 
@@ -312,11 +312,11 @@ pub const HanaCache = struct {
     pub fn storeSession(self: *Self, session_id: []const u8, data: []const u8, ttl_seconds: u32) !void {
         if (!self.is_connected) return error.NotConnected;
 
-        const ttl = std.time.timestamp() + @as(i64, ttl_seconds);
+        const expiry_ts = std.time.timestamp() + @as(i64, ttl_seconds);
         const sql = try std.fmt.allocPrint(
             self.allocator,
             "UPSERT {s}.{s}_sessions (session_id, data, ttl) VALUES ('{s}', '{s}', {d})",
-            .{ self.config.database, self.config.table_prefix, session_id, data, ttl },
+            .{ self.config.database, self.config.table_prefix, session_id, data, expiry_ts },
         );
         defer self.allocator.free(sql);
 
@@ -370,11 +370,11 @@ pub const HanaCache = struct {
     pub fn cacheWorkflowState(self: *Self, workflow_id: []const u8, state_json: []const u8, ttl_seconds: u32) !void {
         if (!self.is_connected) return error.NotConnected;
 
-        const ttl = std.time.timestamp() + @as(i64, ttl_seconds);
+        const expiry_ts = std.time.timestamp() + @as(i64, ttl_seconds);
         const sql = try std.fmt.allocPrint(
             self.allocator,
             "UPSERT {s}.{s}_workflow_state (workflow_id, state_json, ttl) VALUES ('{s}', '{s}', {d})",
-            .{ self.config.database, self.config.table_prefix, workflow_id, state_json, ttl },
+            .{ self.config.database, self.config.table_prefix, workflow_id, state_json, expiry_ts },
         );
         defer self.allocator.free(sql);
 

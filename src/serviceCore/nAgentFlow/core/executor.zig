@@ -570,7 +570,7 @@ pub const PetriNetExecutor = struct {
         var selected: []const u8 = enabled[0];
         
         for (enabled) |trans_id| {
-            if (self.net.transitions.get(trans_id)) |trans| {
+            if (self.net.transitions_map.get(trans_id)) |trans| {
                 if (trans.priority > highest_priority) {
                     highest_priority = trans.priority;
                     selected = trans_id;
@@ -603,7 +603,7 @@ pub const PetriNetExecutor = struct {
         // Calculate total weight (priority values)
         var total_weight: i32 = 0;
         for (enabled) |trans_id| {
-            if (self.net.transitions.get(trans_id)) |trans| {
+            if (self.net.transitions_map.get(trans_id)) |trans| {
                 total_weight += @max(1, trans.priority);
             }
         }
@@ -613,7 +613,7 @@ pub const PetriNetExecutor = struct {
         var cumulative: i32 = 0;
         
         for (enabled) |trans_id| {
-            if (self.net.transitions.get(trans_id)) |trans| {
+            if (self.net.transitions_map.get(trans_id)) |trans| {
                 cumulative += @max(1, trans.priority);
                 if (rand_value < cumulative) {
                     return trans_id;

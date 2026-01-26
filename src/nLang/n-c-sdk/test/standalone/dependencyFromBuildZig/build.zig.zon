@@ -1,5 +1,5 @@
 .{
-    .name = "dependencyFromBuildZig",
+    .name = .dependencyFromBuildZig,
     .fingerprint = 0xfd939a1eb8169080,
     .version = "0.0.0",
     .dependencies = .{

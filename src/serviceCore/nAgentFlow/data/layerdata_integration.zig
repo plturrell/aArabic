@@ -12,11 +12,11 @@ const DataPipeline = data_pipeline.DataPipeline;
 /// - Memgraph (graph relationships)
 /// - Marquez (lineage tracking)
 
-// Import HANA modules
-const HanaCache = @import("../cache/hana_cache.zig").HanaCache;
-const HanaCacheConfig = @import("../cache/hana_cache.zig").HanaCacheConfig;
-const hana_store = @import("../persistence/hana_store.zig");
+// Import HANA modules via build wiring
 const hana = @import("hana_sdk");
+const HanaCache = @import("hana_cache").HanaCache;
+const HanaCacheConfig = @import("hana_cache").HanaCacheConfig;
+const hana_store = @import("hana_store");
 
 /// SAP HANA integration for unified persistent storage and caching
 pub const HanaAdapter = struct {

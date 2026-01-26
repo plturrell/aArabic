@@ -24,7 +24,7 @@ const PortType = @import("node_types").PortType;
 const DataPacket = @import("data_packet").DataPacket;
 const DataType = @import("data_packet").DataType;
 // Import from nLocalModels orchestration (centralized)
-const nLocalModelsOrch = @import("../../orchestration/nLocalModels_integration.zig");
+const nLocalModelsOrch = @import("nlocalmodels_orch");
 const ModelSelector = nLocalModelsOrch.ModelSelector;
 const SelectionConstraints = nLocalModelsOrch.SelectionConstraints;
 

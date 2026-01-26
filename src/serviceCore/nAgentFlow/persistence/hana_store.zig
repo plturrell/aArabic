@@ -342,12 +342,14 @@ pub const HanaWorkflowStore = struct {
     }
 
     fn extractInt(self: *Self, row: HanaRow, column: []const u8) !i64 {
+        _ = self;
         const value = row.getValue(column) orelse return error.InvalidField;
         if (value.asInt()) |v| return v;
         return error.InvalidField;
     }
 
     fn extractOptionalInt(self: *Self, row: HanaRow, column: []const u8) !?i64 {
+        _ = self;
         const value = row.getValue(column) orelse return null;
         return switch (value) {
             .null_value => null,

@@ -187,7 +187,7 @@ pub const PetriNet = struct {
             .name = try allocator.dupe(u8, name),
             .places_map = std.StringHashMap(*Place).init(allocator),
             .transitions_map = std.StringHashMap(*Transition).init(allocator),
-            .arcs_list = std.ArrayList(*Arc){},
+            .arcs_list = std.ArrayList(*Arc).empty,
             .next_token_id = 1,
         };
     }
@@ -212,7 +212,7 @@ pub const PetriNet = struct {
         for (self.arcs_list.items) |arc| {
             self.allocator.destroy(arc);
         }
-        self.arcs_list.deinit();
+        self.arcs_list.deinit(self.allocator);
         
         self.allocator.free(self.name);
         
@@ -298,7 +298,7 @@ pub const PetriNet = struct {
             .target_id = try self.allocator.dupe(u8, target_id),
         };
         
-        try self.arcs_list.append(arc);
+        try self.arcs_list.append(self.allocator, arc);
         return arc;
     }
     
@@ -338,12 +338,14 @@ pub const PetriNet = struct {
     
     /// Get enabled transitions
     pub fn getEnabledTransitions(self: *const PetriNet) !std.ArrayList([]const u8) {
-        var enabled = std.ArrayList([]const u8).init(self.allocator);
+        var enabled = std.ArrayList([]const u8).empty;
+        
+        errdefer enabled.deinit(self.allocator);
         
         var it = self.transitions_map.iterator();
         while (it.next()) |entry| {
             if (self.isTransitionEnabled(entry.key_ptr.*)) {
-                try enabled.append(entry.key_ptr.*);
+                try enabled.append(self.allocator, entry.key_ptr.*);
             }
         }
         

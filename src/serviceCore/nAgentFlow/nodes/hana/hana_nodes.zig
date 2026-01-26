@@ -1,7 +1,7 @@
 //! SAP HANA Workflow Nodes
 //! This module re-exports HANA workflow nodes that use the centralized HANA SDK
 
-const hana_client = @import("../../data/hana_client.zig");
+const hana_client = @import("hana_client");
 
 // Re-export everything from data/hana_client.zig which now uses the centralized SDK
 pub const HanaExecutor = hana_client.HanaExecutor;

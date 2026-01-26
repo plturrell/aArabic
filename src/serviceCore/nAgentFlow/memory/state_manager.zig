@@ -9,11 +9,11 @@ const ArrayList = std.ArrayList;
 const StringHashMap = std.StringHashMap;
 
 // Import HANA cache
-const HanaCache = @import("../cache/hana_cache.zig").HanaCache;
-const HanaCacheConfig = @import("../cache/hana_cache.zig").HanaCacheConfig;
+const HanaCache = @import("hana_cache").HanaCache;
+const HanaCacheConfig = @import("hana_cache").HanaCacheConfig;
 
 // Import HANA persistence
-const hana_store = @import("../persistence/hana_store.zig");
+const hana_store = @import("hana_store");
 const HanaWorkflowStore = hana_store.HanaWorkflowStore;
 const hana = @import("hana_sdk");
 const HanaConfig = hana.Config;

@@ -20,6 +20,30 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("../../nLang/n-c-sdk/lib/hana/hana.zig"),
     });
 
+    const hana_client_mod = b.addModule("hana_client", .{
+        .root_source_file = b.path("data/hana_client.zig"),
+    });
+    hana_client_mod.addImport("hana_sdk", hana_sdk_mod);
+
+    const hana_cache_mod = b.addModule("hana_cache", .{
+        .root_source_file = b.path("cache/hana_cache.zig"),
+    });
+    hana_cache_mod.addImport("hana_sdk", hana_sdk_mod);
+
+    const hana_store_mod = b.addModule("hana_store", .{
+        .root_source_file = b.path("persistence/hana_store.zig"),
+    });
+    hana_store_mod.addImport("hana_sdk", hana_sdk_mod);
+
+    const nlocalmodels_model_selector_mod = b.addModule("nlocalmodels_model_selector", .{
+        .root_source_file = b.path("../nLocalModels/orchestration/model_selector.zig"),
+    });
+
+    const nlocalmodels_orch_mod = b.addModule("nlocalmodels_orch", .{
+        .root_source_file = b.path("orchestration/nLocalModels_integration.zig"),
+    });
+    nlocalmodels_orch_mod.addImport("nlocalmodels_model_selector", nlocalmodels_model_selector_mod);
+
     // Core Petri Net module (compatibility wrapper)
     const petri_net_mod = b.addModule("petri_net", .{
         .root_source_file = b.path("core/petri_net.zig"),
@@ -581,16 +605,19 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_data_pipeline_tests.step);
     
     // Tests for LayerData Integration (Day 21)
-    const layerdata_integration_test_mod = b.createModule(.{
+    const layerdata_test_mod = b.createModule(.{
         .root_source_file = b.path("data/layerdata_integration.zig"),
         .target = target,
         .optimize = optimize,
     });
-    layerdata_integration_test_mod.addImport("data_packet", data_packet_mod);
-    layerdata_integration_test_mod.addImport("data_pipeline", data_pipeline_mod);
+    layerdata_test_mod.addImport("hana_sdk", hana_sdk_mod);
+    layerdata_test_mod.addImport("hana_cache", hana_cache_mod);
+    layerdata_test_mod.addImport("hana_store", hana_store_mod);
+    layerdata_test_mod.addImport("data_packet", data_packet_mod);
+    layerdata_test_mod.addImport("data_pipeline", data_pipeline_mod);
     
     const layerdata_integration_tests = b.addTest(.{
-        .root_module = layerdata_integration_test_mod,
+        .root_module = layerdata_test_mod,
     });
     const run_layerdata_integration_tests = b.addRunArtifact(layerdata_integration_tests);
     test_step.dependOn(&run_layerdata_integration_tests.step);
@@ -603,6 +630,7 @@ pub fn build(b: *std.Build) void {
     });
     llm_nodes_test_mod.addImport("node_types", node_types_mod);
     llm_nodes_test_mod.addImport("data_packet", data_packet_mod);
+    llm_nodes_test_mod.addImport("nlocalmodels_orch", nlocalmodels_orch_mod);
     
     const llm_nodes_tests = b.addTest(.{
         .root_module = llm_nodes_test_mod,
@@ -668,6 +696,9 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    state_manager_test_mod.addImport("hana_sdk", hana_sdk_mod);
+    state_manager_test_mod.addImport("hana_cache", hana_cache_mod);
+    state_manager_test_mod.addImport("hana_store", hana_store_mod);
     
     const state_manager_tests = b.addTest(.{
         .root_module = state_manager_test_mod,
@@ -833,6 +864,7 @@ pub fn build(b: *std.Build) void {
     });
     hana_nodes_mod.addImport("node_types", node_types_mod);
     hana_nodes_mod.addImport("hana_sdk", hana_sdk_mod);
+    hana_nodes_mod.addImport("hana_client", hana_client_mod);
 
     // Tests for HANA Nodes
     const hana_nodes_test_mod = b.createModule(.{
@@ -842,6 +874,7 @@ pub fn build(b: *std.Build) void {
     });
     hana_nodes_test_mod.addImport("node_types", node_types_mod);
     hana_nodes_test_mod.addImport("hana_sdk", hana_sdk_mod);
+    hana_nodes_test_mod.addImport("hana_client", hana_client_mod);
 
     const hana_nodes_tests = b.addTest(.{
         .root_module = hana_nodes_test_mod,

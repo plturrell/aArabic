@@ -12,13 +12,13 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
-/// Import from nLocalModels orchestration (relative path)
-/// Note: In production, this would use proper Zig package management
-pub const ModelSelector = @import("../../nLocalModels/orchestration/model_selector.zig").ModelSelector;
-pub const SelectionConstraints = @import("../../nLocalModels/orchestration/model_selector.zig").SelectionConstraints;
-pub const SelectionResult = @import("../../nLocalModels/orchestration/model_selector.zig").SelectionResult;
-pub const Model = @import("../../nLocalModels/orchestration/model_selector.zig").Model;
-pub const TaskCategory = @import("../../nLocalModels/orchestration/model_selector.zig").TaskCategory;
+/// Import from nLocalModels orchestration via build wiring
+const model_selector = @import("nlocalmodels_model_selector");
+pub const ModelSelector = model_selector.ModelSelector;
+pub const SelectionConstraints = model_selector.SelectionConstraints;
+pub const SelectionResult = model_selector.SelectionResult;
+pub const Model = model_selector.Model;
+pub const TaskCategory = model_selector.TaskCategory;
 
 /// Default paths to shared resources
 pub const DEFAULT_REGISTRY_PATH = "vendor/layerModels/MODEL_REGISTRY.json";
@@ -85,7 +85,7 @@ pub const GPUProfile = enum {
 };
 
 // Re-export for convenience
-pub usingnamespace @import("../../nLocalModels/orchestration/model_selector.zig");
+pub usingnamespace model_selector;
 
 test "nLocalModels integration" {
     const allocator = std.testing.allocator;
