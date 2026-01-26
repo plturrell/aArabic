@@ -87,7 +87,7 @@ pub const AgentRegistry = struct {
     pub fn init(allocator: std.mem.Allocator) AgentRegistry {
         return .{
             .allocator = allocator,
-            .agents = std.ArrayList(AgentInfo).init(allocator),
+            .agents = std.ArrayList(AgentInfo).initCapacity(allocator, 0) catch unreachable,
         };
     }
     
@@ -102,7 +102,7 @@ pub const AgentRegistry = struct {
     
     /// Get all online agents
     pub fn getOnlineAgents(self: *const AgentRegistry, allocator: std.mem.Allocator) !std.ArrayList(AgentInfo) {
-        var online = std.ArrayList(AgentInfo).init(allocator);
+        var online = try std.ArrayList(AgentInfo).initCapacity(allocator, 0);
         
         for (self.agents.items) |agent| {
             if (agent.status == .online) {
@@ -136,7 +136,7 @@ pub const ModelRegistry = struct {
     pub fn init(allocator: std.mem.Allocator) ModelRegistry {
         return .{
             .allocator = allocator,
-            .models = std.ArrayList(ModelCapabilityProfile).init(allocator),
+            .models = std.ArrayList(ModelCapabilityProfile).initCapacity(allocator, 0) catch unreachable,
         };
     }
     
@@ -246,7 +246,7 @@ pub const AutoAssigner = struct {
     
     /// Greedy assignment: Assign best model to each agent independently
     fn assignGreedy(self: *AutoAssigner) !std.ArrayList(AssignmentDecision) {
-        var decisions = std.ArrayList(AssignmentDecision).init(self.allocator);
+        var decisions = try std.ArrayList(AssignmentDecision).initCapacity(self.allocator, 0);
         
         // Get online agents
         var online_agents = try self.agent_registry.getOnlineAgents(self.allocator);
@@ -312,7 +312,7 @@ pub const AutoAssigner = struct {
     
     /// Balanced assignment: Balance between quality and model distribution
     fn assignBalanced(self: *AutoAssigner) !std.ArrayList(AssignmentDecision) {
-        var decisions = std.ArrayList(AssignmentDecision).init(self.allocator);
+        var decisions = try std.ArrayList(AssignmentDecision).initCapacity(self.allocator, 0);
         
         var online_agents = try self.agent_registry.getOnlineAgents(self.allocator);
         defer online_agents.deinit();

@@ -139,10 +139,10 @@ pub const AgentCapabilityRequirements = struct {
         return .{
             .agent_id = agent_id,
             .agent_name = agent_name,
-            .required_capabilities = std.ArrayList(ModelCapability).init(allocator),
-            .preferred_capabilities = std.ArrayList(ModelCapability).init(allocator),
+            .required_capabilities = try std.ArrayList(ModelCapability).initCapacity(allocator, 0),
+            .preferred_capabilities = try std.ArrayList(ModelCapability).initCapacity(allocator, 0),
             .min_context_length = 2048,
-            .task_profiles = std.ArrayList(TaskProfile).init(allocator),
+            .task_profiles = try std.ArrayList(TaskProfile).initCapacity(allocator, 0),
         };
     }
     
@@ -174,8 +174,8 @@ pub const CapabilityMatchResult = struct {
             .preferred_match_count = 0,
             .total_required = 0,
             .total_preferred = 0,
-            .capability_overlap = std.ArrayList(ModelCapability).init(allocator),
-            .missing_required = std.ArrayList(ModelCapability).init(allocator),
+            .capability_overlap = try std.ArrayList(ModelCapability).initCapacity(allocator, 0),
+            .missing_required = try std.ArrayList(ModelCapability).initCapacity(allocator, 0),
         };
     }
     
@@ -279,7 +279,7 @@ pub const CapabilityScorer = struct {
         agents: []const AgentCapabilityRequirements,
         models: []const ModelCapabilityProfile,
     ) !std.ArrayList(CapabilityMatchResult) {
-        var results = std.ArrayList(CapabilityMatchResult).init(self.allocator);
+        var results = try std.ArrayList(CapabilityMatchResult).initCapacity(self.allocator, 0);
         
         for (agents) |*agent| {
             for (models) |*model| {
@@ -296,7 +296,7 @@ pub const CapabilityScorer = struct {
     
     /// Map task type to required capabilities
     pub fn getRequiredCapabilitiesForTask(task_type: TaskType, allocator: std.mem.Allocator) !std.ArrayList(ModelCapability) {
-        var capabilities = std.ArrayList(ModelCapability).init(allocator);
+        var capabilities = try std.ArrayList(ModelCapability).initCapacity(allocator, 0);
         
         switch (task_type) {
             .coding => {

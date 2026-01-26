@@ -64,7 +64,7 @@ pub const GPUMonitor = struct {
         const self = try allocator.create(GPUMonitor);
         self.* = .{
             .allocator = allocator,
-            .gpu_states = std.ArrayList(GPUState).init(allocator),
+            .gpu_states = try std.ArrayList(GPUState).initCapacity(allocator, 0),
             .update_interval_ms = update_interval_ms,
             .last_update = 0,
             .nvidia_smi_path = "nvidia-smi",
@@ -214,7 +214,7 @@ pub const GPUMonitor = struct {
     pub fn getHealthyGPUs(self: *GPUMonitor, allocator: Allocator) ![]GPUState {
         try self.refresh();
         
-        var healthy = std.ArrayList(GPUState).init(allocator);
+        var healthy = try std.ArrayList(GPUState).initCapacity(allocator, 0);
         errdefer healthy.deinit();
         
         for (self.gpu_states.items) |state| {

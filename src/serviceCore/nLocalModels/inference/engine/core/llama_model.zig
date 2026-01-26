@@ -145,11 +145,9 @@ pub const LlamaModel = struct {
         log("   Context: {d}\n", .{config.max_seq_len});
 
         // Initialize Thread Pool
-        const pool = try allocator.create(thread_pool.ThreadPool);
-        errdefer allocator.destroy(pool);
-        pool.* = try thread_pool.ThreadPool.init(allocator, thread_pool.ThreadPoolConfig.default());
-        try pool.start();
-        log("   Thread pool: {d} threads\n", .{pool.config.num_threads});
+        const pool = try thread_pool.ThreadPool.init(allocator);
+        errdefer pool.deinit();
+        log("   Thread pool initialized\n", .{});
 
         // Initialize Backend
         const builtin = @import("builtin");
@@ -240,7 +238,6 @@ pub const LlamaModel = struct {
         self.weights.deinit();
         self.backend.deinit();
         self.pool.deinit();
-        self.allocator.destroy(self.pool);
     }
 
     /// Forward pass for a single token

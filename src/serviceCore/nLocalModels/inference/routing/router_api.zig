@@ -243,7 +243,7 @@ pub const RouterApiHandler = struct {
     ) !GetAssignmentsResponse {
         // Query assignments from HANA database
         var total_count: u32 = 0;
-        var assignments_list = std.ArrayList(AssignmentRecord).init(self.allocator);
+        var assignments_list = try std.ArrayList(AssignmentRecord).initCapacity(self.allocator, 0);
         defer assignments_list.deinit();
         
         if (self.hana_client) |client| {
@@ -522,7 +522,7 @@ pub fn serializeAutoAssignResponse(
     allocator: std.mem.Allocator,
     response: AutoAssignResponse,
 ) ![]const u8 {
-    var json = std.ArrayList(u8).init(allocator);
+    var json = try std.ArrayList(u8).initCapacity(allocator, 0);
     const writer = json.writer();
     
     try writer.writeAll("{");
@@ -556,7 +556,7 @@ pub fn serializeGetAssignmentsResponse(
     allocator: std.mem.Allocator,
     response: GetAssignmentsResponse,
 ) ![]const u8 {
-    var json = std.ArrayList(u8).init(allocator);
+    var json = try std.ArrayList(u8).initCapacity(allocator, 0);
     const writer = json.writer();
     
     try writer.writeAll("{");

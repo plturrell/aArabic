@@ -197,7 +197,7 @@ pub const AdaptiveAutoAssigner = struct {
     
     /// Assign models using adaptive scoring with performance feedback
     pub fn assignAdaptive(self: *AdaptiveAutoAssigner) !std.ArrayList(AdaptiveAssignmentDecision) {
-        var decisions = std.ArrayList(AdaptiveAssignmentDecision).init(self.allocator);
+        var decisions = try std.ArrayList(AdaptiveAssignmentDecision).initCapacity(self.allocator, 0);
         
         // Get online agents
         var online_agents = try self.agent_registry.getOnlineAgents(self.allocator);

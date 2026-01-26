@@ -77,7 +77,7 @@ pub const ChatChunk = struct {
 
     /// Serialize chunk to JSON
     pub fn toJson(self: *const ChatChunk, allocator: Allocator) ![]const u8 {
-        var result = std.ArrayList(u8).init(allocator);
+        var result = try std.ArrayList(u8).initCapacity(allocator, 0);
         errdefer result.deinit();
 
         try result.appendSlice("{\"id\":\"");
@@ -332,7 +332,7 @@ pub const ChunkParser = struct {
     pub fn init(allocator: Allocator) ChunkParser {
         return .{
             .allocator = allocator,
-            .buffer = std.ArrayList(u8).init(allocator),
+            .buffer = try std.ArrayList(u8).initCapacity(allocator, 0),
         };
     }
 
@@ -391,7 +391,7 @@ pub const ChunkParser = struct {
         } else "unknown";
 
         // Parse choices array
-        var choices_list = std.ArrayList(StreamChoice).init(self.allocator);
+        var choices_list = try std.ArrayList(StreamChoice).initCapacity(self.allocator, 0);
         defer choices_list.deinit();
 
         if (root.object.get("choices")) |choices_val| {
@@ -649,7 +649,7 @@ pub const StreamingChatHandler = struct {
         parser: *ChunkParser,
     ) !void {
         var read_buf: [4096]u8 = undefined;
-        var line_buf = std.ArrayList(u8).init(self.allocator);
+        var line_buf = try std.ArrayList(u8).initCapacity(self.allocator, 0);
         defer line_buf.deinit();
 
         var headers_done = false;
