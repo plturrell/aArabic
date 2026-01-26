@@ -16,10 +16,10 @@ RUN curl -L https://ziglang.org/download/0.15.1/zig-x86_64-linux-0.15.1.tar.xz -
 ENV PATH="/usr/local/zig:${PATH}"
 
 WORKDIR /app
-COPY src/nLang/n-c-sdk/ ./n-c-sdk/
-COPY src/serviceCore/nAgentMeta/ ./nAgentMeta/
+COPY src/nLang/ ./nLang/
+COPY src/serviceCore/nAgentMeta/ ./serviceCore/nAgentMeta/
 
-WORKDIR /app/nAgentMeta
+WORKDIR /app/serviceCore/nAgentMeta
 RUN zig version && \
     zig build -Doptimize=ReleaseFast && \
     ls -la zig-out/bin/
@@ -34,7 +34,7 @@ RUN apt-get update && apt-get install -y \
 RUN useradd -m -u 1000 appuser
 WORKDIR /app
 
-COPY --from=builder /app/nAgentMeta/zig-out/bin/* /app/
+COPY --from=builder /app/serviceCore/nAgentMeta/zig-out/bin/* /app/
 
 RUN chown -R appuser:appuser /app
 USER appuser
