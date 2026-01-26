@@ -48,6 +48,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }),
     });
+    io_lib.linkLibC();
     b.installArtifact(io_lib);
 
     const run_cmd = b.addRunArtifact(server_exe);
