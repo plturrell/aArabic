@@ -327,7 +327,7 @@ pub const TAU2AgentNode = struct {
         const node = try allocator.create(TAU2AgentNode);
         
         // Define input ports
-        var inputs = std.ArrayList(Port).init(allocator);
+        var inputs = std.ArrayList(Port){};
         defer inputs.deinit();
         
         try inputs.append(Port{
@@ -348,7 +348,7 @@ pub const TAU2AgentNode = struct {
         });
         
         // Define output ports
-        var outputs = std.ArrayList(Port).init(allocator);
+        var outputs = std.ArrayList(Port){};
         defer outputs.deinit();
         
         try outputs.append(Port{

@@ -96,7 +96,7 @@ pub const HttpClient = struct {
         response.status_code = @intFromEnum(req.response.status);
         
         // Read body into buffer
-        var body_buffer = std.ArrayList(u8).init(self.allocator);
+        var body_buffer = std.ArrayList(u8){};
         defer body_buffer.deinit();
         
         var read_buffer: [4096]u8 = undefined;

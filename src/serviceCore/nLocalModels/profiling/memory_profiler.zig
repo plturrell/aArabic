@@ -105,7 +105,7 @@ pub const MemoryProfile = struct {
         }
 
         // Convert to array
-        var hotspots = std.ArrayList(AllocationHotspot).init(self.allocator);
+        var hotspots = std.ArrayList(AllocationHotspot){};
         errdefer hotspots.deinit();
 
         var trace_iter = trace_stats.iterator();
@@ -138,7 +138,7 @@ pub const MemoryProfile = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
 
-        var leaks = std.ArrayList(AllocationInfo).init(self.allocator);
+        var leaks = std.ArrayList(AllocationInfo){};
         errdefer leaks.deinit();
 
         var iter = self.allocations.valueIterator();

@@ -234,7 +234,7 @@ pub const StateMigrator = struct {
         to_version: StateVersion,
     ) !?ArrayList(MigrationPath) {
         // Simple direct path lookup (can be enhanced with graph search)
-        var path = ArrayList(MigrationPath).init(self.allocator);
+        var path = ArrayList(MigrationPath){};
         errdefer path.deinit(self.allocator);
 
         for (self.migrations.items) |migration| {

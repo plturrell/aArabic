@@ -61,7 +61,7 @@ pub const TestClient = struct {
         defer self.allocator.free(url);
 
         // Build headers
-        var headers = std.ArrayList(u8).init(self.allocator);
+        var headers = std.ArrayList(u8){};
         defer headers.deinit();
 
         try headers.appendSlice("Content-Type: application/json\r\n");

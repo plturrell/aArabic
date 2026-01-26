@@ -339,7 +339,7 @@ pub const ScriptGenerator = struct {
     }
 
     pub fn generateScript(self: *const ScriptGenerator, session: *const RecordingSession) ![]const u8 {
-        var buffer = std.ArrayList(u8).init(self.allocator);
+        var buffer = std.ArrayList(u8){};
         errdefer buffer.deinit(self.allocator);
         var writer = buffer.writer();
         try writer.print("// Generated from recording: {s}\n", .{session.name});
@@ -362,7 +362,7 @@ pub const ScriptGenerator = struct {
     }
 
     pub fn generateJson(self: *const ScriptGenerator, session: *const RecordingSession) ![]const u8 {
-        var buffer = std.ArrayList(u8).init(self.allocator);
+        var buffer = std.ArrayList(u8){};
         errdefer buffer.deinit(self.allocator);
         var writer = buffer.writer();
         try writer.print("{{\"name\":\"{s}\",\"events\":[", .{session.name});

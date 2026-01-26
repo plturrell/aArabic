@@ -161,7 +161,7 @@ pub const HttpClient = struct {
         };
         
         // Start building request
-        var request_builder = std.ArrayList(u8).init(self.allocator);
+        var request_builder = std.ArrayList(u8){};
         defer request_builder.deinit();
         const writer = request_builder.writer();
         

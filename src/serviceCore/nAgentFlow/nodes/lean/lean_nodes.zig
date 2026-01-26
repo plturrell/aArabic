@@ -806,7 +806,7 @@ pub const LeanProofVerifyNode = struct {
         defer request_obj.deinit();
         try request_obj.put("source", .{ .string = source });
 
-        var request_str = std.ArrayList(u8).init(self.allocator);
+        var request_str = std.ArrayList(u8){};
         defer request_str.deinit();
         try std.json.stringify(.{ .object = request_obj }, .{}, request_str.writer());
 

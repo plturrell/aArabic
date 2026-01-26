@@ -248,7 +248,7 @@ pub const ModelRegistry = struct {
     }
 
     pub fn listModels(self: *const ModelRegistry, allocator: std.mem.Allocator) ![][]const u8 {
-        var list = std.ArrayList([]const u8).init(allocator);
+        var list = std.ArrayList([]const u8){};
         errdefer list.deinit();
         
         var iter = self.models.keyIterator();
@@ -432,7 +432,7 @@ pub const ModelRegistry = struct {
     }
 
     pub fn getHealthyModels(self: *const ModelRegistry, allocator: std.mem.Allocator) ![][]const u8 {
-        var list = std.ArrayList([]const u8).init(allocator);
+        var list = std.ArrayList([]const u8){};
         errdefer list.deinit();
         
         var iter = self.models.iterator();
@@ -529,7 +529,7 @@ fn oldToJson(self: *const ModelRegistry, allocator: std.mem.Allocator) ![]u8 {
 
 fn oldToJsonImpl(configs: []const ModelConfig, allocator: std.mem.Allocator) ![]u8 {
         _ = configs;
-        var buffer = std.ArrayList(u8).init(allocator);
+        var buffer = std.ArrayList(u8){};
         errdefer buffer.deinit();
         try buffer.appendSlice("{\"object\":\"list\",\"data\":[]}");
         return try buffer.toOwnedSlice();

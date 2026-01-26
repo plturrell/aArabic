@@ -22,16 +22,16 @@ pub const QueryBuilder = struct {
         return QueryBuilder{
             .allocator = allocator,
             .dialect = dialect,
-            .select_fields = std.ArrayList([]const u8).init(allocator),
+            .select_fields = std.ArrayList([]const u8){},
             .from_table = null,
-            .joins = std.ArrayList(JoinClause).init(allocator),
-            .where_conditions = std.ArrayList(Condition).init(allocator),
-            .group_by = std.ArrayList([]const u8).init(allocator),
+            .joins = std.ArrayList(JoinClause){},
+            .where_conditions = std.ArrayList(Condition){},
+            .group_by = std.ArrayList([]const u8){},
             .having = null,
-            .order_by = std.ArrayList(OrderBy).init(allocator),
+            .order_by = std.ArrayList(OrderBy){},
             .limit_value = null,
             .offset_value = null,
-            .cte_clauses = std.ArrayList(CTE).init(allocator),
+            .cte_clauses = std.ArrayList(CTE){},
         };
     }
     
@@ -134,7 +134,7 @@ pub const QueryBuilder = struct {
     
     /// Build PostgreSQL-optimized query
     fn buildPostgreSQL(self: *QueryBuilder) ![]const u8 {
-        var query = std.ArrayList(u8).init(self.allocator);
+        var query = std.ArrayList(u8){};
         const writer = query.writer();
         
         // CTEs
@@ -220,7 +220,7 @@ pub const QueryBuilder = struct {
     
     /// Build SAP HANA-optimized query
     fn buildHANA(self: *QueryBuilder) ![]const u8 {
-        var query = std.ArrayList(u8).init(self.allocator);
+        var query = std.ArrayList(u8){};
         const writer = query.writer();
         
         // CTEs
@@ -312,7 +312,7 @@ pub const QueryBuilder = struct {
     
     /// Build SQLite-optimized query
     fn buildSQLite(self: *QueryBuilder) ![]const u8 {
-        var query = std.ArrayList(u8).init(self.allocator);
+        var query = std.ArrayList(u8){};
         const writer = query.writer();
         
         // CTEs

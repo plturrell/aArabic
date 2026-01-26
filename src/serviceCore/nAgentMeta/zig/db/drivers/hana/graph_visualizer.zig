@@ -44,7 +44,7 @@ pub const GraphVisualizer = struct {
     
     /// Convert to Graphviz DOT format
     fn toDot(self: GraphVisualizer, results: []GraphResult) ![]const u8 {
-        var output = std.ArrayList(u8).init(self.allocator);
+        var output = std.ArrayList(u8){};
         defer output.deinit();
         
         const writer = output.writer();
@@ -72,7 +72,7 @@ pub const GraphVisualizer = struct {
     
     /// Convert to JSON format
     fn toJSON(self: GraphVisualizer, results: []GraphResult) ![]const u8 {
-        var output = std.ArrayList(u8).init(self.allocator);
+        var output = std.ArrayList(u8){};
         defer output.deinit();
         
         const writer = output.writer();
@@ -116,7 +116,7 @@ pub const GraphVisualizer = struct {
     
     /// Convert to Cytoscape.js format
     fn toCytoscape(self: GraphVisualizer, results: []GraphResult) ![]const u8 {
-        var output = std.ArrayList(u8).init(self.allocator);
+        var output = std.ArrayList(u8){};
         defer output.deinit();
         
         const writer = output.writer();
@@ -162,7 +162,7 @@ pub const GraphVisualizer = struct {
     
     /// Convert to D3.js format
     fn toD3(self: GraphVisualizer, results: []GraphResult) ![]const u8 {
-        var output = std.ArrayList(u8).init(self.allocator);
+        var output = std.ArrayList(u8){};
         defer output.deinit();
         
         const writer = output.writer();
@@ -217,7 +217,7 @@ pub const LineagePathFormatter = struct {
     
     /// Format path as arrow chain
     pub fn formatAsArrowChain(self: LineagePathFormatter, path: []const []const u8) ![]const u8 {
-        var output = std.ArrayList(u8).init(self.allocator);
+        var output = std.ArrayList(u8){};
         defer output.deinit();
         
         const writer = output.writer();
@@ -234,7 +234,7 @@ pub const LineagePathFormatter = struct {
     
     /// Format path as hierarchical tree
     pub fn formatAsTree(self: LineagePathFormatter, paths: []const []const []const u8) ![]const u8 {
-        var output = std.ArrayList(u8).init(self.allocator);
+        var output = std.ArrayList(u8){};
         defer output.deinit();
         
         const writer = output.writer();
@@ -260,7 +260,7 @@ pub const LineagePathFormatter = struct {
         self: LineagePathFormatter,
         results: []GraphResult,
     ) ![]const u8 {
-        var output = std.ArrayList(u8).init(self.allocator);
+        var output = std.ArrayList(u8){};
         defer output.deinit();
         
         const writer = output.writer();

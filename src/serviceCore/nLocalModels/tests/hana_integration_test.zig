@@ -152,7 +152,7 @@ test "Integration: Batch metrics persistence" {
     defer client.deinit();
     
     // Create batch of metrics
-    var metrics_list = std.ArrayList(hana_queries.InferenceMetrics).init(allocator);
+    var metrics_list = std.ArrayList(hana_queries.InferenceMetrics){};
     defer metrics_list.deinit();
     
     var i: u32 = 0;
@@ -242,7 +242,7 @@ test "Integration: Connection pool stress test" {
     defer client.deinit();
     
     // Acquire all connections up to max
-    var connections = std.ArrayList(*HanaClient.Connection).init(allocator);
+    var connections = std.ArrayList(*HanaClient.Connection){};
     defer connections.deinit();
     
     // Get up to pool_max connections

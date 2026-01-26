@@ -348,7 +348,7 @@ pub const OcrNode = struct {
         var page = OcrPage.init(document.allocator, 1, 0, 0);
 
         // Create text from path
-        var text_buf = std.ArrayList(u8).init(document.allocator);
+        var text_buf = std.ArrayList(u8){};
         try text_buf.appendSlice("OCR text from: ");
         try text_buf.appendSlice(path);
         page.text = try text_buf.toOwnedSlice();
@@ -392,7 +392,7 @@ pub const OcrNode = struct {
     }
 
     pub fn toJson(self: *const OcrNode, allocator: Allocator) ![]const u8 {
-        var buffer = std.ArrayList(u8).init(allocator);
+        var buffer = std.ArrayList(u8){};
         errdefer buffer.deinit();
         var writer = buffer.writer();
         try writer.print(

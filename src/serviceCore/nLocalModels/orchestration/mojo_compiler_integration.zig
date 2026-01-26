@@ -195,7 +195,7 @@ pub const MojoCompilerBridge = struct {
             .{std.time.timestamp()},
         );
         
-        var args = std.ArrayList([]const u8).init(self.allocator);
+        var args = std.ArrayList([]const u8){};
         defer args.deinit();
         
         try args.append(self.allocator, self.mojo_binary_path);
@@ -244,7 +244,7 @@ pub const MojoCompilerBridge = struct {
         var result = CompilationResult{ .success = false };
         
         // Build command: mojo run <source>
-        var args = std.ArrayList([]const u8).init(self.allocator);
+        var args = std.ArrayList([]const u8){};
         defer args.deinit();
         
         try args.append(self.allocator, self.mojo_binary_path);

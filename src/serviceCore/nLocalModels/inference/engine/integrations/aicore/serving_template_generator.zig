@@ -58,7 +58,7 @@ pub const ServingTemplate = struct {
 
     /// Generate YAML serving template string
     pub fn generateYaml(self: ServingTemplate, allocator: std.mem.Allocator) ![]const u8 {
-        var buffer = std.ArrayList(u8).init(allocator);
+        var buffer = std.ArrayList(u8){};
         errdefer buffer.deinit();
 
         // Header and metadata

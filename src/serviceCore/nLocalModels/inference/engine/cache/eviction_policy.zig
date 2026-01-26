@@ -115,7 +115,7 @@ pub const EvictionStrategy = struct {
         _ = self;
         
         // First, find entries below frequency threshold
-        var candidates = std.ArrayList(usize).init(std.heap.page_allocator);
+        var candidates = std.ArrayList(usize){};
         defer candidates.deinit();
         
         for (entries, 0..) |entry, i| {

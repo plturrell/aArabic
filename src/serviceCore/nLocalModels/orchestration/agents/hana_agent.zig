@@ -44,7 +44,7 @@ fn runSql(self: *HanaAgent, sql: []const u8) ![]u8 {
 pub fn createPrompt(self: *HanaAgent, prompt_text: []const u8, model: []const u8, user_id: []const u8, mode_id: i32, tags: []const u8) !void {
     const esc = struct {
         fn s(a: std.mem.Allocator, v: []const u8) ![]u8 {
-            var out = std.ArrayList(u8).init(a);
+            var out = std.ArrayList(u8){};
             defer out.deinit();
             for (v) |c| {
                 if (c == '\'') try out.appendSlice("''") else try out.append(c);
@@ -85,7 +85,7 @@ pub fn deletePrompt(self: *HanaAgent, id: i32) !void {
 pub fn createComparison(self: *HanaAgent, prompt: []const u8, modelA: []const u8, modelB: []const u8, winner: []const u8, respA: []const u8, respB: []const u8, latA: i32, latB: i32, tpsA: i32, tpsB: i32) !void {
     const esc = struct {
         fn s(a: std.mem.Allocator, v: []const u8) ![]u8 {
-            var out = std.ArrayList(u8).init(a);
+            var out = std.ArrayList(u8){};
             defer out.deinit();
             for (v) |c| {
                 if (c == '\'') try out.appendSlice("''") else try out.append(c);

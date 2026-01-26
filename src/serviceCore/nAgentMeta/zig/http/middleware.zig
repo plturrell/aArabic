@@ -51,7 +51,7 @@ pub const MiddlewareChain = struct {
     pub fn init(allocator: Allocator) MiddlewareChain {
         return MiddlewareChain{
             .allocator = allocator,
-            .middlewares = std.ArrayList(Middleware).init(allocator),
+            .middlewares = std.ArrayList(Middleware){},
         };
     }
     

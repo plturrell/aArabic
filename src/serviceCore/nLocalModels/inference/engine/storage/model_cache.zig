@@ -140,7 +140,7 @@ pub const ModelCache = struct {
             .entries = std.StringHashMap(ModelCacheEntry).init(allocator),
             .current_size = 0,
             .mutex = .{},
-            .warming_queue = std.ArrayList(WarmingTask).init(allocator),
+            .warming_queue = std.ArrayList(WarmingTask){},
             .warming_threads = &.{},
             .stop_warming = std.atomic.Value(bool).init(false),
         };

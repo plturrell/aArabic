@@ -42,7 +42,7 @@ pub const HanaTestSuite = struct {
     pub fn init(allocator: std.mem.Allocator) HanaTestSuite {
         return HanaTestSuite{
             .allocator = allocator,
-            .results = std.ArrayList(TestResult).init(allocator),
+            .results = std.ArrayList(TestResult){},
         };
     }
     

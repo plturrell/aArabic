@@ -51,7 +51,7 @@ pub const TransactionManager = struct {
             .state = .inactive,
             .isolation_level = .read_committed,
             .auto_commit = true,
-            .savepoints = std.ArrayList([]const u8).init(allocator),
+            .savepoints = std.ArrayList([]const u8){},
         };
     }
     

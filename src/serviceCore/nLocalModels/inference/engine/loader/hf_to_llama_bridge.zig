@@ -241,7 +241,7 @@ fn convertWeights(
 fn createTokenizerWrapper(
     allocator: std.mem.Allocator,
     hf_model: *hf.HuggingFaceModel,
-) !tokenizer.Tokenizer {
+) !*tokenizer.Tokenizer {
     std.debug.print("\n📝 Creating tokenizer wrapper...\n", .{});
 
     // Use the BPE vocab directly from HuggingFace tokenizer
@@ -257,11 +257,14 @@ fn createTokenizerWrapper(
         eos,
     );
 
+    var tok_ptr = try allocator.create(tokenizer.Tokenizer);
+    tok_ptr.* = tok;
+
     std.debug.print("   BOS token: {d}\n", .{tok.bos_token});
     std.debug.print("   EOS token: {d}\n", .{tok.eos_token});
     std.debug.print("   ✅ Tokenizer wrapper created\n", .{});
 
-    return tok;
+    return tok_ptr;
 }
 
 // ============================================================================

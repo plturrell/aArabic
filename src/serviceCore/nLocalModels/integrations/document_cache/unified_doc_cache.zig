@@ -140,7 +140,7 @@ const MAGIC: [4]u8 = .{ 'U', 'D', 'C', '1' }; // Unified Doc Cache v1
 
 /// Serialize CachedDocument to bytes for storage
 fn serializeDocument(allocator: Allocator, doc: *const CachedDocument) ![]u8 {
-    var buffer = ArrayList(u8).init(allocator);
+    var buffer = ArrayList(u8){};
     errdefer buffer.deinit();
 
     const writer = buffer.writer();
@@ -487,7 +487,7 @@ pub const UnifiedDocCache = struct {
             score: f32,
         };
 
-        var scored = ArrayList(ScoredDoc).init(self.allocator);
+        var scored = ArrayList(ScoredDoc){};
         defer scored.deinit();
 
         // Calculate similarity for each candidate

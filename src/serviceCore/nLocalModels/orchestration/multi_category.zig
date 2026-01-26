@@ -68,7 +68,7 @@ pub const MultiCategoryModel = struct {
         };
         
         // Append to existing scores
-        var scores_list = std.ArrayList(MultiCategoryScore).init(self.allocator);
+        var scores_list = std.ArrayList(MultiCategoryScore){};
         defer scores_list.deinit();
         
         for (self.category_scores) |score| {
@@ -95,7 +95,7 @@ pub const MultiCategoryModel = struct {
     
     /// Get all categories this model supports
     pub fn getCategories(self: *MultiCategoryModel, allocator: Allocator) ![][]const u8 {
-        var categories = std.ArrayList([]const u8).init(allocator);
+        var categories = std.ArrayList([]const u8){};
         errdefer categories.deinit();
         
         for (self.category_scores) |score| {
@@ -175,7 +175,7 @@ pub const MultiCategoryRegistry = struct {
         allocator: Allocator,
         category: []const u8,
     ) ![][]const u8 {
-        var models = std.ArrayList([]const u8).init(allocator);
+        var models = std.ArrayList([]const u8){};
         errdefer models.deinit();
         
         var it = self.models.iterator();

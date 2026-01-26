@@ -90,7 +90,7 @@ pub fn getActiveAssignments(hana_client: *HanaClient, allocator: Allocator) ![]A
     defer result.deinit();
     
     // ✅ P1-9 FIXED: Parse result rows into Assignment structs
-    var assignments = std.ArrayList(Assignment).init(allocator);
+    var assignments = std.ArrayList(Assignment){};
     errdefer assignments.deinit();
     
     for (result.rows) |row| {
@@ -305,7 +305,7 @@ pub fn getTopAgentModelPairs(hana_client: *HanaClient, limit: u32, allocator: Al
     defer result.deinit();
     
     // ✅ P1-9 FIXED: Parse result into AgentModelPair array
-    var pairs = std.ArrayList(AgentModelPair).init(allocator);
+    var pairs = std.ArrayList(AgentModelPair){};
     errdefer pairs.deinit();
     
     for (result.rows) |row| {

@@ -384,7 +384,7 @@ pub const HanaWorkflowStore = struct {
         var result = try self.runQuery(sql);
         defer result.deinit();
 
-        var summaries = std.ArrayList(WorkflowSummary).init(self.allocator);
+        var summaries = std.ArrayList(WorkflowSummary){};
         errdefer {
             for (summaries.items) |*summary| summary.deinit(self.allocator);
             summaries.deinit();
@@ -462,7 +462,7 @@ pub const HanaWorkflowStore = struct {
         var result = try self.runQuery(sql);
         defer result.deinit();
 
-        var executions = std.ArrayList(ExecutionRecord).init(self.allocator);
+        var executions = std.ArrayList(ExecutionRecord){};
         errdefer {
             for (executions.items) |*item| item.deinit(self.allocator);
             executions.deinit();

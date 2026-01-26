@@ -674,7 +674,7 @@ pub const GeometricSpeculationMonitor = struct {
 
     /// Get alerts for all metrics exceeding thresholds
     pub fn getAlerts(self: *GeometricSpeculationMonitor, allocator: std.mem.Allocator) !std.ArrayList(Alert) {
-        var alerts = std.ArrayList(Alert).init(allocator);
+        var alerts = std.ArrayList(Alert){};
         const now = std.time.timestamp();
 
         // Check acceptance rate

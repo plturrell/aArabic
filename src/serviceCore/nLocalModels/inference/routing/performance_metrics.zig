@@ -181,11 +181,11 @@ pub const PerformanceTracker = struct {
     pub fn init(allocator: std.mem.Allocator, max_recent: usize) PerformanceTracker {
         return .{
             .allocator = allocator,
-            .recent_decisions = std.ArrayList(RoutingDecision).init(allocator),
+            .recent_decisions = std.ArrayList(RoutingDecision){},
             .max_recent = max_recent,
             .model_metrics = std.StringHashMap(ModelMetrics).init(allocator),
             .agent_metrics = std.StringHashMap(AgentMetrics).init(allocator),
-            .global_latencies = std.ArrayList(f32).init(allocator),
+            .global_latencies = std.ArrayList(f32){},
             .global_success_count = 0,
             .global_failure_count = 0,
         };
@@ -302,7 +302,7 @@ pub const PerformanceTracker = struct {
         allocator: std.mem.Allocator,
         limit: usize,
     ) ![]ModelPerformance {
-        var performances = std.ArrayList(ModelPerformance).init(allocator);
+        var performances = std.ArrayList(ModelPerformance){};
         
         var iter = self.model_metrics.iterator();
         while (iter.next()) |entry| {

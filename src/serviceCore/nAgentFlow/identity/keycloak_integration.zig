@@ -497,7 +497,7 @@ pub const KeycloakIntegration = struct {
         }
         
         // Parse roles array (simplified - in production would use full parser)
-        var roles = std.ArrayList(RoleInfo).init(self.allocator);
+        var roles = std.ArrayList(RoleInfo){};
         errdefer {
             for (roles.items) |*role| {
                 role.deinit(self.allocator);
@@ -616,7 +616,7 @@ pub const KeycloakIntegration = struct {
             return error.GroupsFetchFailed;
         }
         
-        var groups = std.ArrayList(GroupInfo).init(self.allocator);
+        var groups = std.ArrayList(GroupInfo){};
         errdefer {
             for (groups.items) |*group| {
                 group.deinit(self.allocator);

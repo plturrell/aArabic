@@ -124,7 +124,7 @@ pub const LlamaModel = struct {
     weights: LlamaWeights,
     rope_freqs: []f32,
     kv_caches: []kv_cache.KVCache,
-    tok: tokenizer.Tokenizer,
+    tok: *tokenizer.Tokenizer,
     pool: *thread_pool.ThreadPool,
     backend: compute.ComputeBackend,
     scratch_hidden: []f32,
@@ -135,7 +135,7 @@ pub const LlamaModel = struct {
         allocator: std.mem.Allocator,
         config: LlamaConfig,
         weights: LlamaWeights,
-        tok: tokenizer.Tokenizer,
+        tok: *tokenizer.Tokenizer,
     ) !LlamaModel {
         log("\nInitializing Llama Model\n", .{});
         log("   Layers: {d}\n", .{config.n_layers});
@@ -235,6 +235,7 @@ pub const LlamaModel = struct {
         self.allocator.free(self.scratch_layer_output);
         self.allocator.free(self.scratch_logits);
         self.tok.deinit();
+        self.allocator.destroy(self.tok);
         self.weights.deinit();
         self.backend.deinit();
         self.pool.deinit();

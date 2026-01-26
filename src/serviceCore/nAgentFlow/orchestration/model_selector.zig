@@ -160,7 +160,7 @@ pub const ModelSelector = struct {
         
         selector.* = .{
             .allocator = allocator,
-            .models = std.ArrayList(Model).init(allocator),
+            .models = std.ArrayList(Model){},
             .categories = std.StringHashMap(TaskCategory).init(allocator),
             .registry_path = try allocator.dupe(u8, registry_path),
             .categories_path = try allocator.dupe(u8, categories_path),
@@ -232,7 +232,7 @@ pub const ModelSelector = struct {
         // Parse orchestration_categories
         if (obj.get("orchestration_categories")) |cats| {
             if (cats == .array) {
-                var categories = std.ArrayList([]const u8).init(self.allocator);
+                var categories = std.ArrayList([]const u8){};
                 for (cats.array.items) |cat| {
                     if (cat == .string) {
                         try categories.append(try self.allocator.dupe(u8, cat.string));
@@ -245,7 +245,7 @@ pub const ModelSelector = struct {
         // Parse agent_types
         if (obj.get("agent_types")) |types| {
             if (types == .array) {
-                var agent_types = std.ArrayList([]const u8).init(self.allocator);
+                var agent_types = std.ArrayList([]const u8){};
                 for (types.array.items) |agent_type| {
                     if (agent_type == .string) {
                         try agent_types.append(try self.allocator.dupe(u8, agent_type.string));
@@ -306,7 +306,7 @@ pub const ModelSelector = struct {
         // Parse models
         if (value.object.get("models")) |models| {
             if (models == .array) {
-                var model_list = std.ArrayList([]const u8).init(self.allocator);
+                var model_list = std.ArrayList([]const u8){};
                 for (models.array.items) |model| {
                     if (model == .string) {
                         try model_list.append(try self.allocator.dupe(u8, model.string));
@@ -332,7 +332,7 @@ pub const ModelSelector = struct {
         
         var best_model: ?*const Model = null;
         var best_score: f64 = 0.0;
-        var selection_reason = std.ArrayList(u8).init(self.allocator);
+        var selection_reason = std.ArrayList(u8){};
         defer selection_reason.deinit();
         
         // Iterate through models in category

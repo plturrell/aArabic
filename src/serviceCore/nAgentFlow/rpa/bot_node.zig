@@ -368,7 +368,7 @@ pub const RpaBot = struct {
     }
 
     pub fn toJson(self: *const RpaBot, allocator: Allocator) ![]const u8 {
-        var buffer = std.ArrayList(u8).init(allocator);
+        var buffer = std.ArrayList(u8){};
         errdefer buffer.deinit(allocator);
         var writer = buffer.writer();
         try writer.print(

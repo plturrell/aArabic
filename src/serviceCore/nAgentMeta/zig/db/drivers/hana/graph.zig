@@ -144,7 +144,7 @@ pub const GraphTableQuery = struct {
     
     /// Build the GRAPH_TABLE SQL query
     pub fn build(self: GraphTableQuery) ![]const u8 {
-        var sql = std.ArrayList(u8).init(self.allocator);
+        var sql = std.ArrayList(u8){};
         defer sql.deinit();
         
         const writer = sql.writer();
@@ -331,7 +331,7 @@ pub const GraphResult = struct {
 
 /// Parse graph query results into structured format
 pub fn parseGraphResults(allocator: std.mem.Allocator, result: query_mod.QueryResult) ![]GraphResult {
-    var results = std.ArrayList(GraphResult).init(allocator);
+    var results = std.ArrayList(GraphResult){};
     errdefer results.deinit();
     
     for (result.rows.items) |row| {
@@ -345,7 +345,7 @@ pub fn parseGraphResults(allocator: std.mem.Allocator, result: query_mod.QueryRe
         const hop_distance = @as(u32, @intCast(row.values.items[2].int64));
         
         // Parse path if available
-        var path = std.ArrayList([]const u8).init(allocator);
+        var path = std.ArrayList([]const u8){};
         if (row.values.items.len > 3) {
             const path_str = row.values.items[3].string;
             var it = std.mem.split(u8, path_str, ",");

@@ -127,7 +127,7 @@ pub const Span = struct {
             .end_time = null,
             .status = .unset,
             .attributes = std.StringHashMap([]const u8).init(allocator),
-            .events = std.ArrayList(SpanEvent).init(allocator),
+            .events = std.ArrayList(SpanEvent){},
         };
         
         return self;
@@ -190,7 +190,7 @@ pub const Span = struct {
     
     /// Export span to OTLP JSON format
     pub fn toJson(self: *const Span, allocator: std.mem.Allocator) ![]u8 {
-        var buffer = std.ArrayList(u8).init(allocator);
+        var buffer = std.ArrayList(u8){};
         errdefer buffer.deinit();
         
         const writer = buffer.writer();
@@ -269,7 +269,7 @@ pub const Tracer = struct {
         self.* = Tracer{
             .allocator = allocator,
             .service_name = service_name,
-            .active_spans = std.ArrayList(*Span).init(allocator),
+            .active_spans = std.ArrayList(*Span){},
             .mutex = .{},
         };
         

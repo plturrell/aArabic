@@ -74,7 +74,7 @@ pub const GraphBenchmarkRunner = struct {
         return GraphBenchmarkRunner{
             .allocator = allocator,
             .config = config,
-            .latencies = std.ArrayList(i64).init(allocator),
+            .latencies = std.ArrayList(i64){},
         };
     }
     

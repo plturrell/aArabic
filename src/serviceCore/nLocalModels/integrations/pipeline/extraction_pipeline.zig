@@ -160,7 +160,7 @@ pub const StageQueue = struct {
 
     pub fn init(allocator: Allocator, max_size: usize) StageQueue {
         return .{
-            .items = ArrayList(*PipelineItem).init(allocator),
+            .items = ArrayList(*PipelineItem){},
             .max_size = max_size,
             .processing_count = 0,
             .total_processed = 0,
@@ -304,7 +304,7 @@ pub const ExtractionPipeline = struct {
             .config = config,
             .cache_client = cache_client,
             .queues = undefined,
-            .completed = ArrayList(*PipelineItem).init(allocator),
+            .completed = ArrayList(*PipelineItem){},
             .items_by_id = std.AutoHashMap([32]u8, *PipelineItem).init(allocator),
             .metrics = PipelineMetrics.init(),
             .mutex = .{},

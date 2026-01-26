@@ -75,7 +75,7 @@ pub const LatencyTracker = struct {
         const self = try allocator.create(LatencyTracker);
         self.* = LatencyTracker{
             .allocator = allocator,
-            .samples = std.ArrayList(f64).init(allocator),
+            .samples = std.ArrayList(f64){},
             .window_size = window_size,
         };
         return self;

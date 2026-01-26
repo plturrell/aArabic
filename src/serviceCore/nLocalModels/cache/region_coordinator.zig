@@ -189,7 +189,7 @@ pub const RegionCoordinator = struct {
         coordinator.* = .{
             .allocator = allocator,
             .config = config,
-            .regions = std.ArrayList(*Region).init(allocator),
+            .regions = std.ArrayList(*Region){},
             .mutex = .{},
         };
         return coordinator;
@@ -271,7 +271,7 @@ pub const RegionCoordinator = struct {
         }
         
         // Filter healthy regions
-        var healthy_regions = std.ArrayList(*Region).init(self.allocator);
+        var healthy_regions = std.ArrayList(*Region){};
         defer healthy_regions.deinit();
         
         for (self.regions.items) |region| {

@@ -477,7 +477,7 @@ pub const RequestRouter = struct {
         const registry = self.registry orelse return error.RegistryNotSet;
         
         const all_models = try registry.listModels(self.allocator);
-        var available = std.ArrayList([]const u8).init(self.allocator);
+        var available = std.ArrayList([]const u8){};
         errdefer {
             for (available.items) |m| self.allocator.free(m);
             available.deinit();
@@ -524,7 +524,7 @@ pub const RequestRouter = struct {
             self.allocator.free(models);
         }
         
-        var candidates = std.ArrayList(ModelCandidate).init(self.allocator);
+        var candidates = std.ArrayList(ModelCandidate){};
         errdefer candidates.deinit();
         
         for (models) |model_id| {

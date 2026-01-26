@@ -98,9 +98,9 @@ pub const GpuInferenceServer = struct {
             .config = config,
             .gpu_engine = gpu_engine,
             .weight_cache = weight_cache,
-            .request_queue = std.ArrayList(InferenceRequest).init(allocator),
+            .request_queue = std.ArrayList(InferenceRequest){},
             .queue_mutex = .{},
-            .active_batch = std.ArrayList(*InferenceRequest).init(allocator),
+            .active_batch = std.ArrayList(*InferenceRequest){},
             .total_requests = 0,
             .total_tokens_generated = 0,
             .total_batches_processed = 0,
@@ -123,7 +123,7 @@ pub const GpuInferenceServer = struct {
         }
         
         var req = request;
-        req.generated_tokens = std.ArrayList(u32).init(self.allocator);
+        req.generated_tokens = std.ArrayList(u32){};
         req.current_position = @intCast(request.token_ids.len);
         req.is_complete = false;
         

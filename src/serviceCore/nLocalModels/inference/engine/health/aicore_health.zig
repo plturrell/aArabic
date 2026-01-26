@@ -76,7 +76,7 @@ pub const HealthCheck = struct {
     }
 
     pub fn toJson(self: *const HealthCheck) ![]u8 {
-        var buf = std.ArrayList(u8).init(self.allocator);
+        var buf = std.ArrayList(u8){};
         errdefer buf.deinit();
 
         try buf.appendSlice("{\"status\":\"");

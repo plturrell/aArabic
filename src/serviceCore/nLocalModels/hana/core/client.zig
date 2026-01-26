@@ -204,8 +204,8 @@ pub const HanaClient = struct {
 
         fn init(allocator: Allocator) ConnectionPool {
             return .{
-                .connections = std.ArrayList(*Connection).init(allocator),
-                .available = std.ArrayList(*Connection).init(allocator),
+                .connections = std.ArrayList(*Connection){},
+                .available = std.ArrayList(*Connection){},
                 .mutex = .{},
                 .condition = .{},
                 .allocator = allocator,

@@ -314,7 +314,7 @@ pub const ODataPersistence = struct {
     fn parseAssignmentsFromJson(self: *ODataPersistence, json: []const u8) ![]AssignmentEntity {
         // ✅ P1-9: Simple JSON parsing for assignments
         // In production, use proper JSON parser
-        var assignments = std.ArrayList(AssignmentEntity).init(self.allocator);
+        var assignments = std.ArrayList(AssignmentEntity){};
         errdefer assignments.deinit();
         
         // Look for "value" array in OData response

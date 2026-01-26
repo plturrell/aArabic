@@ -860,7 +860,7 @@ pub const MockTenantStore = struct {
     }
 
     pub fn listWorkflowsForTenant(self: *MockTenantStore, tenant_id: []const u8) ![]TenantWorkflow {
-        var result = std.ArrayList(TenantWorkflow).init(self.allocator);
+        var result = std.ArrayList(TenantWorkflow){};
         var it = self.workflows.valueIterator();
         while (it.next()) |workflow| {
             if (mem.eql(u8, workflow.tenant_id, tenant_id)) {

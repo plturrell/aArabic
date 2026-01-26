@@ -46,7 +46,7 @@ pub const CrossDbTests = struct {
     pub fn init(allocator: std.mem.Allocator) CrossDbTests {
         return CrossDbTests{
             .allocator = allocator,
-            .results = std.ArrayList(TestResult).init(allocator),
+            .results = std.ArrayList(TestResult){},
         };
     }
 

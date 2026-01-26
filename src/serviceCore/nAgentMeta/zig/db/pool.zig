@@ -119,9 +119,9 @@ pub const ConnectionPool = struct {
         return ConnectionPool{
             .allocator = allocator,
             .config = config,
-            .connections = std.ArrayList(PooledConnection).init(allocator),
+            .connections = std.ArrayList(PooledConnection){},
             .mutex = std.Thread.Mutex{},
-            .wait_queue = std.ArrayList(WaitEntry).init(allocator),
+            .wait_queue = std.ArrayList(WaitEntry){},
             .next_id = 0,
             .total_acquires = 0,
             .total_releases = 0,

@@ -154,8 +154,8 @@ pub const AlertManager = struct {
             .allocator = allocator,
             .performance_tracker = performance_tracker,
             .thresholds = thresholds,
-            .active_alerts = std.ArrayList(Alert).init(allocator),
-            .alert_history = std.ArrayList(Alert).init(allocator),
+            .active_alerts = std.ArrayList(Alert){},
+            .alert_history = std.ArrayList(Alert){},
             .max_history = max_history,
             .last_alert_times = std.StringHashMap(i64).init(allocator),
             .alert_cooldown_ms = 300_000, // 5 minutes default
@@ -178,7 +178,7 @@ pub const AlertManager = struct {
     
     /// Check all metrics and generate alerts if needed
     pub fn checkMetrics(self: *AlertManager) !std.ArrayList(Alert) {
-        var new_alerts = std.ArrayList(Alert).init(self.allocator);
+        var new_alerts = std.ArrayList(Alert){};
         
         // Check latency metrics
         const latency_metrics = try self.performance_tracker.getLatencyMetrics(self.allocator);

@@ -43,7 +43,7 @@ pub const GraphOptimizer = struct {
     pub fn init(allocator: std.mem.Allocator) GraphOptimizer {
         return GraphOptimizer{
             .allocator = allocator,
-            .strategies = std.ArrayList(OptimizationStrategy).init(allocator),
+            .strategies = std.ArrayList(OptimizationStrategy){},
             .enable_statistics = false,
         };
     }
@@ -72,7 +72,7 @@ pub const GraphOptimizer = struct {
         }
         
         // Build optimized query with hints
-        var optimized = std.ArrayList(u8).init(self.allocator);
+        var optimized = std.ArrayList(u8){};
         defer optimized.deinit();
         
         const writer = optimized.writer();
@@ -297,7 +297,7 @@ pub const AdvancedGraphOps = struct {
         _ = self;
         _ = workspace;
         
-        var communities = std.ArrayList(Community).init(self.allocator);
+        var communities = std.ArrayList(Community){};
         try communities.append(Community{
             .id = "community_1",
             .vertices = &[_][]const u8{ "v1", "v2", "v3" },

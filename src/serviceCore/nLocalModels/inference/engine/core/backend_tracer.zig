@@ -101,7 +101,7 @@ pub const BackendTracer = struct {
             .verbose = checkVerbose(),
             .current_backend = .Unknown,
             .selection_reason = .PlatformDefault,
-            .events = std.ArrayList(BackendEvent).init(allocator),
+            .events = std.ArrayList(BackendEvent){},
             .operation_counts = std.AutoHashMap(OperationType, usize).init(allocator),
             .backend_operation_counts = std.AutoHashMap(BackendType, usize).init(allocator),
         };

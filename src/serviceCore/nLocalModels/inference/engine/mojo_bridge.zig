@@ -279,7 +279,7 @@ fn generateWithLfm2(
         if (pos < tokens.len - 1) m.advanceCaches();
     }
 
-    var generated = std.ArrayList(u8).init(allocator);
+    var generated = std.ArrayList(u8){};
     errdefer generated.deinit();
     generated.ensureTotalCapacity(max_tokens * 4) catch |err| {
         std.debug.print("❌ Pre-alloc failed: {}\n", .{err});

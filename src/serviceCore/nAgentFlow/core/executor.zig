@@ -385,16 +385,9 @@ pub const PetriNetExecutor = struct {
             try place_ids.append(self.allocator, entry.key_ptr.*);
         }
         
-        // Clear current state - safely clear tokens and reinitialize ArrayList
+        // Clear current state using PetriNet API
         for (place_ids.items) |place_id| {
-            if (self.net.getPlace(place_id)) |place_ptr| {
-                // Deinit tokens and reinitialize the ArrayList properly
-                for (place_ptr.tokens.items) |*token| {
-                    token.deinit(self.allocator);
-                }
-                place_ptr.tokens.deinit(self.allocator);
-                place_ptr.tokens = try std.ArrayList(petri_net.Token).initCapacity(self.allocator, 4);
-            }
+            try self.net.clearPlaceTokens(place_id);
         }
         
         // Restore from marking

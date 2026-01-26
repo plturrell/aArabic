@@ -254,7 +254,7 @@ pub const LoadBalancerManager = struct {
     /// List all upstreams
     pub fn listUpstreams(self: *const LoadBalancerManager) ![]UpstreamInfo {
         const arena_allocator = self.arena.allocator();
-        var result = std.ArrayList(UpstreamInfo).init(arena_allocator);
+        var result = std.ArrayList(UpstreamInfo){};
 
         var it = self.upstreams.valueIterator();
         while (it.next()) |info| {

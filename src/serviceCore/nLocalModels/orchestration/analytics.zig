@@ -465,6 +465,9 @@ pub const Analytics = struct {
         
         try stdout.print("\n", .{});
         try stdout.print("============================================================\n\n", .{});
+        try stdout.print("\n", .{});
+        try stdout.print("=" ** 60, .{});
+        try stdout.print("\n\n", .{});
     }
     
     fn getTimestamp(self: *Analytics) ![]const u8 {

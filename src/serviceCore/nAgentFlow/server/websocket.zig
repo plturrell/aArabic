@@ -711,7 +711,7 @@ pub const WebSocketServer = struct {
     pub fn init(allocator: Allocator) WebSocketServer {
         return WebSocketServer{
             .allocator = allocator,
-            .connections = std.ArrayList(*WebSocketConnection).init(allocator),
+            .connections = std.ArrayList(*WebSocketConnection){},
             .subscriptions = std.StringHashMap(std.ArrayList(*WebSocketConnection)).init(allocator),
             .mutex = .{},
             .message_builder = MessageBuilder.init(allocator),
@@ -942,7 +942,7 @@ pub const WebSocketServer = struct {
 
         const result = self.subscriptions.getOrPut(workflow_id) catch return;
         if (!result.found_existing) {
-            result.value_ptr.* = std.ArrayList(*WebSocketConnection).init(self.allocator);
+            result.value_ptr.* = std.ArrayList(*WebSocketConnection){};
         }
         try result.value_ptr.append(conn);
     }

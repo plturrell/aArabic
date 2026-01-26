@@ -188,7 +188,7 @@ fn example4_throughputAnalysis(allocator: std.mem.Allocator) !void {
     std.debug.print("\n", .{});
 
     // Export profile
-    var buffer = std.ArrayList(u8).init(allocator);
+    var buffer = std.ArrayList(u8){};
     defer buffer.deinit();
 
     try profile.toJson(buffer.writer());

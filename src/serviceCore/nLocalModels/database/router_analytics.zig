@@ -161,7 +161,7 @@ pub fn getAssignmentsWithMetrics(
     // Real OData query would use $expand to join tables:
     // GET /AgentModelAssignments?$expand=RoutingDecisions,InferenceMetrics
     
-    var result = std.ArrayList(AssignmentWithMetrics).init(allocator);
+    var result = std.ArrayList(AssignmentWithMetrics){};
     
     // Placeholder - return empty for now
     std.log.debug("Retrieved assignments with metrics via OData", .{});
@@ -202,7 +202,7 @@ pub fn getTopPerformingModels(
     // GET /InferenceMetrics?$apply=groupby((ModelID),aggregate(LatencyMS with average as AvgLatency))
     //     &$orderby=AvgLatency asc&$top={limit}
     
-    var result = std.ArrayList(ModelPerformance).init(allocator);
+    var result = std.ArrayList(ModelPerformance){};
     
     // Return empty for now
     _ = limit;

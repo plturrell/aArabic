@@ -118,7 +118,7 @@ const PostingList = struct {
 
     pub fn init(allocator: Allocator) PostingList {
         return .{
-            .postings = ArrayList(Posting).init(allocator),
+            .postings = ArrayList(Posting){},
             .document_frequency = 0,
         };
     }
@@ -148,7 +148,7 @@ pub const SemanticIndexError = error{
 
 /// Simple tokenizer: splits on whitespace, lowercases, removes punctuation
 pub fn tokenize(allocator: Allocator, text: []const u8) ![][]const u8 {
-    var tokens = ArrayList([]const u8).init(allocator);
+    var tokens = ArrayList([]const u8){};
     errdefer {
         for (tokens.items) |token| allocator.free(token);
         tokens.deinit();
@@ -241,7 +241,7 @@ pub const SemanticIndex = struct {
         return .{
             .allocator = allocator,
             .config = config,
-            .documents = ArrayList(IndexEntry).init(allocator),
+            .documents = ArrayList(IndexEntry){},
             .id_to_idx = AutoHashMap([32]u8, u32).init(allocator),
             .inverted_index = StringHashMap(PostingList).init(allocator),
             .total_tokens = 0,
@@ -318,7 +318,7 @@ pub const SemanticIndex = struct {
         for (tokens, 0..) |token, pos| {
             const gop = try term_positions.getOrPut(token);
             if (!gop.found_existing) {
-                gop.value_ptr.* = ArrayList(u32).init(self.allocator);
+                gop.value_ptr.* = ArrayList(u32){};
             }
             try gop.value_ptr.append(@intCast(pos));
         }

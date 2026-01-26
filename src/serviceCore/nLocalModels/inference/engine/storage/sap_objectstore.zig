@@ -143,7 +143,7 @@ pub const SAPObjectStore = struct {
         const ts = getTimestamp();
         const auth = try self.generateAuthHeader(alloc, "GET", key, &ts);
         defer alloc.free(auth);
-        var buf = std.ArrayList(u8).init(alloc);
+        var buf = std.ArrayList(u8){};
         errdefer buf.deinit();
         const res = self.http_client.fetch(.{ .location = .{ .uri = uri }, .method = .GET, .extra_headers = &.{ .{ .name = "Authorization", .value = auth }, .{ .name = "x-amz-date", .value = &ts }, .{ .name = "x-amz-content-sha256", .value = "UNSIGNED-PAYLOAD" } }, .response_storage = .{ .dynamic = &buf } });
         if (res) |r| {
@@ -197,7 +197,7 @@ pub const SAPObjectStore = struct {
         const ts = getTimestamp();
         const auth = try self.generateAuthHeader(alloc, "GET", "", &ts);
         defer alloc.free(auth);
-        var buf = std.ArrayList(u8).init(alloc);
+        var buf = std.ArrayList(u8){};
         defer buf.deinit();
         const res = self.http_client.fetch(.{ .location = .{ .uri = uri }, .method = .GET, .extra_headers = &.{ .{ .name = "Authorization", .value = auth }, .{ .name = "x-amz-date", .value = &ts }, .{ .name = "x-amz-content-sha256", .value = "UNSIGNED-PAYLOAD" } }, .response_storage = .{ .dynamic = &buf } });
         if (res) |r| { if (r.status != .ok) return StorageError.ListFailed; } else |_| return StorageError.ConnectionLost;

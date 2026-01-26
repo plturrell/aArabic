@@ -412,7 +412,7 @@ test "Schema: SDL generation" {
     var schema = try buildNMetaDataSchema(allocator);
     defer schema.deinit();
     
-    var buffer = std.ArrayList(u8).init(allocator);
+    var buffer = std.ArrayList(u8){};
     defer buffer.deinit();
     
     try schema.toSDL(buffer.writer());

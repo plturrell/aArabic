@@ -59,8 +59,8 @@ pub const BenchmarkValidator = struct {
         };
         
         // Initialize ArrayLists after struct creation
-        self.validation_errors = ArrayList([]const u8).init(allocator);
-        self.warnings = ArrayList([]const u8).init(allocator);
+        self.validation_errors = ArrayList([]const u8){};
+        self.warnings = ArrayList([]const u8){};
         
         try self.loadRegistry();
         return self;
@@ -244,7 +244,7 @@ pub const BenchmarkValidator = struct {
             date: []const u8,
         };
         
-        var scores = std.ArrayList(ModelScore).init(self.allocator);
+        var scores = std.ArrayList(ModelScore){};
         defer scores.deinit();
         
         const models = self.registry.object.get("models").?.array;

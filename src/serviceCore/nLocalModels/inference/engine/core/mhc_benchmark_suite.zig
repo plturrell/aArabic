@@ -739,7 +739,7 @@ pub const BenchmarkReporter = struct {
 
     /// Generate CSV output
     pub fn toCsv(self: *BenchmarkReporter, suite: *const BenchmarkSuiteResult) ![]u8 {
-        var buffer = std.ArrayList(u8).init(self.allocator);
+        var buffer = std.ArrayList(u8){};
         const writer = buffer.writer();
 
         // Header
@@ -767,7 +767,7 @@ pub const BenchmarkReporter = struct {
 
     /// Generate JSON output
     pub fn toJson(self: *BenchmarkReporter, suite: *const BenchmarkSuiteResult) ![]u8 {
-        var buffer = std.ArrayList(u8).init(self.allocator);
+        var buffer = std.ArrayList(u8){};
         const writer = buffer.writer();
 
         try writer.writeAll("{\n");

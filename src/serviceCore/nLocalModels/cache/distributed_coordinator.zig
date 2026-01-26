@@ -164,7 +164,7 @@ pub const DistributedCoordinator = struct {
         coordinator.* = .{
             .allocator = allocator,
             .config = config,
-            .nodes = std.ArrayList(CacheNode).init(allocator),
+            .nodes = std.ArrayList(CacheNode){},
             .cache = std.StringHashMap(CacheEntry).init(allocator),
             .mutex = .{},
         };
@@ -241,7 +241,7 @@ pub const DistributedCoordinator = struct {
     
     /// Get healthy nodes for replication
     fn getHealthyNodes(self: *DistributedCoordinator) []CacheNode {
-        var healthy = std.ArrayList(CacheNode).init(self.allocator);
+        var healthy = std.ArrayList(CacheNode){};
         
         for (self.nodes.items) |node| {
             if (node.isHealthy()) {

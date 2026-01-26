@@ -175,7 +175,7 @@ pub const BenchmarkScoring = struct {
     
     /// Get all benchmarks with non-zero weights
     pub fn getConfiguredBenchmarks(self: *BenchmarkScoring, allocator: Allocator) ![][]const u8 {
-        var benchmarks = std.ArrayList([]const u8).init(allocator);
+        var benchmarks = std.ArrayList([]const u8){};
         errdefer benchmarks.deinit();
         
         var it = self.benchmark_weights.iterator();

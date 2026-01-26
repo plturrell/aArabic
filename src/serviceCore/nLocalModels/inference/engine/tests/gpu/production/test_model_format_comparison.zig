@@ -124,8 +124,8 @@ pub const FormatComparisonTester = struct {
     pub fn init(allocator: std.mem.Allocator) FormatComparisonTester {
         return .{
             .allocator = allocator,
-            .safetensor_results = std.ArrayList(FormatMetrics).init(allocator),
-            .gguf_results = std.ArrayList(FormatMetrics).init(allocator),
+            .safetensor_results = std.ArrayList(FormatMetrics){},
+            .gguf_results = std.ArrayList(FormatMetrics){},
         };
     }
     

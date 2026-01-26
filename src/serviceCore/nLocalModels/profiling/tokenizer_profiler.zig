@@ -58,9 +58,9 @@ pub const TokenizerProfile = struct {
 
     pub fn init(allocator: Allocator) TokenizerProfile {
         return .{
-            .lookups = std.ArrayList(LookupStats).init(allocator),
-            .merges = std.ArrayList(MergeStats).init(allocator),
-            .sessions = std.ArrayList(TokenizationSession).init(allocator),
+            .lookups = std.ArrayList(LookupStats){},
+            .merges = std.ArrayList(MergeStats){},
+            .sessions = std.ArrayList(TokenizationSession){},
             .total_lookups = 0,
             .total_merges = 0,
             .total_cache_hits = 0,

@@ -140,7 +140,7 @@ pub fn executeSqlViaHanaOData(
 
         std.debug.print("   Trying endpoint: {s}\n", .{url});
 
-        var args_builder = std.ArrayList([]const u8).init(allocator);
+        var args_builder = std.ArrayList([]const u8){};
         defer args_builder.deinit();
 
         try args_builder.appendSlice(&[_][]const u8{
@@ -315,7 +315,7 @@ pub fn querySqlViaHanaOData(
         );
         defer allocator.free(url);
 
-        var args_builder = std.ArrayList([]const u8).init(allocator);
+        var args_builder = std.ArrayList([]const u8){};
         defer args_builder.deinit();
 
         try args_builder.appendSlice(&[_][]const u8{

@@ -43,7 +43,7 @@ pub const TransactionContext = struct {
             .transaction = transaction,
             .state = .active,
             .isolation_level = isolation_level,
-            .savepoints = std.ArrayList(Savepoint).init(allocator),
+            .savepoints = std.ArrayList(Savepoint){},
             .started_at = std.time.milliTimestamp(),
             .allocator = allocator,
             .auto_rollback = true,
@@ -165,7 +165,7 @@ pub const TransactionManager = struct {
         return TransactionManager{
             .allocator = allocator,
             .client = db_client,
-            .active_transactions = std.ArrayList(*TransactionContext).init(allocator),
+            .active_transactions = std.ArrayList(*TransactionContext){},
             .mutex = std.Thread.Mutex{},
             .total_transactions = 0,
             .committed_transactions = 0,

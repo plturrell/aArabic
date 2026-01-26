@@ -64,7 +64,7 @@ pub const CompressionProfile = struct {
 
     pub fn init(allocator: Allocator) CompressionProfile {
         return .{
-            .stats = std.ArrayList(CompressionStats).init(allocator),
+            .stats = std.ArrayList(CompressionStats){},
             .algorithm_metrics = std.AutoHashMap(CompressionAlgorithm, AlgorithmMetrics).init(allocator),
             .total_original_bytes = 0,
             .total_compressed_bytes = 0,

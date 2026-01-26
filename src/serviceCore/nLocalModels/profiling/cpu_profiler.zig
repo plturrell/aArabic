@@ -52,7 +52,7 @@ pub const CpuProfile = struct {
 
     pub fn init(allocator: Allocator) CpuProfile {
         return .{
-            .samples = std.ArrayList(Sample).init(allocator),
+            .samples = std.ArrayList(Sample){},
             .total_samples = 0,
             .duration_ns = 0,
             .start_time_ns = 0,
@@ -91,7 +91,7 @@ pub const CpuProfile = struct {
         }
 
         // Convert to sorted array
-        var stats_list = std.ArrayList(FunctionStats).init(self.allocator);
+        var stats_list = std.ArrayList(FunctionStats){};
         errdefer stats_list.deinit();
 
         var iter = function_counts.iterator();

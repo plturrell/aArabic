@@ -90,7 +90,7 @@ pub const LogEntry = struct {
     
     /// Format as JSON for structured logging
     pub fn toJson(self: LogEntry, allocator: std.mem.Allocator) ![]u8 {
-        var buffer = std.ArrayList(u8).init(allocator);
+        var buffer = std.ArrayList(u8){};
         errdefer buffer.deinit();
         
         const writer = buffer.writer();

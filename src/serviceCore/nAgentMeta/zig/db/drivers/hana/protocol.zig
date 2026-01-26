@@ -334,7 +334,7 @@ test "SegmentHeader - encode/decode" {
     
     const original = SegmentHeader.init(.execute_direct, 1);
     
-    var buffer = std.ArrayList(u8).init(allocator);
+    var buffer = std.ArrayList(u8){};
     defer buffer.deinit();
     
     try original.encode(buffer.writer());
@@ -351,7 +351,7 @@ test "PartHeader - encode/decode" {
     
     const original = PartHeader.init(.parameters, 3);
     
-    var buffer = std.ArrayList(u8).init(allocator);
+    var buffer = std.ArrayList(u8){};
     defer buffer.deinit();
     
     try original.encode(buffer.writer());

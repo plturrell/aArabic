@@ -400,7 +400,7 @@ test "ReportGenerator: markdown with measured data" {
     const generator = try ReportGenerator.init(allocator, data);
     defer generator.deinit();
 
-    var output = std.ArrayList(u8).init(allocator);
+    var output = std.ArrayList(u8){};
     defer output.deinit();
 
     try generator.generateMarkdown(output.writer());
@@ -462,7 +462,7 @@ test "ReportGenerator: markdown with CPU-only data" {
     const generator = try ReportGenerator.init(allocator, data);
     defer generator.deinit();
 
-    var output = std.ArrayList(u8).init(allocator);
+    var output = std.ArrayList(u8){};
     defer output.deinit();
 
     try generator.generateMarkdown(output.writer());

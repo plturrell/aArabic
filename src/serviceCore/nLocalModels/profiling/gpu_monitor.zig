@@ -59,8 +59,8 @@ pub const GpuProfile = struct {
 
     pub fn init(allocator: Allocator, device_count: u32, gpu_type: GpuType) GpuProfile {
         return .{
-            .metrics_history = std.ArrayList(GpuMetrics).init(allocator),
-            .kernel_history = std.ArrayList(KernelInfo).init(allocator),
+            .metrics_history = std.ArrayList(GpuMetrics){},
+            .kernel_history = std.ArrayList(KernelInfo){},
             .device_count = device_count,
             .gpu_type = gpu_type,
             .start_time_ns = std.time.nanoTimestamp(),

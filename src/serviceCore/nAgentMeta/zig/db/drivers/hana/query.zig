@@ -13,7 +13,7 @@ pub const ResultSet = struct {
     pub fn init(allocator: std.mem.Allocator) ResultSet {
         return ResultSet{
             .allocator = allocator,
-            .rows = std.ArrayList(Row).init(allocator),
+            .rows = std.ArrayList(Row){},
             .column_count = 0,
             .row_count = 0,
             .current_row = 0,
@@ -60,7 +60,7 @@ pub const Row = struct {
     pub fn init(allocator: std.mem.Allocator) Row {
         return Row{
             .allocator = allocator,
-            .values = std.ArrayList(Value).init(allocator),
+            .values = std.ArrayList(Value){},
         };
     }
     

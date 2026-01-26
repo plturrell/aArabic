@@ -16,6 +16,7 @@ const Allocator = std.mem.Allocator;
 const zig_libc = @import("zig_libc");
 const petri_lib = zig_libc.petri;
 const petri_core = petri_lib.core;
+const petri_api = petri_lib;
 const petri_types = petri_lib.types;
 
 // Re-export types for compatibility
@@ -375,6 +376,16 @@ pub const PetriNet = struct {
     pub fn getTransition(self: *PetriNet, id: []const u8) ?*Transition {
         return self.transitions_map.get(id);
     }
+
+    fn findTransitionIdByHandle(self: *const PetriNet, handle: *petri_types.pn_trans_t) ?[]const u8 {
+        var it = self.transitions_map.iterator();
+        while (it.next()) |entry| {
+            if (entry.value_ptr.*.handle == handle) {
+                return entry.key_ptr.*;
+            }
+        }
+        return null;
+    }
     
     /// Check if transition is enabled
     pub fn isTransitionEnabled(self: *const PetriNet, transition_id: []const u8) bool {
@@ -384,17 +395,34 @@ pub const PetriNet = struct {
     
     /// Get enabled transitions
     pub fn getEnabledTransitions(self: *const PetriNet) !std.ArrayList([]const u8) {
-        var enabled = std.ArrayList([]const u8).empty;
-        
+        var enabled = try std.ArrayList([]const u8).initCapacity(self.allocator, 0);
         errdefer enabled.deinit(self.allocator);
-        
-        for (self.transitions_list.items) |trans_id| {
-            if (self.transitions_map.get(trans_id)) |trans| {
-                if (petri_core.pn_trans_is_enabled(trans.handle) == 1) {
+
+        var raw_list_ptr: ?*?*petri_types.pn_trans_t = null;
+        var handle_count: usize = 0;
+
+        const rc = petri_api.pn_get_enabled_transitions(self.handle, &raw_list_ptr, &handle_count);
+        if (rc != 0) {
+            return error.PetriLibError;
+        }
+
+        var raw_slice: []?*petri_types.pn_trans_t = &[_]?*petri_types.pn_trans_t{};
+        if (raw_list_ptr) |ptr| {
+            if (ptr.*) |array_ptr| {
+                const array_many: [*]?*petri_types.pn_trans_t = @ptrCast(@alignCast(array_ptr));
+                raw_slice = array_many[0..handle_count];
+            }
+        }
+
+        for (raw_slice) |maybe_handle| {
+            if (maybe_handle) |handle| {
+                if (self.findTransitionIdByHandle(handle)) |trans_id| {
                     try enabled.append(self.allocator, trans_id);
                 }
             }
         }
+
+        petri_api.pn_free_enabled_transitions(raw_list_ptr, handle_count);
 
         return enabled;
     }
@@ -412,14 +440,9 @@ pub const PetriNet = struct {
     
     /// Check if the net is deadlocked
     pub fn isDeadlocked(self: *PetriNet) bool {
-        for (self.transitions_list.items) |trans_id| {
-            if (self.transitions_map.get(trans_id)) |trans| {
-                if (petri_core.pn_trans_is_enabled(trans.handle) == 1) {
-                    return false;
-                }
-            }
-        }
-        return true;
+        const enabled = self.getEnabledTransitions() catch return true;
+        defer enabled.deinit(self.allocator);
+        return enabled.items.len == 0;
     }
     
     /// Get statistics

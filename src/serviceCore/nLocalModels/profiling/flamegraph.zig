@@ -349,7 +349,7 @@ test "FlameGraph basic" {
     defer graph.deinit();
 
     // Test empty graph
-    var buffer = std.ArrayList(u8).init(allocator);
+    var buffer = std.ArrayList(u8){};
     defer buffer.deinit();
 
     try graph.generateSvg(buffer.writer());

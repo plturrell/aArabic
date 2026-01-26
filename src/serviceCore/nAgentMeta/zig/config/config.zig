@@ -175,7 +175,7 @@ const EnvResolver = struct {
             return try self.allocator.dupe(u8, input);
         }
 
-        var result = std.ArrayList(u8).init(self.allocator);
+        var result = std.ArrayList(u8){};
         defer result.deinit();
 
         var i: usize = 0;

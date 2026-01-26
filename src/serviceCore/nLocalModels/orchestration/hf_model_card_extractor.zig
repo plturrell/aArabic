@@ -54,8 +54,8 @@ pub const ModelInfo = struct {
             .specifications = std.StringHashMap([]const u8).init(allocator),
             .benchmarks = std.StringHashMap(BenchmarkScore).init(allocator),
             .hardware = std.StringHashMap([]const u8).init(allocator),
-            .orchestration_categories = std.ArrayList([]const u8).init(allocator),
-            .agent_types = std.ArrayList([]const u8).init(allocator),
+            .orchestration_categories = std.ArrayList([]const u8){},
+            .agent_types = std.ArrayList([]const u8){},
         };
     }
     
@@ -248,7 +248,7 @@ pub const HFModelCardExtractor = struct {
                     const remaining = readme[search_start..];
                     
                     // Simple number extraction
-                    var score_str = std.ArrayList(u8).init(self.allocator);
+                    var score_str = std.ArrayList(u8){};
                     defer score_str.deinit();
                     
                     for (remaining) |c| {

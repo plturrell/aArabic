@@ -410,6 +410,7 @@ pub const ModelSelector = struct {
         model: *const Model,
         constraints: SelectionConstraints,
     ) !bool {
+        _ = self;
         
         // Check GPU memory
         if (constraints.max_gpu_memory_mb) |max_mem| {
@@ -689,7 +690,7 @@ pub const ModelSelector = struct {
             return self.selectFallbackModel(constraints);
         }
         
-        var reason = std.ArrayList(u8).init(self.allocator);
+        var reason = std.ArrayList(u8){};
         try reason.appendSlice("GPU-aware selection for '");
         try reason.appendSlice(task_category);
         try reason.appendSlice("' on GPU ");

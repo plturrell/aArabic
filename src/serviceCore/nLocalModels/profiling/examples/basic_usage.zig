@@ -184,7 +184,7 @@ fn example4_fullSession(allocator: std.mem.Allocator) !void {
     std.debug.print("\n", .{});
 
     // Export to JSON
-    var buffer = std.ArrayList(u8).init(allocator);
+    var buffer = std.ArrayList(u8){};
     defer buffer.deinit();
 
     try manager.toJson(session_id, buffer.writer());

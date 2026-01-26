@@ -69,7 +69,7 @@ pub const ServingTemplateGenerator = struct {
 
     /// Generate the complete serving template YAML
     pub fn generate(self: *ServingTemplateGenerator) ![]const u8 {
-        var buffer = std.ArrayList(u8).init(self.allocator);
+        var buffer = std.ArrayList(u8){};
         const writer = buffer.writer();
 
         // Header

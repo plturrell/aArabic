@@ -230,7 +230,7 @@ fn parseDiagnostics(allocator: Allocator, value: json.Value) ![]LeanDiagnostic {
         else => return allocator.alloc(LeanDiagnostic, 0),
     };
 
-    var list = std.ArrayList(LeanDiagnostic).init(allocator);
+    var list = std.ArrayList(LeanDiagnostic){};
     errdefer {
         for (list.items) |diag| {
             freeDiagnosticFields(allocator, diag);

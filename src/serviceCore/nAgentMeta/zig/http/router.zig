@@ -88,7 +88,7 @@ pub const Router = struct {
     pub fn init(allocator: Allocator) Router {
         return Router{
             .allocator = allocator,
-            .routes = std.ArrayList(Route).init(allocator),
+            .routes = std.ArrayList(Route){},
         };
     }
     

@@ -459,7 +459,7 @@ pub const MultiModelCacheManager = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         
-        var list = std.ArrayList([]const u8).init(allocator);
+        var list = std.ArrayList([]const u8){};
         errdefer list.deinit();
         
         var iter = self.model_caches.keyIterator();

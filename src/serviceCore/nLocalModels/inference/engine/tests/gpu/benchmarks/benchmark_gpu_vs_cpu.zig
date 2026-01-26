@@ -78,7 +78,7 @@ fn benchmarkMatMul(allocator: std.mem.Allocator) !void {
     std.debug.print("   Size     | CPU Performance              | GPU Performance              | Speedup\n", .{});
     std.debug.print("   " ++ "-" ** 77 ++ "\n", .{});
 
-    var results = std.ArrayList(BenchResult).init(allocator);
+    var results = std.ArrayList(BenchResult){};
     defer results.deinit();
 
     for (sizes) |size| {

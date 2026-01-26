@@ -168,7 +168,7 @@ pub const SSDStorage = struct {
             // Day 2: Initialize prefetch tracking
             .last_read_offset = std.atomic.Value(u64).init(0),
             .sequential_reads = std.atomic.Value(u32).init(0),
-            .prefetch_cache = std.ArrayList(PrefetchEntry).init(allocator),
+            .prefetch_cache = std.ArrayList(PrefetchEntry){},
         };
         
         return self;

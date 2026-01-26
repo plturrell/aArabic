@@ -24,7 +24,7 @@ pub const AssignmentsResponse = struct {
     
     pub fn toJson(self: *const AssignmentsResponse, allocator: std.mem.Allocator) ![]const u8 {
         // Build JSON manually for now
-        var json = std.ArrayList(u8).init(allocator);
+        var json = std.ArrayList(u8){};
         
         try json.appendSlice("{\"success\":");
         try json.appendSlice(if (self.success) "true" else "false");
@@ -98,7 +98,7 @@ pub const StatsResponse = struct {
     recent_decisions: []RecentDecisionDTO,
     
     pub fn toJson(self: *const StatsResponse, allocator: std.mem.Allocator) ![]const u8 {
-        var json = std.ArrayList(u8).init(allocator);
+        var json = std.ArrayList(u8){};
         
         try json.appendSlice("{\"success\":");
         try json.appendSlice(if (self.success) "true" else "false");
@@ -168,7 +168,7 @@ pub const PerformanceResponse = struct {
     models: []ModelPerformanceDTO,
     
     pub fn toJson(self: *const PerformanceResponse, allocator: std.mem.Allocator) ![]const u8 {
-        var json = std.ArrayList(u8).init(allocator);
+        var json = std.ArrayList(u8){};
         
         try json.appendSlice("{\"success\":");
         try json.appendSlice(if (self.success) "true" else "false");
@@ -231,7 +231,7 @@ pub fn handleGetAssignments(
     defer odata_client.allocator.free(assignments);
     
     // Convert to DTOs
-    var dtos = std.ArrayList(AssignmentDTO).init(allocator);
+    var dtos = std.ArrayList(AssignmentDTO){};
     defer dtos.deinit();
     
     for (assignments) |assignment| {
@@ -278,7 +278,7 @@ pub fn handleGetStats(
     const fallbacks_used = @as(u64, @intFromFloat(@as(f64, @floatFromInt(stats.total_decisions)) * @as(f64, stats.fallback_rate)));
     
     // Build response (recent decisions empty for now)
-    var recent = std.ArrayList(RecentDecisionDTO).init(allocator);
+    var recent = std.ArrayList(RecentDecisionDTO){};
     defer recent.deinit();
     
     const response = StatsResponse{
@@ -307,7 +307,7 @@ pub fn handleGetPerformance(
     // For now, return sample data
     // TODO: Implement getTopPerformingModels() call
     
-    var models = std.ArrayList(ModelPerformanceDTO).init(allocator);
+    var models = std.ArrayList(ModelPerformanceDTO){};
     defer models.deinit();
     
     try models.append(.{
@@ -382,7 +382,7 @@ test "AssignmentDTO: JSON serialization" {
 test "StatsResponse: JSON serialization" {
     const allocator = std.testing.allocator;
     
-    var recent = std.ArrayList(RecentDecisionDTO).init(allocator);
+    var recent = std.ArrayList(RecentDecisionDTO){};
     defer recent.deinit();
     
     const response = StatsResponse{

@@ -739,7 +739,7 @@ pub const HealthMonitor = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         
-        var components = std.ArrayList(ComponentHealth).init(self.allocator);
+        var components = std.ArrayList(ComponentHealth){};
         errdefer components.deinit();
         
         // Check all components

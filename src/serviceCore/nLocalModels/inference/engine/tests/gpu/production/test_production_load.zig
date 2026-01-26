@@ -72,7 +72,7 @@ pub const ConcurrencyTester = struct {
     pub fn init(allocator: std.mem.Allocator) ConcurrencyTester {
         return .{
             .allocator = allocator,
-            .results = std.ArrayList(ConcurrencyResult).init(allocator),
+            .results = std.ArrayList(ConcurrencyResult){},
         };
     }
     
@@ -148,7 +148,7 @@ pub const ThroughputTester = struct {
     pub fn init(allocator: std.mem.Allocator) ThroughputTester {
         return .{
             .allocator = allocator,
-            .measurements = std.ArrayList(ThroughputMeasurement).init(allocator),
+            .measurements = std.ArrayList(ThroughputMeasurement){},
         };
     }
     
@@ -235,7 +235,7 @@ pub const LatencyTester = struct {
     pub fn init(allocator: std.mem.Allocator) LatencyTester {
         return .{
             .allocator = allocator,
-            .latencies = std.ArrayList(f64).init(allocator),
+            .latencies = std.ArrayList(f64){},
         };
     }
     

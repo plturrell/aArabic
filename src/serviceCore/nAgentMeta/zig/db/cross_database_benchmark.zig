@@ -11,7 +11,7 @@ pub const HanaBenchmark = struct {
     pub fn init(allocator: std.mem.Allocator) HanaBenchmark {
         return HanaBenchmark{
             .allocator = allocator,
-            .results = std.ArrayList(BenchmarkResult).init(allocator),
+            .results = std.ArrayList(BenchmarkResult){},
         };
     }
     

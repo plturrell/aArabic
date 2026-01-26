@@ -85,7 +85,7 @@ pub const BenchmarkRunner = struct {
         return BenchmarkRunner{
             .allocator = allocator,
             .config = config,
-            .latencies = std.ArrayList(i64).init(allocator),
+            .latencies = std.ArrayList(i64){},
             .bytes_transferred = 0,
         };
     }

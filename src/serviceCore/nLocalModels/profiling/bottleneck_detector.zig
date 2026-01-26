@@ -64,7 +64,7 @@ pub const BottleneckReport = struct {
 
     pub fn init(allocator: Allocator) BottleneckReport {
         return .{
-            .bottlenecks = std.ArrayList(Bottleneck).init(allocator),
+            .bottlenecks = std.ArrayList(Bottleneck){},
             .total_cpu_time_ms = 0.0,
             .total_memory_mb = 0.0,
             .avg_gpu_utilization = 0.0,

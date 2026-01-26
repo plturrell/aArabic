@@ -340,7 +340,7 @@ pub fn ConnectionPool(comptime T: type, comptime ConnectorFn: type) type {
             pool.* = .{
                 .allocator = allocator,
                 .config = config,
-                .connections = std.ArrayList(PooledConn).init(allocator),
+                .connections = std.ArrayList(PooledConn){},
                 .available_count = 0,
                 .total_count = 0,
                 .mutex = .{},

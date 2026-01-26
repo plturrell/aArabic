@@ -67,7 +67,7 @@ pub const MigrationTester = struct {
 
     /// Create test data
     fn createTestData(self: *MigrationTester) ![]TestRecord {
-        var records = std.ArrayList(TestRecord).init(self.allocator);
+        var records = std.ArrayList(TestRecord){};
         
         var i: u32 = 0;
         while (i < 100) : (i += 1) {
@@ -98,7 +98,7 @@ pub const MigrationTester = struct {
         _ = dialect;
         
         // Mock export - create JSON representation
-        var json = std.ArrayList(u8).init(self.allocator);
+        var json = std.ArrayList(u8){};
         const writer = json.writer();
         
         try writer.writeAll("[");
@@ -182,7 +182,7 @@ pub fn runAllMigrationTests(allocator: std.mem.Allocator) !void {
     var tester = MigrationTester.init(allocator);
     defer tester.deinit();
 
-    var results = std.ArrayList(MigrationResult).init(allocator);
+    var results = std.ArrayList(MigrationResult){};
     defer results.deinit();
 
     // Test all migration paths

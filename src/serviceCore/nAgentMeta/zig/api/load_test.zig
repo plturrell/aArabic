@@ -240,7 +240,7 @@ pub const LoadTestRunner = struct {
 pub const Scenarios = struct {
     /// Authentication scenarios
     pub fn authentication(allocator: std.mem.Allocator) ![]const LoadTestScenario {
-        var scenarios = std.ArrayList(LoadTestScenario).init(allocator);
+        var scenarios = std.ArrayList(LoadTestScenario){};
         
         try scenarios.append(LoadTestScenario.init(
             "Login",
@@ -280,7 +280,7 @@ pub const Scenarios = struct {
 
     /// Dataset CRUD scenarios
     pub fn datasetCRUD(allocator: std.mem.Allocator) ![]const LoadTestScenario {
-        var scenarios = std.ArrayList(LoadTestScenario).init(allocator);
+        var scenarios = std.ArrayList(LoadTestScenario){};
         
         try scenarios.append(LoadTestScenario.init(
             "List Datasets",
@@ -329,7 +329,7 @@ pub const Scenarios = struct {
 
     /// Lineage tracking scenarios
     pub fn lineage(allocator: std.mem.Allocator) ![]const LoadTestScenario {
-        var scenarios = std.ArrayList(LoadTestScenario).init(allocator);
+        var scenarios = std.ArrayList(LoadTestScenario){};
         
         try scenarios.append(LoadTestScenario.init(
             "Get Upstream Lineage",
@@ -361,7 +361,7 @@ pub const Scenarios = struct {
 
     /// GraphQL scenarios
     pub fn graphql(allocator: std.mem.Allocator) ![]const LoadTestScenario {
-        var scenarios = std.ArrayList(LoadTestScenario).init(allocator);
+        var scenarios = std.ArrayList(LoadTestScenario){};
         
         try scenarios.append(LoadTestScenario.init(
             "Query Datasets",
@@ -403,7 +403,7 @@ pub const Scenarios = struct {
 
     /// Mixed workload scenarios
     pub fn mixed(allocator: std.mem.Allocator) ![]const LoadTestScenario {
-        var scenarios = std.ArrayList(LoadTestScenario).init(allocator);
+        var scenarios = std.ArrayList(LoadTestScenario){};
         
         // Read-heavy workload (70%)
         try scenarios.append(LoadTestScenario.init(

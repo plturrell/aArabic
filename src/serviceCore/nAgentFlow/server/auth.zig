@@ -300,7 +300,7 @@ pub fn decodeJwt(allocator: Allocator, token: []const u8) !JwtPayload {
     errdefer if (tenant_id) |t| allocator.free(t);
 
     // Extract realm roles
-    var roles = std.ArrayList([]const u8).init(allocator);
+    var roles = std.ArrayList([]const u8){};
     errdefer {
         for (roles.items) |role| allocator.free(role);
         roles.deinit();

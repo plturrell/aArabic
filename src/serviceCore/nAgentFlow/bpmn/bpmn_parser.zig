@@ -644,10 +644,10 @@ pub fn toWorkflowSchema(allocator: Allocator, process: *const BpmnProcess) !Work
     schema.name = try allocator.dupe(u8, process.name orelse process.id);
     schema.description = try allocator.dupe(u8, "Imported from BPMN");
 
-    var nodes_list = std.ArrayList(WorkflowNode).init(allocator);
+    var nodes_list = std.ArrayList(WorkflowNode){};
     errdefer nodes_list.deinit();
 
-    var edges_list = std.ArrayList(WorkflowEdge).init(allocator);
+    var edges_list = std.ArrayList(WorkflowEdge){};
     errdefer edges_list.deinit();
 
     // Convert events to nodes

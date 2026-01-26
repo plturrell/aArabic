@@ -82,7 +82,7 @@ fn benchmarkSelectionTime(
     while (cat_iter.next()) |entry| {
         const category = entry.key_ptr.*;
         
-        var times = std.ArrayList(f64).init(allocator);
+        var times = std.ArrayList(f64){};
         defer times.deinit();
         
         // Run iterations

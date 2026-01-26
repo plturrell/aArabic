@@ -172,7 +172,7 @@ pub const SSEHeaders = struct {
 
     /// Generate custom SSE headers with additional fields
     pub fn generateHeaders(allocator: Allocator, extra_headers: ?[]const [2][]const u8) ![]const u8 {
-        var result = std.ArrayList(u8).init(allocator);
+        var result = std.ArrayList(u8){};
         errdefer result.deinit();
 
         try result.appendSlice("HTTP/1.1 200 OK\r\n");

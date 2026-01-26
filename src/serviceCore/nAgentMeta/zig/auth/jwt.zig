@@ -84,14 +84,14 @@ pub const Jwt = struct {
         };
         
         // Encode header
-        var header_buf = std.ArrayList(u8).init(self.allocator);
+        var header_buf = std.ArrayList(u8){};
         defer header_buf.deinit();
         try json.stringify(header, .{}, header_buf.writer());
         const header_b64 = try self.base64UrlEncode(header_buf.items);
         defer self.allocator.free(header_b64);
         
         // Encode payload
-        var payload_buf = std.ArrayList(u8).init(self.allocator);
+        var payload_buf = std.ArrayList(u8){};
         defer payload_buf.deinit();
         try json.stringify(claims, .{}, payload_buf.writer());
         const payload_b64 = try self.base64UrlEncode(payload_buf.items);

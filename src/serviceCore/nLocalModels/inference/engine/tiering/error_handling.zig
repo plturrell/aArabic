@@ -115,7 +115,7 @@ pub const CircuitBreaker = struct {
             .success_count = 0,
             .last_failure_time = 0,
             .state_change_time = std.time.milliTimestamp(),
-            .failures = std.ArrayList(FailureRecord).init(allocator),
+            .failures = std.ArrayList(FailureRecord){},
             .mutex = .{},
         };
         

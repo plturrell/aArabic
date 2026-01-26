@@ -35,7 +35,7 @@ pub const Signature = struct {
         allocator: std.mem.Allocator,
         input_values: anytype,
     ) ![]u8 {
-        var prompt = std.ArrayList(u8).init(allocator);
+        var prompt = std.ArrayList(u8){};
         defer prompt.deinit();
         
         // Add instructions
@@ -133,7 +133,7 @@ pub const ChainOfThought = struct {
         llm_fn: *const fn([]const u8) anyerror![]u8,
     ) ![]u8 {
         // Build prompt with reasoning step
-        var prompt = std.ArrayList(u8).init(allocator);
+        var prompt = std.ArrayList(u8){};
         defer prompt.deinit();
         
         if (self.base_module.signature.instructions.len > 0) {
@@ -375,7 +375,7 @@ pub const BootstrapFewShot = struct {
         llm_fn: *const fn([]const u8) anyerror![]u8,
     ) ![]Example {
         // Generate synthetic examples by self-prompting
-        var bootstrapped = std.ArrayList(Example).init(allocator);
+        var bootstrapped = std.ArrayList(Example){};
         defer bootstrapped.deinit();
         
         for (trainset[0..@min(trainset.len, self.max_bootstrapped)]) |example| {

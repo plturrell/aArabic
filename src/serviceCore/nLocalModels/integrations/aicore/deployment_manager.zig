@@ -434,7 +434,7 @@ pub const DeploymentManager = struct {
         try req.finish();
         try req.wait();
 
-        var response_body = std.ArrayList(u8).init(self.allocator);
+        var response_body = std.ArrayList(u8){};
         try req.reader().readAllArrayList(&response_body, 65536);
         return response_body.toOwnedSlice();
     }
@@ -461,7 +461,7 @@ pub const DeploymentManager = struct {
         try req.finish();
         try req.wait();
 
-        var response_body = std.ArrayList(u8).init(self.allocator);
+        var response_body = std.ArrayList(u8){};
         try req.reader().readAllArrayList(&response_body, 65536);
         return response_body.toOwnedSlice();
     }
@@ -485,7 +485,7 @@ pub const DeploymentManager = struct {
         try req.finish();
         try req.wait();
 
-        var response_body = std.ArrayList(u8).init(self.allocator);
+        var response_body = std.ArrayList(u8){};
         try req.reader().readAllArrayList(&response_body, 65536);
         return response_body.toOwnedSlice();
     }
@@ -532,7 +532,7 @@ pub const DeploymentManager = struct {
         try req.finish();
         try req.wait();
 
-        var response_body = std.ArrayList(u8).init(self.allocator);
+        var response_body = std.ArrayList(u8){};
         try req.reader().readAllArrayList(&response_body, 65536);
         return response_body.toOwnedSlice();
     }

@@ -115,7 +115,7 @@ pub const QuantizationTester = struct {
     pub fn init(allocator: std.mem.Allocator) QuantizationTester {
         return .{
             .allocator = allocator,
-            .results = std.ArrayList(QuantizationMetrics).init(allocator),
+            .results = std.ArrayList(QuantizationMetrics){},
         };
     }
     

@@ -88,7 +88,7 @@ pub const HanaConnectionPool = struct {
             .allocator = allocator,
             .config = pool_config,
             .connection_config = connection_config,
-            .connections = std.ArrayList(PooledConnection).init(allocator),
+            .connections = std.ArrayList(PooledConnection){},
             .mutex = std.Thread.Mutex{},
             .total_connections = 0,
         };

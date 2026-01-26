@@ -78,7 +78,7 @@ pub const Agent = struct {
             .type = agent_type,
             .status = .active,
             .endpoint = try allocator.dupe(u8, endpoint),
-            .capabilities = std.ArrayList(AgentCapability).init(allocator),
+            .capabilities = std.ArrayList(AgentCapability){},
             .metadata = std.StringHashMap([]const u8).init(allocator),
             .created_at = std.time.milliTimestamp(),
             .updated_at = std.time.milliTimestamp(),
@@ -186,7 +186,7 @@ pub const AgentTopology = struct {
         topology.* = .{
             .allocator = allocator,
             .agents = std.StringHashMap(Agent).init(allocator),
-            .connections = std.ArrayList(AgentConnection).init(allocator),
+            .connections = std.ArrayList(AgentConnection){},
             .mutex = .{},
         };
         return topology;
@@ -284,7 +284,7 @@ pub const AgentTopology = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         
-        var agents_list = std.ArrayList(Agent).init(self.allocator);
+        var agents_list = std.ArrayList(Agent){};
         
         var it = self.agents.valueIterator();
         while (it.next()) |agent| {
@@ -330,7 +330,7 @@ pub const AgentTopology = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         
-        var outgoing = std.ArrayList(AgentConnection).init(self.allocator);
+        var outgoing = std.ArrayList(AgentConnection){};
         
         for (self.connections.items) |conn| {
             if (std.mem.eql(u8, conn.from_agent_id, agent_id)) {
@@ -346,7 +346,7 @@ pub const AgentTopology = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         
-        var incoming = std.ArrayList(AgentConnection).init(self.allocator);
+        var incoming = std.ArrayList(AgentConnection){};
         
         for (self.connections.items) |conn| {
             if (std.mem.eql(u8, conn.to_agent_id, agent_id)) {
@@ -366,7 +366,7 @@ pub const AgentTopology = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         
-        var json = std.ArrayList(u8).init(allocator);
+        var json = std.ArrayList(u8){};
         const writer = json.writer();
         
         try writer.writeAll("{\"nodes\":[");

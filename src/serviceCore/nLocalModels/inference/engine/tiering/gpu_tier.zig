@@ -102,8 +102,8 @@ pub const GPUMemoryPool = struct {
         self.* = GPUMemoryPool{
             .allocator = allocator,
             .config = config,
-            .blocks = std.ArrayList(GPUBlock).init(allocator),
-            .free_blocks = std.ArrayList(usize).init(allocator),
+            .blocks = std.ArrayList(GPUBlock){},
+            .free_blocks = std.ArrayList(usize){},
             .stats = .{},
         };
         

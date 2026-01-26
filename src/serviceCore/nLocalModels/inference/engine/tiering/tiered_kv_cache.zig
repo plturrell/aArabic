@@ -226,9 +226,9 @@ pub const TieredKVCache = struct {
             .config = config,
             .hot_cache = hot_cache,
             .hot_start_pos = 0,
-            .hot_entries = std.ArrayList(HotEntry).init(allocator),  // Day 3
+            .hot_entries = std.ArrayList(HotEntry){},  // Day 3
             .ssd_storage = ssd_storage,
-            .cold_blocks = std.ArrayList(ColdBlock).init(allocator),
+            .cold_blocks = std.ArrayList(ColdBlock){},
             .seq_pos = 0,
             .stats = .{},
         };

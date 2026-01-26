@@ -203,7 +203,7 @@ pub const Response = struct {
     
     /// Set response body as JSON
     pub fn json(self: *Response, value: anytype) !void {
-        var buffer = std.ArrayList(u8).init(self.allocator);
+        var buffer = std.ArrayList(u8){};
         defer buffer.deinit();
         
         try std.json.stringify(value, .{}, buffer.writer());

@@ -623,7 +623,7 @@ pub const LLMEmbedNode = struct {
         }
         
         // Read response body
-        var response_body = std.ArrayList(u8).init(self.allocator);
+        var response_body = std.ArrayList(u8){};
         errdefer response_body.deinit();
         
         const max_size = 10 * 1024 * 1024; // 10MB max
@@ -1077,6 +1077,7 @@ test "LLMChatNode creation" {
         "chat1",
         "Chat Completion",
         "llama-3.3-70b",
+        null,
         0.7,
         1000,
         "You are a helpful assistant.",
