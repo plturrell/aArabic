@@ -1,0 +1,22 @@
+# Ignore git directories in SDK sources to allow copying
+# (Docker won't copy nested .git directories by default)
+!src/nLang/n-c-sdk
+!src/nLang/n-python-sdk
+
+# But do ignore .git directories themselves
+**/.git
+**/.github
+
+# Ignore build artifacts
+**/zig-cache
+**/zig-out
+**/node_modules
+**/.DS_Store
+
+# Ignore documentation
+**/docs
+**/doc
+
+# Ignore CI/test files  
+**/ci
+**/.zig-cache
