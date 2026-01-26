@@ -22,11 +22,13 @@ RUN curl -L https://ziglang.org/download/0.15.1/zig-x86_64-linux-0.15.1.tar.xz -
 
 ENV PATH="/usr/local/zig:${PATH}"
 
-# Copy service source code
+# Copy SDK and service source code
 WORKDIR /app
-COPY src/serviceCore/nLocalModels/ ./
+COPY src/nLang/n-c-sdk/ ./n-c-sdk/
+COPY src/serviceCore/nLocalModels/ ./nLocalModels/
 
 # Build nLocalModels service
+WORKDIR /app/nLocalModels
 RUN echo "=== Building nLocalModels Service ===" && \
     ls -la && \
     test -f build.zig || (echo "ERROR: build.zig not found" && exit 1) && \
@@ -51,7 +53,7 @@ RUN useradd -m -u 1000 appuser
 WORKDIR /app
 
 # Copy service binaries from Stage 1
-COPY --from=service-builder /app/zig-out/bin/* /app/
+COPY --from=service-builder /app/nLocalModels/zig-out/bin/* /app/
 
 # Create models directory
 RUN mkdir -p /app/models && chown -R appuser:appuser /app

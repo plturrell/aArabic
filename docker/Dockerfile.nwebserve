@@ -2,25 +2,29 @@
 # Now builds from integrated http_server library in n-c-sdk
 FROM debian:bookworm-slim AS builder
 
-# Install Zig
+# Install Zig 0.15.1
 RUN apt-get update && apt-get install -y \
     curl \
     xz-utils \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /tmp
-RUN curl -L https://ziglang.org/download/0.13.0/zig-linux-x86_64-0.13.0.tar.xz -o zig.tar.xz \
-    && tar -xf zig.tar.xz \
-    && mv zig-linux-x86_64-0.13.0 /usr/local/zig \
-    && ln -s /usr/local/zig/zig /usr/local/bin/zig
+RUN curl -L https://ziglang.org/download/0.15.1/zig-x86_64-linux-0.15.1.tar.xz -o zig.tar.xz && \
+    tar -xf zig.tar.xz && \
+    mv zig-x86_64-linux-0.15.1 /usr/local/zig && \
+    rm zig.tar.xz
+
+ENV PATH="/usr/local/zig:${PATH}"
 
 WORKDIR /app
+COPY src/nLang/n-c-sdk/ ./n-c-sdk/
 
-# Copy http_server library from n-c-sdk
-COPY src/nLang/n-c-sdk/lib/http_server/ ./
-
-# Build nWebServe executable
-RUN zig build -Doptimize=ReleaseFast
+# Build http_server from SDK
+WORKDIR /app/n-c-sdk/lib/http_server
+RUN zig version && \
+    zig build -Doptimize=ReleaseFast && \
+    ls -la zig-out/bin/
 
 # Runtime image
 FROM debian:bookworm-slim
@@ -33,7 +37,7 @@ RUN apt-get update && apt-get install -y \
 RUN useradd -m -u 1000 appuser
 WORKDIR /app
 
-COPY --from=builder /app/zig-out/bin/nWebServe /app/nWebServe
+COPY --from=builder /app/n-c-sdk/lib/http_server/zig-out/bin/nWebServe /app/nWebServe
 RUN chown -R appuser:appuser /app
 
 USER appuser
