@@ -330,6 +330,7 @@ pub const MilestoneTracker = struct {
     }
 
     pub fn getMilestonesForCase(self: *MilestoneTracker, case_id: []const u8, allocator: Allocator) ![]const *Milestone {
+        _ = allocator;
         var result = std.ArrayList(*Milestone){};
         if (self.milestones_by_case.get(case_id)) |ids| {
             for (ids.items) |id| {

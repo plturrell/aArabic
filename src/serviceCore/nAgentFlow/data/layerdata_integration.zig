@@ -143,6 +143,7 @@ pub const QdrantAdapter = struct {
     
     /// Search for similar vectors
     pub fn searchSimilar(self: *QdrantAdapter, query_vector: []const f32, limit: usize) ![][]const u8 {
+        _ = self;
         var results = std.ArrayList([]const u8){};
         _ = query_vector;
         _ = limit;
@@ -182,6 +183,7 @@ pub const MemgraphAdapter = struct {
     
     /// Query data lineage
     pub fn getLineage(self: *MemgraphAdapter, packet_id: []const u8) ![][]const u8 {
+        _ = self;
         var results = std.ArrayList([]const u8){};
         _ = packet_id;
         return results.toOwnedSlice();

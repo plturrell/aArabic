@@ -392,6 +392,7 @@ pub const OcrNode = struct {
     }
 
     pub fn toJson(self: *const OcrNode, allocator: Allocator) ![]const u8 {
+        _ = allocator;
         var buffer = std.ArrayList(u8){};
         errdefer buffer.deinit();
         var writer = buffer.writer();

@@ -61,6 +61,7 @@ pub const ValidationIssue = struct {
     }
 
     pub fn toJson(self: *const ValidationIssue, allocator: Allocator) ![]const u8 {
+        _ = allocator;
         var buffer = std.ArrayList(u8){};
         errdefer buffer.deinit();
         var writer = buffer.writer();

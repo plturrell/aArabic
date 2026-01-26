@@ -404,7 +404,7 @@ pub const StateSnapshotManager = struct {
     pub fn init(allocator: Allocator, max_snapshots: usize) StateSnapshotManager {
         return .{
             .allocator = allocator,
-            .snapshots = StringHashMap(ArrayList(VersionedState)).init(allocator),
+            .snapshots = StringHashMap(ArrayList(VersionedState)){},
             .max_snapshots_per_workflow = max_snapshots,
         };
     }

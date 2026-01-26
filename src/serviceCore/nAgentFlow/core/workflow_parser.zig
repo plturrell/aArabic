@@ -261,7 +261,7 @@ pub const GraphAnalyzer = struct {
         if (schema.nodes.len == 0) return false;
         
         // Build adjacency list
-        var adj_list = std.StringHashMap(std.ArrayListUnmanaged([]const u8)).init(self.allocator);
+        var adj_list = std.StringHashMap(std.ArrayListUnmanaged([]const u8)){};
         defer {
             var it = adj_list.iterator();
             while (it.next()) |entry| {
@@ -332,7 +332,7 @@ pub const GraphAnalyzer = struct {
         var reachable = std.StringHashMap(void).init(self.allocator);
         
         // Build adjacency list
-        var adj_list = std.StringHashMap(std.ArrayListUnmanaged([]const u8)).init(self.allocator);
+        var adj_list = std.StringHashMap(std.ArrayListUnmanaged([]const u8)){};
         defer {
             var it = adj_list.iterator();
             while (it.next()) |entry| {
@@ -425,7 +425,7 @@ pub const GraphAnalyzer = struct {
         if (schema.nodes.len == 0) return sccs;
 
         // Build adjacency lists (forward and reverse)
-        var adj_list = std.StringHashMap(std.ArrayListUnmanaged([]const u8)).init(self.allocator);
+        var adj_list = std.StringHashMap(std.ArrayListUnmanaged([]const u8)){};
         defer {
             var it = adj_list.iterator();
             while (it.next()) |entry| {
@@ -458,7 +458,7 @@ pub const GraphAnalyzer = struct {
         }
 
         // Build reverse graph
-        var rev_adj_list = std.StringHashMap(std.ArrayListUnmanaged([]const u8)).init(self.allocator);
+        var rev_adj_list = std.StringHashMap(std.ArrayListUnmanaged([]const u8)){};
         defer {
             var it = rev_adj_list.iterator();
             while (it.next()) |entry| {

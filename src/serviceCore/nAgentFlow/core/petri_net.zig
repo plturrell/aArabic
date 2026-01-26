@@ -440,7 +440,7 @@ pub const PetriNet = struct {
     
     /// Check if the net is deadlocked
     pub fn isDeadlocked(self: *PetriNet) bool {
-        const enabled = self.getEnabledTransitions() catch return true;
+        var enabled = self.getEnabledTransitions() catch return true;
         defer enabled.deinit(self.allocator);
         return enabled.items.len == 0;
     }

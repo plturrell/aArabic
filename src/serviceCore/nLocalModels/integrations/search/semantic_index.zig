@@ -306,7 +306,7 @@ pub const SemanticIndex = struct {
 
     fn indexTokens(self: *SemanticIndex, doc_idx: u32, tokens: [][]const u8) !void {
         // Track positions for each term
-        var term_positions = StringHashMap(ArrayList(u32)).init(self.allocator);
+        var term_positions = StringHashMap(ArrayList(u32)){};
         defer {
             var it = term_positions.iterator();
             while (it.next()) |entry| {

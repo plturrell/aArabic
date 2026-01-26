@@ -712,7 +712,7 @@ pub const WebSocketServer = struct {
         return WebSocketServer{
             .allocator = allocator,
             .connections = std.ArrayList(*WebSocketConnection){},
-            .subscriptions = std.StringHashMap(std.ArrayList(*WebSocketConnection)).init(allocator),
+            .subscriptions = std.StringHashMap(std.ArrayList(*WebSocketConnection)){},
             .mutex = .{},
             .message_builder = MessageBuilder.init(allocator),
             .next_client_id = 1,

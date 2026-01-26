@@ -163,7 +163,7 @@ pub const ModelRegistry = struct {
         return ModelRegistry{
             .allocator = allocator,
             .models = std.StringHashMap(ModelConfig).init(allocator),
-            .model_versions = std.StringHashMap(std.ArrayList(ModelVersion)).init(allocator),
+            .model_versions = std.StringHashMap(std.ArrayList(ModelVersion)){},
             .default_model_id = null,
             .model_base_path = try allocator.dupe(u8, model_base_path),
             .metadata_path = try allocator.dupe(u8, metadata_path),
