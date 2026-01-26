@@ -1,0 +1,45 @@
+# nAgentFlow Dockerfile - Zig 0.15.1 Workflow Engine
+FROM debian:bookworm-slim AS builder
+
+RUN apt-get update && apt-get install -y \
+    curl \
+    xz-utils \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /tmp
+RUN curl -L https://ziglang.org/download/0.15.1/zig-linux-x86_64-0.15.1.tar.xz -o zig.tar.xz && \
+    tar -xf zig.tar.xz && \
+    mv zig-linux-x86_64-0.15.1 /usr/local/zig && \
+    rm zig.tar.xz
+
+ENV PATH="/usr/local/zig:${PATH}"
+
+WORKDIR /app
+COPY src/serviceCore/nAgentFlow/ ./
+
+RUN zig version && \
+    zig build -Doptimize=ReleaseFast && \
+    ls -la zig-out/bin/
+
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN useradd -m -u 1000 appuser
+WORKDIR /app
+
+COPY --from=builder /app/zig-out/bin/* /app/
+
+RUN chown -R appuser:appuser /app
+USER appuser
+
+EXPOSE 8090
+
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s \
+  CMD curl -sf http://localhost:8090/health || exit 1
+
+CMD ["./nwf"]

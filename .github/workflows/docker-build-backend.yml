@@ -41,12 +41,12 @@ jobs:
       matrix:
         service:
           - name: nAgentFlow
-            dockerfile: docker/Dockerfile.service-registry
+            dockerfile: docker/Dockerfile.nagentflow
             context: .
             platforms: linux/amd64,linux/arm64
           
           - name: nAgentMeta
-            dockerfile: docker/Dockerfile.service-registry
+            dockerfile: docker/Dockerfile.nagentmeta
             context: .
             platforms: linux/amd64,linux/arm64
           
@@ -56,7 +56,7 @@ jobs:
             platforms: linux/amd64,linux/arm64
           
           - name: nGrounding
-            dockerfile: docker/Dockerfile.service-registry
+            dockerfile: docker/Dockerfile.ngrounding
             context: .
             platforms: linux/amd64,linux/arm64
           
