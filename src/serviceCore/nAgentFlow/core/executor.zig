@@ -377,17 +377,17 @@ pub const PetriNetExecutor = struct {
     /// Restore from a snapshot
     pub fn restoreSnapshot(self: *PetriNetExecutor, snapshot: *const Snapshot) !void {
         // Collect all place IDs first to avoid iterator invalidation
-        var place_ids = try std.ArrayList([]const u8).initCapacity(self.allocator, self.net.places.count());
+        var place_ids = try std.ArrayList([]const u8).initCapacity(self.allocator, self.net.placeCount());
         defer place_ids.deinit(self.allocator);
         
-        var place_it = self.net.places.iterator();
+        var place_it = self.net.placeIterator();
         while (place_it.next()) |entry| {
             try place_ids.append(self.allocator, entry.key_ptr.*);
         }
         
         // Clear current state - safely clear tokens and reinitialize ArrayList
         for (place_ids.items) |place_id| {
-            if (self.net.places.get(place_id)) |place_ptr| {
+            if (self.net.getPlace(place_id)) |place_ptr| {
                 // Deinit tokens and reinitialize the ArrayList properly
                 for (place_ptr.tokens.items) |*token| {
                     token.deinit(self.allocator);

@@ -1,35 +1,19 @@
-# nLocalModels Dockerfile - Unified Zig 0.15.2 Multi-SDK Build
-# Builds with BOTH custom n-c-sdk and n-python-sdk using Zig 0.15.2
+# nLocalModels Dockerfile - Simple Zig 0.15.1 Build
+# Use stock Zig 0.15.1 to build nLocalModels service
 
 # =============================================================================
-# Stage 1: Build Both Custom SDKs with Zig 0.15.2
+# Stage 1: Build nLocalModels Service
 # =============================================================================
-FROM debian:bookworm-slim AS sdk-builder
+FROM debian:bookworm-slim AS service-builder
 
-# Install build dependencies including LLVM 17
+# Install build dependencies
 RUN apt-get update && apt-get install -y \
     curl \
     xz-utils \
     ca-certificates \
-    cmake \
-    make \
-    g++ \
-    libxml2-dev \
-    zlib1g-dev \
-    git \
-    wget \
-    lsb-release \
-    software-properties-common \
-    gnupg \
     && rm -rf /var/lib/apt/lists/*
 
-# Install LLVM 17 (needed for Mojo SDK MLIR)
-RUN wget https://apt.llvm.org/llvm.sh && \
-    chmod +x llvm.sh && \
-    ./llvm.sh 17 && \
-    rm llvm.sh
-
-# Install Zig 0.15.1 (latest available as of Jan 2026)
+# Install Zig 0.15.1
 WORKDIR /tmp
 RUN curl -L https://ziglang.org/download/0.15.1/zig-x86_64-linux-0.15.1.tar.xz -o zig.tar.xz && \
     tar -xf zig.tar.xz && \
@@ -37,83 +21,22 @@ RUN curl -L https://ziglang.org/download/0.15.1/zig-x86_64-linux-0.15.1.tar.xz -
     rm zig.tar.xz
 
 ENV PATH="/usr/local/zig:${PATH}"
-ENV LLVM_SYS_170_PREFIX="/usr/lib/llvm-17"
-
-# Copy both custom SDK sources
-WORKDIR /sdk-build
-COPY src/nLang/n-c-sdk ./n-c-sdk
-COPY src/nLang/n-python-sdk ./n-python-sdk
-
-# Build custom Zig SDK (n-c-sdk)
-WORKDIR /sdk-build/n-c-sdk
-RUN echo "=== Building Custom Zig SDK (n-c-sdk) ===" && \
-    ls -la && \
-    test -f build.zig || (echo "ERROR: build.zig not found" && exit 1) && \
-    zig version && \
-    zig build -Doptimize=ReleaseFast && \
-    ls -la zig-out/bin/ && \
-    test -f zig-out/bin/zig && echo "✓ Custom Zig SDK built successfully"
-
-# Build custom Mojo SDK (n-python-sdk)
-WORKDIR /sdk-build/n-python-sdk
-RUN echo "=== Building Custom Mojo SDK (n-python-sdk) ===" && \
-    ls -la && \
-    test -f build.zig || (echo "ERROR: build.zig not found" && exit 1) && \
-    zig version && \
-    zig build -Doptimize=ReleaseFast && \
-    ls -la zig-out/bin/ && \
-    echo "✓ Custom Mojo SDK built successfully"
-
-# =============================================================================
-# Stage 2: Build nLocalModels Service with Both Custom SDKs
-# =============================================================================
-FROM debian:bookworm-slim AS service-builder
-
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    curl \
-    libgomp1 \
-    wget \
-    lsb-release \
-    software-properties-common \
-    gnupg \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install LLVM 17 runtime (needed for Mojo)
-RUN wget https://apt.llvm.org/llvm.sh && \
-    chmod +x llvm.sh && \
-    ./llvm.sh 17 && \
-    rm llvm.sh && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# Copy custom Zig SDK from Stage 1
-COPY --from=sdk-builder /sdk-build/n-c-sdk/zig-out/bin/zig /usr/local/bin/custom-zig
-RUN custom-zig version && echo "✓ Custom Zig SDK installed"
-
-# Copy custom Mojo SDK from Stage 1
-COPY --from=sdk-builder /sdk-build/n-python-sdk/zig-out/bin/* /usr/local/bin/
-RUN ls -la /usr/local/bin/ && echo "✓ Custom Mojo SDK installed"
-
-# Set up environment
-ENV PATH="/usr/local/bin:${PATH}"
-ENV LLVM_SYS_170_PREFIX="/usr/lib/llvm-17"
 
 # Copy service source code
 WORKDIR /app
 COPY src/serviceCore/nLocalModels/ ./
 
-# Build nLocalModels service with both custom SDKs
+# Build nLocalModels service
 RUN echo "=== Building nLocalModels Service ===" && \
     ls -la && \
     test -f build.zig || (echo "ERROR: build.zig not found" && exit 1) && \
-    custom-zig build -Doptimize=ReleaseFast && \
+    zig version && \
+    zig build -Doptimize=ReleaseFast && \
     ls -la zig-out/bin/ && \
     echo "✓ nLocalModels service built successfully"
 
 # =============================================================================
-# Stage 3: Minimal Runtime Image
+# Stage 2: Minimal Runtime Image
 # =============================================================================
 FROM debian:bookworm-slim
 
@@ -121,26 +44,13 @@ FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     curl \
-    libgomp1 \
-    wget \
-    lsb-release \
-    software-properties-common \
-    gnupg \
     && rm -rf /var/lib/apt/lists/*
-
-# Install LLVM 17 runtime
-RUN wget https://apt.llvm.org/llvm.sh && \
-    chmod +x llvm.sh && \
-    ./llvm.sh 17 && \
-    rm llvm.sh && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser
 WORKDIR /app
 
-# Copy service binaries from Stage 2
+# Copy service binaries from Stage 1
 COPY --from=service-builder /app/zig-out/bin/* /app/
 
 # Create models directory

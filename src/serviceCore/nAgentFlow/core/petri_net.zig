@@ -329,6 +329,26 @@ pub const PetriNet = struct {
         
         return marking;
     }
+
+    pub fn placeCount(self: *const PetriNet) usize {
+        return self.places_map.count();
+    }
+
+    pub fn placeIterator(self: *PetriNet) std.StringHashMap(*Place).Iterator {
+        return self.places_map.iterator();
+    }
+
+    pub fn getPlace(self: *PetriNet, id: []const u8) ?*Place {
+        return self.places_map.get(id);
+    }
+
+    pub fn transitionIterator(self: *PetriNet) std.StringHashMap(*Transition).Iterator {
+        return self.transitions_map.iterator();
+    }
+
+    pub fn getTransition(self: *PetriNet, id: []const u8) ?*Transition {
+        return self.transitions_map.get(id);
+    }
     
     /// Check if transition is enabled
     pub fn isTransitionEnabled(self: *const PetriNet, transition_id: []const u8) bool {
@@ -363,9 +383,15 @@ pub const PetriNet = struct {
         }
     }
     
-    /// Check for deadlock
-    pub fn isDeadlocked(self: *const PetriNet) bool {
-        return petri_core.pn_is_deadlocked(self.handle) == 1;
+    /// Check if the net is deadlocked
+    pub fn isDeadlocked(self: *PetriNet) bool {
+        var it = self.transitions_map.iterator();
+        while (it.next()) |entry| {
+            if (petri_core.pn_trans_is_enabled(entry.value_ptr.*.handle) == 1) {
+                return false;
+            }
+        }
+        return true;
     }
     
     /// Get statistics
