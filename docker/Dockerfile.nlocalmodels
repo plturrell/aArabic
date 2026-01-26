@@ -1,60 +1,30 @@
-# nLocalModels Dockerfile (Zig/Mojo LLM Inference Server)
-# Builds custom Zig SDK from local source, then builds service
+# nLocalModels Dockerfile (Zig LLM Inference Server)
+# Uses Zig 0.13.0 to build the service
 
 # =============================================================================
-# Stage 1: Build Custom Zig SDK from Local Source
+# Stage 1: Build Service with Zig
 # =============================================================================
-FROM debian:bookworm-slim AS zig-builder
+FROM debian:bookworm-slim AS builder
 
-# Install build dependencies
+# Install build dependencies and Zig 0.13.0
 RUN apt-get update && apt-get install -y \
     curl \
     xz-utils \
     ca-certificates \
     libgomp1 \
     git \
-    build-essential \
-    cmake \
-    ninja-build \
-    python3 \
     && rm -rf /var/lib/apt/lists/*
 
-# Bootstrap with official Zig 0.13.0
+# Install Zig 0.13.0
 WORKDIR /tmp
 RUN curl -L https://ziglang.org/download/0.13.0/zig-linux-x86_64-0.13.0.tar.xz -o zig.tar.xz && \
     tar -xf zig.tar.xz && \
-    mv zig-linux-x86_64-0.13.0 /usr/local/zig-bootstrap && \
+    mv zig-linux-x86_64-0.13.0 /usr/local/zig && \
     rm zig.tar.xz
 
-# Copy and build custom n-c-sdk
-WORKDIR /sdk-build
-COPY src/nLang/n-c-sdk ./n-c-sdk
-WORKDIR /sdk-build/n-c-sdk
-RUN echo "=== Building Custom Zig SDK ===" && \
-    ls -la && \
-    test -f build.zig || (echo "ERROR: build.zig not found" && exit 1) && \
-    /usr/local/zig-bootstrap/zig build -Doptimize=ReleaseFast && \
-    ls -la zig-out/bin/ && \
-    test -f zig-out/bin/zig && echo "✓ Custom Zig SDK built successfully"
+ENV PATH="/usr/local/zig:${PATH}"
 
-# =============================================================================
-# Stage 2: Build nLocalModels Service
-# =============================================================================
-FROM debian:bookworm-slim AS builder
-
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    curl \
-    libgomp1 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy built custom Zig SDK
-COPY --from=zig-builder /sdk-build/n-c-sdk/zig-out /usr/local/zig
-ENV PATH="/usr/local/zig/bin:${PATH}"
-ENV ZIG_LIB_DIR="/usr/local/zig/lib"
-
-# Verify Zig
+# Verify Zig installation
 RUN zig version
 
 # Copy service source code
@@ -65,7 +35,7 @@ COPY src/serviceCore/nLocalModels/ ./
 RUN zig build -Doptimize=ReleaseFast
 
 # =============================================================================
-# Stage 3: Runtime Image
+# Stage 2: Runtime Image
 # =============================================================================
 FROM debian:bookworm-slim
 
