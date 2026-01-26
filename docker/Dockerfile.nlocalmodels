@@ -2,7 +2,7 @@
 # Formerly nOpenaiServer - now consolidated as nLocalModels
 # 
 # Version Requirements:
-#   - Zig: 0.15.2 (matches local development)
+#   - Zig: 0.13.0 (stable release)
 #   - Mojo: 0.26.1 (uses bundled mojo-sdk)
 FROM debian:bookworm-slim AS builder
 
@@ -14,11 +14,11 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Zig 0.15.2 (matches local development environment)
+# Install Zig 0.13.0 (stable release)
 WORKDIR /tmp
-RUN curl -L https://ziglang.org/download/0.15.2/zig-linux-x86_64-0.15.2.tar.xz -o zig.tar.xz \
+RUN curl -L https://ziglang.org/download/0.13.0/zig-linux-x86_64-0.13.0.tar.xz -o zig.tar.xz \
     && tar -xf zig.tar.xz \
-    && mv zig-linux-x86_64-0.15.2 /usr/local/zig \
+    && mv zig-linux-x86_64-0.13.0 /usr/local/zig \
     && ln -s /usr/local/zig/zig /usr/local/bin/zig \
     && zig version
 
