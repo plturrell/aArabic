@@ -20,16 +20,17 @@ on:
 
 env:
   REGISTRY: docker.io
-  IMAGE_PREFIX: plturrell
+  IMAGE_NAME: plturrell/nservices
   DOCKER_BUILDX_BUILDER: plturrell/anewmodel
 
 jobs:
   # =============================================================================
   # Build Matrix - All serviceCore Backend Services
-  # Updated for new service names: nAgentFlow, nAgentMeta, nLocalModels
+  # Updated for new service names: nAgentFlow, nAgentMeta, nLocalModels, nGrounding
+  # Images pushed to plturrell/nservices with service-specific tags
   # =============================================================================
   build-backend:
-    name: Build ${{ matrix.service }}
+    name: Build ${{ matrix.service.name }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -40,17 +41,27 @@ jobs:
       fail-fast: false
       matrix:
         service:
-          - name: service-registry
+          - name: nAgentFlow
             dockerfile: docker/Dockerfile.service-registry
             context: .
             platforms: linux/amd64,linux/arm64
           
-          - name: nlocalmodels
+          - name: nAgentMeta
+            dockerfile: docker/Dockerfile.service-registry
+            context: .
+            platforms: linux/amd64,linux/arm64
+          
+          - name: nLocalModels
             dockerfile: docker/Dockerfile.nlocalmodels
             context: .
             platforms: linux/amd64,linux/arm64
           
-          - name: nwebserve
+          - name: nGrounding
+            dockerfile: docker/Dockerfile.service-registry
+            context: .
+            platforms: linux/amd64,linux/arm64
+          
+          - name: nWebServe
             dockerfile: docker/Dockerfile.nwebserve
             context: .
             platforms: linux/amd64,linux/arm64
@@ -83,19 +94,18 @@ jobs:
 
       # -----------------------------------------------------------------------
       # Docker Metadata
+      # Tags: plturrell/nservices:nAgentFlow-latest, etc.
       # -----------------------------------------------------------------------
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service.name }}
+          images: ${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ matrix.service.name }}-latest,enable={{is_default_branch}}
+            type=raw,value=${{ matrix.service.name }}-{{branch}}
+            type=raw,value=${{ matrix.service.name }}-{{sha}}
+            type=raw,value=${{ matrix.service.name }}-{{date 'YYYYMMDD-HHmmss'}}
 
       # -----------------------------------------------------------------------
       # Build and Push
@@ -110,9 +120,9 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
-            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service.name }}:buildcache
+            type=registry,ref=${{ env.IMAGE_NAME }}:${{ matrix.service.name }}-buildcache
           cache-to: |
-            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service.name }}:buildcache,mode=max
+            type=registry,ref=${{ env.IMAGE_NAME }}:${{ matrix.service.name }}-buildcache,mode=max
           build-args: |
             BUILDKIT_INLINE_CACHE=1
 
@@ -125,7 +135,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          image: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service.name }}:${{ steps.meta.outputs.version }}
+          image: ${{ env.IMAGE_NAME }}:${{ matrix.service.name }}-latest
           args: --severity-threshold=high
 
       # -----------------------------------------------------------------------
@@ -135,7 +145,7 @@ jobs:
         run: |
           echo "### ✅ ${{ matrix.service.name }} Build Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image:** \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service.name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** \`${{ env.IMAGE_NAME }}:${{ matrix.service.name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Tags:** ${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
           echo "**Platforms:** ${{ matrix.service.platforms }}" >> $GITHUB_STEP_SUMMARY
 
