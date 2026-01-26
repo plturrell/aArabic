@@ -86,7 +86,7 @@ pub const TAU2EvaluationNode = struct {
         const node = try allocator.create(TAU2EvaluationNode);
         
         // Define input ports
-        var inputs = std.ArrayList(Port).init(allocator);
+        var inputs = try std.ArrayList(Port).initCapacity(allocator, 0);
         defer inputs.deinit();
         
         try inputs.append(Port{
@@ -115,7 +115,7 @@ pub const TAU2EvaluationNode = struct {
         });
         
         // Define output ports
-        var outputs = std.ArrayList(Port).init(allocator);
+        var outputs = try std.ArrayList(Port).initCapacity(allocator, 0);
         defer outputs.deinit();
         
         try outputs.append(Port{
@@ -283,7 +283,7 @@ pub const TAU2EvaluationNode = struct {
         try obj.put("toon_savings_percent", .{ .float = toon_savings_percent });
         
         // Performance summary
-        var optimizations = std.ArrayList(std.json.Value).init(self.allocator);
+        var optimizations = try std.ArrayList(std.json.Value).initCapacity(self.allocator, 0);
         if (self.config.use_native_inference) {
             try optimizations.append(.{ .string = try std.fmt.allocPrint(self.allocator, "Native Inference: {d:.1f}x faster", .{results.inference_speedup}) });
         }

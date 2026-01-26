@@ -25,6 +25,39 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     
+    // MHC configuration module
+    const mhc_configuration_mod = b.createModule(.{
+        .root_source_file = b.path("inference/engine/core/mhc_configuration.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    
+    // MHC constraints module
+    const mhc_constraints_mod = b.createModule(.{
+        .root_source_file = b.path("inference/engine/core/mhc_constraints.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    
+    // GGUF MHC parser module - depends on gguf_loader
+    const gguf_mhc_parser_mod = b.createModule(.{
+        .root_source_file = b.path("inference/engine/core/gguf_mhc_parser.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    gguf_mhc_parser_mod.addImport("gguf_loader", gguf_loader_mod);
+    
+    gguf_loader_mod.addImport("mhc_constraints", mhc_constraints_mod);
+    gguf_loader_mod.addImport("mhc_configuration", mhc_configuration_mod);
+    gguf_loader_mod.addImport("gguf_mhc_parser", gguf_mhc_parser_mod);
+    
+    // Common module (quantization common)
+    const common_mod = b.createModule(.{
+        .root_source_file = b.path("inference/engine/quantization/common.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    
     // KV cache module
     const kv_cache_mod = b.createModule(.{
         .root_source_file = b.path("inference/engine/core/kv_cache.zig"),
@@ -32,12 +65,13 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     
-    // Tokenizer module
+    // Tokenizer module - depends on gguf_loader
     const tokenizer_mod = b.createModule(.{
         .root_source_file = b.path("inference/engine/tokenization/tokenizer.zig"),
         .target = target,
         .optimize = optimize,
     });
+    tokenizer_mod.addImport("gguf_loader", gguf_loader_mod);
     
     // Thread pool module
     const thread_pool_mod = b.createModule(.{
@@ -77,7 +111,7 @@ pub fn build(b: *std.Build) void {
     llama_model_mod.addImport("thread_pool", thread_pool_mod);
     llama_model_mod.addImport("compute", compute_mod);
     
-    // GGUF model loader - depends on llama_model and gguf_loader
+    // GGUF model loader - depends on llama_model, gguf_loader, tokenizer, and common
     const gguf_model_loader_mod = b.createModule(.{
         .root_source_file = b.path("inference/engine/loader/gguf_model_loader.zig"),
         .target = target,
@@ -85,6 +119,8 @@ pub fn build(b: *std.Build) void {
     });
     gguf_model_loader_mod.addImport("llama_model", llama_model_mod);
     gguf_model_loader_mod.addImport("gguf_loader", gguf_loader_mod);
+    gguf_model_loader_mod.addImport("tokenizer", tokenizer_mod);
+    gguf_model_loader_mod.addImport("common", common_mod);
     
     // Batch processor - depends on llama_model
     const batch_processor_mod = b.createModule(.{

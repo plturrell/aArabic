@@ -168,7 +168,7 @@ pub const ModelSelector = struct {
         
         selector.* = .{
             .allocator = allocator,
-            .models = std.ArrayList(Model).init(allocator),
+            .models = try std.ArrayList(Model).initCapacity(allocator, 0),
             .categories = std.StringHashMap(TaskCategory).init(allocator),
             .registry_path = try allocator.dupe(u8, registry_path),
             .categories_path = try allocator.dupe(u8, categories_path),
@@ -255,7 +255,7 @@ pub const ModelSelector = struct {
         // Parse orchestration_categories
         if (obj.get("orchestration_categories")) |cats| {
             if (cats == .array) {
-                var categories = std.ArrayList([]const u8).init(self.allocator);
+                var categories = try std.ArrayList([]const u8).initCapacity(self.allocator, 0);
                 for (cats.array.items) |cat| {
                     if (cat == .string) {
                         try categories.append(try self.allocator.dupe(u8, cat.string));
@@ -268,7 +268,7 @@ pub const ModelSelector = struct {
         // Parse agent_types
         if (obj.get("agent_types")) |types| {
             if (types == .array) {
-                var agent_types = std.ArrayList([]const u8).init(self.allocator);
+                var agent_types = try std.ArrayList([]const u8).initCapacity(self.allocator, 0);
                 for (types.array.items) |agent_type| {
                     if (agent_type == .string) {
                         try agent_types.append(try self.allocator.dupe(u8, agent_type.string));
@@ -329,7 +329,7 @@ pub const ModelSelector = struct {
         // Parse models
         if (value.object.get("models")) |models| {
             if (models == .array) {
-                var model_list = std.ArrayList([]const u8).init(self.allocator);
+                var model_list = try std.ArrayList([]const u8).initCapacity(self.allocator, 0);
                 for (models.array.items) |model| {
                     if (model == .string) {
                         try model_list.append(try self.allocator.dupe(u8, model.string));
@@ -355,7 +355,7 @@ pub const ModelSelector = struct {
         
         var best_model: ?*const Model = null;
         var best_score: f64 = 0.0;
-        var selection_reason = std.ArrayList(u8).init(self.allocator);
+        var selection_reason = try std.ArrayList(u8).initCapacity(self.allocator, 0);
         defer selection_reason.deinit();
         
         // Iterate through models in category
@@ -474,7 +474,7 @@ pub const ModelSelector = struct {
         if (self.benchmark_scoring) |scorer| {
             // Convert model benchmarks to scoring format
             if (model.benchmarks) |bm| {
-                var benchmark_list = std.ArrayList(BenchmarkScoring.ModelBenchmark).init(self.allocator);
+                var benchmark_list = try std.ArrayList(BenchmarkScoring.ModelBenchmark).initCapacity(self.allocator, 0);
                 defer benchmark_list.deinit();
                 
                 var it = bm.iterator();
@@ -528,7 +528,7 @@ pub const ModelSelector = struct {
                 // Calculate benchmark score if available
                 if (self.benchmark_scoring) |scorer| {
                     if (model.benchmarks) |bm| {
-                        var benchmark_list = std.ArrayList(BenchmarkScoring.ModelBenchmark).init(self.allocator);
+                        var benchmark_list = try std.ArrayList(BenchmarkScoring.ModelBenchmark).initCapacity(self.allocator, 0);
                         defer benchmark_list.deinit();
                         
                         var it = bm.iterator();
@@ -605,7 +605,7 @@ pub const ModelSelector = struct {
             return self.selectFallbackModel(constraints);
         }
         
-        var reason = std.ArrayList(u8).init(self.allocator);
+        var reason = try std.ArrayList(u8).initCapacity(self.allocator, 0);
         try reason.appendSlice("Multi-category selection for '");
         try reason.appendSlice(task_category);
         try reason.appendSlice("' with weighted score ");

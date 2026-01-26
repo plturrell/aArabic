@@ -374,7 +374,7 @@ pub const LLMChatNode = struct {
         }
         
         // Read response body
-        var response_body = std.ArrayList(u8).init(self.allocator);
+        var response_body = try std.ArrayList(u8).initCapacity(self.allocator, 0);
         errdefer response_body.deinit();
         
         const max_size = 10 * 1024 * 1024; // 10MB max
@@ -676,7 +676,7 @@ pub const LLMEmbedNode = struct {
         if (embedding_field != .array) return error.InvalidEmbeddingFormat;
         
         // Deep copy the embedding array
-        var embedding_array = std.ArrayList(std.json.Value).init(self.allocator);
+        var embedding_array = try std.ArrayList(std.json.Value).initCapacity(self.allocator, 0);
         errdefer embedding_array.deinit();
         
         for (embedding_field.array.items) |val| {
