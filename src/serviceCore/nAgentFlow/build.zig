@@ -15,6 +15,11 @@ pub fn build(b: *std.Build) void {
     });
     zig_libc_mod.addImport("config", zig_libc_config);
 
+    // Centralized SAP HANA SDK module shared across nAgentFlow
+    const hana_sdk_mod = b.addModule("hana_sdk", .{
+        .root_source_file = b.path("../../nLang/n-c-sdk/lib/hana/hana.zig"),
+    });
+
     // Core Petri Net module (compatibility wrapper)
     const petri_net_mod = b.addModule("petri_net", .{
         .root_source_file = b.path("core/petri_net.zig"),
@@ -827,6 +832,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("nodes/hana/hana_nodes.zig"),
     });
     hana_nodes_mod.addImport("node_types", node_types_mod);
+    hana_nodes_mod.addImport("hana_sdk", hana_sdk_mod);
 
     // Tests for HANA Nodes
     const hana_nodes_test_mod = b.createModule(.{
@@ -835,6 +841,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     hana_nodes_test_mod.addImport("node_types", node_types_mod);
+    hana_nodes_test_mod.addImport("hana_sdk", hana_sdk_mod);
 
     const hana_nodes_tests = b.addTest(.{
         .root_module = hana_nodes_test_mod,
@@ -1053,23 +1060,29 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_auth_tests.step);
 
     // Tests for HANA Cache
+    const hana_cache_test_mod = b.createModule(.{
+        .root_source_file = b.path("cache/hana_cache.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    hana_cache_test_mod.addImport("hana_sdk", hana_sdk_mod);
+
     const hana_cache_tests = b.addTest(.{
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("cache/hana_cache.zig"),
-            .target = target,
-            .optimize = optimize,
-        }),
+        .root_module = hana_cache_test_mod,
     });
     const run_hana_cache_tests = b.addRunArtifact(hana_cache_tests);
     test_step.dependOn(&run_hana_cache_tests.step);
 
     // Tests for HANA Store
+    const hana_store_test_mod = b.createModule(.{
+        .root_source_file = b.path("persistence/hana_store.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    hana_store_test_mod.addImport("hana_sdk", hana_sdk_mod);
+
     const hana_store_tests = b.addTest(.{
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("persistence/hana_store.zig"),
-            .target = target,
-            .optimize = optimize,
-        }),
+        .root_module = hana_store_test_mod,
     });
     const run_hana_store_tests = b.addRunArtifact(hana_store_tests);
     test_step.dependOn(&run_hana_store_tests.step);

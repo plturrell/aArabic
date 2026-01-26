@@ -1,0 +1,199 @@
+{
+  "_version": "1.59.0",
+  "sap.app": {
+    "id": "trial.balance",
+    "type": "application",
+    "i18n": "i18n/i18n.properties",
+    "applicationVersion": {
+      "version": "1.0.0"
+    },
+    "title": "{{appTitle}}",
+    "description": "{{appDescription}}",
+    "dataSources": {
+      "trialBalanceService": {
+        "uri": "/api/v1/trial-balance",
+        "type": "JSON"
+      },
+      "hanaService": {
+        "uri": "/destinations/HANA_CLOUD/api/v1/data",
+        "type": "OData",
+        "settings": {
+          "odataVersion": "4.0"
+        }
+      },
+      "agentFlowService": {
+        "uri": "/destinations/AGENT_FLOW/api/v1",
+        "type": "JSON"
+      },
+      "localModelsService": {
+        "uri": "/destinations/LOCAL_MODELS/api/v1",
+        "type": "JSON"
+      }
+    }
+  },
+  "sap.ui": {
+    "technology": "UI5",
+    "icons": {
+      "icon": "sap-icon://accounting-document-verification",
+      "favIcon": "",
+      "phone": "",
+      "phone@2": "",
+      "tablet": "",
+      "tablet@2": ""
+    },
+    "deviceTypes": {
+      "desktop": true,
+      "tablet": true,
+      "phone": true
+    }
+  },
+  "sap.ui5": {
+    "flexEnabled": true,
+    "dependencies": {
+      "minUI5Version": "1.120.0",
+      "libs": {
+        "sap.m": {},
+        "sap.ui.core": {},
+        "sap.ui.layout": {},
+        "sap.tnt": {},
+        "sap.f": {},
+        "sap.ui.table": {},
+        "sap.suite.ui.microchart": {},
+        "sap.uxap": {}
+      }
+    },
+    "contentDensities": {
+      "compact": true,
+      "cozy": true
+    },
+    "models": {
+      "i18n": {
+        "type": "sap.ui.model.resource.ResourceModel",
+        "settings": {
+          "bundleName": "trial.balance.i18n.i18n"
+        }
+      },
+      "trialBalance": {
+        "type": "sap.ui.model.json.JSONModel",
+        "settings": {
+          "defaultBindingMode": "TwoWay"
+        },
+        "dataSource": "trialBalanceService"
+      },
+      "hana": {
+        "type": "sap.ui.model.odata.v4.ODataModel",
+        "settings": {
+          "synchronizationMode": "None",
+          "operationMode": "Server",
+          "autoExpandSelect": true,
+          "earlyRequests": true
+        },
+        "dataSource": "hanaService"
+      }
+    },
+    "resources": {
+      "css": [
+        {
+          "uri": "css/style.css"
+        }
+      ]
+    },
+    "routing": {
+      "config": {
+        "routerClass": "sap.m.routing.Router",
+        "viewType": "XML",
+        "async": true,
+        "viewPath": "trial.balance.view",
+        "controlAggregation": "pages",
+        "controlId": "appContainer"
+      },
+      "routes": [
+        {
+          "name": "home",
+          "pattern": ":?query:",
+          "target": ["home"]
+        },
+        {
+          "name": "trialBalance",
+          "pattern": "trial-balance",
+          "target": ["trialBalance"]
+        },
+        {
+          "name": "accountDetail",
+          "pattern": "account/{accountId}",
+          "target": ["accountDetail"]
+        },
+        {
+          "name": "reconciliation",
+          "pattern": "reconciliation",
+          "target": ["reconciliation"]
+        },
+        {
+          "name": "approval",
+          "pattern": "approval",
+          "target": ["approval"]
+        },
+        {
+          "name": "analytics",
+          "pattern": "analytics",
+          "target": ["analytics"]
+        },
+        {
+          "name": "settings",
+          "pattern": "settings",
+          "target": ["settings"]
+        }
+      ],
+      "targets": {
+        "home": {
+          "viewType": "XML",
+          "viewId": "home",
+          "viewName": "Home",
+          "viewLevel": 1
+        },
+        "trialBalance": {
+          "viewType": "XML",
+          "viewId": "trialBalance",
+          "viewName": "TrialBalance",
+          "viewLevel": 1
+        },
+        "accountDetail": {
+          "viewType": "XML",
+          "viewId": "accountDetail",
+          "viewName": "AccountDetail",
+          "viewLevel": 2
+        },
+        "reconciliation": {
+          "viewType": "XML",
+          "viewId": "reconciliation",
+          "viewName": "Reconciliation",
+          "viewLevel": 1
+        },
+        "approval": {
+          "viewType": "XML",
+          "viewId": "approval",
+          "viewName": "Approval",
+          "viewLevel": 1
+        },
+        "analytics": {
+          "viewType": "XML",
+          "viewId": "analytics",
+          "viewName": "Analytics",
+          "viewLevel": 1
+        },
+        "settings": {
+          "viewType": "XML",
+          "viewId": "settings",
+          "viewName": "Settings",
+          "viewLevel": 1
+        }
+      }
+    },
+    "rootView": {
+      "viewName": "trial.balance.view.App",
+      "type": "XML",
+      "async": true,
+      "id": "app"
+    }
+  }
+}

@@ -1,28 +1,54 @@
 # nLocalModels Dockerfile (Zig/Mojo LLM Inference Server)
-# Formerly nOpenaiServer - now consolidated as nLocalModels
-# 
-# Uses custom SDK base image with pre-built n-c-sdk (Zig) and n-python-sdk (Mojo)
-FROM plturrell/nservices:sdk-base AS builder
+# Uses pre-built custom SDK images from separate repositories
+
+# =============================================================================
+# Pull Custom SDKs from Docker Hub
+# =============================================================================
+FROM plturrell/n-c-sdk:latest AS zig-sdk
+FROM plturrell/n-python-sdk:latest AS mojo-sdk
+
+# =============================================================================
+# Build Stage
+# =============================================================================
+FROM debian:bookworm-slim AS builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy custom Zig SDK
+COPY --from=zig-sdk /usr/local/zig /usr/local/zig
+ENV PATH="/usr/local/zig/bin:${PATH}"
+ENV ZIG_LIB_DIR="/usr/local/zig/lib"
+
+# Copy custom Mojo SDK (optional)
+COPY --from=mojo-sdk /usr/local/mojo /usr/local/mojo
+COPY --from=mojo-sdk /usr/local/n-python-sdk-source /usr/local/n-python-sdk-source
+ENV PATH="/usr/local/mojo/bin:${PATH}"
+
+# Verify SDKs
+RUN echo "=== nLocalModels Build Environment ===" && \
+    zig version && \
+    echo "======================================"
 
 # Copy service source code
 WORKDIR /app
 COPY src/serviceCore/nLocalModels/ ./
 
-# Verify SDKs are available
-RUN echo "=== nLocalModels Build Environment ===" && \
-    zig version && \
-    echo "======================================"
-
-# Build Zig components using custom n-c-sdk
+# Build Zig components
 RUN zig build -Doptimize=ReleaseFast
 
-# Build Mojo components using custom n-python-sdk (if available)
+# Build Mojo components (if available)
 RUN if command -v mojo >/dev/null 2>&1 && [ -d "mojo" ]; then \
-    echo "Building Mojo components with custom n-python-sdk..." && \
+    echo "Building Mojo components..." && \
     cd mojo && \
-    mojo build main.mojo -o ../zig-out/bin/nlocalmodels-mojo || echo "Mojo build failed - continuing with Zig only"; \
+    mojo build main.mojo -o ../zig-out/bin/nlocalmodels-mojo || \
+    echo "Mojo build failed - continuing with Zig only"; \
     else \
-    echo "Mojo not available or mojo directory not found - building Zig components only"; \
+    echo "Mojo not available - building Zig components only"; \
     fi
 
 # =============================================================================

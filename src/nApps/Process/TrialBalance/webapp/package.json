@@ -1,0 +1,23 @@
+{
+  "name": "trial.balance.webapp",
+  "version": "1.0.0",
+  "description": "Trial Balance UI5 Application",
+  "private": true,
+  "scripts": {
+    "start": "ui5 serve --open index.html",
+    "build": "ui5 build --clean-dest",
+    "test": "karma start",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@ui5/cli": "^3.9.0",
+    "@sap/ux-ui5-tooling": "^1.14.0",
+    "ui5-tooling-transpile": "^3.3.0"
+  },
+  "ui5": {
+    "dependencies": [
+      "@sap/ux-ui5-tooling",
+      "ui5-tooling-transpile"
+    ]
+  }
+}

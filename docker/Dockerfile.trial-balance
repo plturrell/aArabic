@@ -1,20 +1,38 @@
 # TrialBalance App Dockerfile
 # Multi-tier application: UI5 frontend + Zig backend + HANA integration
-# Uses custom SDK base image with pre-built n-c-sdk (Zig) and n-python-sdk (Mojo)
+# Uses pre-built custom Zig SDK from plturrell/n-c-sdk
+
+# =============================================================================
+# Pull Custom Zig SDK
+# =============================================================================
+FROM plturrell/n-c-sdk:latest AS zig-sdk
 
 # =============================================================================
 # Stage 1: Build Backend (Zig)
 # =============================================================================
-FROM plturrell/nservices:sdk-base AS backend-builder
+FROM debian:bookworm-slim AS backend-builder
 
-# Copy n-c-sdk for the build (referenced in build.zig)
-COPY src/nLang/n-c-sdk /usr/local/n-c-sdk
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy custom Zig SDK
+COPY --from=zig-sdk /usr/local/zig /usr/local/zig
+COPY --from=zig-sdk /usr/local/n-c-sdk-source /usr/local/n-c-sdk
+ENV PATH="/usr/local/zig/bin:${PATH}"
+ENV ZIG_LIB_DIR="/usr/local/zig/lib"
+
+# Verify Zig
+RUN zig version
 
 # Copy backend source
 WORKDIR /app/backend
 COPY src/nApps/Process/TrialBalance/backend ./
 
-# Verify build.zig exists and build
+# Build backend with custom Zig
 RUN echo "=== Building TrialBalance Backend ===" && \
     ls -la && \
     test -f build.zig || (echo "ERROR: build.zig not found" && exit 1) && \
@@ -52,10 +70,7 @@ RUN useradd -m -u 1000 appuser
 
 # Copy backend binaries
 RUN mkdir -p /app/backend
-COPY --from=backend-builder /app/backend/zig-out/bin/trial-balance-backend /app/backend/
-RUN if [ -f /app/backend/zig-out/bin/trial-balance-benchmark ]; then \
-    cp /app/backend/zig-out/bin/trial-balance-benchmark /app/backend/; \
-    fi || true
+COPY --from=backend-builder /app/backend/zig-out/bin/ /app/backend/
 
 # Copy frontend files
 COPY --from=frontend-builder /app/webapp/ /app/webapp/

@@ -24,34 +24,11 @@ env:
 
 jobs:
   # =============================================================================
-  # Step 1: Ensure SDK Base Image Exists
-  # The SDK base image must be built first as all services depend on it
-  # =============================================================================
-  check-sdk-base:
-    name: Check SDK Base Image
-    runs-on: ubuntu-latest
-    outputs:
-      sdk-base-exists: ${{ steps.check.outputs.exists }}
-    steps:
-      - name: Check if SDK base image exists
-        id: check
-        run: |
-          echo "Checking for plturrell/nservices:sdk-base..."
-          if docker pull plturrell/nservices:sdk-base 2>/dev/null; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "✅ SDK base image found"
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "⚠️  SDK base image not found - will need to build it first"
-          fi
-
-  # =============================================================================
-  # Step 2: Build Matrix - All serviceCore Backend Services
-  # Updated for new service names: nAgentFlow, nAgentMeta, nLocalModels, nGrounding
+  # Build Matrix - All serviceCore Backend Services
+  # Uses pre-built custom SDK images: plturrell/n-c-sdk, plturrell/n-python-sdk
   # Images pushed to plturrell/nservices with service-specific tags
   # =============================================================================
   build-backend:
-    needs: check-sdk-base
     name: Build ${{ matrix.service.name }}
     runs-on: ubuntu-latest
     permissions:
@@ -90,21 +67,11 @@ jobs:
 
     steps:
       # -----------------------------------------------------------------------
-      # SDK Base Check
-      # -----------------------------------------------------------------------
-      - name: Warn if SDK base missing
-        if: needs.check-sdk-base.outputs.sdk-base-exists != 'true'
-        run: |
-          echo "::warning::SDK base image not found. Building ${{ matrix.service.name }} may fail."
-          echo "::warning::Run the 'Docker Build - SDK Base Image' workflow first."
-
-      # -----------------------------------------------------------------------
-      # Checkout with Submodules
+      # Checkout
       # -----------------------------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: 'recursive'
           fetch-depth: 0
 
       # -----------------------------------------------------------------------

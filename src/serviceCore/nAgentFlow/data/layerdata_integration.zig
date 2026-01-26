@@ -16,6 +16,7 @@ const DataPipeline = data_pipeline.DataPipeline;
 const HanaCache = @import("../cache/hana_cache.zig").HanaCache;
 const HanaCacheConfig = @import("../cache/hana_cache.zig").HanaCacheConfig;
 const hana_store = @import("../persistence/hana_store.zig");
+const hana = @import("hana_sdk");
 
 /// SAP HANA integration for unified persistent storage and caching
 pub const HanaAdapter = struct {
@@ -23,15 +24,14 @@ pub const HanaAdapter = struct {
     cache: HanaCache,
     store: *hana_store.HanaWorkflowStore,
     
-    pub fn init(allocator: Allocator, host: []const u8, port: u16, user: []const u8, password: []const u8, schema: []const u8) !HanaAdapter {
+    pub fn init(allocator: Allocator, host: []const u8, port: u16, user: []const u8, password: []const u8, database: []const u8) !HanaAdapter {
         // Initialize cache
         const cache_config = HanaCacheConfig{
             .host = host,
             .port = port,
             .user = user,
             .password = password,
-            .schema = schema,
-            .use_tls = true,
+            .database = database,
             .table_prefix = "cache",
         };
         
@@ -39,12 +39,12 @@ pub const HanaAdapter = struct {
         try cache.connect();
         
         // Initialize store
-        const hana_config = hana_store.hana.Config{
+        const hana_config = hana.Config{
             .host = host,
             .port = port,
             .user = user,
             .password = password,
-            .schema = schema,
+            .database = database,
         };
         
         const store = try hana_store.HanaWorkflowStore.init(allocator, hana_config, "nworkflow");

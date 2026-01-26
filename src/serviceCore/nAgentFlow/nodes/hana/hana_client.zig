@@ -5,16 +5,17 @@
 
 const std = @import("std");
 
-// Import centralized HANA SDK wrapper
-const hana = @import("../../data/hana_client.zig");
+// Import centralized HANA SDK
+const hana_sdk = @import("hana_sdk");
+const hana_client = hana_sdk.client;
 
 // Re-export all types from the SDK
-pub const HanaError = hana.HanaError;
-pub const HanaConfig = hana.HanaConfig;
-pub const HanaClient = hana.HanaClient;
-pub const QueryResult = hana.QueryResult;
-pub const Row = hana.Row;
-pub const Value = hana.Value;
+pub const HanaError = anyerror;
+pub const HanaConfig = hana_sdk.Config;
+pub const HanaClient = hana_sdk.Client;
+pub const QueryResult = hana_sdk.QueryResult;
+pub const Row = hana_client.Row;
+pub const Value = hana_client.Value;
 
 // Legacy type aliases for backward compatibility
 pub const HanaValue = Value;
@@ -27,12 +28,12 @@ pub const HanaResult = QueryResult;
 
 /// Connect using the SDK
 pub fn connect(config: HanaConfig) !*HanaClient {
-    return hana.connect(config);
+    return hana_sdk.connect(config);
 }
 
 /// Connect with custom allocator
 pub fn connectWithAllocator(allocator: std.mem.Allocator, config: HanaConfig) !*HanaClient {
-    return hana.connectWithAllocator(allocator, config);
+    return hana_sdk.connectWithAllocator(allocator, config);
 }
 
 // ============================================================================

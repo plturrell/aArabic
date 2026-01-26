@@ -1,0 +1,909 @@
+/**
+ * NetworkGraph Styles
+ * SAP Fiori Design System compliant
+ * Professional-grade styling for network visualization
+ */
+
+/* ============================================================================
+   CSS Variables - SAP Fiori Color Palette
+   ============================================================================ */
+:root {
+    --sap-brand-color: #0070f2;
+    --sap-success-color: #30914c;
+    --sap-warning-color: #df6e0c;
+    --sap-error-color: #cc1919;
+    --sap-neutral-color: #6c757d;
+    --sap-background: #f7f7f7;
+    --sap-background-alt: #ffffff;
+    --sap-border: #d9d9d9;
+    --sap-text: #32363a;
+    --sap-text-muted: #6c757d;
+    --sap-shadow: rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================================================
+   Main Container
+   ============================================================================ */
+.network-graph {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, 
+                 "Helvetica Neue", Arial, sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+.network-graph .graph-container {
+    transform-origin: center center;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================================================
+   Node Styles
+   ============================================================================ */
+.graph-node {
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.graph-node .node-circle {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.graph-node:hover .node-circle {
+    filter: brightness(1.1);
+    transform: scale(1.05);
+}
+
+.graph-node.selected .node-circle {
+    stroke-width: 4px !important;
+}
+
+.graph-node.dragging {
+    cursor: grabbing !important;
+}
+
+.graph-node.dragging .node-circle,
+.graph-node.dragging .node-rect {
+    opacity: 0.8;
+}
+
+/* Node Rectangle (for rectangular nodes) */
+.graph-node-rect {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.16))
+            drop-shadow(0 3px 6px rgba(0, 0, 0, 0.23));
+}
+
+.graph-node:hover .node-rect {
+    filter: brightness(1.1);
+    transform: scale(1.03);
+}
+
+.graph-node.selected .node-rect {
+    stroke-width: 4px !important;
+}
+
+.graph-node.dragging .graph-node-rect {
+    opacity: 0.8;
+}
+
+/* Node Halo (selection indicator) */
+.node-halo {
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+/* Status Indicator */
+.status-indicator {
+    transition: all 0.3s ease;
+}
+
+/* Node Icon */
+.node-icon {
+    pointer-events: none;
+    font-size: 24px;
+}
+
+/* Node Label */
+.node-label {
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 12px;
+    pointer-events: none;
+    transform: translateY(55px);
+}
+
+/* ============================================================================
+   Node Expand Button
+   ============================================================================ */
+.node-expand-button {
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0.9;
+}
+
+.node-expand-button:hover {
+    opacity: 1;
+    transform: scale(1.15);
+}
+
+.node-expand-button .expand-button-bg {
+    transition: fill 0.2s ease, transform 0.2s ease;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+
+.node-expand-button:hover .expand-button-bg {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.node-expand-button .expand-button-icon {
+    transition: transform 0.2s ease;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Expand State: Expanded (green with down arrow) */
+.node-expand-button.state-expanded .expand-button-bg {
+    fill: var(--sap-success-color);
+}
+
+/* Expand State: Partial (orange with half-filled circle) */
+.node-expand-button.state-partial .expand-button-bg {
+    fill: var(--sap-warning-color);
+}
+
+/* Expand State: Collapsed (blue with right arrow) */
+.node-expand-button.state-collapsed .expand-button-bg {
+    fill: var(--sap-brand-color);
+}
+
+/* Animation for state change */
+@keyframes expandButtonPulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.node-expand-button.animating {
+    animation: expandButtonPulse 0.2s ease-out;
+}
+
+/* Focus state for accessibility */
+.node-expand-button:focus-visible .expand-button-bg {
+    stroke: var(--sap-text);
+    stroke-width: 3px;
+    outline: none;
+}
+
+/* Hide button when node has no children */
+.graph-node:not(.has-children) .node-expand-button {
+    display: none !important;
+}
+
+/* ============================================================================
+   Edge Styles
+   ============================================================================ */
+.graph-edge {
+    pointer-events: stroke;
+    transition: all 0.3s ease;
+}
+
+.edge-path {
+    fill: none;
+    stroke-linecap: round;
+    transition: stroke 0.3s ease, stroke-width 0.3s ease;
+}
+
+.graph-edge:hover .edge-path {
+    stroke-width: 4px !important;
+    filter: drop-shadow(0 2px 4px var(--sap-shadow));
+}
+
+.edge-arrow {
+    transition: fill 0.3s ease;
+}
+
+/* Edge Flow Animation */
+.edge-flow {
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+@keyframes flow {
+    from {
+        offset-distance: 0%;
+    }
+    to {
+        offset-distance: 100%;
+    }
+}
+
+.edge-flow.animated {
+    animation: flow 2s linear infinite;
+}
+
+/* Edge Label */
+.edge-label {
+    font-size: 10px;
+    fill: var(--sap-text-muted);
+    pointer-events: none;
+}
+
+/* ============================================================================
+   Status Colors
+   ============================================================================ */
+.status-success {
+    fill: var(--sap-success-color);
+}
+
+.status-warning {
+    fill: var(--sap-warning-color);
+}
+
+.status-error {
+    fill: var(--sap-error-color);
+}
+
+.status-running {
+    fill: var(--sap-brand-color);
+}
+
+.status-none {
+    fill: var(--sap-neutral-color);
+}
+
+/* ============================================================================
+   Animations
+   ============================================================================ */
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+}
+
+@keyframes glow {
+    0%, 100% {
+        filter: drop-shadow(0 0 0 transparent);
+    }
+    50% {
+        filter: drop-shadow(0 0 8px currentColor);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.node-pulse {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.node-glow {
+    animation: glow 2s ease-in-out infinite;
+}
+
+.fade-in {
+    animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================================================
+   Responsive Styles
+   ============================================================================ */
+@media (max-width: 768px) {
+    .node-label {
+        font-size: 10px;
+    }
+    
+    .edge-label {
+        font-size: 8px;
+    }
+}
+
+/* ============================================================================
+   Touch Device Optimizations
+   ============================================================================ */
+@media (hover: none) and (pointer: coarse) {
+    .graph-node {
+        /* Larger hit area for touch */
+        r: 45;
+    }
+    
+    .edge-path {
+        /* Thicker edges for touch */
+        stroke-width: 3px;
+    }
+}
+
+/* ============================================================================
+   Dark Theme Support
+   ============================================================================ */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --sap-background: #1d1d1d;
+        --sap-background-alt: #2d2d2d;
+        --sap-border: #3d3d3d;
+        --sap-text: #e0e0e0;
+        --sap-text-muted: #a0a0a0;
+    }
+    
+    .network-graph {
+        background: var(--sap-background);
+    }
+    
+    .node-label {
+        fill: var(--sap-text);
+    }
+    
+    .edge-label {
+        fill: var(--sap-text-muted);
+    }
+}
+
+/* ============================================================================
+   Accessibility
+   ============================================================================ */
+.network-graph:focus {
+    outline: 2px solid var(--sap-brand-color);
+    outline-offset: 2px;
+}
+
+.graph-node:focus-visible {
+    outline: 2px solid var(--sap-brand-color);
+    outline-offset: 4px;
+}
+
+/* ============================================================================
+   Print Styles
+   ============================================================================ */
+@media print {
+    .network-graph {
+        background: white;
+    }
+    
+    .graph-node,
+    .graph-edge {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .node-halo {
+        display: none;
+    }
+}
+
+/* ============================================================================
+   Loading State
+   ============================================================================ */
+.network-graph.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.network-graph.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    margin: -20px 0 0 -20px;
+    border: 4px solid var(--sap-border);
+    border-top-color: var(--sap-brand-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================================================
+   Empty State
+   ============================================================================ */
+.network-graph.empty::before {
+    content: 'No data to display';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--sap-text-muted);
+    font-size: 16px;
+    pointer-events: none;
+}
+
+/* ============================================================================
+   Group Styles
+   ============================================================================ */
+.graph-group {
+    cursor: default;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.graph-group.animating .graph-group-content,
+.graph-group.animating .graph-group-background {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.graph-group-content {
+    pointer-events: none;
+}
+
+.graph-group-background {
+    transition: fill-opacity 0.3s ease,
+                stroke-dasharray 0.3s ease,
+                width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                x 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                y 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.graph-group:hover .graph-group-background {
+    fill-opacity: 0.12;
+}
+
+.graph-group.collapsed:hover .graph-group-background {
+    fill-opacity: 0.2;
+}
+
+/* Group Header */
+.graph-group-header {
+    pointer-events: all;
+    cursor: pointer;
+    transition: filter 0.2s ease;
+}
+
+.graph-group-header:hover {
+    filter: brightness(1.1);
+}
+
+.graph-group-header-bg {
+    transition: fill-opacity 0.2s ease;
+}
+
+.graph-group-label {
+    pointer-events: none;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, sans-serif;
+}
+
+.graph-group-count {
+    pointer-events: none;
+    font-family: inherit;
+}
+
+/* Toggle Button */
+.graph-group-toggle {
+    cursor: pointer;
+    outline: none;
+}
+
+.graph-group-toggle:hover .toggle-hitarea {
+    fill: rgba(255, 255, 255, 0.15);
+}
+
+.graph-group-toggle:focus-visible .toggle-hitarea {
+    fill: rgba(255, 255, 255, 0.2);
+    stroke: white;
+    stroke-width: 2;
+}
+
+.graph-group-toggle-icon {
+    pointer-events: none;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: center;
+}
+
+/* Collapsed Badge */
+.graph-group-collapsed-badge {
+    pointer-events: none;
+    opacity: 0;
+    animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    animation-delay: 0.1s;
+}
+
+.graph-group.collapsed .graph-group-collapsed-badge {
+    opacity: 1;
+}
+
+/* Collapse/Expand Animation */
+@keyframes groupCollapse {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+}
+
+@keyframes groupExpand {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.graph-group.animating.collapsed .graph-group-content {
+    animation: groupCollapse 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.graph-group.animating.expanded .graph-group-content {
+    animation: groupExpand 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Group in dark mode */
+@media (prefers-color-scheme: dark) {
+    .graph-group-background {
+        stroke-opacity: 0.8;
+    }
+
+    .graph-group:hover .graph-group-background {
+        fill-opacity: 0.18;
+    }
+}
+
+/* ============================================================================
+   Performance Optimizations
+   ============================================================================ */
+.graph-node,
+.graph-edge,
+.graph-group {
+    will-change: transform;
+}
+
+.network-graph {
+    contain: layout style paint;
+}
+
+/* ============================================================================
+   Node Popover
+   ============================================================================ */
+.node-popover {
+    position: absolute;
+    width: 320px;
+    background: var(--sap-background-alt);
+    border: 1px solid var(--sap-border);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    opacity: 0;
+    transform: scale(0.95) translateY(-5px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    overflow: hidden;
+}
+
+.node-popover.visible {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+}
+
+/* Popover Header */
+.popover-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--sap-brand-color) 0%, #005dc7 100%);
+    color: #ffffff;
+}
+
+.popover-header-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
+.popover-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+}
+
+.popover-title-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.popover-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.popover-status {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    color: #ffffff;
+}
+
+.popover-close {
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+}
+
+.popover-close:hover {
+    opacity: 1;
+}
+
+/* Popover Tabs */
+.popover-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--sap-border);
+    background: var(--sap-background);
+}
+
+.popover-tab {
+    flex: 1;
+    padding: 12px 16px;
+    border: none;
+    background: none;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--sap-text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.popover-tab:hover {
+    color: var(--sap-text);
+    background: rgba(0, 112, 242, 0.05);
+}
+
+.popover-tab.active {
+    color: var(--sap-brand-color);
+}
+
+.popover-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--sap-brand-color);
+}
+
+/* Popover Content */
+.popover-content {
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.popover-tab-content {
+    padding: 16px;
+}
+
+.popover-tab-content.hidden {
+    display: none;
+}
+
+/* Details Tab */
+.details-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 6px 0;
+}
+
+.detail-label {
+    font-size: 12px;
+    color: var(--sap-text-muted);
+    flex-shrink: 0;
+    margin-right: 12px;
+}
+
+.detail-value {
+    font-size: 13px;
+    color: var(--sap-text);
+    font-weight: 500;
+    text-align: right;
+    word-break: break-word;
+}
+
+.details-divider {
+    height: 1px;
+    background: var(--sap-border);
+    margin: 8px 0;
+}
+
+.details-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--sap-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+/* Links Tab */
+.links-section {
+    margin-bottom: 16px;
+}
+
+.links-section:last-child {
+    margin-bottom: 0;
+}
+
+.links-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.links-direction-icon {
+    font-size: 14px;
+    color: var(--sap-text-muted);
+}
+
+.links-section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--sap-text-muted);
+}
+
+.links-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.links-empty {
+    font-size: 12px;
+    color: var(--sap-text-muted);
+    font-style: italic;
+    padding: 8px 0;
+}
+
+.link-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--sap-background);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.link-item:hover {
+    background: rgba(0, 112, 242, 0.1);
+    transform: translateX(4px);
+}
+
+.link-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.link-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.link-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--sap-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.link-type {
+    font-size: 11px;
+    color: var(--sap-text-muted);
+}
+
+.link-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* Popover Footer */
+.popover-footer {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--sap-border);
+    background: var(--sap-background);
+}
+
+.popover-action {
+    flex: 1;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.popover-action.primary {
+    background: var(--sap-brand-color);
+    border: 1px solid var(--sap-brand-color);
+    color: #ffffff;
+}
+
+.popover-action.primary:hover {
+    background: #005dc7;
+    border-color: #005dc7;
+}
+
+.popover-action.secondary {
+    background: var(--sap-background-alt);
+    border: 1px solid var(--sap-border);
+    color: var(--sap-text);
+}
+
+.popover-action.secondary:hover {
+    background: var(--sap-background);
+    border-color: var(--sap-brand-color);
+    color: var(--sap-brand-color);
+}
+
+/* Dark Theme Popover */
+@media (prefers-color-scheme: dark) {
+    .node-popover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .link-item:hover {
+        background: rgba(0, 112, 242, 0.2);
+    }
+}

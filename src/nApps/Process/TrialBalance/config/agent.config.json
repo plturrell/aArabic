@@ -1,0 +1,199 @@
+{
+  "agent_service": {
+    "enabled": true,
+    "version": "1.0.0",
+    "description": "Intelligent agent assignment for Trial Balance process"
+  },
+  
+  "hana": {
+    "enabled": true,
+    "host": "${HANA_HOST}",
+    "port": 443,
+    "database": "${HANA_DATABASE}",
+    "schema": "AGENTS",
+    "user": "${HANA_USER}",
+    "password": "${HANA_PASSWORD}",
+    "connection_pool": {
+      "min_connections": 2,
+      "max_connections": 10,
+      "idle_timeout_seconds": 300
+    }
+  },
+  
+  "assignment": {
+    "strategy": "hungarian",
+    "fallback_strategy": "greedy",
+    "enable_ai": true,
+    "ai_threshold_confidence": 0.7,
+    "strategies": {
+      "hungarian": {
+        "enabled": true,
+        "description": "Optimal cost-based assignment using Hungarian algorithm"
+      },
+      "greedy": {
+        "enabled": true,
+        "description": "Fast capability-based assignment"
+      },
+      "ai_enhanced": {
+        "enabled": true,
+        "description": "ML-powered assignment via nLocalModels",
+        "model": "qwen-2.5-7b",
+        "temperature": 0.3,
+        "max_tokens": 500
+      },
+      "round_robin": {
+        "enabled": true,
+        "description": "Equal distribution across agents"
+      }
+    }
+  },
+  
+  "local_models": {
+    "enabled": true,
+    "base_url": "${LOCAL_MODELS_URL:-http://localhost:8000}",
+    "timeout_ms": 5000,
+    "retry_attempts": 2,
+    "endpoints": {
+      "inference": "/api/v1/inference",
+      "chat": "/api/v1/chat/completions"
+    }
+  },
+  
+  "performance": {
+    "tracking_enabled": true,
+    "metrics_window_days": 30,
+    "score_update_weight": 0.05,
+    "min_performance_score": 0.0,
+    "max_performance_score": 1.0,
+    "default_performance_score": 0.8
+  },
+  
+  "workload": {
+    "max_utilization_threshold": 0.9,
+    "rebalance_threshold": 0.8,
+    "default_agent_capacity": 5,
+    "check_interval_seconds": 60
+  },
+  
+  "availability": {
+    "default_status": "available",
+    "auto_offline_timeout_minutes": 30,
+    "heartbeat_interval_seconds": 60
+  },
+  
+  "escalation": {
+    "enabled": true,
+    "timeout_hours": 24,
+    "escalation_chain": [
+      {"role": "checker", "timeout_hours": 24},
+      {"role": "manager", "timeout_hours": 48}
+    ],
+    "notification_enabled": true
+  },
+  
+  "caching": {
+    "enabled": true,
+    "cache_agents_ttl_seconds": 300,
+    "cache_assignments_ttl_seconds": 60,
+    "cache_performance_ttl_seconds": 600
+  },
+  
+  "logging": {
+    "level": "INFO",
+    "log_assignments": true,
+    "log_performance": true,
+    "log_ai_recommendations": true
+  },
+  
+  "features": {
+    "hungarian_algorithm": true,
+    "ai_recommendations": true,
+    "performance_tracking": true,
+    "workload_balancing": true,
+    "auto_escalation": true,
+    "hana_persistence": true
+  },
+  
+  "agent_roles": {
+    "maker": {
+      "description": "Data entry and initial processing",
+      "default_capacity": 8,
+      "required_capabilities": ["data_entry"]
+    },
+    "checker": {
+      "description": "Review and verification",
+      "default_capacity": 5,
+      "required_capabilities": ["accounting"]
+    },
+    "manager": {
+      "description": "Final approval and oversight",
+      "default_capacity": 10,
+      "required_capabilities": ["management"]
+    }
+  },
+  
+  "task_priorities": {
+    "critical": {
+      "level": 10,
+      "sla_hours": 4,
+      "auto_escalate": true
+    },
+    "high": {
+      "level": 8,
+      "sla_hours": 24,
+      "auto_escalate": true
+    },
+    "medium": {
+      "level": 5,
+      "sla_hours": 48,
+      "auto_escalate": false
+    },
+    "low": {
+      "level": 2,
+      "sla_hours": 72,
+      "auto_escalate": false
+    }
+  },
+  
+  "api": {
+    "enabled": true,
+    "port": 8081,
+    "base_path": "/api/v1/agents",
+    "cors_enabled": true,
+    "rate_limiting": {
+      "enabled": true,
+      "requests_per_minute": 100
+    },
+    "endpoints": {
+      "agents": {
+        "list": "GET /agents",
+        "get": "GET /agents/:id",
+        "create": "POST /agents",
+        "update": "PUT /agents/:id",
+        "delete": "DELETE /agents/:id"
+      },
+      "assignments": {
+        "assign": "POST /assignments",
+        "get": "GET /assignments/:id",
+        "complete": "PUT /assignments/:id/complete",
+        "list": "GET /assignments"
+      },
+      "analytics": {
+        "performance": "GET /analytics/performance",
+        "workload": "GET /analytics/workload",
+        "trends": "GET /analytics/trends"
+      }
+    }
+  },
+  
+  "monitoring": {
+    "enabled": true,
+    "metrics_port": 9091,
+    "health_check_interval_seconds": 30,
+    "alert_thresholds": {
+      "agent_utilization": 0.95,
+      "assignment_failure_rate": 0.2,
+      "response_time_ms": 1000
+    }
+  }
+}

@@ -1,0 +1,56 @@
+# Node modules
+node_modules/
+webapp/node_modules/
+
+# Build outputs
+dist/
+mta_archives/
+webapp/dist/
+backend/zig-out/
+backend/.zig-cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# BTP specific
+.che/
+.mta/
+
+# HANA specific
+*.hdbgrants
+*.hdbsynonymconfig
+
+# Build artifacts
+*.o
+*.so
+*.dylib
+*.exe
+*.test
+*.out

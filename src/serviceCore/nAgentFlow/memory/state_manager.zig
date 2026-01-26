@@ -15,6 +15,8 @@ const HanaCacheConfig = @import("../cache/hana_cache.zig").HanaCacheConfig;
 // Import HANA persistence
 const hana_store = @import("../persistence/hana_store.zig");
 const HanaWorkflowStore = hana_store.HanaWorkflowStore;
+const hana = @import("hana_sdk");
+const HanaConfig = hana.Config;
 
 /// HANA state manager configuration
 pub const HanaStateConfig = struct {
@@ -22,10 +24,10 @@ pub const HanaStateConfig = struct {
     port: u16 = 443,
     user: []const u8,
     password: []const u8,
-    schema: []const u8 = "NWORKFLOW",
-    cache_schema: []const u8 = "NWORKFLOW_CACHE",
-    use_tls: bool = true,
+    database: []const u8 = "NWORKFLOW",
+    cache_database: []const u8 = "NWORKFLOW_CACHE",
     table_prefix: []const u8 = "nworkflow",
+    cache_table_prefix: []const u8 = "cache",
 };
 
 /// Variable scope for state management
@@ -148,21 +150,20 @@ pub const StateManager = struct {
             .port = config.port,
             .user = config.user,
             .password = config.password,
-            .schema = config.cache_schema,
-            .use_tls = config.use_tls,
-            .table_prefix = "cache",
+            .database = config.cache_database,
+            .table_prefix = config.cache_table_prefix,
         };
 
         var cache = try HanaCache.init(allocator, cache_config);
         try cache.connect();
 
         // Initialize HANA persistence store
-        const hana_config = hana_store.hana.Config{
+        const hana_config = HanaConfig{
             .host = config.host,
             .port = config.port,
             .user = config.user,
             .password = config.password,
-            .schema = config.schema,
+            .database = config.database,
         };
 
         const store = try HanaWorkflowStore.init(allocator, hana_config, config.table_prefix);
@@ -407,7 +408,8 @@ test "StateManager initialization" {
         .port = 39017,
         .user = "SYSTEM",
         .password = "Password123",
-        .use_tls = false,
+        .database = "STATE",
+        .cache_database = "STATE_CACHE",
     };
 
     var manager = try StateManager.init(allocator, config);

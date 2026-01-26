@@ -24,33 +24,10 @@ env:
 
 jobs:
   # =============================================================================
-  # Check SDK Base Image Exists
-  # =============================================================================
-  check-sdk-base:
-    name: Check SDK Base Image
-    runs-on: ubuntu-latest
-    outputs:
-      sdk-base-exists: ${{ steps.check.outputs.exists }}
-    steps:
-      - name: Check if SDK base image exists
-        id: check
-        run: |
-          echo "Checking for plturrell/nservices:sdk-base..."
-          if docker pull plturrell/nservices:sdk-base 2>/dev/null; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "✅ SDK base image found"
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "⚠️  SDK base image not found - build will fail"
-            echo "::error::SDK base image not found. Run 'Docker Build - SDK Base Image' workflow first."
-            exit 1
-          fi
-
-  # =============================================================================
   # Build Matrix - Process Apps
+  # Uses pre-built custom SDK image: plturrell/n-c-sdk
   # =============================================================================
   build-apps:
-    needs: check-sdk-base
     name: Build ${{ matrix.app.name }}
     runs-on: ubuntu-latest
     permissions:
@@ -69,12 +46,11 @@ jobs:
 
     steps:
       # -----------------------------------------------------------------------
-      # Checkout with Submodules
+      # Checkout
       # -----------------------------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: 'recursive'
           fetch-depth: 0
 
       # -----------------------------------------------------------------------

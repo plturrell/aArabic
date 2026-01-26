@@ -1,7 +1,6 @@
 //! SAP HANA Client for nAgentFlow - Uses the centralized HANA SDK
 //!
-//! This module provides a lightweight wrapper around the HANA SDK located at:
-//! /Users/user/Documents/arabic_folder/src/nLang/n-c-sdk/lib/hana/
+//! This module provides a lightweight wrapper around the centralized HANA SDK
 //!
 //! The SDK provides:
 //! - Native SAP HANA SQL Command Network Protocol v2.0
@@ -11,14 +10,14 @@
 //! - Enterprise authentication (SCRAM-SHA-256, JWT, SAML)
 //!
 //! Usage:
-//!   const hana_sdk = @import("../../../nLang/n-c-sdk/zig-out/lib/zig/hana/hana.zig");
-//!   var client = try hana_sdk.connect(config);
+//!   const hana = @import("hana_sdk");
+//!   var client = try hana.connect(config);
 //!   defer client.deinit();
 
 const std = @import("std");
 
-// Import the centralized HANA SDK directly from source (no zig-out dependency)
-const hana = @import("../../../nLang/n-c-sdk/lib/hana/hana.zig");
+// Import the centralized HANA SDK that build.zig wires in for us
+const hana = @import("hana_sdk");
 const hana_client = hana.client;
 
 // Re-export SDK types (only those that exist in the SDK)
@@ -103,9 +102,6 @@ test "Type re-exports" {
     // Verify types are properly re-exported
     _ = HanaConfig;
     _ = HanaClient;
-    _ = HanaConnection;
-    _ = Protocol;
-    _ = Auth;
-    _ = Query;
-    _ = Graph;
+    _ = QueryResult;
+    _ = Value;
 }

@@ -1,0 +1,40 @@
+{
+  "name": "trial-balance",
+  "version": "1.0.0",
+  "description": "Trial Balance Application with UI5 Freestyle and Zig Backend",
+  "private": true,
+  "scripts": {
+    "start": "cd webapp && ui5 serve",
+    "build": "cd webapp && ui5 build",
+    "build:backend": "cd backend && zig build",
+    "test": "cd webapp && karma start",
+    "test:backend": "cd backend && zig build test",
+    "lint": "eslint webapp",
+    "deploy": "mbt build && cf deploy mta_archives/trial-balance_1.0.0.mtar"
+  },
+  "devDependencies": {
+    "@ui5/cli": "^3.9.0",
+    "@sap/ux-ui5-tooling": "^1.14.0",
+    "eslint": "^8.57.0",
+    "karma": "^6.4.3",
+    "karma-chrome-launcher": "^3.2.0",
+    "karma-coverage": "^2.2.1",
+    "karma-ui5": "^3.0.3"
+  },
+  "dependencies": {},
+  "ui5": {
+    "dependencies": [
+      "@sap/ux-ui5-tooling"
+    ]
+  },
+  "sapux": true,
+  "keywords": [
+    "trial-balance",
+    "ui5",
+    "zig",
+    "sap-btp",
+    "hana-cloud"
+  ],
+  "author": "",
+  "license": "UNLICENSED"
+}

@@ -15,9 +15,9 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 
 // Import centralized HANA SDK
-const hana = @import("../data/hana_client.zig");
-const HanaClient = hana.HanaClient;
-const HanaConfig = hana.HanaConfig;
+const hana = @import("hana_sdk");
+const HanaClient = hana.Client;
+const HanaConfig = hana.Config;
 const QueryResult = hana.QueryResult;
 
 /// HANA cache configuration
@@ -168,11 +168,11 @@ pub const HanaCache = struct {
     }
 
     fn execute(self: *Self, sql: []const u8) !void {
-        try hana.execute(self.client, sql);
+        try self.client.execute(sql);
     }
 
     fn query(self: *Self, sql: []const u8) !QueryResult {
-        return hana.queryWithAllocator(self.client, self.allocator, sql);
+        return self.client.query(sql, self.allocator);
     }
 
     // ========================================================================
@@ -249,13 +249,12 @@ pub const HanaCache = struct {
         );
         defer self.allocator.free(sql);
 
-        var executor = Query.Executor.init(self.allocator, &self.connection);
-        var result = try executor.executeQuery(sql);
+        var result = try self.query(sql);
         defer result.deinit();
 
-        if (result.next()) |row| {
-            if (row.getValue(0)) |val| {
-                const count = try val.asInt();
+        if (result.rows.len == 0) return false;
+        if (result.rows[0].get(0)) |val| {
+            if (val.asInt()) |count| {
                 return count > 0;
             }
         }
@@ -275,8 +274,7 @@ pub const HanaCache = struct {
         );
         defer self.allocator.free(sql);
 
-        var executor = Query.Executor.init(self.allocator, &self.connection);
-        _ = try executor.executeQuery(sql);
+        try self.execute(sql);
         return true;
     }
 
@@ -291,20 +289,19 @@ pub const HanaCache = struct {
         );
         defer self.allocator.free(sql);
 
-        var executor = Query.Executor.init(self.allocator, &self.connection);
-        var result = try executor.executeQuery(sql);
+        var result = try self.query(sql);
         defer result.deinit();
 
-        if (result.next()) |row| {
-            if (row.getValue(0)) |val| {
-                const ttl_val = try val.asInt();
-                if (ttl_val == 0) return -1; // No TTL
+        if (result.rows.len == 0) return -2;
+        if (result.rows[0].get(0)) |val| {
+            if (val.asInt()) |ttl_val| {
+                if (ttl_val == 0) return -1;
                 const now = std.time.timestamp();
                 return ttl_val - now;
             }
         }
 
-        return -2; // Key doesn't exist
+        return -2;
     }
 
     // ========================================================================
@@ -323,8 +320,7 @@ pub const HanaCache = struct {
         );
         defer self.allocator.free(sql);
 
-        var executor = Query.Executor.init(self.allocator, &self.connection);
-        _ = try executor.executeQuery(sql);
+        try self.execute(sql);
     }
 
     /// Get session data
@@ -339,13 +335,13 @@ pub const HanaCache = struct {
         );
         defer self.allocator.free(sql);
 
-        var executor = Query.Executor.init(self.allocator, &self.connection);
-        var result = try executor.executeQuery(sql);
+        var result = try self.query(sql);
         defer result.deinit();
 
-        if (result.next()) |row| {
-            if (row.getValue(0)) |val| {
-                return try val.asString();
+        if (result.rows.len == 0) return null;
+        if (result.rows[0].get(0)) |val| {
+            if (val.asString()) |s| {
+                return try self.allocator.dupe(u8, s);
             }
         }
 
@@ -363,8 +359,7 @@ pub const HanaCache = struct {
         );
         defer self.allocator.free(sql);
 
-        var executor = Query.Executor.init(self.allocator, &self.connection);
-        _ = try executor.executeQuery(sql);
+        try self.execute(sql);
     }
 
     // ========================================================================
@@ -383,8 +378,7 @@ pub const HanaCache = struct {
         );
         defer self.allocator.free(sql);
 
-        var executor = Query.Executor.init(self.allocator, &self.connection);
-        _ = try executor.executeQuery(sql);
+        try self.execute(sql);
     }
 
     /// Get cached workflow state
@@ -399,13 +393,13 @@ pub const HanaCache = struct {
         );
         defer self.allocator.free(sql);
 
-        var executor = Query.Executor.init(self.allocator, &self.connection);
-        var result = try executor.executeQuery(sql);
+        var result = try self.query(sql);
         defer result.deinit();
 
-        if (result.next()) |row| {
-            if (row.getValue(0)) |val| {
-                return try val.asString();
+        if (result.rows.len == 0) return null;
+        if (result.rows[0].get(0)) |val| {
+            if (val.asString()) |s| {
+                return try self.allocator.dupe(u8, s);
             }
         }
 
@@ -423,8 +417,7 @@ pub const HanaCache = struct {
         );
         defer self.allocator.free(sql);
 
-        var executor = Query.Executor.init(self.allocator, &self.connection);
-        _ = try executor.executeQuery(sql);
+        try self.execute(sql);
     }
 
     // ========================================================================
@@ -436,8 +429,6 @@ pub const HanaCache = struct {
         if (!self.is_connected) return error.NotConnected;
 
         const now = std.time.timestamp();
-        var executor = Query.Executor.init(self.allocator, &self.connection);
-
         // Cleanup key-value cache
         const kv_sql = try std.fmt.allocPrint(
             self.allocator,
@@ -445,7 +436,7 @@ pub const HanaCache = struct {
             .{ self.config.database, self.config.table_prefix, now },
         );
         defer self.allocator.free(kv_sql);
-        _ = try executor.executeQuery(kv_sql);
+        try self.execute(kv_sql);
 
         // Cleanup sessions
         const session_sql = try std.fmt.allocPrint(
@@ -454,7 +445,7 @@ pub const HanaCache = struct {
             .{ self.config.database, self.config.table_prefix, now },
         );
         defer self.allocator.free(session_sql);
-        _ = try executor.executeQuery(session_sql);
+        try self.execute(session_sql);
 
         // Cleanup workflow state
         const state_sql = try std.fmt.allocPrint(
@@ -463,7 +454,7 @@ pub const HanaCache = struct {
             .{ self.config.database, self.config.table_prefix, now },
         );
         defer self.allocator.free(state_sql);
-        _ = try executor.executeQuery(state_sql);
+        try self.execute(state_sql);
     }
 };
 
@@ -479,8 +470,7 @@ test "HanaCache - initialization" {
         .port = 39017,
         .user = "SYSTEM",
         .password = "Password123",
-        .schema = "TEST_CACHE",
-        .use_tls = false,
+        .database = "TEST_CACHE",
     };
 
     var cache = try HanaCache.init(allocator, config);

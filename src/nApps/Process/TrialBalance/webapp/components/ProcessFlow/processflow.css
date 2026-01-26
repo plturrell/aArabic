@@ -1,0 +1,790 @@
+/**
+ * ProcessFlow CSS - 100% SAP Fiori Commercial Quality
+ * Exact SAP styling and animations
+ */
+
+/* ============================================================================
+   Container
+   ============================================================================ */
+
+.process-flow-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background: #ffffff;
+    font-family: "72", "72full", Arial, Helvetica, sans-serif;
+    overflow: hidden;
+}
+
+.process-flow-svg {
+    display: block;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+}
+
+/* ============================================================================
+   Nodes - SAP Signature Folded Corner Style
+   ============================================================================ */
+
+.process-flow-node {
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.process-flow-node:hover .node-background {
+    filter: brightness(1.05);
+}
+
+.process-flow-node:hover .node-border {
+    stroke-width: 3;
+}
+
+.node-background {
+    transition: fill 0.3s ease, filter 0.3s ease;
+}
+
+.node-border {
+    transition: stroke 0.3s ease, stroke-width 0.3s ease;
+}
+
+/* Node text styling */
+.node-title {
+    font-family: "72", "72full", Arial, Helvetica, sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.node-state-text {
+    font-family: "72", "72full", Arial, Helvetica, sans-serif;
+    font-size: 12px;
+}
+
+.node-detail-text {
+    font-family: "72", "72full", Arial, Helvetica, sans-serif;
+    font-size: 11px;
+}
+
+.node-icon {
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+}
+
+/* ============================================================================
+   Folded Corner - Document Style Nodes
+   ============================================================================ */
+
+/* Folded corner node style class */
+.process-flow-node.folded-corner {
+    /* Container for folded corner nodes */
+}
+
+/* The fold triangle element in the top-right corner */
+.node-fold-triangle {
+    transition: fill 0.3s ease, filter 0.3s ease;
+    pointer-events: none;
+}
+
+/* Hover effect on fold triangle */
+.process-flow-node:hover .node-fold-triangle {
+    filter: drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.2));
+}
+
+/* Shadow effect enhancement for the fold */
+.process-flow-node.folded-corner .node-fold-triangle {
+    filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.15));
+}
+
+/* Active/selected state for folded corner */
+.process-flow-node.folded-corner[data-display="Selected"] .node-fold-triangle {
+    filter: drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.25));
+}
+
+/* Highlighted state for folded corner */
+.process-flow-node.folded-corner.highlighted .node-fold-triangle {
+    filter: drop-shadow(1px 1px 3px rgba(10, 110, 209, 0.4));
+}
+
+/* Dimmed state for folded corner */
+.process-flow-node.folded-corner.dimmed .node-fold-triangle {
+    opacity: 0.3;
+    filter: grayscale(50%);
+}
+
+/* ============================================================================
+   Node States - Exact SAP Colors
+   ============================================================================ */
+
+/* Positive (Success) */
+.process-flow-node[data-state="Positive"] .node-background {
+    fill: #107e3e;
+}
+
+.process-flow-node[data-state="Positive"] .node-border {
+    stroke: #0a6534;
+}
+
+.process-flow-node[data-state="Positive"] text {
+    fill: #ffffff;
+}
+
+/* Negative (Error) */
+.process-flow-node[data-state="Negative"] .node-background {
+    fill: #bb0000;
+}
+
+.process-flow-node[data-state="Negative"] .node-border {
+    stroke: #a20000;
+}
+
+.process-flow-node[data-state="Negative"] text {
+    fill: #ffffff;
+}
+
+/* Critical (Warning) */
+.process-flow-node[data-state="Critical"] .node-background {
+    fill: #e9730c;
+}
+
+.process-flow-node[data-state="Critical"] .node-border {
+    stroke: #c9630a;
+}
+
+.process-flow-node[data-state="Critical"] text {
+    fill: #ffffff;
+}
+
+/* Neutral (Info/Running) */
+.process-flow-node[data-state="Neutral"] .node-background {
+    fill: #0a6ed1;
+}
+
+.process-flow-node[data-state="Neutral"] .node-border {
+    stroke: #0854a0;
+}
+
+.process-flow-node[data-state="Neutral"] text {
+    fill: #ffffff;
+}
+
+/* Planned */
+.process-flow-node[data-state="Planned"] .node-background {
+    fill: #ededed;
+}
+
+.process-flow-node[data-state="Planned"] .node-border {
+    stroke: #d9d9d9;
+}
+
+.process-flow-node[data-state="Planned"] text {
+    fill: #32363a;
+}
+
+/* PlannedNegative */
+.process-flow-node[data-state="PlannedNegative"] .node-background {
+    fill: #ededed;
+}
+
+.process-flow-node[data-state="PlannedNegative"] .node-border {
+    stroke: #bb0000;
+}
+
+.process-flow-node[data-state="PlannedNegative"] text {
+    fill: #32363a;
+}
+
+/* ============================================================================
+   Connections - SAP Rounded Style
+   ============================================================================ */
+
+.process-flow-connection {
+    pointer-events: none;
+}
+
+.connection-path {
+    transition: stroke 0.3s ease, stroke-width 0.3s ease;
+}
+
+.connection-arrow {
+    transition: fill 0.3s ease;
+}
+
+/* Connection states */
+.connection-normal {
+    stroke: #6a6d70;
+}
+
+.connection-highlighted {
+    stroke: #0a6ed1;
+    stroke-width: 3;
+}
+
+.connection-dimmed {
+    stroke: #d9d9d9;
+    opacity: 0.5;
+}
+
+/* ============================================================================
+   Lanes - SAP Standard
+   ============================================================================ */
+
+.process-flow-lane {
+    pointer-events: auto;
+}
+
+.lane-background {
+    transition: fill 0.2s ease;
+}
+
+.lane-label {
+    font-family: "72", "72full", Arial, Helvetica, sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    fill: #32363a;
+    user-select: none;
+}
+
+/* ============================================================================
+   Display States - SAP Interaction
+   ============================================================================ */
+
+/* Regular state */
+.process-flow-node[data-display="Regular"] {
+    opacity: 1;
+    filter: none;
+}
+
+/* Highlighted state */
+.process-flow-node[data-display="Highlighted"] {
+    filter: drop-shadow(0 4px 8px rgba(10, 110, 209, 0.4));
+    transform: scale(1.05);
+    transform-origin: center;
+}
+
+/* Dimmed state (non-adjacent nodes) */
+.process-flow-node[data-display="Dimmed"] {
+    opacity: 0.4;
+}
+
+/* Selected state */
+.process-flow-node[data-display="Selected"] {
+    filter: drop-shadow(0 0 12px rgba(10, 110, 209, 0.6));
+}
+
+.process-flow-node[data-display="Selected"] .node-border {
+    stroke-width: 3;
+}
+
+/* ============================================================================
+   Zoom Levels - SAP Fiori Semantic Zoom
+   ============================================================================ */
+
+/*
+ * SAP Fiori ProcessFlow has 4 semantic zoom levels:
+ * Level 1: Largest nodes - header, status, 2 attributes
+ * Level 2: Standard (auto for screens >1024px) - header, status, 1 attribute
+ * Level 3: Reduced (auto for 600-1023px) - header and status only
+ * Level 4: Smallest (auto for <600px) - status icon only
+ */
+
+/* Zoom Level 1 - Largest, most textual information */
+.process-flow-content[data-zoom="One"] .node-title,
+.process-flow-content[data-zoom="One"] .node-state-text,
+.process-flow-content[data-zoom="One"] .node-icon {
+    display: block;
+}
+
+.process-flow-content[data-zoom="One"] .node-status-icon {
+    display: none;
+}
+
+/* Zoom Level 2 - Standard size */
+.process-flow-content[data-zoom="Two"] .node-title,
+.process-flow-content[data-zoom="Two"] .node-state-text,
+.process-flow-content[data-zoom="Two"] .node-icon {
+    display: block;
+}
+
+.process-flow-content[data-zoom="Two"] .node-status-icon {
+    display: none;
+}
+
+/* Zoom Level 3 - Reduced, header and status only */
+.process-flow-content[data-zoom="Three"] .node-title,
+.process-flow-content[data-zoom="Three"] .node-state-text {
+    display: block;
+}
+
+.process-flow-content[data-zoom="Three"] .node-icon {
+    display: block;
+}
+
+.process-flow-content[data-zoom="Three"] .node-detail-text {
+    display: none;
+}
+
+.process-flow-content[data-zoom="Three"] .node-status-icon {
+    display: none;
+}
+
+/* Zoom Level 4 - Smallest, status icon only */
+.process-flow-content[data-zoom="Four"] .node-title,
+.process-flow-content[data-zoom="Four"] .node-state-text,
+.process-flow-content[data-zoom="Four"] .node-icon,
+.process-flow-content[data-zoom="Four"] .node-detail-text {
+    display: none;
+}
+
+.process-flow-content[data-zoom="Four"] .node-status-icon {
+    display: block;
+}
+
+/* Status icon styling for Level 4 */
+.node-status-icon {
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    transition: fill 0.3s ease;
+}
+
+/* ============================================================================
+   Overflow Indicators - SAP Fiori Style
+   ============================================================================ */
+
+.process-flow-overflow-indicator {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(10, 110, 209, 0.9);
+    color: white;
+    padding: 8px 12px;
+    font-family: "72", "72full", Arial, Helvetica, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    z-index: 100;
+    transition: background 0.2s ease, transform 0.2s ease;
+    user-select: none;
+}
+
+.process-flow-overflow-left {
+    left: 0;
+    border-radius: 0 4px 4px 0;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+}
+
+.process-flow-overflow-right {
+    right: 0;
+    border-radius: 4px 0 0 4px;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+}
+
+.process-flow-overflow-indicator:hover {
+    background: rgba(10, 110, 209, 1);
+    transform: translateY(-50%) scale(1.05);
+}
+
+.process-flow-overflow-indicator:active {
+    transform: translateY(-50%) scale(0.98);
+}
+
+/* ============================================================================
+   Path Highlighting - Search/Filter Results
+   ============================================================================ */
+
+/* Highlighted class for nodes in the path */
+.process-flow-node.highlighted {
+    filter: drop-shadow(0 0 8px rgba(10, 110, 209, 0.6)) !important;
+    z-index: 10;
+}
+
+.process-flow-node.highlighted .node-border {
+    stroke-width: 3;
+    stroke: #0a6ed1;
+}
+
+/* Highlighted class for connections in the path */
+.process-flow-connection.highlighted {
+    filter: drop-shadow(0 0 4px rgba(10, 110, 209, 0.5));
+    z-index: 5;
+}
+
+.process-flow-connection.highlighted .connection-path {
+    stroke: #0a6ed1;
+    stroke-width: 3;
+}
+
+.process-flow-connection.highlighted .connection-arrow {
+    fill: #0a6ed1;
+}
+
+/* Dimmed class for nodes not in the path */
+.process-flow-node.dimmed {
+    opacity: 0.3 !important;
+    filter: grayscale(50%) !important;
+}
+
+/* Dimmed class for connections not in the path */
+.process-flow-connection.dimmed {
+    opacity: 0.3;
+}
+
+.process-flow-connection.dimmed .connection-path {
+    stroke: #d9d9d9;
+}
+
+.process-flow-connection.dimmed .connection-arrow {
+    fill: #d9d9d9;
+}
+
+/* ============================================================================
+   Aggregated Nodes (Stacks) - SAP Fiori Style
+   ============================================================================ */
+
+/* Aggregated node container */
+.aggregated-node {
+    cursor: pointer;
+}
+
+.aggregated-node:hover {
+    filter: drop-shadow(0 4px 12px rgba(10, 110, 209, 0.25));
+}
+
+/* Stack shadow elements behind the main node */
+.aggregate-stack {
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.aggregated-node:hover .aggregate-stack {
+    opacity: 0.5 !important;
+}
+
+/* Counter badge on top-right */
+.aggregate-counter {
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.aggregate-counter circle {
+    transition: fill 0.2s ease, transform 0.2s ease;
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.2));
+}
+
+.aggregated-node:hover .aggregate-counter circle {
+    fill: #0854a0;
+    transform: scale(1.1);
+}
+
+.aggregate-counter text {
+    user-select: none;
+    pointer-events: none;
+}
+
+/* Expanded state */
+.aggregated-node.aggregate-expanded {
+    filter: drop-shadow(0 0 8px rgba(10, 110, 209, 0.4));
+}
+
+.aggregated-node.aggregate-expanded .aggregate-stack,
+.aggregated-node.aggregate-expanded .aggregate-counter {
+    opacity: 0 !important;
+    pointer-events: none;
+}
+
+/* Pulse animation for aggregated nodes */
+@keyframes stackPulse {
+    0% {
+        opacity: 0.3;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 0.3;
+    }
+}
+
+.aggregated-node:focus .aggregate-stack {
+    animation: stackPulse 1.5s ease-in-out infinite;
+}
+
+/* Focus state for accessibility */
+.aggregated-node:focus {
+    outline: 2px solid #0a6ed1;
+    outline-offset: 4px;
+}
+
+.aggregated-node:focus-visible {
+    outline: 2px solid #0a6ed1;
+    outline-offset: 4px;
+}
+
+/* Dark theme support for aggregated nodes */
+@media (prefers-color-scheme: dark) {
+    .aggregate-counter circle {
+        stroke: #283848;
+    }
+
+    .aggregated-node:hover .aggregate-counter circle {
+        fill: #4db1ff;
+    }
+}
+
+/* ============================================================================
+   Animations - SAP Standard
+   ============================================================================ */
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.process-flow-node {
+    animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Active flow animation */
+.process-flow-connection.active .connection-path {
+    animation: pulse 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* ============================================================================
+   Accessibility - WCAG Compliant
+   ============================================================================ */
+
+.process-flow-node:focus {
+    outline: 2px solid #0a6ed1;
+    outline-offset: 2px;
+}
+
+.process-flow-node:focus-visible {
+    outline: 2px solid #0a6ed1;
+    outline-offset: 2px;
+}
+
+/* ============================================================================
+   Responsive - SAP Mobile Support
+   ============================================================================ */
+
+@media (max-width: 768px) {
+    .node-title {
+        font-size: 13px;
+    }
+    
+    .node-state-text {
+        font-size: 11px;
+    }
+    
+    .node-detail-text {
+        font-size: 10px;
+    }
+}
+
+/* ============================================================================
+   Print Styles
+   ============================================================================ */
+
+@media print {
+    .process-flow-container {
+        background: white;
+    }
+    
+    .process-flow-node {
+        break-inside: avoid;
+    }
+    
+    .connection-path {
+        stroke: #000;
+    }
+}
+
+/* ============================================================================
+   Dark Theme Support (Optional)
+   ============================================================================ */
+
+@media (prefers-color-scheme: dark) {
+    .process-flow-container {
+        background: #1d2d3e;
+    }
+
+    .lane-background {
+        fill: #283848;
+        stroke: #3f5161;
+    }
+
+    .lane-label {
+        fill: #e8ebed;
+    }
+}
+
+/* ============================================================================
+   Process Flow Header - SAP Fiori Circular Progress Style
+   ============================================================================ */
+
+.process-flow-header {
+    height: 80px;
+    background: linear-gradient(to bottom, #ffffff 0%, #f7f7f7 100%);
+    border-bottom: 1px solid #d9d9d9;
+    position: relative;
+    overflow: visible;
+    font-family: "72", "72full", Arial, Helvetica, sans-serif;
+    z-index: 10;
+}
+
+.process-flow-header-svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+/* Lane header group */
+.process-flow-header-lane {
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.process-flow-header-lane:hover {
+    transform: scale(1.05);
+}
+
+/* Lane circle styling */
+.lane-circle {
+    transition: stroke 0.2s ease, stroke-width 0.2s ease, filter 0.2s ease;
+}
+
+.process-flow-header-lane:hover .lane-circle {
+    stroke: #0a6ed1;
+    stroke-width: 2;
+    filter: drop-shadow(0 2px 4px rgba(10, 110, 209, 0.3));
+}
+
+/* Status arcs */
+.status-arc {
+    transition: stroke-width 0.2s ease, opacity 0.2s ease;
+}
+
+.process-flow-header-lane:hover .status-arc {
+    stroke-width: 5;
+}
+
+/* Lane icon */
+.lane-icon {
+    pointer-events: none;
+    transition: fill 0.2s ease;
+}
+
+.process-flow-header-lane:hover .lane-icon {
+    fill: #0a6ed1;
+}
+
+/* Lane label text */
+.lane-label-text {
+    pointer-events: none;
+    transition: fill 0.2s ease;
+}
+
+.process-flow-header-lane:hover .lane-label-text {
+    fill: #0a6ed1;
+}
+
+/* Header tooltip styling */
+.process-flow-header-tooltip {
+    position: absolute;
+    background: rgba(50, 54, 58, 0.95);
+    color: #ffffff;
+    padding: 10px 14px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: "72", "72full", Arial, Helvetica, sans-serif;
+    line-height: 1.6;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    max-width: 250px;
+}
+
+.process-flow-header-tooltip strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    padding-bottom: 6px;
+}
+
+/* Status arc specific colors */
+.status-arc-positive {
+    stroke: #107e3e;
+}
+
+.status-arc-negative {
+    stroke: #bb0000;
+}
+
+.status-arc-neutral {
+    stroke: #0a6ed1;
+}
+
+.status-arc-critical {
+    stroke: #e9730c;
+}
+
+.status-arc-planned {
+    stroke: #d9d9d9;
+}
+
+/* Focus state for accessibility */
+.process-flow-header-lane:focus {
+    outline: 2px solid #0a6ed1;
+    outline-offset: 4px;
+}
+
+.process-flow-header-lane:focus-visible {
+    outline: 2px solid #0a6ed1;
+    outline-offset: 4px;
+}
+
+/* Dark theme support for header */
+@media (prefers-color-scheme: dark) {
+    .process-flow-header {
+        background: linear-gradient(to bottom, #283848 0%, #1d2d3e 100%);
+        border-bottom: 1px solid #3f5161;
+    }
+
+    .lane-circle {
+        fill: #283848;
+        stroke: #3f5161;
+    }
+
+    .lane-icon {
+        fill: #e8ebed;
+    }
+
+    .lane-label-text {
+        fill: #e8ebed;
+    }
+
+    .process-flow-header-lane:hover .lane-icon,
+    .process-flow-header-lane:hover .lane-label-text {
+        fill: #4db1ff;
+    }
+}

@@ -1,0 +1,107 @@
+<mvc:View
+    controllerName="trial.balance.controller.Home"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:f="sap.f"
+    xmlns:card="sap.f.cards"
+    displayBlock="true">
+    <Page
+        id="homePage"
+        title="{i18n>homeTitle}"
+        showNavButton="false">
+        <headerContent>
+            <Button
+                icon="sap-icon://user-settings"
+                text="{app>/user/name}"
+                press="onUserMenuPress" />
+        </headerContent>
+        <content>
+            <f:GridContainer
+                id="homeGrid"
+                snapToRow="true"
+                class="sapUiSmallMargin">
+                
+                <!-- Trial Balance Card -->
+                <f:Card class="sapUiMediumMargin">
+                    <f:header>
+                        <card:Header
+                            title="{i18n>trialBalanceTitle}"
+                            subtitle="{i18n>trialBalanceSubtitle}"
+                            iconSrc="sap-icon://accounting-document-verification" />
+                    </f:header>
+                    <f:content>
+                        <VBox class="sapUiSmallMargin">
+                            <Label text="{i18n>trialBalanceDescription}" />
+                            <Button
+                                text="{i18n>openTrialBalance}"
+                                type="Emphasized"
+                                press="onNavigateToTrialBalance"
+                                class="sapUiTinyMarginTop" />
+                        </VBox>
+                    </f:content>
+                </f:Card>
+
+                <!-- Reconciliation Card -->
+                <f:Card class="sapUiMediumMargin">
+                    <f:header>
+                        <card:Header
+                            title="{i18n>reconciliationTitle}"
+                            subtitle="{i18n>reconciliationSubtitle}"
+                            iconSrc="sap-icon://complete" />
+                    </f:header>
+                    <f:content>
+                        <VBox class="sapUiSmallMargin">
+                            <Label text="{i18n>reconciliationDescription}" />
+                            <Button
+                                text="{i18n>openReconciliation}"
+                                type="Emphasized"
+                                press="onNavigateToReconciliation"
+                                class="sapUiTinyMarginTop" />
+                        </VBox>
+                    </f:content>
+                </f:Card>
+
+                <!-- Approval Card -->
+                <f:Card class="sapUiMediumMargin">
+                    <f:header>
+                        <card:Header
+                            title="{i18n>approvalTitle}"
+                            subtitle="{i18n>approvalSubtitle}"
+                            iconSrc="sap-icon://workflow-tasks" />
+                    </f:header>
+                    <f:content>
+                        <VBox class="sapUiSmallMargin">
+                            <Label text="{i18n>approvalDescription}" />
+                            <Button
+                                text="{i18n>openApproval}"
+                                type="Emphasized"
+                                press="onNavigateToApproval"
+                                class="sapUiTinyMarginTop" />
+                        </VBox>
+                    </f:content>
+                </f:Card>
+
+                <!-- Analytics Card -->
+                <f:Card class="sapUiMediumMargin">
+                    <f:header>
+                        <card:Header
+                            title="{i18n>analyticsTitle}"
+                            subtitle="{i18n>analyticsSubtitle}"
+                            iconSrc="sap-icon://chart-table-view" />
+                    </f:header>
+                    <f:content>
+                        <VBox class="sapUiSmallMargin">
+                            <Label text="{i18n>analyticsDescription}" />
+                            <Button
+                                text="{i18n>openAnalytics}"
+                                type="Emphasized"
+                                press="onNavigateToAnalytics"
+                                class="sapUiTinyMarginTop" />
+                        </VBox>
+                    </f:content>
+                </f:Card>
+
+            </f:GridContainer>
+        </content>
+    </Page>
+</mvc:View>

@@ -1,0 +1,170 @@
+_schema-version: '3.3'
+ID: trial-balance
+version: 1.0.0
+description: Trial Balance Application
+parameters:
+  deploy_mode: html5-repo
+  enable-parallel-deployments: true
+
+build-parameters:
+  before-all:
+    - builder: custom
+      commands:
+        - npm ci
+        - cd webapp && npm ci
+        - cd backend && zig build
+
+modules:
+  # UI5 Application
+  - name: trial-balance-ui
+    type: html5
+    path: webapp
+    build-parameters:
+      builder: custom
+      commands:
+        - ui5 build --clean-dest
+      supported-platforms: []
+    requires:
+      - name: trial-balance-destination
+      - name: trial-balance-uaa
+      - name: trial-balance-hana
+
+  # Backend Service
+  - name: trial-balance-backend
+    type: custom
+    path: backend
+    build-parameters:
+      builder: custom
+      commands:
+        - zig build -Doptimize=ReleaseSafe
+    provides:
+      - name: trial-balance-api
+        properties:
+          api-url: '${default-url}'
+    requires:
+      - name: trial-balance-hana
+      - name: trial-balance-uaa
+      - name: trial-balance-destination
+
+  # App Router
+  - name: trial-balance-approuter
+    type: approuter.nodejs
+    path: approuter
+    parameters:
+      disk-quota: 256M
+      memory: 256M
+    requires:
+      - name: trial-balance-uaa
+      - name: trial-balance-destination
+      - name: trial-balance-html5-repo-runtime
+      - name: trial-balance-api
+        group: destinations
+        properties:
+          name: backend-api
+          url: '~{api-url}'
+          forwardAuthToken: true
+
+  # HTML5 Application Repository Deployer
+  - name: trial-balance-ui-deployer
+    type: com.sap.application.content
+    path: webapp
+    requires:
+      - name: trial-balance-html5-repo-host
+        parameters:
+          content-target: true
+    build-parameters:
+      build-result: dist
+      requires:
+        - artifacts:
+            - dist/**/*.*
+          name: trial-balance-ui
+          target-path: dist/
+
+resources:
+  # HANA Cloud
+  - name: trial-balance-hana
+    type: com.sap.xs.hdi-container
+    parameters:
+      service: hana
+      service-plan: hdi-shared
+    properties:
+      hdi-container-name: '${service-name}'
+
+  # XSUAA
+  - name: trial-balance-uaa
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: xsuaa
+      service-plan: application
+      path: ./xs-security.json
+      config:
+        xsappname: trial-balance-${space}
+        tenant-mode: dedicated
+        role-collections:
+          - name: 'TrialBalance_Maker'
+            description: 'Trial Balance Maker Role'
+            role-template-references:
+              - $XSAPPNAME.Maker
+          - name: 'TrialBalance_Checker'
+            description: 'Trial Balance Checker Role'
+            role-template-references:
+              - $XSAPPNAME.Checker
+          - name: 'TrialBalance_Manager'
+            description: 'Trial Balance Manager Role'
+            role-template-references:
+              - $XSAPPNAME.Manager
+
+  # Destination Service
+  - name: trial-balance-destination
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: destination
+      service-plan: lite
+      config:
+        HTML5Runtime_enabled: true
+        init_data:
+          instance:
+            destinations:
+              - Name: HANA_CLOUD
+                Description: HANA Cloud Database
+                Type: HTTP
+                Authentication: NoAuthentication
+                ProxyType: Internet
+                HTML5.DynamicDestination: true
+              - Name: AGENT_FLOW
+                Description: nAgentFlow Service
+                Type: HTTP
+                URL: 'https://agent-flow.${default-domain}'
+                Authentication: OAuth2ClientCredentials
+                ProxyType: Internet
+              - Name: AGENT_META
+                Description: nAgentMeta Service
+                Type: HTTP
+                URL: 'https://agent-meta.${default-domain}'
+                Authentication: OAuth2ClientCredentials
+                ProxyType: Internet
+              - Name: LOCAL_MODELS
+                Description: nLocalModels Service
+                Type: HTTP
+                URL: 'https://local-models.${default-domain}'
+                Authentication: OAuth2ClientCredentials
+                ProxyType: Internet
+              - Name: GROUNDING
+                Description: nGrounding Service
+                Type: HTTP
+                URL: 'https://grounding.${default-domain}'
+                Authentication: OAuth2ClientCredentials
+                ProxyType: Internet
+
+  # HTML5 Application Repository
+  - name: trial-balance-html5-repo-host
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: html5-apps-repo
+      service-plan: app-host
+
+  - name: trial-balance-html5-repo-runtime
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: html5-apps-repo
+      service-plan: app-runtime

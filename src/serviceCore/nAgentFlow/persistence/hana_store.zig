@@ -8,12 +8,13 @@ const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const StringHashMap = std.StringHashMap;
 
-const hana = @import("../data/hana_client.zig");
-const HanaConfig = hana.HanaConfig;
-const HanaClient = hana.HanaClient;
+const hana = @import("hana_sdk");
+const hana_client = hana.client;
+const HanaConfig = hana.Config;
+const HanaClient = hana.Client;
 const HanaResult = hana.QueryResult;
-const HanaRow = hana.HanaRow;
-const HanaValue = hana.HanaValue;
+const HanaRow = hana_client.Row;
+const HanaValue = hana_client.Value;
 
 /// Execution status for workflow runs
 pub const ExecutionStatus = enum {
@@ -245,11 +246,11 @@ pub const HanaWorkflowStore = struct {
     }
 
     fn runQuery(self: *Self, sql: []const u8) !HanaResult {
-        return hana.queryWithAllocator(self.client, self.allocator, sql);
+        return self.client.query(sql, self.allocator);
     }
 
     fn runExecute(self: *Self, sql: []const u8) !void {
-        return hana.execute(self.client, sql);
+        return self.client.execute(sql);
     }
 
     fn replacePrefix(self: *Self, template: []const u8) ![]u8 {
@@ -330,48 +331,36 @@ pub const HanaWorkflowStore = struct {
     }
 
     fn extractText(self: *Self, row: HanaRow, column: []const u8) ![]const u8 {
-        if (row.getValue(column)) |value| {
-            return switch (value) {
-                .string => |s| try self.allocator.dupe(u8, s),
-                .null_value => try self.allocator.dupe(u8, ""),
-                else => error.InvalidField,
-            };
+        const value = row.getValue(column) orelse return error.InvalidField;
+        if (value.asString()) |s| {
+            return try self.allocator.dupe(u8, s);
         }
-        return error.InvalidField;
+        return switch (value) {
+            .null_value => try self.allocator.dupe(u8, ""),
+            else => error.InvalidField,
+        };
     }
 
     fn extractInt(self: *Self, row: HanaRow, column: []const u8) !i64 {
-        if (row.getValue(column)) |value| {
-            return switch (value) {
-                .int => |v| v,
-                .float => |v| @intFromFloat(i64, v),
-                else => error.InvalidField,
-            };
-        }
+        const value = row.getValue(column) orelse return error.InvalidField;
+        if (value.asInt()) |v| return v;
         return error.InvalidField;
     }
 
     fn extractOptionalInt(self: *Self, row: HanaRow, column: []const u8) !?i64 {
-        if (row.getValue(column)) |value| {
-            return switch (value) {
-                .int => |v| v,
-                .float => |v| @intFromFloat(i64, v),
-                .null_value => null,
-                else => error.InvalidField,
-            };
-        }
-        return null;
+        const value = row.getValue(column) orelse return null;
+        return switch (value) {
+            .null_value => null,
+            else => value.asInt() orelse error.InvalidField,
+        };
     }
 
     fn extractOptionalText(self: *Self, row: HanaRow, column: []const u8) !?[]const u8 {
-        if (row.getValue(column)) |value| {
-            return switch (value) {
-                .string => |s| try self.allocator.dupe(u8, s),
-                .null_value => null,
-                else => error.InvalidField,
-            };
-        }
-        return null;
+        const value = row.getValue(column) orelse return null;
+        return switch (value) {
+            .null_value => null,
+            else => if (value.asString()) |s| try self.allocator.dupe(u8, s) else error.InvalidField,
+        };
     }
 
     pub fn deleteWorkflow(self: *Self, id: []const u8) !void {
@@ -519,10 +508,11 @@ pub const HanaWorkflowStore = struct {
         if (result.rows.len == 0) return null;
 
         if (result.rows[0].getValue("data")) |value| {
-            return switch (value) {
-                .text_value => |s| try self.allocator.dupe(u8, s),
-                else => error.InvalidField,
-            };
+            if (value.asString()) |s| {
+                return try self.allocator.dupe(u8, s);
+            }
+            if (value == .null_value) return null;
+            return error.InvalidField;
         }
         return null;
     }

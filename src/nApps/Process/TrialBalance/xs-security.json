@@ -1,0 +1,141 @@
+{
+  "xsappname": "trial-balance",
+  "tenant-mode": "dedicated",
+  "description": "Security descriptor for Trial Balance Application",
+  "scopes": [
+    {
+      "name": "$XSAPPNAME.Maker",
+      "description": "Create and modify trial balance entries"
+    },
+    {
+      "name": "$XSAPPNAME.Checker",
+      "description": "Review and validate trial balance entries"
+    },
+    {
+      "name": "$XSAPPNAME.Manager",
+      "description": "Approve and sign-off trial balance entries"
+    },
+    {
+      "name": "$XSAPPNAME.Admin",
+      "description": "Administrative access to trial balance system"
+    },
+    {
+      "name": "$XSAPPNAME.Viewer",
+      "description": "Read-only access to trial balance data"
+    }
+  ],
+  "attributes": [
+    {
+      "name": "CostCenter",
+      "description": "Cost center assignment",
+      "valueType": "string"
+    },
+    {
+      "name": "CompanyCode",
+      "description": "Company code assignment",
+      "valueType": "string"
+    }
+  ],
+  "role-templates": [
+    {
+      "name": "Maker",
+      "description": "Trial Balance Maker",
+      "scope-references": [
+        "$XSAPPNAME.Maker",
+        "$XSAPPNAME.Viewer"
+      ],
+      "attribute-references": [
+        "CostCenter",
+        "CompanyCode"
+      ]
+    },
+    {
+      "name": "Checker",
+      "description": "Trial Balance Checker",
+      "scope-references": [
+        "$XSAPPNAME.Checker",
+        "$XSAPPNAME.Viewer"
+      ],
+      "attribute-references": [
+        "CostCenter",
+        "CompanyCode"
+      ]
+    },
+    {
+      "name": "Manager",
+      "description": "Trial Balance Manager",
+      "scope-references": [
+        "$XSAPPNAME.Manager",
+        "$XSAPPNAME.Viewer"
+      ],
+      "attribute-references": [
+        "CompanyCode"
+      ]
+    },
+    {
+      "name": "Admin",
+      "description": "Trial Balance Administrator",
+      "scope-references": [
+        "$XSAPPNAME.Admin",
+        "$XSAPPNAME.Maker",
+        "$XSAPPNAME.Checker",
+        "$XSAPPNAME.Manager",
+        "$XSAPPNAME.Viewer"
+      ]
+    },
+    {
+      "name": "Viewer",
+      "description": "Trial Balance Viewer",
+      "scope-references": [
+        "$XSAPPNAME.Viewer"
+      ],
+      "attribute-references": [
+        "CostCenter",
+        "CompanyCode"
+      ]
+    }
+  ],
+  "role-collections": [
+    {
+      "name": "TrialBalance_Maker",
+      "description": "Trial Balance Maker Role Collection",
+      "role-template-references": [
+        "$XSAPPNAME.Maker"
+      ]
+    },
+    {
+      "name": "TrialBalance_Checker",
+      "description": "Trial Balance Checker Role Collection",
+      "role-template-references": [
+        "$XSAPPNAME.Checker"
+      ]
+    },
+    {
+      "name": "TrialBalance_Manager",
+      "description": "Trial Balance Manager Role Collection",
+      "role-template-references": [
+        "$XSAPPNAME.Manager"
+      ]
+    },
+    {
+      "name": "TrialBalance_Admin",
+      "description": "Trial Balance Administrator Role Collection",
+      "role-template-references": [
+        "$XSAPPNAME.Admin"
+      ]
+    },
+    {
+      "name": "TrialBalance_Viewer",
+      "description": "Trial Balance Viewer Role Collection",
+      "role-template-references": [
+        "$XSAPPNAME.Viewer"
+      ]
+    }
+  ],
+  "oauth2-configuration": {
+    "redirect-uris": [
+      "https://*.cfapps.*.hana.ondemand.com/**",
+      "https://*.hana.ondemand.com/**"
+    ]
+  }
+}
