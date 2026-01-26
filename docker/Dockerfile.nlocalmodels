@@ -1,44 +1,17 @@
 # nLocalModels Dockerfile (Zig/Mojo LLM Inference Server)
 # Formerly nOpenaiServer - now consolidated as nLocalModels
 # 
-# Version Requirements:
-#   - Zig: Custom n-c-sdk from src/nLang/n-c-sdk
-#   - Mojo: Custom n-python-sdk from src/nLang/n-python-sdk
-FROM debian:bookworm-slim AS builder
+# Uses custom SDK base image with pre-built n-c-sdk (Zig) and n-python-sdk (Mojo)
+FROM plturrell/nservices:sdk-base AS builder
 
-# Install minimal build dependencies
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    libgomp1 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy custom Zig SDK (n-c-sdk)
-COPY src/nLang/n-c-sdk /usr/local/n-c-sdk
-
-# Copy custom Mojo SDK (n-python-sdk)
-COPY src/nLang/n-python-sdk /usr/local/n-python-sdk
-
-# Set up PATH to use custom SDKs
-# Priority order: n-c-sdk binaries, n-python-sdk binaries, then system
-ENV PATH="/usr/local/n-c-sdk/zig-out/bin:/usr/local/n-python-sdk/zig-out/bin:${PATH}"
-
-# Alternative: If zig binary is in different location, adjust accordingly
-# ENV PATH="/usr/local/n-c-sdk:${PATH}"
-
+# Copy service source code
 WORKDIR /app
-
-# Copy source (updated path to nLocalModels)
 COPY src/serviceCore/nLocalModels/ ./
 
-# Verify custom SDK versions
-RUN echo "=== Build Environment (Custom SDKs) ===" && \
-    echo "Custom Zig SDK: /usr/local/n-c-sdk" && \
-    echo "Custom Mojo SDK: /usr/local/n-python-sdk" && \
-    which zig || echo "zig not in PATH" && \
-    which mojo || echo "mojo not in PATH" && \
-    zig version 2>/dev/null || echo "zig command not available" && \
-    mojo --version 2>/dev/null || echo "mojo command not available" && \
-    echo "======================="
+# Verify SDKs are available
+RUN echo "=== nLocalModels Build Environment ===" && \
+    zig version && \
+    echo "======================================"
 
 # Build Zig components using custom n-c-sdk
 RUN zig build -Doptimize=ReleaseFast
@@ -52,7 +25,9 @@ RUN if command -v mojo >/dev/null 2>&1 && [ -d "mojo" ]; then \
     echo "Mojo not available or mojo directory not found - building Zig components only"; \
     fi
 
-# Runtime image
+# =============================================================================
+# Runtime Image
+# =============================================================================
 FROM debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y \
@@ -64,7 +39,7 @@ RUN apt-get update && apt-get install -y \
 RUN useradd -m -u 1000 appuser
 WORKDIR /app
 
-# Copy binaries
+# Copy binaries from builder
 COPY --from=builder /app/zig-out/bin/* /app/
 
 # Create models directory
