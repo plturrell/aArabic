@@ -21,7 +21,7 @@ COPY src/serviceCore/nAgentMeta/ ./serviceCore/nAgentMeta/
 
 WORKDIR /app/serviceCore/nAgentMeta
 RUN zig version && \
-    zig build --release && \
+    zig build --release=fast && \
     ls -la zig-out/bin/
 
 FROM debian:bookworm-slim

@@ -21,7 +21,7 @@ COPY src/serviceCore/nGrounding/ ./serviceCore/nGrounding/
 
 WORKDIR /app/serviceCore/nGrounding
 RUN zig version && \
-    zig build --release && \
+    zig build --release=fast && \
     ls -la zig-out/bin/
 
 FROM debian:bookworm-slim

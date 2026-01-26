@@ -21,7 +21,7 @@ COPY src/serviceCore/nAgentFlow/ ./serviceCore/nAgentFlow/
 
 WORKDIR /app/serviceCore/nAgentFlow
 RUN zig version && \
-    zig build --release && \
+    zig build --release=fast && \
     ls -la zig-out/bin/
 
 FROM debian:bookworm-slim
