@@ -99,10 +99,13 @@ jobs:
           echo "::warning::Run the 'Docker Build - SDK Base Image' workflow first."
 
       # -----------------------------------------------------------------------
-      # Checkout
+      # Checkout with Submodules
       # -----------------------------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+          fetch-depth: 0
 
       # -----------------------------------------------------------------------
       # Docker Buildx Setup
