@@ -1,14 +1,45 @@
 # TrialBalance App Dockerfile
 # Multi-tier application: UI5 frontend + Zig backend + HANA integration
-# Uses pre-built custom Zig SDK from plturrell/n-c-sdk
+# Builds custom Zig SDK from local source
 
 # =============================================================================
-# Pull Custom Zig SDK
+# Stage 1: Build Custom Zig SDK from Local Source
 # =============================================================================
-FROM plturrell/n-c-sdk:latest AS zig-sdk
+FROM debian:bookworm-slim AS zig-builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    xz-utils \
+    ca-certificates \
+    libgomp1 \
+    git \
+    build-essential \
+    cmake \
+    ninja-build \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Bootstrap with official Zig 0.13.0
+WORKDIR /tmp
+RUN curl -L https://ziglang.org/download/0.13.0/zig-linux-x86_64-0.13.0.tar.xz -o zig.tar.xz && \
+    tar -xf zig.tar.xz && \
+    mv zig-linux-x86_64-0.13.0 /usr/local/zig-bootstrap && \
+    rm zig.tar.xz
+
+# Copy and build custom n-c-sdk
+WORKDIR /sdk-build
+COPY src/nLang/n-c-sdk ./n-c-sdk
+WORKDIR /sdk-build/n-c-sdk
+RUN echo "=== Building Custom Zig SDK ===" && \
+    ls -la && \
+    test -f build.zig || (echo "ERROR: build.zig not found" && exit 1) && \
+    /usr/local/zig-bootstrap/zig build -Doptimize=ReleaseFast && \
+    ls -la zig-out/bin/ && \
+    test -f zig-out/bin/zig && echo "✓ Custom Zig SDK built successfully"
 
 # =============================================================================
-# Stage 1: Build Backend (Zig)
+# Stage 2: Build Backend (Zig)
 # =============================================================================
 FROM debian:bookworm-slim AS backend-builder
 
@@ -19,9 +50,9 @@ RUN apt-get update && apt-get install -y \
     libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy custom Zig SDK
-COPY --from=zig-sdk /usr/local/zig /usr/local/zig
-COPY --from=zig-sdk /usr/local/n-c-sdk-source /usr/local/n-c-sdk
+# Copy built custom Zig SDK
+COPY --from=zig-builder /sdk-build/n-c-sdk/zig-out /usr/local/zig
+COPY --from=zig-builder /sdk-build/n-c-sdk /usr/local/n-c-sdk
 ENV PATH="/usr/local/zig/bin:${PATH}"
 ENV ZIG_LIB_DIR="/usr/local/zig/lib"
 
@@ -41,7 +72,7 @@ RUN echo "=== Building TrialBalance Backend ===" && \
     test -f zig-out/bin/trial-balance-backend && echo "✓ Backend built successfully"
 
 # =============================================================================
-# Stage 2: Build Frontend (UI5)
+# Stage 3: Build Frontend (UI5)
 # =============================================================================
 FROM node:20-slim AS frontend-builder
 
@@ -53,7 +84,7 @@ COPY src/nApps/Process/TrialBalance/webapp ./
 RUN npm run build || echo "No build script - using source files directly"
 
 # =============================================================================
-# Stage 3: Runtime Image
+# Stage 4: Runtime Image
 # =============================================================================
 FROM debian:bookworm-slim
 

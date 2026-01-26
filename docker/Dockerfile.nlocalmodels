@@ -1,58 +1,71 @@
 # nLocalModels Dockerfile (Zig/Mojo LLM Inference Server)
-# Uses pre-built custom SDK images from separate repositories
+# Builds custom Zig SDK from local source, then builds service
 
 # =============================================================================
-# Pull Custom SDKs from Docker Hub
+# Stage 1: Build Custom Zig SDK from Local Source
 # =============================================================================
-FROM plturrell/n-c-sdk:latest AS zig-sdk
-FROM plturrell/n-python-sdk:latest AS mojo-sdk
+FROM debian:bookworm-slim AS zig-builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    xz-utils \
+    ca-certificates \
+    libgomp1 \
+    git \
+    build-essential \
+    cmake \
+    ninja-build \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Bootstrap with official Zig 0.13.0
+WORKDIR /tmp
+RUN curl -L https://ziglang.org/download/0.13.0/zig-linux-x86_64-0.13.0.tar.xz -o zig.tar.xz && \
+    tar -xf zig.tar.xz && \
+    mv zig-linux-x86_64-0.13.0 /usr/local/zig-bootstrap && \
+    rm zig.tar.xz
+
+# Copy and build custom n-c-sdk
+WORKDIR /sdk-build
+COPY src/nLang/n-c-sdk ./n-c-sdk
+WORKDIR /sdk-build/n-c-sdk
+RUN echo "=== Building Custom Zig SDK ===" && \
+    ls -la && \
+    test -f build.zig || (echo "ERROR: build.zig not found" && exit 1) && \
+    /usr/local/zig-bootstrap/zig build -Doptimize=ReleaseFast && \
+    ls -la zig-out/bin/ && \
+    test -f zig-out/bin/zig && echo "✓ Custom Zig SDK built successfully"
 
 # =============================================================================
-# Build Stage
+# Stage 2: Build nLocalModels Service
 # =============================================================================
 FROM debian:bookworm-slim AS builder
 
-# Install build dependencies
+# Install runtime dependencies
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     curl \
     libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy custom Zig SDK
-COPY --from=zig-sdk /usr/local/zig /usr/local/zig
+# Copy built custom Zig SDK
+COPY --from=zig-builder /sdk-build/n-c-sdk/zig-out /usr/local/zig
 ENV PATH="/usr/local/zig/bin:${PATH}"
 ENV ZIG_LIB_DIR="/usr/local/zig/lib"
 
-# Copy custom Mojo SDK (optional)
-COPY --from=mojo-sdk /usr/local/mojo /usr/local/mojo
-COPY --from=mojo-sdk /usr/local/n-python-sdk-source /usr/local/n-python-sdk-source
-ENV PATH="/usr/local/mojo/bin:${PATH}"
-
-# Verify SDKs
-RUN echo "=== nLocalModels Build Environment ===" && \
-    zig version && \
-    echo "======================================"
+# Verify Zig
+RUN zig version
 
 # Copy service source code
 WORKDIR /app
 COPY src/serviceCore/nLocalModels/ ./
 
-# Build Zig components
+# Build service
 RUN zig build -Doptimize=ReleaseFast
 
-# Build Mojo components (if available)
-RUN if command -v mojo >/dev/null 2>&1 && [ -d "mojo" ]; then \
-    echo "Building Mojo components..." && \
-    cd mojo && \
-    mojo build main.mojo -o ../zig-out/bin/nlocalmodels-mojo || \
-    echo "Mojo build failed - continuing with Zig only"; \
-    else \
-    echo "Mojo not available - building Zig components only"; \
-    fi
-
 # =============================================================================
-# Runtime Image
+# Stage 3: Runtime Image
 # =============================================================================
 FROM debian:bookworm-slim
 
@@ -65,7 +78,7 @@ RUN apt-get update && apt-get install -y \
 RUN useradd -m -u 1000 appuser
 WORKDIR /app
 
-# Copy binaries from builder
+# Copy service binaries
 COPY --from=builder /app/zig-out/bin/* /app/
 
 # Create models directory
