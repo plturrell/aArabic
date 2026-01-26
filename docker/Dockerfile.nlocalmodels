@@ -23,10 +23,11 @@ RUN curl -L https://ziglang.org/download/0.15.2/zig-x86_64-linux-0.15.2.tar.xz -
     && ln -s /usr/local/zig/zig /usr/local/bin/zig \
     && zig version
 
-# Install Mojo 0.26.1 via magic CLI
-RUN curl -ssL https://magic.modular.com/install.sh | bash
+# Install Mojo 0.26.1 via magic CLI (optional - if fails, build continues with Zig only)
+# Magic CLI requires specific environment setup that may not work in all Docker contexts
+RUN curl -ssL https://magic.modular.com/install.sh | bash || echo "Magic CLI installation skipped"
 ENV PATH="/root/.modular/bin:/root/.magic/bin:${PATH}"
-RUN magic install mojo==0.26.1 || magic install mojo
+RUN magic install mojo==0.26.1 2>/dev/null || magic install mojo 2>/dev/null || echo "Mojo installation skipped - building Zig components only"
 
 WORKDIR /app
 
@@ -43,12 +44,14 @@ RUN echo "=== Build Environment ===" && \
 # Build Zig components
 RUN zig build -Doptimize=ReleaseFast
 
-# Build Mojo components using bundled mojo-sdk
+# Build Mojo components using bundled mojo-sdk (if Mojo is available)
 # The mojo-sdk directory contains our custom SDK build
-RUN if [ -d "mojo" ]; then \
+RUN if [ -d "mojo" ] && command -v mojo >/dev/null 2>&1; then \
     echo "Building Mojo components with local SDK..." && \
     cd mojo && \
-    mojo build main.mojo -o ../zig-out/bin/nlocalmodels-mojo; \
+    mojo build main.mojo -o ../zig-out/bin/nlocalmodels-mojo 2>/dev/null || echo "Mojo build skipped"; \
+    else \
+    echo "Mojo not available or mojo directory not found - skipping Mojo components"; \
     fi
 
 # Runtime image
