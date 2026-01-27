@@ -41,25 +41,25 @@
                             <GenericTile
                                 header="Metadata"
                                 subheader="ORD &amp; CSN"
-                                press="onNavigateToMetadata">
+                                press=".onNavigateToMetadata">
                                 <TileContent>
                                     <ImageContent src="sap-icon://database" />
                                 </TileContent>
                             </GenericTile>
-                            
+
                             <GenericTile
                                 header="ODPS Catalog"
                                 subheader="Data Products"
-                                press="onODPSCatalog">
+                                press=".onODPSCatalog">
                                 <TileContent>
                                     <ImageContent src="sap-icon://product" />
                                 </TileContent>
                             </GenericTile>
-                            
+
                             <GenericTile
                                 header="Quality Dashboard"
                                 subheader="ODPS v4.1"
-                                press="onQualityDashboard">
+                                press=".onQualityDashboard">
                                 <TileContent>
                                     <NumericContent
                                         value="94.6"
@@ -67,61 +67,61 @@
                                         icon="sap-icon://quality-issue" />
                                 </TileContent>
                             </GenericTile>
-                            
+
                             <GenericTile
                                 header="Data Lineage"
                                 subheader="Traceability"
-                                press="onLineageGraph">
+                                press=".onLineageGraph">
                                 <TileContent>
                                     <ImageContent src="sap-icon://chain-link" />
                                 </TileContent>
                             </GenericTile>
-                    
+
                     <!-- Tile 5: YTD Analysis -->
                     <GenericTile
                         header="YTD Analysis"
                         subheader="Analytical List Page"
-                        press="onNavigateToYTD">
+                        press=".onNavigateToYTD">
                         <TileContent>
                             <ImageContent src="sap-icon://line-chart"/>
                         </TileContent>
                     </GenericTile>
-                    
+
                     <!-- Tile 6: Raw Data -->
                     <GenericTile
                         header="Raw Data Explorer"
                         subheader="Object Page"
-                        press="onNavigateToRawData">
+                        press=".onNavigateToRawData">
                         <TileContent>
                             <ImageContent src="sap-icon://table-view"/>
                         </TileContent>
                     </GenericTile>
-                    
+
                     <!-- Tile 7: BS Variance -->
                     <GenericTile
                         header="BS Variance"
                         subheader="Balance Sheet Analysis"
-                        press="onNavigateToBSVariance">
+                        press=".onNavigateToBSVariance">
                         <TileContent>
                             <ImageContent src="sap-icon://compare"/>
                         </TileContent>
                     </GenericTile>
-                    
+
                     <!-- Tile 8: Checklist -->
                     <GenericTile
                         header="Checklist Phase"
                         subheader="Process Tracking"
-                        press="onNavigateToChecklist">
+                        press=".onNavigateToChecklist">
                         <TileContent>
                             <ImageContent src="sap-icon://checklist"/>
                         </TileContent>
                     </GenericTile>
-                    
+
                     <!-- Tile 9: Meta Data (duplicate, using same handler as Tile 1) -->
                     <GenericTile
                         header="Meta Data"
                         subheader="Configuration"
-                        press="onNavigateToMetadata">
+                        press=".onNavigateToMetadata">
                         <TileContent>
                             <ImageContent src="sap-icon://settings"/>
                         </TileContent>

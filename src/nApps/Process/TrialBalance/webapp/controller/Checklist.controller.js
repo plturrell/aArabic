@@ -296,6 +296,37 @@ sap.ui.define([
          */
         onNavBack: function () {
             this.getOwnerComponent().getRouter().navTo("home");
+        },
+
+        /**
+         * Handle search
+         */
+        onSearch: function (oEvent) {
+            var sQuery = oEvent.getParameter("query");
+            MessageToast.show("Search triggered: " + (sQuery || ""));
+        },
+
+        /**
+         * Handle notifications press
+         */
+        onNotificationsPress: function () {
+            MessageToast.show("Notifications pressed");
+        },
+
+        /**
+         * Handle avatar press
+         */
+        onAvatarPress: function () {
+            MessageToast.show("Avatar pressed");
+        },
+
+        /**
+         * Handle checklist item press
+         */
+        onChecklistItemPress: function (oEvent) {
+            var oSource = oEvent.getSource();
+            var sTitle = oSource.getTitle ? oSource.getTitle() : "Checklist item";
+            MessageToast.show(sTitle + " pressed");
         }
 
     });

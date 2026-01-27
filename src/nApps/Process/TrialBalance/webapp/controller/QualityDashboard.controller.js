@@ -45,7 +45,7 @@ sap.ui.define([
         onInit: function () {
             // Initialize API service
             this._oApiService = new ApiService();
-            
+
             // Create view model
             var oViewModel = new JSONModel({
                 busy: true,
@@ -110,7 +110,46 @@ sap.ui.define([
                 lastUpdated: null
             });
             this.getView().setModel(oViewModel, "view");
-            
+
+            // Create quality model for view bindings
+            var oQualityModel = new JSONModel({
+                averageQuality: 92,
+                highQualityCount: 4,
+                lowQualityCount: 1,
+                lastUpdateTime: "Today",
+                products: [
+                    { name: "Trial Balance", qualityScore: 95 },
+                    { name: "Variances", qualityScore: 92 },
+                    { name: "Exchange Rates", qualityScore: 98 },
+                    { name: "Journal Entries", qualityScore: 88 },
+                    { name: "Account Master", qualityScore: 94 }
+                ]
+            });
+            this.getView().setModel(oQualityModel, "quality");
+
+            // Create dimensions model for view bindings
+            var oDimensionsModel = new JSONModel({
+                dimensions: [
+                    { product: "Trial Balance", completeness: 98, accuracy: 96, consistency: 94, timeliness: 92, overall: 95 },
+                    { product: "Variances", completeness: 95, accuracy: 93, consistency: 90, timeliness: 88, overall: 92 },
+                    { product: "Exchange Rates", completeness: 100, accuracy: 99, consistency: 98, timeliness: 95, overall: 98 },
+                    { product: "Journal Entries", completeness: 92, accuracy: 88, consistency: 85, timeliness: 87, overall: 88 },
+                    { product: "Account Master", completeness: 96, accuracy: 95, consistency: 93, timeliness: 92, overall: 94 }
+                ]
+            });
+            this.getView().setModel(oDimensionsModel, "dimensions");
+
+            // Create rules model for view bindings
+            var oRulesModel = new JSONModel({
+                rules: [
+                    { ruleID: "TB001", name: "Balance Equation", description: "Closing = Opening + Debits - Credits", severity: "error", field: "closing_balance", product: "Trial Balance" },
+                    { ruleID: "TB002", name: "Debit Credit Balance", description: "Total debits = Total credits", severity: "error", field: "debit_amount", product: "Trial Balance" },
+                    { ruleID: "VAR001", name: "Variance Calculation", description: "Variance = Current - Previous", severity: "error", field: "variance", product: "Variances" },
+                    { ruleID: "FX001", name: "From Currency", description: "Source currency mandatory", severity: "error", field: "from_currency", product: "Exchange Rates" }
+                ]
+            });
+            this.getView().setModel(oRulesModel, "rules");
+
             // Load data when route is matched
             var oRouter = this.getOwnerComponent().getRouter();
             oRouter.getRoute("qualityDashboard").attachPatternMatched(this._onRouteMatched, this);
@@ -230,6 +269,36 @@ sap.ui.define([
         onRefresh: function () {
             this._loadQualityData();
             MessageToast.show("Data refreshed");
+        },
+
+        /**
+         * Export quality report
+         */
+        onExportReport: function () {
+            MessageToast.show("Exporting quality report...");
+        },
+
+        /**
+         * Handle tile press
+         */
+        onTilePress: function () {
+            MessageToast.show("Quality tile pressed");
+        },
+
+        /**
+         * Navigate to data catalog
+         */
+        onViewCatalog: function () {
+            MessageToast.show("Navigating to Data Catalog...");
+            this.getOwnerComponent().getRouter().navTo("odpsCatalog");
+        },
+
+        /**
+         * Navigate to data lineage
+         */
+        onViewLineage: function () {
+            MessageToast.show("Navigating to Data Lineage...");
+            this.getOwnerComponent().getRouter().navTo("lineageGraph");
         },
 
         /**

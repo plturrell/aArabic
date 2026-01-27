@@ -43,10 +43,11 @@ sap.ui.define([
         onInit: function () {
             // Initialize API service
             this._oApiService = new ApiService();
-            
+
             // Create view model
             var oViewModel = new JSONModel({
                 busy: true,
+                category: "all",
                 products: [],
                 selectedProduct: null,
                 productDetails: {
@@ -62,7 +63,46 @@ sap.ui.define([
                 lastUpdated: null
             });
             this.getView().setModel(oViewModel, "view");
-            
+
+            // Create catalog model for view bindings
+            var oCatalogModel = new JSONModel({
+                productCount: 8
+            });
+            this.getView().setModel(oCatalogModel, "catalog");
+
+            // Create quality model for view bindings
+            var oQualityModel = new JSONModel({
+                averageQuality: 92,
+                generatedAt: new Date().toLocaleString()
+            });
+            this.getView().setModel(oQualityModel, "quality");
+
+            // Create products model for view bindings
+            var oProductsModel = new JSONModel({
+                products: [
+                    { productID: "trial-balance-aggregated", name: "Trial Balance Aggregated", category: "primary", version: "1.0", qualityScore: 95, description: "Aggregated trial balance data", owner: "Finance", updateFrequency: "Daily", dataFormat: "JSON" },
+                    { productID: "variances", name: "Variance Analysis", category: "primary", version: "1.0", qualityScore: 92, description: "Period-over-period variance analysis", owner: "Finance", updateFrequency: "Daily", dataFormat: "JSON" },
+                    { productID: "exchange-rates", name: "Exchange Rates", category: "primary", version: "1.0", qualityScore: 98, description: "Multi-currency exchange rates", owner: "Treasury", updateFrequency: "Daily", dataFormat: "JSON" },
+                    { productID: "acdoca-journal-entries", name: "ACDOCA Journal Entries", category: "primary", version: "1.0", qualityScore: 88, description: "Universal journal entries from SAP S/4HANA", owner: "IT", updateFrequency: "Real-time", dataFormat: "JSON" },
+                    { productID: "account-master", name: "Account Master", category: "primary", version: "1.0", qualityScore: 94, description: "G/L account master data with GCOA mapping", owner: "Finance", updateFrequency: "Weekly", dataFormat: "JSON" },
+                    { productID: "checklist-items", name: "Checklist Items", category: "operational", version: "1.0", qualityScore: 90, description: "Maker/checker workflow checklist", owner: "Operations", updateFrequency: "On-demand", dataFormat: "JSON" },
+                    { productID: "data-lineage", name: "Data Lineage", category: "metadata", version: "1.0", qualityScore: 96, description: "SCIP-based code-to-data lineage tracking", owner: "IT", updateFrequency: "On-demand", dataFormat: "JSON" },
+                    { productID: "dataset-metadata", name: "Dataset Metadata", category: "metadata", version: "1.0", qualityScore: 93, description: "Metadata catalog for all data products", owner: "Data Governance", updateFrequency: "Weekly", dataFormat: "JSON" }
+                ]
+            });
+            this.getView().setModel(oProductsModel, "products");
+
+            // Create selectedProduct model for view bindings
+            var oSelectedProductModel = new JSONModel({
+                productID: "",
+                description: "",
+                owner: "",
+                updateFrequency: "",
+                dataFormat: "",
+                endpoints: []
+            });
+            this.getView().setModel(oSelectedProductModel, "selectedProduct");
+
             // Load data when route is matched
             var oRouter = this.getOwnerComponent().getRouter();
             oRouter.getRoute("odpsCatalog").attachPatternMatched(this._onRouteMatched, this);
@@ -312,6 +352,91 @@ sap.ui.define([
          */
         onNavBack: function () {
             this.getOwnerComponent().getRouter().navTo("home");
+        },
+
+        /**
+         * Export catalog data
+         */
+        onExport: function () {
+            MessageToast.show("Exporting catalog data...");
+        },
+
+        /**
+         * Handle search in products table
+         */
+        onSearch: function (oEvent) {
+            var sQuery = oEvent.getParameter("query");
+            MessageToast.show("Searching for: " + (sQuery || "all products"));
+        },
+
+        /**
+         * Handle category filter change
+         */
+        onCategoryChange: function (oEvent) {
+            var sKey = oEvent.getParameter("item").getKey();
+            MessageToast.show("Filtering by category: " + sKey);
+        },
+
+        /**
+         * Handle product row press (navigation)
+         */
+        onProductPress: function (oEvent) {
+            var oItem = oEvent.getSource();
+            var oContext = oItem.getBindingContext("products");
+            var sProductId = oContext.getProperty("productID");
+            MessageToast.show("Opening product: " + sProductId);
+            this.getOwnerComponent().getRouter().navTo("productDetail", {
+                productId: sProductId
+            });
+        },
+
+        /**
+         * View details for a product
+         */
+        onViewDetails: function (oEvent) {
+            var oButton = oEvent.getSource();
+            var oContext = oButton.getBindingContext("products");
+            var sProductId = oContext.getProperty("productID");
+            MessageToast.show("Viewing details for: " + sProductId);
+            this.getOwnerComponent().getRouter().navTo("productDetail", {
+                productId: sProductId
+            });
+        },
+
+        /**
+         * View product in ORD (Open Resource Discovery)
+         */
+        onViewORD: function (oEvent) {
+            var oButton = oEvent.getSource();
+            var oContext = oButton.getBindingContext("products");
+            var sProductId = oContext.getProperty("productID");
+            MessageToast.show("Opening ORD view for: " + sProductId);
+        },
+
+        /**
+         * Handle endpoint press in details panel
+         */
+        onEndpointPress: function (oEvent) {
+            var oItem = oEvent.getSource();
+            var oContext = oItem.getBindingContext("selectedProduct");
+            var sEndpoint = oContext.getProperty("endpoint");
+            MessageToast.show("Opening endpoint: " + sEndpoint);
+        },
+
+        /**
+         * Navigate to quality dashboard
+         */
+        onViewQualityDashboard: function () {
+            MessageToast.show("Opening Quality Dashboard...");
+            this.getOwnerComponent().getRouter().navTo("qualityDashboard");
+        },
+
+        /**
+         * Navigate to data lineage view
+         */
+        onViewDataLineage: function () {
+            MessageToast.show("Opening Data Lineage view...");
+            this.getOwnerComponent().getRouter().navTo("lineageGraph");
         }
 
     });

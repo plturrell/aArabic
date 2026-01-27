@@ -196,6 +196,47 @@ sap.ui.define([
          */
         onNavBack: function () {
             this.getOwnerComponent().getRouter().navTo("home");
+        },
+
+        /**
+         * Open navigation menu
+         */
+        onMenuPress: function (oEvent) {
+            var oButton = oEvent.getSource();
+            var oActionSheet = this.byId("navigationMenu");
+            oActionSheet.openBy(oButton);
+        },
+
+        /**
+         * Handle KPI tile press
+         */
+        onKPIPress: function (oEvent) {
+            var oTile = oEvent.getSource();
+            var sHeader = oTile.getHeader();
+            MessageToast.show("KPI selected: " + sHeader);
+        },
+
+        /**
+         * Calculate trial balance
+         */
+        onCalculate: function () {
+            MessageToast.show("Calculating trial balance...");
+        },
+
+        /**
+         * Export data to Excel
+         */
+        onExport: function () {
+            MessageToast.show("Exporting to Excel...");
+        },
+
+        /**
+         * Handle menu item press
+         */
+        onMenuItemPress: function (oEvent) {
+            var oButton = oEvent.getSource();
+            var sText = oButton.getText();
+            MessageToast.show("Navigating to: " + sText);
         }
 
     });

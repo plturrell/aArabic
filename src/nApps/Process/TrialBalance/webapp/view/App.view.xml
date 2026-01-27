@@ -3,11 +3,127 @@
     xmlns="sap.m"
     xmlns:mvc="sap.ui.core.mvc"
     xmlns:f="sap.f"
+    xmlns:tnt="sap.tnt"
+    xmlns:core="sap.ui.core"
     displayBlock="true"
     height="100%">
-    
-    <App id="app" height="100%">
-        <!-- Pages will be loaded by router -->
-    </App>
-    
+
+    <tnt:ToolPage id="toolPage" sideExpanded="{appView>/sideExpanded}">
+
+        <!-- Header -->
+        <tnt:header>
+            <tnt:ToolHeader>
+                <Button
+                    id="sideNavigationToggleButton"
+                    icon="sap-icon://menu2"
+                    type="Transparent"
+                    press=".onSideNavButtonPress"
+                    tooltip="Toggle Menu"/>
+                <ToolbarSpacer/>
+                <Title text="Trial Balance" level="H4"/>
+                <ToolbarSpacer/>
+                <SearchField
+                    width="250px"
+                    placeholder="Search..."
+                    search=".onSearch"/>
+                <Button
+                    icon="sap-icon://bell"
+                    type="Transparent"
+                    press=".onNotificationsPress"
+                    tooltip="Notifications">
+                    <customData>
+                        <BadgeCustomData key="badge" value="3" visible="true"/>
+                    </customData>
+                </Button>
+                <Button
+                    icon="sap-icon://sys-help"
+                    type="Transparent"
+                    press=".onHelpPress"
+                    tooltip="Help"/>
+                <Avatar
+                    initials="TB"
+                    displaySize="XS"
+                    press=".onAvatarPress"
+                    class="sapUiSmallMarginEnd"/>
+            </tnt:ToolHeader>
+        </tnt:header>
+
+        <!-- Side Navigation -->
+        <tnt:sideContent>
+            <tnt:SideNavigation
+                id="sideNavigation"
+                expanded="{appView>/sideExpanded}"
+                itemSelect=".onItemSelect">
+                <tnt:NavigationList>
+                    <tnt:NavigationListItem
+                        text="Home"
+                        icon="sap-icon://home"
+                        key="home"/>
+                    <tnt:NavigationListItem
+                        text="Overview"
+                        icon="sap-icon://overview-chart"
+                        key="overview"/>
+                    <tnt:NavigationListItem
+                        text="Data Products"
+                        icon="sap-icon://product"
+                        key="odpsCatalog"
+                        expanded="false">
+                        <tnt:items>
+                            <tnt:NavigationListItem
+                                text="ODPS Catalog"
+                                key="odpsCatalog"/>
+                            <tnt:NavigationListItem
+                                text="Quality Dashboard"
+                                key="qualityDashboard"/>
+                            <tnt:NavigationListItem
+                                text="Data Lineage"
+                                key="lineageGraph"/>
+                        </tnt:items>
+                    </tnt:NavigationListItem>
+                    <tnt:NavigationListItem
+                        text="Analysis"
+                        icon="sap-icon://business-objects-experience"
+                        key="analysis"
+                        expanded="false">
+                        <tnt:items>
+                            <tnt:NavigationListItem
+                                text="YTD Analysis"
+                                key="ytdAnalysis"/>
+                            <tnt:NavigationListItem
+                                text="BS Variance"
+                                key="bsVariance"/>
+                            <tnt:NavigationListItem
+                                text="Raw Data"
+                                key="rawData"/>
+                        </tnt:items>
+                    </tnt:NavigationListItem>
+                    <tnt:NavigationListItem
+                        text="Workflow"
+                        icon="sap-icon://workflow-tasks"
+                        key="checklist"/>
+                    <tnt:NavigationListItem
+                        text="Metadata"
+                        icon="sap-icon://action-settings"
+                        key="metadata"/>
+                </tnt:NavigationList>
+                <tnt:fixedItem>
+                    <tnt:NavigationList>
+                        <tnt:NavigationListItem
+                            text="Settings"
+                            icon="sap-icon://settings"
+                            key="settings"/>
+                    </tnt:NavigationList>
+                </tnt:fixedItem>
+            </tnt:SideNavigation>
+        </tnt:sideContent>
+
+        <!-- Main Content -->
+        <tnt:mainContents>
+            <App id="app" height="100%">
+                <!-- Pages will be loaded by router -->
+            </App>
+        </tnt:mainContents>
+
+    </tnt:ToolPage>
+
 </mvc:View>

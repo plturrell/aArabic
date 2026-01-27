@@ -7914,7 +7914,6 @@ pub fn compilerRtOptMode(comp: Compilation) std.builtin.OptimizeMode {
         .ReleaseBalanced => return .ReleaseFast,
     }
 }
-}
 
 /// This decides whether to strip debug info for all zig-provided libraries, including
 /// compiler-rt, libcxx, libc, libunwind, etc.

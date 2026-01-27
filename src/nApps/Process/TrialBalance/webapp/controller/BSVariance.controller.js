@@ -307,6 +307,27 @@ sap.ui.define([
          */
         onNavBack: function () {
             this.getOwnerComponent().getRouter().navTo("home");
+        },
+
+        /**
+         * Handle search event
+         */
+        onSearch: function () {
+            MessageToast.show("Search triggered");
+        },
+
+        /**
+         * Handle notifications press event
+         */
+        onNotificationsPress: function () {
+            MessageToast.show("Notifications pressed");
+        },
+
+        /**
+         * Handle avatar press event
+         */
+        onAvatarPress: function () {
+            MessageToast.show("Avatar pressed");
         }
 
     });

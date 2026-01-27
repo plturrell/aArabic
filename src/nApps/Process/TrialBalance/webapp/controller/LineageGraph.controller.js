@@ -71,7 +71,21 @@ sap.ui.define([
                 lastUpdated: null
             });
             this.getView().setModel(oViewModel, "view");
-            
+
+            // Create lineage model for view bindings
+            var oLineageModel = new JSONModel({
+                graph: {
+                    nodes: [],
+                    edges: []
+                },
+                entries: [
+                    { lineage_id: "LIN-001", source_dataset_id: "ACDOCA", source_hash: "abc123", target_dataset_id: "TB_TRIAL_BALANCE", target_hash: "def456", transformation: "Aggregation", quality_score: 95, record_count: 25000, transformation_timestamp: "2026-01-27 10:00:00" },
+                    { lineage_id: "LIN-002", source_dataset_id: "TB_EXCHANGE_RATES", source_hash: "ghi789", target_dataset_id: "TB_TRIAL_BALANCE", target_hash: "def456", transformation: "FX Conversion", quality_score: 98, record_count: 500, transformation_timestamp: "2026-01-27 10:05:00" },
+                    { lineage_id: "LIN-003", source_dataset_id: "TB_TRIAL_BALANCE", source_hash: "def456", target_dataset_id: "TB_VARIANCE_DETAILS", target_hash: "jkl012", transformation: "Variance Calc", quality_score: 92, record_count: 1200, transformation_timestamp: "2026-01-27 10:10:00" }
+                ]
+            });
+            this.getView().setModel(oLineageModel, "lineage");
+
             // Load data when route is matched
             var oRouter = this.getOwnerComponent().getRouter();
             oRouter.getRoute("lineageGraph").attachPatternMatched(this._onRouteMatched, this);
@@ -303,6 +317,52 @@ sap.ui.define([
          */
         onNavBack: function () {
             this.getOwnerComponent().getRouter().navTo("home");
+        },
+
+        /**
+         * Handle visualization type change
+         */
+        onVizTypeChange: function (oEvent) {
+            var sSelectedKey = oEvent.getParameter("item").getKey();
+            MessageToast.show("Visualization type changed to: " + sSelectedKey);
+        },
+
+        /**
+         * Toggle full screen mode
+         */
+        onFullScreen: function () {
+            MessageToast.show("Full screen mode toggled");
+        },
+
+        /**
+         * Export graph as SVG
+         */
+        onExportSVG: function () {
+            MessageToast.show("Exporting lineage graph as SVG");
+        },
+
+        /**
+         * Handle lineage item press
+         */
+        onLineageItemPress: function (oEvent) {
+            var oItem = oEvent.getSource();
+            var oContext = oItem.getBindingContext("lineage");
+            var sLineageId = oContext.getProperty("lineage_id");
+            MessageToast.show("Lineage item selected: " + sLineageId);
+        },
+
+        /**
+         * Navigate to catalog view
+         */
+        onViewCatalog: function () {
+            this.getOwnerComponent().getRouter().navTo("odpsCatalog");
+        },
+
+        /**
+         * Navigate to quality view
+         */
+        onViewQuality: function () {
+            this.getOwnerComponent().getRouter().navTo("qualityDashboard");
         }
 
     });
