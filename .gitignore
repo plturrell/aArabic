@@ -14,9 +14,12 @@ lib/
 !src/nLang/n-c-sdk/lib/
 src/nLang/n-c-sdk/lib/*
 !src/nLang/n-c-sdk/lib/libc/
+!src/nLang/n-c-sdk/lib/compiler/
 src/nLang/n-c-sdk/lib/libc/*
 !src/nLang/n-c-sdk/lib/libc/zig-libc/
 !src/nLang/n-c-sdk/lib/libc/zig-libc/**
+!src/nLang/n-c-sdk/lib/compiler/aro/
+!src/nLang/n-c-sdk/lib/compiler/aro/**
 lib64/
 parts/
 sdist/
@@ -51,9 +54,11 @@ coverage.xml
 # Environments
 .env
 .venv
-env/
+# Note: Do NOT ignore env/ - it conflicts with Zig libc source files
+# env/
 venv/
-ENV/
+# Note: Do NOT ignore ENV/ - it conflicts with Zig libc source files (case-insensitive on macOS)
+# ENV/
 env.bak/
 venv.bak/
 
