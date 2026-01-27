@@ -26,7 +26,7 @@ jobs:
   # =============================================================================
   # Build Matrix - All serviceCore Backend Services
   # Uses pre-built custom SDK images: plturrell/n-c-sdk, plturrell/n-python-sdk
-  # Images pushed to plturrell/nservices with service-specific tags
+  # Images pushed to plturrell/nservices:<service-name>
   # =============================================================================
   build-backend:
     name: Build ${{ matrix.service.name }}
@@ -95,7 +95,7 @@ jobs:
 
       # -----------------------------------------------------------------------
       # Docker Metadata
-      # Tags: plturrell/nservices:nAgentFlow-latest, etc.
+      # Tags: plturrell/nservices:nAgentFlow, plturrell/nservices:nAgentFlow-<sha>, etc.
       # -----------------------------------------------------------------------
       - name: Extract metadata
         id: meta
@@ -103,10 +103,8 @@ jobs:
         with:
           images: ${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=${{ matrix.service.name }}-latest,enable={{is_default_branch}}
-            type=raw,value=${{ matrix.service.name }}-{{branch}}
+            type=raw,value=${{ matrix.service.name }},enable={{is_default_branch}}
             type=raw,value=${{ matrix.service.name }}-{{sha}}
-            type=raw,value=${{ matrix.service.name }}-{{date 'YYYYMMDD-HHmmss'}}
 
       # -----------------------------------------------------------------------
       # Build and Push
@@ -136,7 +134,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          image: ${{ env.IMAGE_NAME }}:${{ matrix.service.name }}-latest
+          image: ${{ env.IMAGE_NAME }}:${{ matrix.service.name }}
           args: --severity-threshold=high
 
       # -----------------------------------------------------------------------
