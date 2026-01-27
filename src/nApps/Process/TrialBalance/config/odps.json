@@ -1,0 +1,63 @@
+{
+  "odps": {
+    "version": "1.0",
+    "products": [
+      "acdoca-journal-entries",
+      "trial-balance-aggregated", 
+      "variances",
+      "exchange-rates",
+      "account-master",
+      "checklist-items",
+      "data-lineage",
+      "dataset-metadata"
+    ],
+    "rules": {
+      "trialBalance": {
+        "TB001": "Balance Equation",
+        "TB002": "Sign Convention",
+        "TB003": "Period Completeness",
+        "TB004": "Account Master Link",
+        "TB005": "Multi-Currency",
+        "TB006": "Ledger Consistency"
+      },
+      "variance": {
+        "VAR001": "Variance Calculation",
+        "VAR002": "Variance Sign",
+        "VAR003": "Material BS Threshold",
+        "VAR004": "Material PL Threshold",
+        "VAR005": "Commentary Required",
+        "VAR006": "Commentary Quality",
+        "VAR007": "Exception Threshold",
+        "VAR008": "Driver Classification"
+      },
+      "exchangeRate": {
+        "FX001": "From Currency Mandatory",
+        "FX002": "To Currency Mandatory",
+        "FX003": "Rate Type Required",
+        "FX004": "Valid Date Range",
+        "FX005": "Rate Source"
+      },
+      "workflow": {
+        "WF001": "Checklist Stage",
+        "WF002": "Approval Required"
+      }
+    },
+    "thresholds": {
+      "balanceSheetAmount": 100000000,
+      "profitLossAmount": 3000000,
+      "variancePercentage": 10.0,
+      "commentaryCoverage": 90.0
+    },
+    "driverCategories": [
+      "VOLUME",
+      "PRICE",
+      "MIX",
+      "FX",
+      "ONE_TIME",
+      "TIMING",
+      "ACQUISITION_DISPOSAL",
+      "POLICY_CHANGE",
+      "OTHER"
+    ]
+  }
+}

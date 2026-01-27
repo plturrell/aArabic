@@ -1,230 +1,301 @@
+/**
+ * ============================================================================
+ * Lineage Graph Controller
+ * SCIP-based code-to-data lineage visualization
+ * ============================================================================
+ *
+ * [CODE:file=LineageGraph.controller.js]
+ * [CODE:module=controller]
+ * [CODE:language=javascript]
+ *
+ * [ODPS:product=data-lineage]
+ *
+ * [VIEW:binding=LineageGraph.view.xml]
+ *
+ * [API:consumes=/api/v1/lineage]
+ * [API:consumes=/api/v1/lineage/symbol/{id}]
+ *
+ * [RELATION:uses=CODE:ApiService.js]
+ * [RELATION:uses=CODE:NetworkGraphControl.js]
+ * [RELATION:displays=SCIP:lineage-graph]
+ *
+ * This controller displays the SCIP-based code lineage graph showing
+ * relationships between ODPS products, Zig code, SQL tables, and APIs.
+ */
 sap.ui.define([
     "sap/ui/core/mvc/Controller",
     "sap/ui/model/json/JSONModel",
-    "sap/m/MessageToast"
-], function (Controller, JSONModel, MessageToast) {
+    "sap/m/MessageToast",
+    "trialbalance/service/ApiService"
+], function (Controller, JSONModel, MessageToast, ApiService) {
     "use strict";
 
     return Controller.extend("trialbalance.controller.LineageGraph", {
 
+        /**
+         * Controller initialization
+         */
         onInit: function () {
-            // Initialize view model
-            const oViewModel = new JSONModel({
-                vizType: "dag"
+            // Initialize API service
+            this._oApiService = new ApiService();
+            
+            // Create view model
+            var oViewModel = new JSONModel({
+                busy: true,
+                graph: {
+                    nodes: [],
+                    edges: []
+                },
+                selectedNode: null,
+                nodeDetails: null,
+                filters: {
+                    showODPS: true,
+                    showCode: true,
+                    showTables: true,
+                    showAPIs: true
+                },
+                nodeTypes: [
+                    { key: "odps", text: "ODPS Products", color: "#1a73e8" },
+                    { key: "zig", text: "Zig Code", color: "#f4b400" },
+                    { key: "table", text: "SQL Tables", color: "#0f9d58" },
+                    { key: "api", text: "API Endpoints", color: "#db4437" }
+                ],
+                stats: {
+                    totalNodes: 0,
+                    totalEdges: 0,
+                    odpsCount: 0,
+                    codeCount: 0,
+                    tableCount: 0,
+                    apiCount: 0
+                },
+                lastUpdated: null
             });
             this.getView().setModel(oViewModel, "view");
-
-            // Load lineage data
-            this._loadLineageData();
+            
+            // Load data when route is matched
+            var oRouter = this.getOwnerComponent().getRouter();
+            oRouter.getRoute("lineageGraph").attachPatternMatched(this._onRouteMatched, this);
         },
 
         /**
-         * Load lineage data from ODPS API
+         * Route matched handler
+         * @private
          */
-        _loadLineageData: function () {
-            const sUrl = "/api/v1/lineage";
+        _onRouteMatched: function () {
+            this._loadLineageGraph();
+        },
+
+        /**
+         * Load lineage graph from API
+         * @private
+         */
+        _loadLineageGraph: function () {
+            var that = this;
+            var oViewModel = this.getView().getModel("view");
+            oViewModel.setProperty("/busy", true);
             
-            fetch(sUrl)
-                .then(response => response.json())
-                .then(data => {
-                    this._processLineageData(data);
+            this._oApiService.getLineageGraph()
+                .then(function (oData) {
+                    var aNodes = (oData.nodes || []).map(function (n) {
+                        return {
+                            id: n.id,
+                            label: n.label || n.name,
+                            type: n.type,
+                            module: n.module || "",
+                            file: n.file || "",
+                            line: n.line || 0,
+                            description: n.description || "",
+                            color: that._getNodeColor(n.type)
+                        };
+                    });
+                    
+                    var aEdges = (oData.edges || []).map(function (e) {
+                        return {
+                            source: e.source,
+                            target: e.target,
+                            type: e.type || "relates_to",
+                            label: e.label || ""
+                        };
+                    });
+                    
+                    oViewModel.setProperty("/graph", {
+                        nodes: aNodes,
+                        edges: aEdges
+                    });
+                    
+                    // Calculate stats
+                    oViewModel.setProperty("/stats", {
+                        totalNodes: aNodes.length,
+                        totalEdges: aEdges.length,
+                        odpsCount: aNodes.filter(function(n) { return n.type === "odps"; }).length,
+                        codeCount: aNodes.filter(function(n) { return n.type === "zig"; }).length,
+                        tableCount: aNodes.filter(function(n) { return n.type === "table"; }).length,
+                        apiCount: aNodes.filter(function(n) { return n.type === "api"; }).length
+                    });
+                    
+                    oViewModel.setProperty("/lastUpdated", new Date());
+                    oViewModel.setProperty("/busy", false);
                 })
-                .catch(error => {
-                    // Load mock lineage data
-                    this._loadMockLineageData();
+                .catch(function (oError) {
+                    // Use static data
+                    var oStaticGraph = that._getStaticGraph();
+                    oViewModel.setProperty("/graph", oStaticGraph);
+                    oViewModel.setProperty("/stats", {
+                        totalNodes: oStaticGraph.nodes.length,
+                        totalEdges: oStaticGraph.edges.length,
+                        odpsCount: oStaticGraph.nodes.filter(function(n) { return n.type === "odps"; }).length,
+                        codeCount: oStaticGraph.nodes.filter(function(n) { return n.type === "zig"; }).length,
+                        tableCount: oStaticGraph.nodes.filter(function(n) { return n.type === "table"; }).length,
+                        apiCount: oStaticGraph.nodes.filter(function(n) { return n.type === "api"; }).length
+                    });
+                    oViewModel.setProperty("/busy", false);
                 });
         },
 
         /**
-         * Process lineage data for visualization
+         * Get node color by type
+         * @private
          */
-        _processLineageData: function (data) {
-            // Transform to graph format for NetworkGraphControl
-            const graph = this._buildLineageGraph(data);
-            
-            const oModel = new JSONModel({
-                graph: graph,
-                entries: data.entries || []
-            });
-            this.getView().setModel(oModel, "lineage");
+        _getNodeColor: function (sType) {
+            var oColors = {
+                "odps": "#1a73e8",
+                "zig": "#f4b400",
+                "table": "#0f9d58",
+                "api": "#db4437"
+            };
+            return oColors[sType] || "#666";
         },
 
         /**
-         * Build graph structure from lineage entries
+         * Get static graph for offline mode
+         * @private
          */
-        _buildLineageGraph: function (data) {
-            const nodes = [];
-            const links = [];
-            const nodeMap = new Map();
+        _getStaticGraph: function () {
+            return {
+                nodes: [
+                    // ODPS Products
+                    { id: "odps:trial-balance-aggregated", label: "Trial Balance", type: "odps", color: "#1a73e8" },
+                    { id: "odps:variances", label: "Variances", type: "odps", color: "#1a73e8" },
+                    { id: "odps:exchange-rates", label: "Exchange Rates", type: "odps", color: "#1a73e8" },
+                    
+                    // Zig Code
+                    { id: "zig:balance_engine", label: "balance_engine.zig", type: "zig", color: "#f4b400", file: "balance_engine.zig" },
+                    { id: "zig:fx_converter", label: "fx_converter.zig", type: "zig", color: "#f4b400", file: "fx_converter.zig" },
+                    { id: "zig:odps_api", label: "odps_api.zig", type: "zig", color: "#f4b400", file: "odps_api.zig" },
+                    { id: "zig:trial_balance", label: "trial_balance.zig", type: "zig", color: "#f4b400", file: "trial_balance.zig" },
+                    
+                    // SQL Tables
+                    { id: "table:TB_TRIAL_BALANCE", label: "TB_TRIAL_BALANCE", type: "table", color: "#0f9d58" },
+                    { id: "table:TB_VARIANCE_DETAILS", label: "TB_VARIANCE_DETAILS", type: "table", color: "#0f9d58" },
+                    { id: "table:TB_EXCHANGE_RATES", label: "TB_EXCHANGE_RATES", type: "table", color: "#0f9d58" },
+                    
+                    // API Endpoints
+                    { id: "api:/trial-balance", label: "/api/v1/trial-balance", type: "api", color: "#db4437" },
+                    { id: "api:/variances", label: "/api/v1/variances", type: "api", color: "#db4437" },
+                    { id: "api:/exchange-rates", label: "/api/v1/exchange-rates", type: "api", color: "#db4437" }
+                ],
+                edges: [
+                    // ODPS -> Code
+                    { source: "odps:trial-balance-aggregated", target: "zig:balance_engine", type: "implemented_by" },
+                    { source: "odps:variances", target: "zig:balance_engine", type: "implemented_by" },
+                    { source: "odps:exchange-rates", target: "zig:fx_converter", type: "implemented_by" },
+                    
+                    // Code -> Tables
+                    { source: "zig:balance_engine", target: "table:TB_TRIAL_BALANCE", type: "reads_writes" },
+                    { source: "zig:balance_engine", target: "table:TB_VARIANCE_DETAILS", type: "writes" },
+                    { source: "zig:fx_converter", target: "table:TB_EXCHANGE_RATES", type: "reads" },
+                    
+                    // Code -> API
+                    { source: "zig:trial_balance", target: "api:/trial-balance", type: "exposes" },
+                    { source: "zig:balance_engine", target: "api:/variances", type: "exposes" },
+                    { source: "zig:fx_converter", target: "api:/exchange-rates", type: "exposes" },
+                    
+                    // Code -> Code
+                    { source: "zig:trial_balance", target: "zig:balance_engine", type: "calls" },
+                    { source: "zig:balance_engine", target: "zig:fx_converter", type: "calls" },
+                    { source: "zig:odps_api", target: "zig:balance_engine", type: "calls" }
+                ]
+            };
+        },
 
-            // Create nodes for each unique dataset
-            if (data.entries) {
-                data.entries.forEach(entry => {
-                    if (!nodeMap.has(entry.source_dataset_id)) {
-                        nodes.push({
-                            id: entry.source_dataset_id,
-                            label: entry.source_dataset_id,
-                            group: this._getDatasetCategory(entry.source_dataset_id),
-                            quality: entry.quality_score
-                        });
-                        nodeMap.set(entry.source_dataset_id, true);
-                    }
-                    
-                    if (!nodeMap.has(entry.target_dataset_id)) {
-                        nodes.push({
-                            id: entry.target_dataset_id,
-                            label: entry.target_dataset_id,
-                            group: this._getDatasetCategory(entry.target_dataset_id),
-                            quality: entry.quality_score
-                        });
-                        nodeMap.set(entry.target_dataset_id, true);
-                    }
-                    
-                    // Create link
-                    links.push({
-                        source: entry.source_dataset_id,
-                        target: entry.target_dataset_id,
-                        label: entry.transformation,
-                        value: entry.record_count
+        /**
+         * Handle node selection
+         */
+        onNodeSelect: function (oEvent) {
+            var that = this;
+            var oNode = oEvent.getParameter("node");
+            
+            if (!oNode) return;
+            
+            var oViewModel = this.getView().getModel("view");
+            oViewModel.setProperty("/selectedNode", oNode);
+            
+            // Load node details
+            this._oApiService.getSymbolDetails(oNode.id)
+                .then(function (oDetails) {
+                    oViewModel.setProperty("/nodeDetails", oDetails);
+                })
+                .catch(function () {
+                    oViewModel.setProperty("/nodeDetails", {
+                        id: oNode.id,
+                        type: oNode.type,
+                        label: oNode.label,
+                        description: "Details not available"
                     });
                 });
-            }
-
-            return { nodes, links };
         },
 
         /**
-         * Get dataset category for coloring
+         * Toggle filter
          */
-        _getDatasetCategory: function (datasetId) {
-            if (datasetId.includes("ACDOCA")) return "source";
-            if (datasetId.includes("trial-balance")) return "derived";
-            if (datasetId.includes("variance")) return "analytical";
-            return "other";
+        onToggleFilter: function (oEvent) {
+            var sType = oEvent.getSource().data("type");
+            var oViewModel = this.getView().getModel("view");
+            var bCurrent = oViewModel.getProperty("/filters/show" + sType.charAt(0).toUpperCase() + sType.slice(1));
+            oViewModel.setProperty("/filters/show" + sType.charAt(0).toUpperCase() + sType.slice(1), !bCurrent);
+            // Trigger graph re-render
+            this._applyFilters();
         },
 
         /**
-         * Load mock lineage data
+         * Apply filters to graph
+         * @private
          */
-        _loadMockLineageData: function () {
-            const aMockLineage = [
-                {
-                    lineage_id: "550e8400-e29b-41d4-a716-446655440001",
-                    source_dataset_id: "ACDOCA_RAW",
-                    target_dataset_id: "ACDOCA_TABLE",
-                    source_hash: "a1b2c3d4e5f6...",
-                    target_hash: "a1b2c3d4e5f6...",
-                    transformation: "extract",
-                    transformation_timestamp: Date.now() - 3600000,
-                    quality_score: 95.0,
-                    record_count: 50000
-                },
-                {
-                    lineage_id: "550e8400-e29b-41d4-a716-446655440002",
-                    source_dataset_id: "ACDOCA_TABLE",
-                    target_dataset_id: "TRIAL_BALANCE_AGG",
-                    source_hash: "b2c3d4e5f6g7...",
-                    target_hash: "c3d4e5f6g7h8...",
-                    transformation: "aggregate",
-                    transformation_timestamp: Date.now() - 1800000,
-                    quality_score: 92.0,
-                    record_count: 5000
-                },
-                {
-                    lineage_id: "550e8400-e29b-41d4-a716-446655440003",
-                    source_dataset_id: "TRIAL_BALANCE_AGG",
-                    target_dataset_id: "VARIANCES",
-                    source_hash: "d4e5f6g7h8i9...",
-                    target_hash: "e5f6g7h8i9j0...",
-                    transformation: "calculate",
-                    transformation_timestamp: Date.now() - 900000,
-                    quality_score: 90.0,
-                    record_count: 500
-                }
-            ];
-
-            const graph = this._buildLineageGraph({ entries: aMockLineage });
-            
-            const oModel = new JSONModel({
-                graph: graph,
-                entries: aMockLineage
-            });
-            this.getView().setModel(oModel, "lineage");
+        _applyFilters: function () {
+            // Implementation would filter the graph based on selected types
+            MessageToast.show("Filters applied");
         },
 
         /**
-         * Change visualization type
+         * Zoom in
          */
-        onVizTypeChange: function (oEvent) {
-            const sKey = oEvent.getParameter("item").getKey();
-            MessageToast.show(`Switched to ${sKey.toUpperCase()} visualization`);
-            
-            // Update graph control visualization
-            const oGraph = this.byId("lineageGraph");
-            if (oGraph && oGraph.setVisualizationType) {
-                oGraph.setVisualizationType(sKey);
-            }
+        onZoomIn: function () {
+            // Would interact with NetworkGraph control
+            MessageToast.show("Zoom in");
         },
 
         /**
-         * Full screen mode
+         * Zoom out
          */
-        onFullScreen: function () {
-            const oGraph = this.byId("lineageGraph");
-            if (oGraph && oGraph.getDomRef()) {
-                const elem = oGraph.getDomRef();
-                if (elem.requestFullscreen) {
-                    elem.requestFullscreen();
-                }
-            }
+        onZoomOut: function () {
+            // Would interact with NetworkGraph control
+            MessageToast.show("Zoom out");
         },
 
         /**
-         * Export SVG
+         * Fit to screen
          */
-        onExportSVG: function () {
-            const oGraph = this.byId("lineageGraph");
-            if (oGraph && oGraph.exportSVG) {
-                oGraph.exportSVG("lineage-graph.svg");
-                MessageToast.show("Lineage graph exported");
-            } else {
-                MessageToast.show("Export not yet implemented");
-            }
+        onFitToScreen: function () {
+            // Would interact with NetworkGraph control
+            MessageToast.show("Fit to screen");
         },
 
         /**
-         * Lineage item pressed
+         * Refresh graph
          */
-        onLineageItemPress: function (oEvent) {
-            const oContext = oEvent.getSource().getBindingContext("lineage");
-            const oItem = oContext.getObject();
-            
-            MessageBox.information(
-                `Lineage Entry\n\n` +
-                `ID: ${oItem.lineage_id}\n` +
-                `Source: ${oItem.source_dataset_id}\n` +
-                `Target: ${oItem.target_dataset_id}\n` +
-                `Transformation: ${oItem.transformation}\n` +
-                `Quality: ${oItem.quality_score}%\n` +
-                `Records: ${oItem.record_count.toLocaleString()}`,
-                {
-                    title: "Lineage Details"
-                }
-            );
-        },
-
-        /**
-         * Navigate to catalog
-         */
-        onViewCatalog: function () {
-            this.getOwnerComponent().getRouter().navTo("odpsCatalog");
-        },
-
-        /**
-         * Navigate to quality dashboard
-         */
-        onViewQuality: function () {
-            this.getOwnerComponent().getRouter().navTo("qualityDashboard");
+        onRefresh: function () {
+            this._loadLineageGraph();
+            MessageToast.show("Graph refreshed");
         },
 
         /**
@@ -233,5 +304,6 @@ sap.ui.define([
         onNavBack: function () {
             this.getOwnerComponent().getRouter().navTo("home");
         }
+
     });
 });

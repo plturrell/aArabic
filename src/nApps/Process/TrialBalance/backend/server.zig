@@ -1,7 +1,17 @@
-// ============================================================================
-// Trial Balance Backend API Server
-// Zig HTTP server with SQLite support, API endpoints, and static file serving
-// ============================================================================
+//! ============================================================================
+//! Trial Balance Backend API Server
+//! Zig HTTP server with SQLite support, API endpoints, and static file serving
+//! ============================================================================
+//!
+//! [CODE:file=server.zig]
+//! [CODE:module=backend]
+//! [CODE:language=zig]
+//!
+//! [RELATION:uses=CODE:main.zig]
+//! [RELATION:uses=CODE:trial_balance.zig]
+//! [RELATION:uses=CODE:odps_api.zig]
+//!
+//! Note: Infrastructure - HTTP server entry point and route configuration.
 
 const std = @import("std");
 const net = std.net;

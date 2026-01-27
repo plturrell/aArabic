@@ -1,7 +1,16 @@
-// ============================================================================
-// Result Equivalence Test
-// Verify all optimization levels produce IDENTICAL results
-// ============================================================================
+//! ============================================================================
+//! Result Equivalence Test
+//! Verify all optimization levels produce IDENTICAL results
+//! ============================================================================
+//!
+//! [CODE:file=test_result_equivalence.zig]
+//! [CODE:module=models/calculation]
+//! [CODE:language=zig]
+//!
+//! [RELATION:tests=CODE:balance_engine.zig,balance_engine_optimized.zig,balance_engine_simd.zig,balance_engine_parallel.zig,balance_engine_multi_bu.zig,balance_engine_unified.zig]
+//!
+//! Note: Test code - validates that all optimization levels produce
+//! mathematically equivalent results (within floating-point tolerance).
 
 const std = @import("std");
 const unified = @import("balance_engine_unified.zig");

@@ -114,6 +114,16 @@ pub const ExchangeRate = struct {
         return false; // No source specified = invalid
     }
     
+    /// Validate FX005: Exchange Rate Verification against Group rate
+    /// Control Ref: REC-005 - Rates must match Group treasury rates
+    /// Returns true if the rate is within acceptable tolerance of reference rate
+    pub fn validateFX005(self: *const ExchangeRate, reference_rate: f64, tolerance_percent: f64) bool {
+        if (reference_rate <= 0.0) return false; // Invalid reference rate
+        
+        const deviation = @abs(self.rate - reference_rate) / reference_rate;
+        return deviation <= tolerance_percent;
+    }
+    
     /// Run all FX validations
     pub fn validateAll(self: *const ExchangeRate) FXValidationResult {
         return FXValidationResult{
@@ -121,6 +131,19 @@ pub const ExchangeRate = struct {
             .fx002_passed = self.validateFX002(),
             .fx003_passed = self.validateFX003(),
             .fx004_passed = self.validateFX004(),
+            .fx005_passed = true, // Requires reference rate - set in validateAllWithReference
+            .fx007_passed = self.validateFX007(),
+        };
+    }
+    
+    /// Run all FX validations including FX005 with reference rate
+    pub fn validateAllWithReference(self: *const ExchangeRate, reference_rate: f64, tolerance_percent: f64) FXValidationResult {
+        return FXValidationResult{
+            .fx001_passed = self.validateFX001(),
+            .fx002_passed = self.validateFX002(),
+            .fx003_passed = self.validateFX003(),
+            .fx004_passed = self.validateFX004(),
+            .fx005_passed = self.validateFX005(reference_rate, tolerance_percent),
             .fx007_passed = self.validateFX007(),
         };
     }
@@ -132,21 +155,27 @@ pub const FXValidationResult = struct {
     fx002_passed: bool, // To Currency Mandatory
     fx003_passed: bool, // Rate Positive
     fx004_passed: bool, // Ratio Positive
+    fx005_passed: bool, // Exchange Rate Verification (REC-005)
     fx007_passed: bool, // Group Rate Source
+    
+    /// Default tolerance for FX005 rate verification (0.5%)
+    pub const DEFAULT_RATE_TOLERANCE: f64 = 0.005;
     
     pub fn isValid(self: *const FXValidationResult) bool {
         return self.fx001_passed and self.fx002_passed and 
-               self.fx003_passed and self.fx004_passed and self.fx007_passed;
+               self.fx003_passed and self.fx004_passed and 
+               self.fx005_passed and self.fx007_passed;
     }
     
     pub fn getFailedRules(self: *const FXValidationResult) []const []const u8 {
-        var failed: [5][]const u8 = undefined;
+        var failed: [6][]const u8 = undefined;
         var count: usize = 0;
         
         if (!self.fx001_passed) { failed[count] = ODPSFXRuleID.FX001_FROM_CURRENCY_MANDATORY; count += 1; }
         if (!self.fx002_passed) { failed[count] = ODPSFXRuleID.FX002_TO_CURRENCY_MANDATORY; count += 1; }
         if (!self.fx003_passed) { failed[count] = ODPSFXRuleID.FX003_RATE_POSITIVE; count += 1; }
         if (!self.fx004_passed) { failed[count] = ODPSFXRuleID.FX004_RATIO_POSITIVE; count += 1; }
+        if (!self.fx005_passed) { failed[count] = ODPSFXRuleID.FX005_EXCHANGE_RATE_VERIFICATION; count += 1; }
         if (!self.fx007_passed) { failed[count] = ODPSFXRuleID.FX007_GROUP_RATE_SOURCE; count += 1; }
         
         return failed[0..count];

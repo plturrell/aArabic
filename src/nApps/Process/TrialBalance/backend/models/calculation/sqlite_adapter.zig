@@ -1,7 +1,19 @@
-// ============================================================================
-// SQLite Adapter for Trial Balance Development
-// Provides database access for local development and testing
-// ============================================================================
+//! ============================================================================
+//! SQLite Adapter for Trial Balance Development
+//! Provides database access for local development and testing
+//! ============================================================================
+//!
+//! [CODE:file=sqlite_adapter.zig]
+//! [CODE:module=models/calculation]
+//! [CODE:language=zig]
+//!
+//! [TABLE:manages=JOURNAL_ENTRIES,ACCOUNT_BALANCES,TRIAL_BALANCE_RESULTS]
+//!
+//! [RELATION:used_by=CODE:balance_engine.zig]
+//! [RELATION:dev_replacement_for=HANA]
+//!
+//! Note: Development adapter for local testing without HANA.
+//! Production deployments use HANA directly.
 
 const std = @import("std");
 const c = @cImport({

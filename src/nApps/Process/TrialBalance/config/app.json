@@ -1,0 +1,24 @@
+{
+  "application": {
+    "name": "TrialBalance",
+    "version": "1.0.0",
+    "description": "SAP Trial Balance Analysis Application"
+  },
+  "server": {
+    "port": 8081,
+    "host": "0.0.0.0"
+  },
+  "database": {
+    "type": "hana",
+    "schema": "SAPABAP1"
+  },
+  "features": {
+    "websocket": true,
+    "caching": true,
+    "compression": true
+  },
+  "logging": {
+    "level": "info",
+    "format": "json"
+  }
+}

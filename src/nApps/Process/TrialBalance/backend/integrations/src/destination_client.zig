@@ -1,3 +1,16 @@
+//! ============================================================================
+//! SAP Destination Service Client
+//! Handles communication with nServices through SAP BTP Destinations
+//! ============================================================================
+//!
+//! [CODE:file=destination_client.zig]
+//! [CODE:module=integrations]
+//! [CODE:language=zig]
+//!
+//! [RELATION:integrates=nServices:nAgentMeta,nLocalModels]
+//!
+//! Note: Infrastructure - SAP BTP integration for external service communication.
+
 const std = @import("std");
 
 /// SAP Destination Service Client

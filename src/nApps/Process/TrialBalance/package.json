@@ -13,15 +13,18 @@
     "deploy": "mbt build && cf deploy mta_archives/trial-balance_1.0.0.mtar"
   },
   "devDependencies": {
-    "@ui5/cli": "^3.9.0",
     "@sap/ux-ui5-tooling": "^1.14.0",
+    "@ui5/cli": "^3.9.0",
     "eslint": "^8.57.0",
     "karma": "^6.4.3",
     "karma-chrome-launcher": "^3.2.0",
     "karma-coverage": "^2.2.1",
     "karma-ui5": "^3.0.3"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@sap/hana-client": "^2.27.23",
+    "dotenv": "^17.2.3"
+  },
   "ui5": {
     "dependencies": [
       "@sap/ux-ui5-tooling"

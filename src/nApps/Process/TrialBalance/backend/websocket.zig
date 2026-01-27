@@ -1,7 +1,15 @@
-// ============================================================================
-// WebSocket Module for Trial Balance Real-time Streaming
-// Based on n-c-sdk demos WebSocket implementation
-// ============================================================================
+//! ============================================================================
+//! WebSocket Module for Trial Balance Real-time Streaming
+//! Based on n-c-sdk demos WebSocket implementation
+//! ============================================================================
+//!
+//! [CODE:file=websocket.zig]
+//! [CODE:module=backend]
+//! [CODE:language=zig]
+//!
+//! [RELATION:used_by=CODE:server.zig]
+//!
+//! Note: Infrastructure - WebSocket protocol handling for real-time streaming.
 
 const std = @import("std");
 const net = std.net;

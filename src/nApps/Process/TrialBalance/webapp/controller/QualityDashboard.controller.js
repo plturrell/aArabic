@@ -1,196 +1,235 @@
+/**
+ * ============================================================================
+ * Data Quality Dashboard Controller
+ * ODPS data quality metrics and validation rule status
+ * ============================================================================
+ *
+ * [CODE:file=QualityDashboard.controller.js]
+ * [CODE:module=controller]
+ * [CODE:language=javascript]
+ *
+ * [ODPS:product=trial-balance-aggregated]
+ * [ODPS:product=variances]
+ * [ODPS:product=exchange-rates]
+ * [ODPS:rules=TB001,TB002,TB003,TB004,TB005,TB006,VAR001,VAR002,VAR003,VAR004,VAR005,VAR006,VAR007,VAR008,FX001,FX002,FX003,FX004,FX005,FX006,FX007]
+ *
+ * [VIEW:binding=QualityDashboard.view.xml]
+ *
+ * [API:consumes=/api/v1/quality]
+ * [API:consumes=/api/v1/quality/rules]
+ * [API:consumes=/api/v1/quality/trends]
+ *
+ * [RELATION:uses=CODE:ApiService.js]
+ * [RELATION:calls=CODE:odps_quality_service.zig]
+ * [RELATION:calls=CODE:data_quality.zig]
+ *
+ * This controller displays data quality metrics, validation rule status,
+ * and quality trends for the trial balance data.
+ */
 sap.ui.define([
     "sap/ui/core/mvc/Controller",
     "sap/ui/model/json/JSONModel",
-    "sap/m/MessageToast"
-], function (Controller, JSONModel, MessageToast) {
+    "sap/m/MessageToast",
+    "trialbalance/service/ApiService"
+], function (Controller, JSONModel, MessageToast, ApiService) {
     "use strict";
+
+    // ODPS Rule IDs from backend
+    var ODPSRuleID = ApiService.ODPSRuleID;
 
     return Controller.extend("trialbalance.controller.QualityDashboard", {
 
+        /**
+         * Controller initialization
+         */
         onInit: function () {
-            // Load quality data
-            this._loadQualityMetrics();
-            this._loadQualityDimensions();
-            this._loadValidationRules();
-        },
-
-        /**
-         * Load quality metrics from ODPS API
-         */
-        _loadQualityMetrics: function () {
-            const sUrl = "/api/v1/data-products/quality-report";
+            // Initialize API service
+            this._oApiService = new ApiService();
             
-            fetch(sUrl)
-                .then(response => response.json())
-                .then(data => {
-                    // Calculate additional metrics
-                    data.highQualityCount = data.products.filter(p => p.qualityScore >= 95).length;
-                    data.lowQualityCount = data.products.filter(p => p.qualityScore < 90).length;
-                    data.lastUpdateTime = new Date(data.generatedAt).toLocaleTimeString();
-                    
-                    const oModel = new JSONModel(data);
-                    this.getView().setModel(oModel, "quality");
-                })
-                .catch(error => {
-                    // Load mock data
-                    this._loadMockQualityMetrics();
-                });
-        },
-
-        /**
-         * Load mock quality metrics
-         */
-        _loadMockQualityMetrics: function () {
-            const oMockData = {
-                generatedAt: Date.now(),
-                averageQuality: 94.6,
-                highQualityCount: 3,
-                lowQualityCount: 1,
-                lastUpdateTime: new Date().toLocaleTimeString(),
-                products: [
-                    { name: "ACDOCA Journal Entries", qualityScore: 95.0 },
-                    { name: "Exchange Rates", qualityScore: 98.0 },
-                    { name: "Trial Balance Aggregated", qualityScore: 92.0 },
-                    { name: "Period Variances", qualityScore: 90.0 },
-                    { name: "Account Master", qualityScore: 98.0 },
-                    { name: "Data Lineage", qualityScore: 100.0 },
-                    { name: "Dataset Metadata", qualityScore: 100.0 },
-                    { name: "Checklist Items", qualityScore: 85.0 }
-                ]
-            };
-            
-            const oModel = new JSONModel(oMockData);
-            this.getView().setModel(oModel, "quality");
-        },
-
-        /**
-         * Load quality dimensions for each product
-         */
-        _loadQualityDimensions: function () {
-            const aDimensions = [
-                {
-                    product: "ACDOCA Journal Entries",
-                    completeness: 98,
-                    accuracy: 95,
-                    consistency: 92,
-                    timeliness: 99,
-                    overall: 95.0
+            // Create view model
+            var oViewModel = new JSONModel({
+                busy: true,
+                metrics: {
+                    overallScore: 0,
+                    completenessScore: 0,
+                    accuracyScore: 0,
+                    consistencyScore: 0,
+                    timelinessScore: 0
                 },
-                {
-                    product: "Exchange Rates",
-                    completeness: 99,
-                    accuracy: 98,
-                    consistency: 97,
-                    timeliness: 99,
-                    overall: 98.0
-                },
-                {
-                    product: "Trial Balance Aggregated",
+                targets: {
                     completeness: 95,
                     accuracy: 98,
                     consistency: 90,
-                    timeliness: 95,
-                    overall: 92.0
+                    timeliness: 95
                 },
-                {
-                    product: "Period Variances",
-                    completeness: 92,
-                    accuracy: 98,
-                    consistency: 88,
-                    timeliness: 85,
-                    overall: 90.0
+                ruleCategories: [
+                    {
+                        name: "Trial Balance Rules (TB001-TB006)",
+                        rules: [
+                            { id: "TB001", name: "Balance Equation", description: "Closing = Opening + Debits - Credits", passed: false },
+                            { id: "TB002", name: "Debit Credit Balance", description: "Total debits = Total credits", passed: false },
+                            { id: "TB003", name: "IFRS Classification", description: "All accounts have IFRS category", passed: false },
+                            { id: "TB004", name: "Period Data Accuracy", description: "Period dates match expected", passed: false },
+                            { id: "TB005", name: "GCOA Mapping", description: "All accounts mapped to GCOA", passed: false },
+                            { id: "TB006", name: "Global Mapping Currency", description: "Mapping version current", passed: false }
+                        ]
+                    },
+                    {
+                        name: "Variance Rules (VAR001-VAR008)",
+                        rules: [
+                            { id: "VAR001", name: "Variance Calculation", description: "Variance = Current - Previous", passed: false },
+                            { id: "VAR002", name: "Variance Percent", description: "Percentage calculated correctly", passed: false },
+                            { id: "VAR003", name: "Materiality BS", description: "$100M AND 10% threshold", passed: false },
+                            { id: "VAR004", name: "Materiality P&L", description: "$3M AND 10% threshold", passed: false },
+                            { id: "VAR005", name: "Commentary Required", description: "Material variances have commentary", passed: false },
+                            { id: "VAR006", name: "Commentary Coverage", description: "90% coverage requirement", passed: false },
+                            { id: "VAR007", name: "Exception Flagging", description: "Exceptions properly flagged", passed: false },
+                            { id: "VAR008", name: "Driver Identification", description: "Major drivers identified", passed: false }
+                        ]
+                    },
+                    {
+                        name: "Exchange Rate Rules (FX001-FX007)",
+                        rules: [
+                            { id: "FX001", name: "From Currency", description: "Source currency mandatory", passed: false },
+                            { id: "FX002", name: "To Currency", description: "Target currency mandatory", passed: false },
+                            { id: "FX003", name: "Rate Positive", description: "Exchange rate > 0", passed: false },
+                            { id: "FX004", name: "Ratio Positive", description: "Currency ratios > 0", passed: false },
+                            { id: "FX005", name: "Rate Verification", description: "Rates match Group rates", passed: false },
+                            { id: "FX006", name: "Period Rate", description: "Period-appropriate rates", passed: false },
+                            { id: "FX007", name: "Group Source", description: "Approved rate sources", passed: false }
+                        ]
+                    }
+                ],
+                trends: [],
+                summary: {
+                    totalRules: 21,
+                    passedRules: 0,
+                    failedRules: 0,
+                    passRate: 0
                 },
-                {
-                    product: "Account Master",
-                    completeness: 99,
-                    accuracy: 98,
-                    consistency: 97,
-                    timeliness: 100,
-                    overall: 98.0
-                }
-            ];
+                lastUpdated: null
+            });
+            this.getView().setModel(oViewModel, "view");
             
-            const oModel = new JSONModel({ dimensions: aDimensions });
-            this.getView().setModel(oModel, "dimensions");
+            // Load data when route is matched
+            var oRouter = this.getOwnerComponent().getRouter();
+            oRouter.getRoute("qualityDashboard").attachPatternMatched(this._onRouteMatched, this);
         },
 
         /**
-         * Load validation rules from ODPS files
+         * Route matched handler
+         * @private
          */
-        _loadValidationRules: function () {
-            const aRules = [
-                // ACDOCA rules
-                { ruleID: "R001", name: "RACCT Mandatory", description: "G/L Account is mandatory", severity: "error", field: "racct", product: "ACDOCA" },
-                { ruleID: "R002", name: "DRCRK Valid", description: "Debit/Credit must be S or H", severity: "error", field: "drcrk", product: "ACDOCA" },
-                { ruleID: "R003", name: "POPER Range", description: "Posting period 1-12", severity: "error", field: "poper", product: "ACDOCA" },
-                { ruleID: "R004", name: "Zero Amount Warning", description: "HSL should not be zero", severity: "warning", field: "hsl", product: "ACDOCA" },
-                { ruleID: "R005", name: "Company Code Mandatory", description: "Company code required", severity: "error", field: "rbukrs", product: "ACDOCA" },
-                
-                // Exchange Rate rules
-                { ruleID: "X001", name: "From Currency Mandatory", description: "Source currency required", severity: "error", field: "from_curr", product: "ExchangeRates" },
-                { ruleID: "X002", name: "To Currency Mandatory", description: "Target currency required", severity: "error", field: "to_curr", product: "ExchangeRates" },
-                { ruleID: "X003", name: "Rate Positive", description: "Exchange rate must be positive", severity: "error", field: "exchange_rate", product: "ExchangeRates" },
-                
-                // Trial Balance rules
-                { ruleID: "TB001", name: "Balance Equation", description: "Closing = Opening + Debit - Credit", severity: "error", field: "closing_balance", product: "TrialBalance" },
-                { ruleID: "TB002", name: "Debit Credit Balance", description: "Total debits = total credits", severity: "error", field: "debit_amount", product: "TrialBalance" },
-                
-                // Variance rules
-                { ruleID: "VAR001", name: "Variance Calculation", description: "Variance = Current - Previous", severity: "error", field: "variance_amount", product: "Variances" },
-                { ruleID: "VAR003", name: "Materiality Threshold BS", description: "BS variance >$100M or >10%", severity: "warning", field: "is_significant", product: "Variances" }
-            ];
-            
-            const oModel = new JSONModel({ rules: aRules });
-            this.getView().setModel(oModel, "rules");
+        _onRouteMatched: function () {
+            this._loadQualityData();
         },
 
         /**
-         * Refresh all metrics
+         * Load quality data from API
+         * @private
+         */
+        _loadQualityData: function () {
+            var that = this;
+            var oViewModel = this.getView().getModel("view");
+            oViewModel.setProperty("/busy", true);
+            
+            Promise.all([
+                this._oApiService.getQualityMetrics(),
+                this._oApiService.getRuleValidationStatus(),
+                this._oApiService.getQualityTrends({ days: 30 })
+            ]).then(function (aResults) {
+                var oMetrics = aResults[0] || {};
+                var aRuleStatus = aResults[1] || [];
+                var aTrends = aResults[2] || [];
+                
+                // Update metrics
+                oViewModel.setProperty("/metrics", {
+                    overallScore: oMetrics.overall_score || 0,
+                    completenessScore: oMetrics.completeness_score || 0,
+                    accuracyScore: oMetrics.accuracy_score || 0,
+                    consistencyScore: oMetrics.consistency_score || 0,
+                    timelinessScore: oMetrics.timeliness_score || 0
+                });
+                
+                // Update rule status
+                var aCategories = oViewModel.getProperty("/ruleCategories");
+                var iPassed = 0;
+                var iFailed = 0;
+                
+                aCategories.forEach(function (oCategory) {
+                    oCategory.rules.forEach(function (oRule) {
+                        var oStatus = aRuleStatus.find(function (s) {
+                            return s.rule_id === oRule.id;
+                        });
+                        if (oStatus) {
+                            oRule.passed = oStatus.passed;
+                            if (oStatus.passed) iPassed++;
+                            else iFailed++;
+                        }
+                    });
+                });
+                
+                oViewModel.setProperty("/ruleCategories", aCategories);
+                oViewModel.setProperty("/summary", {
+                    totalRules: 21,
+                    passedRules: iPassed,
+                    failedRules: iFailed,
+                    passRate: iPassed / 21 * 100
+                });
+                
+                // Update trends
+                oViewModel.setProperty("/trends", aTrends.map(function (t) {
+                    return {
+                        date: new Date(t.date),
+                        score: t.overall_score
+                    };
+                }));
+                
+                oViewModel.setProperty("/lastUpdated", new Date());
+                oViewModel.setProperty("/busy", false);
+            }).catch(function (oError) {
+                MessageToast.show("Failed to load quality data: " + oError.message);
+                oViewModel.setProperty("/busy", false);
+            });
+        },
+
+        /**
+         * Format score as percentage
+         */
+        formatScore: function (fValue) {
+            if (fValue === null || fValue === undefined) return "0%";
+            return fValue.toFixed(1) + "%";
+        },
+
+        /**
+         * Get score state for radial micro chart
+         */
+        getScoreState: function (fValue, fTarget) {
+            if (fValue >= fTarget) return "Good";
+            if (fValue >= fTarget * 0.9) return "Critical";
+            return "Error";
+        },
+
+        /**
+         * Get rule status icon
+         */
+        getRuleIcon: function (bPassed) {
+            return bPassed ? "sap-icon://accept" : "sap-icon://error";
+        },
+
+        /**
+         * Get rule status state
+         */
+        getRuleState: function (bPassed) {
+            return bPassed ? "Success" : "Error";
+        },
+
+        /**
+         * Refresh data
          */
         onRefresh: function () {
-            MessageToast.show("Refreshing quality metrics...");
-            this._loadQualityMetrics();
-            this._loadQualityDimensions();
-        },
-
-        /**
-         * Export quality report
-         */
-        onExportReport: function () {
-            const oQualityModel = this.getView().getModel("quality");
-            const oData = oQualityModel.getData();
-            
-            const sJson = JSON.stringify(oData, null, 2);
-            const blob = new Blob([sJson], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `quality-report-${new Date().toISOString()}.json`;
-            a.click();
-            
-            MessageToast.show("Quality report exported");
-        },
-
-        /**
-         * Tile pressed
-         */
-        onTilePress: function () {
-            MessageToast.show("Quality overview");
-        },
-
-        /**
-         * Navigate to catalog
-         */
-        onViewCatalog: function () {
-            this.getOwnerComponent().getRouter().navTo("odpsCatalog");
-        },
-
-        /**
-         * Navigate to lineage
-         */
-        onViewLineage: function () {
-            this.getOwnerComponent().getRouter().navTo("lineageGraph");
+            this._loadQualityData();
+            MessageToast.show("Data refreshed");
         },
 
         /**
@@ -199,5 +238,6 @@ sap.ui.define([
         onNavBack: function () {
             this.getOwnerComponent().getRouter().navTo("home");
         }
+
     });
 });

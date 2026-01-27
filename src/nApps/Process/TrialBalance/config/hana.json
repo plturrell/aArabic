@@ -1,0 +1,25 @@
+tor{
+  "hana": {
+    "connection": {
+      "host": "${HANA_HOST}",
+      "port": "${HANA_PORT:443}",
+      "user": "${HANA_USER}",
+      "password": "${HANA_PASSWORD}",
+      "database": "${HANA_DATABASE}",
+      "schema": "${HANA_SCHEMA:SAPABAP1}"
+    },
+    "options": {
+      "encrypt": true,
+      "sslValidateCertificate": false,
+      "poolSize": 10,
+      "connectionTimeout": 30000
+    },
+    "tables": {
+      "acdoca": "ACDOCA",
+      "ska1": "SKA1",
+      "skat": "SKAT",
+      "tcurr": "TCURR",
+      "t001": "T001"
+    }
+  }
+}

@@ -350,6 +350,29 @@ pub const TrialBalanceResult = struct {
     }
 };
 
+/// Driver categories for VAR008 Major Driver Identification
+/// Reference: ODPS variances.odps.yaml - major_driver_category
+pub const DriverCategory = enum {
+    /// Volume/quantity changes
+    VOLUME,
+    /// Price/rate changes
+    PRICE,
+    /// Mix/product composition changes
+    MIX,
+    /// Foreign exchange impact
+    FX,
+    /// One-time/non-recurring items
+    ONE_TIME,
+    /// Timing differences between periods
+    TIMING,
+    /// Acquisitions or disposals
+    ACQUISITION_DISPOSAL,
+    /// Accounting policy changes
+    POLICY_CHANGE,
+    /// Other/uncategorized
+    OTHER,
+};
+
 /// Variance Analysis - Maps to ODPS variances.odps.yaml fields
 pub const VarianceAnalysis = struct {
     // ODPS Field: account_code
@@ -374,8 +397,10 @@ pub const VarianceAnalysis = struct {
     has_commentary: bool = false,
     // ODPS Field: commentary_text
     commentary: ?[]const u8 = null,
-    // ODPS Field: major_driver (VAR008)
+    // ODPS Field: major_driver (VAR008) - Text description
     major_driver: ?[]const u8 = null,
+    // ODPS Field: major_driver_category (VAR008) - Categorized driver type
+    driver_category: ?DriverCategory = null,
     // ODPS Field: is_exception (VAR007)
     is_exception: bool = false,
     

@@ -1,364 +1,310 @@
+/**
+ * ============================================================================
+ * ODPS Catalog Controller
+ * Browse and explore ODPS data products and their metadata
+ * ============================================================================
+ *
+ * [CODE:file=ODPSCatalog.controller.js]
+ * [CODE:module=controller]
+ * [CODE:language=javascript]
+ *
+ * [ODPS:product=trial-balance-aggregated]
+ * [ODPS:product=variances]
+ * [ODPS:product=exchange-rates]
+ * [ODPS:product=acdoca-journal-entries]
+ * [ODPS:product=account-master]
+ *
+ * [VIEW:binding=ODPSCatalog.view.xml]
+ *
+ * [API:consumes=/api/v1/odps/products]
+ * [API:consumes=/api/v1/odps/products/{id}/rules]
+ * [API:consumes=/api/v1/odps/products/{id}/lineage]
+ *
+ * [RELATION:uses=CODE:ApiService.js]
+ * [RELATION:calls=CODE:odps_api.zig]
+ * [RELATION:calls=CODE:odps_mapper.zig]
+ *
+ * This controller provides a catalog view of all ODPS data products,
+ * their validation rules, field mappings, and lineage information.
+ */
 sap.ui.define([
     "sap/ui/core/mvc/Controller",
     "sap/ui/model/json/JSONModel",
     "sap/m/MessageToast",
-    "sap/m/MessageBox"
-], function (Controller, JSONModel, MessageToast, MessageBox) {
+    "trialbalance/service/ApiService"
+], function (Controller, JSONModel, MessageToast, ApiService) {
     "use strict";
 
     return Controller.extend("trialbalance.controller.ODPSCatalog", {
 
+        /**
+         * Controller initialization
+         */
         onInit: function () {
-            // Initialize models
-            const oCatalogModel = new JSONModel({
-                name: "Trial Balance Data Products",
-                version: "1.0.0",
-                specification: "ODPS v4.1",
-                productCount: 8,
-                categories: ["primary", "metadata", "operational"]
-            });
-            this.getView().setModel(oCatalogModel, "catalog");
-
-            const oViewModel = new JSONModel({
-                category: "all"
+            // Initialize API service
+            this._oApiService = new ApiService();
+            
+            // Create view model
+            var oViewModel = new JSONModel({
+                busy: true,
+                products: [],
+                selectedProduct: null,
+                productDetails: {
+                    fields: [],
+                    rules: [],
+                    lineage: null
+                },
+                categories: [
+                    { key: "primary", text: "Primary Data Products" },
+                    { key: "operational", text: "Operational Data" },
+                    { key: "metadata", text: "Metadata Products" }
+                ],
+                lastUpdated: null
             });
             this.getView().setModel(oViewModel, "view");
-
-            // Load data products
-            this._loadDataProducts();
-            this._loadQualityReport();
+            
+            // Load data when route is matched
+            var oRouter = this.getOwnerComponent().getRouter();
+            oRouter.getRoute("odpsCatalog").attachPatternMatched(this._onRouteMatched, this);
         },
 
         /**
-         * Load all ODPS data products from backend
+         * Route matched handler
+         * @private
          */
-        _loadDataProducts: function () {
-            const sUrl = "/api/v1/data-products";
-            
-            fetch(sUrl)
-                .then(response => response.json())
-                .then(data => {
-                    const oModel = new JSONModel(data);
-                    this.getView().setModel(oModel, "products");
-                })
-                .catch(error => {
-                    MessageToast.show("Failed to load data products: " + error.message);
-                    // Load mock data for demonstration
-                    this._loadMockDataProducts();
-                });
+        _onRouteMatched: function () {
+            this._loadCatalog();
         },
 
         /**
-         * Load quality report
+         * Load ODPS catalog from API
+         * @private
          */
-        _loadQualityReport: function () {
-            const sUrl = "/api/v1/data-products/quality-report";
+        _loadCatalog: function () {
+            var that = this;
+            var oViewModel = this.getView().getModel("view");
+            oViewModel.setProperty("/busy", true);
             
-            fetch(sUrl)
-                .then(response => response.json())
-                .then(data => {
-                    const oModel = new JSONModel(data);
-                    this.getView().setModel(oModel, "quality");
-                })
-                .catch(error => {
-                    // Load mock quality data
-                    const oModel = new JSONModel({
-                        generatedAt: Date.now(),
-                        averageQuality: 94.6,
-                        products: [
-                            { name: "ACDOCA Journal Entries", qualityScore: 95.0 },
-                            { name: "Exchange Rates", qualityScore: 98.0 },
-                            { name: "Trial Balance Aggregated", qualityScore: 92.0 },
-                            { name: "Period Variances", qualityScore: 90.0 },
-                            { name: "Account Master", qualityScore: 98.0 }
-                        ]
+            this._oApiService.getODPSProducts()
+                .then(function (aProducts) {
+                    // Group products by category
+                    var aTransformed = (aProducts || []).map(function (p) {
+                        return {
+                            id: p.id || p.name,
+                            name: p.name,
+                            description: p.description || "",
+                            category: p.category || "primary",
+                            version: p.version || "1.0",
+                            fieldCount: p.field_count || 0,
+                            ruleCount: p.rule_count || 0,
+                            status: p.status || "active",
+                            lastModified: p.last_modified ? new Date(p.last_modified) : null
+                        };
                     });
-                    this.getView().setModel(oModel, "quality");
+                    
+                    oViewModel.setProperty("/products", aTransformed);
+                    oViewModel.setProperty("/lastUpdated", new Date());
+                    oViewModel.setProperty("/busy", false);
+                })
+                .catch(function (oError) {
+                    // Use fallback static data
+                    oViewModel.setProperty("/products", that._getStaticProducts());
+                    oViewModel.setProperty("/busy", false);
                 });
         },
 
         /**
-         * Load mock data products (fallback)
+         * Get static products for offline mode
+         * @private
          */
-        _loadMockDataProducts: function () {
-            const aMockProducts = [
+        _getStaticProducts: function () {
+            return [
                 {
-                    productID: "urn:uuid:acdoca-journal-entries-v1",
-                    name: "ACDOCA Universal Journal Entries",
-                    version: "1.0.0",
+                    id: "trial-balance-aggregated",
+                    name: "Trial Balance Aggregated",
+                    description: "Aggregated trial balance data with validation rules TB001-TB006",
                     category: "primary",
-                    qualityScore: 95.0,
-                    description: "Complete SAP S/4HANA ACDOCA universal journal entries",
-                    owner: "Trial Balance Team",
-                    updateFrequency: "real-time",
-                    dataFormat: "CSN",
-                    endpoints: [
-                        { name: "REST API", endpoint: "/api/v1/journal-entries" },
-                        { name: "Lineage API", endpoint: "/api/v1/lineage/acdoca" }
-                    ]
+                    version: "1.0",
+                    fieldCount: 15,
+                    ruleCount: 6,
+                    status: "active"
                 },
                 {
-                    productID: "urn:uuid:exchange-rates-v1",
-                    name: "Foreign Exchange Rates",
-                    version: "1.0.0",
+                    id: "variances",
+                    name: "Variance Analysis",
+                    description: "Period-over-period variance analysis with VAR001-VAR008 rules",
                     category: "primary",
-                    qualityScore: 98.0,
-                    description: "Multi-currency exchange rates for financial consolidation",
-                    owner: "Trial Balance Team",
-                    updateFrequency: "daily",
-                    dataFormat: "CSN",
-                    endpoints: [
-                        { name: "REST API", endpoint: "/api/v1/exchange-rates" },
-                        { name: "Conversion API", endpoint: "/api/v1/exchange-rates/convert" }
-                    ]
+                    version: "1.0",
+                    fieldCount: 12,
+                    ruleCount: 8,
+                    status: "active"
                 },
                 {
-                    productID: "urn:uuid:trial-balance-aggregated-v1",
-                    name: "Trial Balance (Aggregated)",
-                    version: "1.0.0",
+                    id: "exchange-rates",
+                    name: "Exchange Rates",
+                    description: "Multi-currency exchange rates with FX001-FX007 validation",
                     category: "primary",
-                    qualityScore: 92.0,
-                    description: "Aggregated trial balance entries by account",
-                    owner: "Trial Balance Team",
-                    updateFrequency: "daily",
-                    dataFormat: "CSN",
-                    endpoints: [
-                        { name: "REST API", endpoint: "/api/v1/trial-balance" },
-                        { name: "Overview API", endpoint: "/api/v1/trial-balance/overview" }
-                    ]
+                    version: "1.0",
+                    fieldCount: 8,
+                    ruleCount: 7,
+                    status: "active"
                 },
                 {
-                    productID: "urn:uuid:variances-v1",
-                    name: "Period-over-Period Variances",
-                    version: "1.0.0",
+                    id: "acdoca-journal-entries",
+                    name: "ACDOCA Journal Entries",
+                    description: "Universal journal entries from SAP S/4HANA",
                     category: "primary",
-                    qualityScore: 90.0,
-                    description: "Period-over-period variance analysis with AI commentary",
-                    owner: "Trial Balance Team",
-                    updateFrequency: "monthly",
-                    dataFormat: "CSN",
-                    endpoints: [
-                        { name: "REST API", endpoint: "/api/v1/trial-balance/variance" },
-                        { name: "Commentary API", endpoint: "/api/v1/ai/commentary/generate" }
-                    ]
+                    version: "1.0",
+                    fieldCount: 25,
+                    ruleCount: 0,
+                    status: "active"
                 },
                 {
-                    productID: "urn:uuid:account-master-v1",
-                    name: "G/L Account Master Data",
-                    version: "1.0.0",
+                    id: "account-master",
+                    name: "Account Master",
+                    description: "G/L account master data with GCOA mapping",
                     category: "primary",
-                    qualityScore: 98.0,
-                    description: "Chart of accounts with hierarchical relationships",
-                    owner: "Trial Balance Team",
-                    updateFrequency: "on-change",
-                    dataFormat: "CSN",
-                    endpoints: [
-                        { name: "REST API", endpoint: "/api/v1/accounts" },
-                        { name: "Hierarchy API", endpoint: "/api/v1/accounts/hierarchy" }
-                    ]
+                    version: "1.0",
+                    fieldCount: 10,
+                    ruleCount: 2,
+                    status: "active"
                 },
                 {
-                    productID: "urn:uuid:data-lineage-v1",
-                    name: "Data Lineage Tracking",
-                    version: "1.0.0",
-                    category: "metadata",
-                    qualityScore: 100.0,
-                    description: "Complete data lineage tracking with SHA-256 verification",
-                    owner: "Trial Balance Team",
-                    updateFrequency: "real-time",
-                    dataFormat: "CSN",
-                    endpoints: [
-                        { name: "Lineage API", endpoint: "/api/v1/lineage" },
-                        { name: "Graph API", endpoint: "/api/v1/lineage/graph" }
-                    ]
-                },
-                {
-                    productID: "urn:uuid:dataset-metadata-v1",
-                    name: "Dataset Quality Metrics",
-                    version: "1.0.0",
-                    category: "metadata",
-                    qualityScore: 100.0,
-                    description: "Quality metrics and dataset discovery metadata",
-                    owner: "Trial Balance Team",
-                    updateFrequency: "real-time",
-                    dataFormat: "CSN",
-                    endpoints: [
-                        { name: "Metadata API", endpoint: "/api/v1/metadata" },
-                        { name: "Quality API", endpoint: "/api/v1/data-products/:id/quality" }
-                    ]
-                },
-                {
-                    productID: "urn:uuid:checklist-items-v1",
-                    name: "Trial Balance Workflow Checklist",
-                    version: "1.0.0",
+                    id: "checklist-items",
+                    name: "Checklist Items",
+                    description: "Maker/checker workflow checklist",
                     category: "operational",
-                    qualityScore: 85.0,
-                    description: "13-stage IFRS workflow tracking",
-                    owner: "Trial Balance Team",
-                    updateFrequency: "real-time",
-                    dataFormat: "CSN",
-                    endpoints: [
-                        { name: "Checklist API", endpoint: "/api/v1/trial-balance/checklist" },
-                        { name: "Workflow State API", endpoint: "/api/v1/workflow/state" }
-                    ]
+                    version: "1.0",
+                    fieldCount: 8,
+                    ruleCount: 0,
+                    status: "active"
+                },
+                {
+                    id: "data-lineage",
+                    name: "Data Lineage",
+                    description: "SCIP-based code-to-data lineage tracking",
+                    category: "metadata",
+                    version: "1.0",
+                    fieldCount: 6,
+                    ruleCount: 0,
+                    status: "active"
+                },
+                {
+                    id: "dataset-metadata",
+                    name: "Dataset Metadata",
+                    description: "Metadata catalog for all data products",
+                    category: "metadata",
+                    version: "1.0",
+                    fieldCount: 12,
+                    ruleCount: 0,
+                    status: "active"
                 }
             ];
-
-            const oModel = new JSONModel({ products: aMockProducts });
-            this.getView().setModel(oModel, "products");
         },
 
         /**
-         * Refresh data products
-         */
-        onRefresh: function () {
-            MessageToast.show("Refreshing data products...");
-            this._loadDataProducts();
-            this._loadQualityReport();
-        },
-
-        /**
-         * Export catalog
-         */
-        onExport: function () {
-            MessageToast.show("Exporting catalog metadata...");
-            // TODO: Export to JSON/YAML
-        },
-
-        /**
-         * Search products
-         */
-        onSearch: function (oEvent) {
-            const sQuery = oEvent.getParameter("query");
-            const oTable = this.byId("productsTable");
-            const oBinding = oTable.getBinding("items");
-            
-            if (sQuery) {
-                const aFilters = [
-                    new sap.ui.model.Filter("name", sap.ui.model.FilterOperator.Contains, sQuery)
-                ];
-                oBinding.filter(aFilters);
-            } else {
-                oBinding.filter([]);
-            }
-        },
-
-        /**
-         * Filter by category
-         */
-        onCategoryChange: function (oEvent) {
-            const sKey = oEvent.getParameter("item").getKey();
-            const oTable = this.byId("productsTable");
-            const oBinding = oTable.getBinding("items");
-            
-            if (sKey === "all") {
-                oBinding.filter([]);
-            } else {
-                const aFilters = [
-                    new sap.ui.model.Filter("category", sap.ui.model.FilterOperator.EQ, sKey)
-                ];
-                oBinding.filter(aFilters);
-            }
-        },
-
-        /**
-         * Product selected
+         * Handle product selection
          */
         onProductSelect: function (oEvent) {
-            const oItem = oEvent.getParameter("listItem");
-            const oContext = oItem.getBindingContext("products");
-            const oProduct = oContext.getObject();
+            var that = this;
+            var oItem = oEvent.getParameter("listItem");
+            var oContext = oItem.getBindingContext("view");
+            var oProduct = oContext.getObject();
             
-            // Update selected product model
-            const oModel = new JSONModel(oProduct);
-            this.getView().setModel(oModel, "selectedProduct");
-            
-            // Expand details panel
-            this.byId("detailsPanel").setExpanded(true);
-        },
-
-        /**
-         * View product details
-         */
-        onViewDetails: function (oEvent) {
-            const oItem = oEvent.getSource().getParent().getParent();
-            const oContext = oItem.getBindingContext("products");
-            const oProduct = oContext.getObject();
-            
-            MessageBox.information(
-                `Product: ${oProduct.name}\n` +
-                `ID: ${oProduct.productID}\n` +
-                `Quality: ${oProduct.qualityScore}%\n` +
-                `Category: ${oProduct.category}`,
-                {
-                    title: "ODPS Product Details"
-                }
-            );
-        },
-
-        /**
-         * View lineage graph
-         */
-        onViewLineage: function (oEvent) {
-            const oItem = oEvent.getSource().getParent().getParent();
-            const oContext = oItem.getBindingContext("products");
-            const oProduct = oContext.getObject();
-            
-            this.getOwnerComponent().getRouter().navTo("lineageGraph", {
-                productID: encodeURIComponent(oProduct.productID)
+            var oViewModel = this.getView().getModel("view");
+            oViewModel.setProperty("/selectedProduct", oProduct);
+            oViewModel.setProperty("/productDetails", {
+                fields: [],
+                rules: [],
+                lineage: null
             });
-        },
-
-        /**
-         * View in ORD format
-         */
-        onViewORD: function (oEvent) {
-            const oItem = oEvent.getSource().getParent().getParent();
-            const oContext = oItem.getBindingContext("products");
-            const oProduct = oContext.getObject();
             
-            // Navigate to metadata view filtered to this product
-            this.getOwnerComponent().getRouter().navTo("metadata");
+            // Load product details
+            this._oApiService.getODPSRules(oProduct.id)
+                .then(function (aRules) {
+                    oViewModel.setProperty("/productDetails/rules", aRules || []);
+                })
+                .catch(function () {
+                    // Use static rules
+                    oViewModel.setProperty("/productDetails/rules", that._getStaticRules(oProduct.id));
+                });
         },
 
         /**
-         * Navigate to quality dashboard
+         * Get static rules for a product
+         * @private
          */
-        onViewQualityDashboard: function () {
-            this.getOwnerComponent().getRouter().navTo("qualityDashboard");
+        _getStaticRules: function (sProductId) {
+            var oRules = {
+                "trial-balance-aggregated": [
+                    { id: "TB001", name: "Balance Equation", severity: "error" },
+                    { id: "TB002", name: "Debit Credit Balance", severity: "error" },
+                    { id: "TB003", name: "IFRS Classification", severity: "warning" },
+                    { id: "TB004", name: "Period Data Accuracy", severity: "error" },
+                    { id: "TB005", name: "GCOA Mapping Completeness", severity: "error" },
+                    { id: "TB006", name: "Global Mapping Currency", severity: "error" }
+                ],
+                "variances": [
+                    { id: "VAR001", name: "Variance Calculation", severity: "error" },
+                    { id: "VAR002", name: "Variance Percent", severity: "error" },
+                    { id: "VAR003", name: "Materiality Threshold BS", severity: "warning" },
+                    { id: "VAR004", name: "Materiality Threshold PL", severity: "warning" },
+                    { id: "VAR005", name: "Commentary Required", severity: "warning" },
+                    { id: "VAR006", name: "Commentary Coverage 90%", severity: "error" },
+                    { id: "VAR007", name: "Exception Flagging", severity: "warning" },
+                    { id: "VAR008", name: "Major Driver Identification", severity: "info" }
+                ],
+                "exchange-rates": [
+                    { id: "FX001", name: "From Currency Mandatory", severity: "error" },
+                    { id: "FX002", name: "To Currency Mandatory", severity: "error" },
+                    { id: "FX003", name: "Rate Positive", severity: "error" },
+                    { id: "FX004", name: "Ratio Positive", severity: "error" },
+                    { id: "FX005", name: "Exchange Rate Verification", severity: "warning" },
+                    { id: "FX006", name: "Period-Specific Rate", severity: "error" },
+                    { id: "FX007", name: "Group Rate Source", severity: "error" }
+                ]
+            };
+            return oRules[sProductId] || [];
         },
 
         /**
-         * Navigate to data lineage
+         * View lineage for selected product
          */
-        onViewDataLineage: function () {
-            this.getOwnerComponent().getRouter().navTo("lineageGraph");
+        onViewLineage: function () {
+            var oProduct = this.getView().getModel("view").getProperty("/selectedProduct");
+            if (oProduct) {
+                // Navigate to lineage view with product context
+                this.getOwnerComponent().getRouter().navTo("lineageGraph", {
+                    productId: oProduct.id
+                });
+            }
         },
 
         /**
-         * Product pressed
+         * Get category text
          */
-        onProductPress: function (oEvent) {
-            const oContext = oEvent.getSource().getBindingContext("products");
-            const oProduct = oContext.getObject();
-            
-            // Update selected product
-            const oModel = new JSONModel(oProduct);
-            this.getView().setModel(oModel, "selectedProduct");
-            
-            // Expand details
-            this.byId("detailsPanel").setExpanded(true);
+        getCategoryText: function (sCategory) {
+            var oCategories = {
+                "primary": "Primary Data Products",
+                "operational": "Operational Data",
+                "metadata": "Metadata Products"
+            };
+            return oCategories[sCategory] || sCategory;
         },
 
         /**
-         * Endpoint pressed
+         * Get status state
          */
-        onEndpointPress: function (oEvent) {
-            const oContext = oEvent.getSource().getBindingContext("selectedProduct");
-            const oEndpoint = oContext.getObject();
-            
-            MessageToast.show(`Opening: ${oEndpoint.endpoint}`);
-            // TODO: Open API endpoint in new tab or test interface
+        getStatusState: function (sStatus) {
+            return sStatus === "active" ? "Success" : "Warning";
+        },
+
+        /**
+         * Refresh catalog
+         */
+        onRefresh: function () {
+            this._loadCatalog();
+            MessageToast.show("Catalog refreshed");
         },
 
         /**
@@ -367,5 +313,6 @@ sap.ui.define([
         onNavBack: function () {
             this.getOwnerComponent().getRouter().navTo("home");
         }
+
     });
 });

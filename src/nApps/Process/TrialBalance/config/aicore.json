@@ -1,0 +1,28 @@
+PS{
+  "aicore": {
+    "authentication": {
+      "clientId": "${AICORE_CLIENT_ID}",
+      "clientSecret": "${AICORE_CLIENT_SECRET}",
+      "authUrl": "${AICORE_AUTH_URL}",
+      "resourceGroup": "${AICORE_RESOURCE_GROUP:default}"
+    },
+    "api": {
+      "baseUrl": "${AICORE_BASE_URL}",
+      "version": "v2"
+    },
+    "models": {
+      "default": "anthropic--claude-4-5-opus",
+      "available": [
+        "anthropic--claude-4-5-opus",
+        "anthropic--claude-3-sonnet",
+        "gpt-4"
+      ]
+    },
+    "settings": {
+      "maxTokens": 4096,
+      "temperature": 0.3,
+      "topP": 0.9,
+      "timeout": 60000
+    }
+  }
+}

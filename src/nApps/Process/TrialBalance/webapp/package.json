@@ -9,5 +9,9 @@
   },
   "devDependencies": {
     "@ui5/cli": "^3.11.13"
+  },
+  "dependencies": {
+    "@sap/hana-client": "^2.27.23",
+    "dotenv": "^17.2.3"
   }
 }
