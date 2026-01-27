@@ -6,8 +6,6 @@
 # Logging/Metrics/Tracing: Direct to SAP HANA Cloud
 # =============================================================================
 
-version: '3.8'
-
 services:
   # ===========================================================================
   # SERVICE REGISTRY - Service Discovery & Orchestration
@@ -110,34 +108,27 @@ services:
     restart: unless-stopped
 
   # ===========================================================================
-  # nExtract - Document Extraction Engine (Zig/Mojo)
+  # nAgentMeta - Database & Metadata Service (Zig)
   # ===========================================================================
-  nextract:
+  nagentmeta:
     build:
       context: ../..
-      dockerfile: docker/Dockerfile.nextract
-    container_name: servicecore_nextract
+      dockerfile: docker/Dockerfile.nagentmeta
+    container_name: servicecore_nagentmeta
     ports:
-      - "8200:8200"
+      - "8085:8085"
     environment:
-      - EXTRACT_PORT=8200
+      - NAGENTMETA_PORT=8085
       - SERVICE_REGISTRY_URL=http://service-registry:8100
-      - LOCALMODELS_URL=http://nlocalmodels:11434
-      # SAP Object Store for documents
-      - OBJECT_STORE_URL=${OBJECT_STORE_URL}
-      - OBJECT_STORE_ACCESS_KEY=${OBJECT_STORE_ACCESS_KEY}
-      - OBJECT_STORE_SECRET_KEY=${OBJECT_STORE_SECRET_KEY}
-      # SAP HANA Cloud for logging
+      # SAP HANA Cloud connection (OData)
       - HANA_ODATA_URL=${HANA_ODATA_URL}
       - HANA_USERNAME=${HANA_USERNAME}
       - HANA_PASSWORD=${HANA_PASSWORD}
     depends_on:
       service-registry:
         condition: service_healthy
-      nlocalmodels:
-        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8200/health"]
+      test: ["CMD", "curl", "-sf", "http://localhost:8085/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -146,15 +137,33 @@ services:
     restart: unless-stopped
 
   # ===========================================================================
-  # Additional serviceCore services can be added here:
-  # - nAudioLab (audio processing)
-  # - nCode (code generation)
-  # - nHyperBook (hypertext books)
-  # - nLeanProof (theorem proving)
-  # - nMetaData
-  # - nWorkflow
-  # - nLaunchpad
+  # nGrounding - Lean4 Theorem Proving Service (Zig)
   # ===========================================================================
+  ngrounding:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.ngrounding
+    container_name: servicecore_ngrounding
+    ports:
+      - "8095:8095"
+    environment:
+      - NGROUNDING_PORT=8095
+      - SERVICE_REGISTRY_URL=http://service-registry:8100
+      # SAP HANA Cloud for logging
+      - HANA_ODATA_URL=${HANA_ODATA_URL}
+      - HANA_USERNAME=${HANA_USERNAME}
+      - HANA_PASSWORD=${HANA_PASSWORD}
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8095/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - servicecore_internal
+    restart: unless-stopped
 
 # =============================================================================
 # NETWORK - Internal Network
