@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>AI Nucleus: nOpenaiServer</title>
+
+	<!-- Custom Component Styles -->
+	<link rel="stylesheet" href="./components-dist/NetworkGraph/styles.css">
+	<link rel="stylesheet" href="./components-dist/ProcessFlow/processflow.css">
+
+	<script
+		id="sap-ui-bootstrap"
+		src="https://sdk.openui5.org/resources/sap-ui-core.js"
+		data-sap-ui-theme="sap_horizon"
+		data-sap-ui-libs="sap.m,sap.ui.layout,sap.f,sap.tnt"
+		data-sap-ui-resourceroots='{
+			"llm.server.dashboard": "./"
+		}'
+		data-sap-ui-compatVersion="edge"
+		data-sap-ui-async="true"
+		data-sap-ui-frameOptions="trusted"
+		data-sap-ui-xx-waitForTheme="init"
+		data-sap-ui-preload="async">
+	</script>
+	<script>
+		sap.ui.getCore().attachInit(function() {
+			console.log("UI5 Core initialized");
+			sap.ui.require([
+				"sap/ui/core/ComponentContainer"
+			], function(ComponentContainer) {
+				console.log("Creating ComponentContainer");
+				new ComponentContainer({
+					name: "llm.server.dashboard",
+					settings: {
+						id: "llm.server.dashboard"
+					},
+					async: true
+				}).placeAt("content");
+			});
+		});
+	</script>
+</head>
+<body class="sapUiBody" id="content">
+</body>
+</html>

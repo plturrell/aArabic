@@ -1,0 +1,550 @@
+{
+  "$version": "2.0",
+  "meta": {
+    "creator": "SAP nApps Process - Trial Balance",
+    "created": "2026-01-27"
+  },
+  "namespace": "sap.nApps.Process.TrialBalance",
+  "definitions": {
+    "JournalEntry": {
+      "kind": "entity",
+      "@title": "ACDOCA Universal Journal Entry",
+      "@description": "SAP S/4HANA ACDOCA universal journal entry with complete field set for IFRS compliance and data lineage",
+      "elements": {
+        "rldnr": {
+          "type": "cds.String",
+          "length": 2,
+          "@title": "Ledger",
+          "@description": "Ledger identifier (e.g., 0L = Leading ledger)",
+          "@mandatory": true
+        },
+        "rbukrs": {
+          "type": "cds.String",
+          "length": 4,
+          "@title": "Company Code",
+          "@description": "Company code (e.g., HKG, SGP)",
+          "@mandatory": true
+        },
+        "gjahr": {
+          "type": "cds.Integer",
+          "@title": "Fiscal Year",
+          "@description": "Fiscal year (e.g., 2025)",
+          "@mandatory": true,
+          "@assert.range": [2000, 2099]
+        },
+        "belnr": {
+          "type": "cds.String",
+          "length": 10,
+          "@title": "Document Number",
+          "@description": "Accounting document number",
+          "@mandatory": true
+        },
+        "docln": {
+          "type": "cds.Integer",
+          "@title": "Line Item Number",
+          "@description": "Line item number within document",
+          "@mandatory": true
+        },
+        "racct": {
+          "type": "cds.String",
+          "length": 10,
+          "@title": "G/L Account",
+          "@description": "General Ledger account number",
+          "@mandatory": true
+        },
+        "rcntr": {
+          "type": "cds.String",
+          "length": 10,
+          "@title": "Cost Center",
+          "@description": "Cost center (optional)"
+        },
+        "prctr": {
+          "type": "cds.String",
+          "length": 10,
+          "@title": "Profit Center",
+          "@description": "Profit center (optional)"
+        },
+        "hsl": {
+          "type": "cds.Decimal",
+          "precision": 23,
+          "scale": 2,
+          "@title": "Amount in Local Currency",
+          "@description": "Amount in local currency (e.g., HKD)",
+          "@Measures.ISOCurrency": "rhcur"
+        },
+        "ksl": {
+          "type": "cds.Decimal",
+          "precision": 23,
+          "scale": 2,
+          "@title": "Amount in Group Currency",
+          "@description": "Amount in group currency (e.g., USD)",
+          "@Measures.ISOCurrency": "rkcur"
+        },
+        "wsl": {
+          "type": "cds.Decimal",
+          "precision": 23,
+          "scale": 2,
+          "@title": "Amount in Transaction Currency",
+          "@description": "Amount in transaction currency",
+          "@Measures.ISOCurrency": "rwcur"
+        },
+        "rhcur": {
+          "type": "cds.String",
+          "length": 3,
+          "@title": "Local Currency",
+          "@description": "Local currency code (ISO 4217)",
+          "@mandatory": true,
+          "@assert.format": "^[A-Z]{3}$"
+        },
+        "rkcur": {
+          "type": "cds.String",
+          "length": 3,
+          "@title": "Group Currency",
+          "@description": "Group currency code (ISO 4217)",
+          "@mandatory": true
+        },
+        "rwcur": {
+          "type": "cds.String",
+          "length": 3,
+          "@title": "Transaction Currency",
+          "@description": "Transaction currency code (ISO 4217)",
+          "@mandatory": true
+        },
+        "ukurs": {
+          "type": "cds.Decimal",
+          "precision": 9,
+          "scale": 5,
+          "@title": "Exchange Rate",
+          "@description": "Exchange rate from transaction to local currency",
+          "@mandatory": true,
+          "@assert.range": [0.00001, 999999]
+        },
+        "drcrk": {
+          "type": "cds.String",
+          "length": 1,
+          "@title": "Debit/Credit Indicator",
+          "@description": "S = Debit (Soll), H = Credit (Haben)",
+          "@mandatory": true,
+          "@assert.enum": ["S", "H"]
+        },
+        "poper": {
+          "type": "cds.Integer",
+          "@title": "Posting Period",
+          "@description": "Posting period (1-12 for monthly periods)",
+          "@mandatory": true,
+          "@assert.range": [1, 12]
+        },
+        "budat": {
+          "type": "cds.Date",
+          "@title": "Posting Date",
+          "@description": "Posting date (YYYY-MM-DD)"
+        },
+        "bldat": {
+          "type": "cds.Date",
+          "@title": "Document Date",
+          "@description": "Document date (YYYY-MM-DD)"
+        },
+        "segment": {
+          "type": "cds.String",
+          "length": 10,
+          "@title": "Segment",
+          "@description": "Segment for IFRS segment reporting"
+        },
+        "scntr": {
+          "type": "cds.String",
+          "length": 10,
+          "@title": "Sender Cost Center",
+          "@description": "Sender cost center for internal transactions"
+        },
+        "pprctr": {
+          "type": "cds.String",
+          "length": 10,
+          "@title": "Partner Profit Center",
+          "@description": "Partner profit center for internal transactions"
+        },
+        "bktxt": {
+          "type": "cds.String",
+          "length": 25,
+          "@title": "Document Header Text",
+          "@description": "Document header text"
+        },
+        "sgtxt": {
+          "type": "cds.String",
+          "length": 50,
+          "@title": "Line Item Text",
+          "@description": "Line item text"
+        },
+        "xblnr": {
+          "type": "cds.String",
+          "length": 16,
+          "@title": "Reference Document",
+          "@description": "Reference document number"
+        },
+        "data_hash": {
+          "type": "cds.String",
+          "length": 64,
+          "@title": "Data Hash",
+          "@description": "SHA-256 hash for data lineage tracking",
+          "@readonly": true
+        },
+        "source_system": {
+          "type": "cds.String",
+          "length": 20,
+          "@title": "Source System",
+          "@description": "Source system identifier (e.g., SAP_S4HANA)",
+          "@readonly": true
+        },
+        "extraction_ts": {
+          "type": "cds.Timestamp",
+          "@title": "Extraction Timestamp",
+          "@description": "Timestamp when data was extracted",
+          "@readonly": true
+        },
+        "data_quality": {
+          "type": "cds.String",
+          "length": 20,
+          "@title": "Data Quality",
+          "@description": "Data quality classification",
+          "@assert.enum": ["verified", "unverified", "suspect", "missing_required", "invalid_format"]
+        }
+      },
+      "keys": ["rldnr", "rbukrs", "gjahr", "belnr", "docln"]
+    },
+    "ExchangeRate": {
+      "kind": "entity",
+      "@title": "Foreign Exchange Rate",
+      "@description": "Exchange rate for multi-currency conversion",
+      "elements": {
+        "rate_type": {
+          "type": "cds.String",
+          "length": 1,
+          "@title": "Rate Type",
+          "@description": "M = Standard rate, P = Average rate",
+          "@assert.enum": ["M", "P", "B", "G"]
+        },
+        "from_curr": {
+          "type": "cds.String",
+          "length": 3,
+          "@title": "From Currency",
+          "@description": "Source currency code (ISO 4217)",
+          "@mandatory": true
+        },
+        "to_curr": {
+          "type": "cds.String",
+          "length": 3,
+          "@title": "To Currency",
+          "@description": "Target currency code (ISO 4217)",
+          "@mandatory": true
+        },
+        "valid_from": {
+          "type": "cds.Date",
+          "@title": "Valid From",
+          "@description": "Validity start date",
+          "@mandatory": true
+        },
+        "exchange_rate": {
+          "type": "cds.Decimal",
+          "precision": 9,
+          "scale": 5,
+          "@title": "Exchange Rate",
+          "@description": "Exchange rate value",
+          "@mandatory": true,
+          "@assert.range": [0.00001, 999999]
+        },
+        "ratio_from": {
+          "type": "cds.Decimal",
+          "precision": 5,
+          "scale": 0,
+          "@title": "From Ratio",
+          "@description": "From currency ratio (usually 1)",
+          "default": 1
+        },
+        "ratio_to": {
+          "type": "cds.Decimal",
+          "precision": 5,
+          "scale": 0,
+          "@title": "To Ratio",
+          "@description": "To currency ratio (e.g., 100 for JPY)",
+          "default": 1
+        },
+        "source": {
+          "type": "cds.String",
+          "length": 10,
+          "@title": "Rate Source",
+          "@description": "Exchange rate source (ECB, FED, MANUAL, SAP)",
+          "@assert.enum": ["ECB", "FED", "MANUAL", "SAP", "BLOOMBERG"]
+        },
+        "last_updated": {
+          "type": "cds.Timestamp",
+          "@title": "Last Updated",
+          "@description": "Last update timestamp"
+        }
+      },
+      "keys": ["from_curr", "to_curr", "rate_type", "valid_from"]
+    },
+    "TrialBalanceEntry": {
+      "kind": "entity",
+      "@title": "Trial Balance Entry",
+      "@description": "Aggregated trial balance entry by account",
+      "elements": {
+        "account_code": {
+          "type": "cds.String",
+          "length": 10,
+          "@title": "Account Code",
+          "@mandatory": true
+        },
+        "account_name": {
+          "type": "cds.String",
+          "length": 60,
+          "@title": "Account Name"
+        },
+        "account_type": {
+          "type": "cds.String",
+          "length": 20,
+          "@title": "Account Type",
+          "@assert.enum": ["Asset", "Liability", "Equity", "Revenue", "Expense"]
+        },
+        "ifrs_category": {
+          "type": "cds.String",
+          "length": 50,
+          "@title": "IFRS Category",
+          "@description": "IFRS classification category"
+        },
+        "opening_balance": {
+          "type": "cds.Decimal",
+          "precision": 23,
+          "scale": 2,
+          "@title": "Opening Balance",
+          "@Measures.ISOCurrency": "currency_code"
+        },
+        "debit_amount": {
+          "type": "cds.Decimal",
+          "precision": 23,
+          "scale": 2,
+          "@title": "Debit Amount",
+          "@Measures.ISOCurrency": "currency_code"
+        },
+        "credit_amount": {
+          "type": "cds.Decimal",
+          "precision": 23,
+          "scale": 2,
+          "@title": "Credit Amount",
+          "@Measures.ISOCurrency": "currency_code"
+        },
+        "closing_balance": {
+          "type": "cds.Decimal",
+          "precision": 23,
+          "scale": 2,
+          "@title": "Closing Balance",
+          "@Measures.ISOCurrency": "currency_code"
+        },
+        "business_unit": {
+          "type": "cds.String",
+          "length": 4,
+          "@title": "Business Unit"
+        },
+        "fiscal_period": {
+          "type": "cds.String",
+          "length": 7,
+          "@title": "Fiscal Period",
+          "@description": "Format: YYYY-MM"
+        },
+        "currency_code": {
+          "type": "cds.String",
+          "length": 3,
+          "@title": "Currency Code"
+        },
+        "data_quality": {
+          "type": "cds.String",
+          "length": 20,
+          "@title": "Data Quality"
+        }
+      },
+      "keys": ["account_code", "business_unit", "fiscal_period"]
+    },
+    "VarianceEntry": {
+      "kind": "entity",
+      "@title": "Variance Entry",
+      "@description": "Period-over-period variance analysis",
+      "elements": {
+        "account_code": {
+          "type": "cds.String",
+          "length": 10,
+          "@title": "Account Code",
+          "@mandatory": true
+        },
+        "account_name": {
+          "type": "cds.String",
+          "length": 60,
+          "@title": "Account Name"
+        },
+        "account_type": {
+          "type": "cds.String",
+          "length": 20,
+          "@title": "Account Type"
+        },
+        "current_period": {
+          "type": "cds.String",
+          "length": 7,
+          "@title": "Current Period"
+        },
+        "previous_period": {
+          "type": "cds.String",
+          "length": 7,
+          "@title": "Previous Period"
+        },
+        "current_amount": {
+          "type": "cds.Decimal",
+          "precision": 23,
+          "scale": 2,
+          "@title": "Current Amount",
+          "@Measures.ISOCurrency": "currency_code"
+        },
+        "previous_amount": {
+          "type": "cds.Decimal",
+          "precision": 23,
+          "scale": 2,
+          "@title": "Previous Amount",
+          "@Measures.ISOCurrency": "currency_code"
+        },
+        "variance_amount": {
+          "type": "cds.Decimal",
+          "precision": 23,
+          "scale": 2,
+          "@title": "Variance Amount",
+          "@Measures.ISOCurrency": "currency_code"
+        },
+        "variance_percent": {
+          "type": "cds.Decimal",
+          "precision": 7,
+          "scale": 2,
+          "@title": "Variance Percentage",
+          "@Measures.Unit": "%"
+        },
+        "is_significant": {
+          "type": "cds.Boolean",
+          "@title": "Is Significant",
+          "@description": "Exceeds materiality threshold"
+        },
+        "business_unit": {
+          "type": "cds.String",
+          "length": 4,
+          "@title": "Business Unit"
+        },
+        "currency_code": {
+          "type": "cds.String",
+          "length": 3,
+          "@title": "Currency Code"
+        },
+        "commentary": {
+          "type": "cds.LargeString",
+          "@title": "AI Commentary",
+          "@description": "AI-generated variance explanation"
+        }
+      },
+      "keys": ["account_code", "business_unit", "current_period"]
+    },
+    "DataLineage": {
+      "kind": "entity",
+      "@title": "Data Lineage Entry",
+      "@description": "Tracks data transformation lineage for Open Data Product specification",
+      "elements": {
+        "lineage_id": {
+          "type": "cds.UUID",
+          "@title": "Lineage ID",
+          "key": true
+        },
+        "source_dataset_id": {
+          "type": "cds.String",
+          "length": 100,
+          "@title": "Source Dataset ID",
+          "@mandatory": true
+        },
+        "target_dataset_id": {
+          "type": "cds.String",
+          "length": 100,
+          "@title": "Target Dataset ID",
+          "@mandatory": true
+        },
+        "source_hash": {
+          "type": "cds.String",
+          "length": 64,
+          "@title": "Source Data Hash",
+          "@description": "SHA-256 hash of source data"
+        },
+        "target_hash": {
+          "type": "cds.String",
+          "length": 64,
+          "@title": "Target Data Hash",
+          "@description": "SHA-256 hash of target data"
+        },
+        "transformation": {
+          "type": "cds.String",
+          "length": 50,
+          "@title": "Transformation Type",
+          "@description": "Type of transformation applied",
+          "@assert.enum": ["extract", "validate", "aggregate", "convert", "calculate"]
+        },
+        "transformation_timestamp": {
+          "type": "cds.Timestamp",
+          "@title": "Transformation Timestamp",
+          "@mandatory": true
+        },
+        "quality_score": {
+          "type": "cds.Decimal",
+          "precision": 5,
+          "scale": 2,
+          "@title": "Quality Score",
+          "@description": "Data quality score (0-100)",
+          "@assert.range": [0, 100]
+        },
+        "record_count": {
+          "type": "cds.Integer",
+          "@title": "Record Count",
+          "@description": "Number of records processed"
+        }
+      }
+    },
+    "AccountMaster": {
+      "kind": "entity",
+      "@title": "Account Master",
+      "@description": "G/L Account master data",
+      "elements": {
+        "account_code": {
+          "type": "cds.String",
+          "length": 10,
+          "@title": "Account Code",
+          "key": true
+        },
+        "account_name": {
+          "type": "cds.String",
+          "length": 60,
+          "@title": "Account Name",
+          "@mandatory": true
+        },
+        "account_type": {
+          "type": "cds.String",
+          "length": 20,
+          "@title": "Account Type",
+          "@assert.enum": ["Asset", "Liability", "Equity", "Revenue", "Expense"]
+        },
+        "ifrs_category": {
+          "type": "cds.String",
+          "length": 50,
+          "@title": "IFRS Category"
+        },
+        "parent_account": {
+          "type": "cds.String",
+          "length": 10,
+          "@title": "Parent Account",
+          "@description": "Parent account for hierarchical structures"
+        },
+        "is_active": {
+          "type": "cds.Boolean",
+          "@title": "Is Active",
+          "default": true
+        }
+      }
+    }
+  }
+}

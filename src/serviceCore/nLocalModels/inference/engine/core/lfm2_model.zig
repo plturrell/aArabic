@@ -150,7 +150,6 @@ pub const Lfm2Model = struct {
         self.weights.deinit();
         self.tok.deinit();
         self.pool.deinit();
-        self.allocator.destroy(self.pool);
     }
 
     /// Initialize model (without inference wiring yet)
@@ -161,10 +160,8 @@ pub const Lfm2Model = struct {
         tok: tokenizer.Tokenizer,
     ) !Lfm2Model {
         // Thread pool
-        const pool_ptr = try allocator.create(thread_pool.ThreadPool);
-        errdefer allocator.destroy(pool_ptr);
-        pool_ptr.* = try thread_pool.ThreadPool.init(allocator, thread_pool.ThreadPoolConfig.default());
-        try pool_ptr.start();
+        const pool_ptr = try thread_pool.ThreadPool.init(allocator);
+        errdefer pool_ptr.deinit();
 
         // RoPE
         const rope_freqs = try attention.precomputeRopeFreqs(

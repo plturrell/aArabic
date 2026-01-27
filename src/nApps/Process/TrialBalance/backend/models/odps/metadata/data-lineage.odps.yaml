@@ -1,0 +1,306 @@
+# ODPS v4.1 - Data Lineage Tracking Data Product
+# Metadata product for data governance and traceability
+
+product:
+  productID: "urn:uuid:data-lineage-v1"
+  name: "Data Lineage Tracking"
+  description: "Complete data lineage tracking for all transformations in the trial balance process. Records source-to-target relationships, transformation types, data hashes (SHA-256) for verification, quality scores at each stage, and timestamps. Enables full traceability from raw ACDOCA journal entries through aggregation to final reports, supporting audit requirements and data governance."
+  version: "1.0.0"
+  status: "active"
+  visibility: "organization"
+  
+  details:
+    type: "metadata"
+    category: "data-governance"
+    subcategory: "data-lineage"
+    tags:
+      - "data-lineage"
+      - "data-governance"
+      - "traceability"
+      - "audit-trail"
+      - "transformations"
+      - "data-quality"
+      - "hash-verification"
+    owner:
+      name: "Trial Balance Team"
+      email: "trial-balance-team@company.com"
+      organizationalUnit: "Finance & Data Governance"
+    domain: "Data Governance"
+    updateFrequency: "real-time"
+    latestUpdateDate: "2026-01-27"
+    
+  contract:
+    termsAndConditions:
+      type: "internal-use"
+      licenseType: "proprietary"
+      confidentiality: "internal"
+    dataFormat: "CSN"
+    contractRef: "../../csn/trial-balance.csn.json#DataLineage"
+    schemaSpecification: "https://github.com/SAP/cds-spec/blob/main/csn-interop-v2.md"
+    dataModel:
+      type: "relational"
+      primaryKeys: ["lineage_id"]
+      
+  dataQuality:
+    dataQualityScore: 100.0
+    qualityDimensions:
+      - dimension: "completeness"
+        description: "All transformations tracked"
+        score: 100
+        measurementMethod: "Automatic lineage capture"
+      - dimension: "accuracy"
+        description: "Hash-based verification"
+        score: 100
+        measurementMethod: "SHA-256 hash matching"
+      - dimension: "consistency"
+        description: "Lineage chain integrity"
+        score: 100
+        measurementMethod: "Parent-child relationship validation"
+      - dimension: "timeliness"
+        description: "Real-time lineage recording"
+        score: 100
+        measurementMethod: "Timestamp synchronization"
+    validationRules:
+      - ruleID: "LIN001"
+        name: "Lineage ID Unique"
+        description: "Each lineage entry must have unique UUID"
+        severity: "error"
+        field: "lineage_id"
+      - ruleID: "LIN002"
+        name: "Source Hash Present"
+        description: "Source data hash required"
+        severity: "error"
+        field: "source_hash"
+      - ruleID: "LIN003"
+        name: "Target Hash Present"
+        description: "Target data hash required"
+        severity: "error"
+        field: "target_hash"
+      - ruleID: "LIN004"
+        name: "Transformation Type Valid"
+        description: "Transformation must be extract/validate/aggregate/convert/calculate"
+        severity: "error"
+        field: "transformation"
+    dataLineage:
+      upstream:
+        - productID: "system-generated"
+          name: "System Generated"
+          type: "automated"
+      transformations:
+        - transformationID: "capture-lineage"
+          description: "Automatically capture lineage during data processing"
+          method: "event-driven"
+      downstream:
+        - productID: "urn:uuid:audit-report-v1"
+          name: "Audit Report"
+          relationship: "provides-audit-trail"
+          
+  outputPort:
+    - portID: "lineage-rest-api"
+      name: "Data Lineage REST API"
+      description: "API for querying data lineage chains"
+      format: "JSON"
+      protocol: "HTTPS"
+      endpoint: "/api/v1/lineage"
+      authentication: "oauth2"
+      methods: ["GET"]
+      filtering:
+        - field: "source_dataset_id"
+          operators: ["eq"]
+        - field: "target_dataset_id"
+          operators: ["eq"]
+        - field: "transformation"
+          operators: ["eq", "in"]
+      rateLimit: "200 requests/minute"
+    - portID: "lineage-graph-api"
+      name: "Lineage Graph API"
+      description: "Graph visualization of lineage chains"
+      format: "JSON (D3.js compatible)"
+      protocol: "HTTPS"
+      endpoint: "/api/v1/lineage/graph"
+      authentication: "oauth2"
+      methods: ["GET"]
+      
+  pricingPlans:
+    - planID: "internal-use"
+      name: "Internal Use Only"
+      description: "Free access for governance and audit teams"
+      price: 0
+      currency: "USD"
+      billingPeriod: "monthly"
+      limitations:
+        - type: "rate-limit"
+          value: "200 requests/minute"
+        - type: "data-retention"
+          value: "10 years"
+      features:
+        - "Full lineage chain tracking"
+        - "Hash-based verification"
+        - "Graph visualization"
+        - "Audit trail reports"
+        
+  SLA:
+    availability: 99.0
+    uptime: "Business hours"
+    responseTime:
+      p50: "300ms"
+      p95: "800ms"
+      p99: "1500ms"
+    throughput: "200 requests/second"
+    dataFreshness: "real-time"
+    support:
+      - level: "business-hours"
+        hours: "9AM-5PM HKT"
+        responseTime: "8 hours"
+        channels: ["email"]
+      - level: "audit-period"
+        hours: "Extended during audits"
+        responseTime: "4 hours"
+        channels: ["email", "slack"]
+    maintenance:
+      window: "Sunday 4AM-5AM HKT"
+      frequency: "quarterly"
+      notificationPeriod: "14 days"
+      
+  extensions:
+    sapCSN: "../../csn/trial-balance.csn.json#DataLineage"
+    hashAlgorithm: "SHA-256"
+    lineageDepth: "unlimited"
+    graphVisualization: "D3.js DAG + Sankey + Network"
+    auditCompliance: "SOX, IFRS"
+    retentionPolicy: "10 years"
+    
+  # DATA PRODUCT LINEAGE CHAIN
+  # Complete lineage from source to derived products
+  dataProductLineage:
+    description: "Complete data flow from source systems through Trial Balance process"
+    lastUpdated: "2026-01-27"
+    
+    sourceToTarget:
+      - level: 0
+        type: "source"
+        products:
+          - productID: "urn:psgl:journal-entries"
+            name: "PSGL Journal Entries"
+            system: "PeopleSoft General Ledger"
+          - productID: "urn:s4:journal-entries"
+            name: "S4 Journal Entries"
+            system: "SAP S/4HANA"
+            
+      - level: 1
+        type: "raw-data"
+        products:
+          - productID: "urn:uuid:acdoca-journal-entries-v1"
+            name: "ACDOCA Journal Entries"
+            productFile: "../primary/acdoca-journal-entries.odps.yaml"
+            transformationType: "extract"
+            
+      - level: 2
+        type: "master-data"
+        products:
+          - productID: "urn:uuid:account-master-v1"
+            name: "G/L Account Master"
+            productFile: "../primary/account-master.odps.yaml"
+            transformationType: "mapping"
+          - productID: "urn:uuid:exchange-rates-v1"
+            name: "Foreign Exchange Rates"
+            productFile: "../primary/exchange-rates.odps.yaml"
+            transformationType: "extract"
+            
+      - level: 3
+        type: "aggregated-data"
+        products:
+          - productID: "urn:uuid:trial-balance-aggregated-v1"
+            name: "Trial Balance (Aggregated)"
+            productFile: "../primary/trial-balance-aggregated.odps.yaml"
+            transformationType: "aggregate"
+            upstreamProducts: 
+              - "urn:uuid:acdoca-journal-entries-v1"
+              - "urn:uuid:account-master-v1"
+              - "urn:uuid:exchange-rates-v1"
+            petriNetTransitions: ["T_EXTRACT", "T_MAP_GCOA", "T_CONVERT_FX", "T_AGGREGATE"]
+            
+      - level: 4
+        type: "analytical-data"
+        products:
+          - productID: "urn:uuid:variances-v1"
+            name: "Period-over-Period Variances"
+            productFile: "../primary/variances.odps.yaml"
+            transformationType: "calculate"
+            upstreamProducts: 
+              - "urn:uuid:trial-balance-aggregated-v1"
+            petriNetTransitions: ["T_CALC_VARIANCE", "T_APPLY_THRESH", "T_VERIFY_COVERAGE"]
+            
+      - level: 5
+        type: "operational-data"
+        products:
+          - productID: "urn:uuid:checklist-items-v1"
+            name: "Workflow Checklist"
+            productFile: "../operational/checklist-items.odps.yaml"
+            transformationType: "workflow"
+          - productID: "urn:uuid:tb-petrinet-v1"
+            name: "Petri Net Workflow"
+            productFile: "../operational/trial-balance-petrinet.odps.yaml"
+            transformationType: "orchestration"
+            
+      - level: 6
+        type: "metadata"
+        products:
+          - productID: "urn:uuid:dataset-metadata-v1"
+            name: "Dataset Quality Metrics"
+            productFile: "./dataset-metadata.odps.yaml"
+            transformationType: "aggregate-quality"
+          - productID: "urn:uuid:data-lineage-v1"
+            name: "Data Lineage Tracking"
+            productFile: "./data-lineage.odps.yaml"
+            transformationType: "trace"
+            
+  # TRANSFORMATION DEFINITIONS
+  transformationCatalog:
+    - transformationID: "extract"
+      name: "Data Extraction"
+      description: "Extract data from source systems"
+      petriNetTransition: "T_EXTRACT"
+      dataQualityRules: []
+      
+    - transformationID: "mapping"
+      name: "GCOA Mapping"
+      description: "Map GL accounts to IFRS categories"
+      petriNetTransition: "T_MAP_GCOA"
+      dataQualityRules: ["TB003", "TB005"]
+      
+    - transformationID: "convert"
+      name: "Currency Conversion"
+      description: "Convert non-USD to USD"
+      petriNetTransition: "T_CONVERT_FX"
+      dataQualityRules: ["FX005", "FX006", "FX007"]
+      
+    - transformationID: "aggregate"
+      name: "Balance Aggregation"
+      description: "Aggregate by IFRS schedule"
+      petriNetTransition: "T_AGGREGATE"
+      dataQualityRules: ["TB001", "TB002", "TB004", "TB006"]
+      
+    - transformationID: "calculate"
+      name: "Variance Calculation"
+      description: "Compute period-over-period variances"
+      petriNetTransition: "T_CALC_VARIANCE"
+      dataQualityRules: ["VAR001", "VAR002"]
+      
+    - transformationID: "threshold"
+      name: "Materiality Threshold"
+      description: "Apply materiality thresholds"
+      petriNetTransition: "T_APPLY_THRESH"
+      dataQualityRules: ["VAR003", "VAR004"]
+      
+    - transformationID: "coverage"
+      name: "Coverage Verification"
+      description: "Verify 90% commentary coverage"
+      petriNetTransition: "T_VERIFY_COVERAGE"
+      dataQualityRules: ["VAR005", "VAR006", "VAR007", "VAR008"]
+      
+  # REQUIREMENTS TRACEABILITY
+  requirementsTraceability:
+    sourceRequirements: "../requirements/"
+    petriNetSpec: "../operational/trial-balance-petrinet.odps.yaml"
+    lastReconciled: "2026-01-27"

@@ -423,7 +423,7 @@ pub fn computeAttention(
                 .scale = scale,
             };
             
-            try tp.submit(.{
+            tp.submit(.{
                 .work_fn = compute_head,
                 .context = &contexts[h],
             });
@@ -663,7 +663,7 @@ pub fn computeAttentionGpu(
                 .scale = scale,
             };
 
-            try tp.submit(.{
+            tp.submit(.{
                 .work_fn = compute_head,
                 .context = &contexts[h],
             });

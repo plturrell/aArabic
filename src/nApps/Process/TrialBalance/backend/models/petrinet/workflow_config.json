@@ -1,0 +1,678 @@
+{
+  "workflow": {
+    "id": "trial_balance_monthly_close",
+    "name": "Trial Balance Monthly/Quarterly Close",
+    "version": "3.0",
+    "description": "IFRS-compliant Trial Balance process with DOI requirements, control checkpoints, and ODPS integration",
+    "type": "petrinet",
+    "petrinet_file": "trial_balance.pnml",
+    "compliance": {
+      "standard": "IFRS",
+      "regulation": "BCBS_239",
+      "doi_version": "2.0",
+      "last_updated": "2026-01-27"
+    },
+    "odps_integration": {
+      "enabled": true,
+      "petrinet_spec": "../odps/operational/trial-balance-petrinet.odps.yaml",
+      "checklist_spec": "../odps/operational/checklist-items.odps.yaml",
+      "execution_log_spec": "../odps/operational/workflow-execution-log.odps.yaml",
+      "mapping_doc": "ODPS_PETRINET_MAPPING.md"
+    }
+  },
+  "execution_modes": {
+    "daily": {
+      "enabled": true,
+      "schedule": "0 2 * * *",
+      "comparative_period": "previous_day",
+      "reports": ["balance_sheet"]
+    },
+    "monthly": {
+      "enabled": true,
+      "schedule": "0 3 1 * *",
+      "deadline": "M+7",
+      "comparative_period": "previous_month_ytd",
+      "reports": ["balance_sheet"],
+      "pl_optional": true
+    },
+    "quarterly": {
+      "enabled": true,
+      "schedule": "0 3 1 1,4,7,10 *",
+      "deadline": "M+7",
+      "comparative_periods": {
+        "balance_sheet": "previous_quarter_vs_dec",
+        "profit_loss": "yoy_ytd"
+      },
+      "reports": ["balance_sheet", "profit_loss"],
+      "mandatory": true
+    }
+  },
+  "thresholds": {
+    "balance_sheet": {
+      "amount_usd": 100000000,
+      "variance_percentage": 0.10,
+      "coverage_required": 0.90
+    },
+    "profit_loss": {
+      "amount_usd": 3000000,
+      "variance_percentage": 0.10,
+      "coverage_required": 0.90
+    }
+  },
+  "data_sources": {
+    "sap_s4hana": {
+      "enabled": true,
+      "tables": {
+        "journal_entries": "ACDOCA",
+        "chart_of_accounts": "SKA1",
+        "exchange_rates": "TCURR",
+        "company_codes": "T001",
+        "fiscal_calendar": "T009"
+      },
+      "connection": {
+        "type": "hana",
+        "schema": "SAPABAP1",
+        "refresh_interval": 300
+      }
+    },
+    "hana_cloud": {
+      "enabled": true,
+      "schema": "TB_SCHEMA",
+      "tables": [
+        "TB_JOURNAL_ENTRIES",
+        "TB_GL_ACCOUNTS",
+        "TB_EXCHANGE_RATES",
+        "TB_TRIAL_BALANCE",
+        "TB_BALANCE_HISTORY",
+        "TB_AUDIT_LOG",
+        "TB_EXCEPTIONS"
+      ]
+    }
+  },
+  "workflow_stages": [
+    {
+      "stage_id": "extract",
+      "name": "S/4 Data Extraction",
+      "petri_place": "p1",
+      "petri_transition": "t1",
+      "component": "s4_extractor",
+      "timeout_ms": 300000,
+      "retry_policy": {
+        "max_attempts": 3,
+        "backoff_multiplier": 2.0,
+        "initial_delay_ms": 1000
+      },
+      "success_criteria": {
+        "records_extracted": "> 0",
+        "data_quality_score": "> 0.95"
+      }
+    },
+    {
+      "stage_id": "validate",
+      "name": "IFRS Validation",
+      "petri_place": "p2",
+      "petri_transition": "t2",
+      "component": "ifrs_validator",
+      "timeout_ms": 120000,
+      "validation_rules": [
+        "gcoa_mapping_complete",
+        "mandatory_fields_present",
+        "debit_credit_indicator_valid",
+        "fiscal_period_valid",
+        "company_code_valid"
+      ],
+      "success_criteria": {
+        "validation_pass_rate": "> 0.99"
+      }
+    },
+    {
+      "stage_id": "fx_conversion",
+      "name": "Currency Conversion",
+      "petri_place": "p3",
+      "petri_transition": "t3",
+      "component": "fx_converter",
+      "timeout_ms": 60000,
+      "conversion_rules": {
+        "target_currency": "USD",
+        "rate_type": "M",
+        "fallback_rate_types": ["B", "G"],
+        "precision": 5
+      },
+      "success_criteria": {
+        "conversion_rate": "= 1.0"
+      }
+    },
+    {
+      "stage_id": "aggregate",
+      "name": "Balance Aggregation",
+      "petri_place": "p4",
+      "petri_transition": "t4",
+      "component": "balance_aggregator",
+      "timeout_ms": 180000,
+      "aggregation_dimensions": [
+        "company_code",
+        "fiscal_year",
+        "period",
+        "gl_account",
+        "cost_center",
+        "profit_center",
+        "segment"
+      ],
+      "success_criteria": {
+        "aggregation_complete": true
+      }
+    },
+    {
+      "stage_id": "calculate_tb",
+      "name": "Trial Balance Calculation",
+      "petri_place": "p5",
+      "petri_transition": "t5",
+      "component": "trial_balance_calc",
+      "timeout_ms": 120000,
+      "calculation_rules": {
+        "opening_balance": "prior_period_closing",
+        "closing_balance": "opening + debits - credits",
+        "balance_check": "total_debits = total_credits"
+      },
+      "success_criteria": {
+        "balance_difference": "< 0.01",
+        "is_balanced": true
+      }
+    },
+    {
+      "stage_id": "ifrs_compliance",
+      "name": "IFRS Compliance Check",
+      "petri_place": "p6",
+      "petri_transition": "t6",
+      "component": "ifrs_validator",
+      "timeout_ms": 60000,
+      "compliance_checks": [
+        "schedule_mapping_complete",
+        "ifrs_categories_assigned",
+        "balance_sheet_classifications",
+        "pl_classifications"
+      ],
+      "success_criteria": {
+        "compliance_score": "> 0.99"
+      }
+    },
+    {
+      "stage_id": "variance_analysis",
+      "name": "Variance Analysis",
+      "petri_place": "p7",
+      "petri_transition": "t7",
+      "component": "variance_analyzer",
+      "timeout_ms": 90000,
+      "analysis_types": {
+        "balance_sheet": {
+          "monthly": "ytd_current_vs_ytd_previous",
+          "quarterly": "current_quarter_vs_dec_prior_fy"
+        },
+        "profit_loss": {
+          "monthly": "mtd_current_vs_mtd_previous",
+          "quarterly": "yoy_ytd"
+        }
+      },
+      "success_criteria": {
+        "variance_calculated": true
+      }
+    },
+    {
+      "stage_id": "threshold_check",
+      "name": "Threshold Application",
+      "petri_place": "p8",
+      "petri_transition": "t8",
+      "component": "variance_analyzer",
+      "timeout_ms": 30000,
+      "thresholds": {
+        "balance_sheet": {
+          "absolute": 100000000,
+          "percentage": 0.10
+        },
+        "profit_loss": {
+          "absolute": 3000000,
+          "percentage": 0.10
+        }
+      },
+      "success_criteria": {
+        "exceptions_identified": true
+      }
+    },
+    {
+      "stage_id": "commentary",
+      "name": "Commentary Collection",
+      "petri_place": "p9",
+      "petri_transition": "t9",
+      "component": "commentary_collector",
+      "timeout_ms": 86400000,
+      "requirements": {
+        "coverage_percentage": 0.90,
+        "major_drivers_required": true,
+        "business_justification": true
+      },
+      "success_criteria": {
+        "commentary_coverage": "> 0.90"
+      }
+    },
+    {
+      "stage_id": "maker_review",
+      "name": "Maker Review",
+      "petri_place": "p10",
+      "petri_transition": "t10",
+      "component": "workflow_approver",
+      "timeout_ms": 172800000,
+      "role": "LEC_TEAM_MEMBER",
+      "checklist": [
+        "variance_threshold_applied",
+        "comments_updated_above_threshold",
+        "exceptions_identified",
+        "data_reconciliation_complete",
+        "formula_validation_passed"
+      ],
+      "success_criteria": {
+        "maker_approved": true
+      }
+    },
+    {
+      "stage_id": "checker_review",
+      "name": "Checker Review",
+      "petri_place": "p11",
+      "petri_transition": "t11",
+      "component": "workflow_approver",
+      "timeout_ms": 172800000,
+      "role": "GRADE_5_OR_ABOVE",
+      "requirements": {
+        "variance_coverage_pct": 0.90,
+        "major_drivers_documented": true,
+        "reconciliation_complete": true
+      },
+      "checklist": [
+        "90_percent_variances_explained",
+        "major_drivers_provided",
+        "exceptions_addressed_or_escalated",
+        "control_checks_passed"
+      ],
+      "success_criteria": {
+        "checker_approved": true
+      }
+    },
+    {
+      "stage_id": "report_generation",
+      "name": "Report Generation",
+      "petri_place": "p12",
+      "petri_transition": "t12",
+      "component": "report_generator",
+      "timeout_ms": 60000,
+      "report_types": [
+        "trial_balance_summary",
+        "variance_analysis",
+        "ifrs_schedules",
+        "exception_report",
+        "commentary_summary"
+      ],
+      "output_formats": ["excel", "pdf", "json"],
+      "success_criteria": {
+        "reports_generated": true
+      }
+    },
+    {
+      "stage_id": "audit_archive",
+      "name": "Audit Archive",
+      "petri_place": "p13",
+      "petri_transition": "t13",
+      "component": "audit_archiver",
+      "timeout_ms": 30000,
+      "archive_items": [
+        "workflow_execution_log",
+        "data_snapshots",
+        "approval_records",
+        "exception_records",
+        "generated_reports"
+      ],
+      "retention_period_days": 2555,
+      "success_criteria": {
+        "archive_complete": true
+      }
+    }
+  ],
+  "exception_handling": {
+    "exception_place": "p14",
+    "exception_transition": "t14",
+    "component": "error_handler",
+    "notification": {
+      "channels": ["email", "teams"],
+      "recipients": {
+        "critical": ["gpm@example.com", "command_center@example.com"],
+        "warning": ["lec_lead@example.com"],
+        "info": ["controller@example.com"]
+      }
+    },
+    "escalation": {
+      "sla_breach": {
+        "threshold_hours": 2,
+        "escalate_to": "GPM"
+      },
+      "balance_mismatch": {
+        "threshold_amount": 1000,
+        "escalate_to": "CFO"
+      }
+    }
+  },
+  "monitoring": {
+    "metrics": [
+      "execution_time_ms",
+      "records_processed",
+      "validation_pass_rate",
+      "variance_count",
+      "commentary_coverage",
+      "approval_time_hours"
+    ],
+    "alerts": [
+      {
+        "name": "sla_breach",
+        "condition": "execution_time_hours > 168",
+        "severity": "critical"
+      },
+      {
+        "name": "balance_mismatch",
+        "condition": "balance_difference > 100",
+        "severity": "critical"
+      },
+      {
+        "name": "low_variance_coverage",
+        "condition": "commentary_coverage < 0.90",
+        "severity": "warning"
+      }
+    ]
+  },
+  "integration": {
+    "nworkflow_engine": {
+      "enabled": true,
+      "engine_url": "http://localhost:8090",
+      "api_version": "v1"
+    },
+    "sap_destination": {
+      "enabled": true,
+      "destination_name": "S4HANA_PROD"
+    },
+    "hana_cloud": {
+      "enabled": true,
+      "connection_pool": {
+        "min_connections": 5,
+        "max_connections": 20
+      }
+    }
+  },
+  "control_checkpoints": {
+    "description": "DOI Control Requirements mapped to workflow transitions",
+    "source_requirement": "../odps/requirements/control-requirements.odps.yaml",
+    "checkpoints": [
+      {
+        "checkpoint_id": "CP-MKR-001",
+        "name": "Variance Threshold Checkpoint",
+        "control_id": "MKR-CHK-001",
+        "transition": "t8",
+        "stage_id": "threshold_check",
+        "verification_type": "automated",
+        "data_quality_rules": ["VAR003", "VAR004"],
+        "pass_criteria": {
+          "condition": "all_material_variances_flagged",
+          "threshold_bs": 100000000,
+          "threshold_pl": 3000000,
+          "variance_pct": 0.10
+        }
+      },
+      {
+        "checkpoint_id": "CP-MKR-002",
+        "name": "Commentary Coverage Checkpoint",
+        "control_id": "MKR-CHK-001",
+        "transition": "t9",
+        "stage_id": "commentary",
+        "verification_type": "automated",
+        "data_quality_rules": ["VAR005", "VAR006"],
+        "pass_criteria": {
+          "condition": "coverage_percent >= 90",
+          "coverage_threshold": 0.90
+        }
+      },
+      {
+        "checkpoint_id": "CP-MKR-003",
+        "name": "Exception Identification Checkpoint",
+        "control_id": "MKR-CHK-002",
+        "transition": "t14",
+        "stage_id": "exception_handling",
+        "verification_type": "automated",
+        "data_quality_rules": ["VAR007"],
+        "pass_criteria": {
+          "condition": "all_exceptions_flagged_for_escalation",
+          "escalation_path": "GPM"
+        }
+      },
+      {
+        "checkpoint_id": "CP-REC-001",
+        "name": "Period Data Accuracy Checkpoint",
+        "control_id": "REC-001",
+        "transition": "t4",
+        "stage_id": "aggregate",
+        "verification_type": "automated",
+        "data_quality_rules": ["TB004"],
+        "pass_criteria": {
+          "condition": "period_dates_match_expected_reporting_period"
+        }
+      },
+      {
+        "checkpoint_id": "CP-REC-002",
+        "name": "GCOA Mapping Checkpoint",
+        "control_id": "REC-002",
+        "transition": "t2",
+        "stage_id": "validate",
+        "verification_type": "automated",
+        "data_quality_rules": ["TB003", "TB005"],
+        "pass_criteria": {
+          "condition": "no_unmapped_accounts AND latest_gcoa_version"
+        }
+      },
+      {
+        "checkpoint_id": "CP-REC-003",
+        "name": "Calculation Integrity Checkpoint",
+        "control_id": "REC-003",
+        "transition": "t7",
+        "stage_id": "variance_analysis",
+        "verification_type": "automated",
+        "data_quality_rules": ["VAR001", "VAR002"],
+        "pass_criteria": {
+          "condition": "all_variance_formulas_correctly_computed"
+        }
+      },
+      {
+        "checkpoint_id": "CP-REC-004",
+        "name": "Mapping Currency Checkpoint",
+        "control_id": "REC-004",
+        "transition": "t4",
+        "stage_id": "aggregate",
+        "verification_type": "automated",
+        "data_quality_rules": ["TB006"],
+        "pass_criteria": {
+          "condition": "mapping_version = current_gcoa_version"
+        }
+      },
+      {
+        "checkpoint_id": "CP-REC-005",
+        "name": "Exchange Rate Checkpoint",
+        "control_id": "REC-005",
+        "transition": "t3",
+        "stage_id": "fx_conversion",
+        "verification_type": "automated",
+        "data_quality_rules": ["FX005", "FX006"],
+        "applicability": "non_usd_units_only",
+        "pass_criteria": {
+          "condition": "rates_match_group_exchange_rates"
+        }
+      },
+      {
+        "checkpoint_id": "CP-VAL-001",
+        "name": "Source Reconciliation Checkpoint",
+        "control_id": "VAL-001",
+        "transition": "t11",
+        "stage_id": "checker_review",
+        "verification_type": "automated",
+        "data_quality_rules": ["TB001", "TB002"],
+        "pass_criteria": {
+          "condition": "closing = opening + debits - credits AND total_debits = total_credits",
+          "expected_result": "check_cells_equal_zero"
+        }
+      }
+    ]
+  },
+  "data_quality_rules": {
+    "description": "Data quality validation rules from ODPS primary products",
+    "source_products": {
+      "variances": "../odps/primary/variances.odps.yaml",
+      "trial_balance": "../odps/primary/trial-balance-aggregated.odps.yaml",
+      "exchange_rates": "../odps/primary/exchange-rates.odps.yaml"
+    },
+    "rules": {
+      "variance_rules": [
+        {
+          "rule_id": "VAR001",
+          "name": "Variance Calculation",
+          "formula": "variance = current_period - comparative_period",
+          "severity": "error"
+        },
+        {
+          "rule_id": "VAR002",
+          "name": "Variance Percent",
+          "formula": "variance_pct = (variance / |comparative_period|) × 100",
+          "severity": "error"
+        },
+        {
+          "rule_id": "VAR003",
+          "name": "Materiality Threshold BS",
+          "condition": "abs(variance_amount) > 100000000 OR abs(variance_pct) > 10",
+          "applies_to": "balance_sheet",
+          "severity": "warning"
+        },
+        {
+          "rule_id": "VAR004",
+          "name": "Materiality Threshold PL",
+          "condition": "abs(variance_amount) > 3000000 OR abs(variance_pct) > 10",
+          "applies_to": "profit_loss",
+          "severity": "warning"
+        },
+        {
+          "rule_id": "VAR005",
+          "name": "Commentary Required",
+          "condition": "is_material AND commentary IS NOT NULL",
+          "severity": "warning"
+        },
+        {
+          "rule_id": "VAR006",
+          "name": "Commentary Coverage 90%",
+          "condition": "explained_variances / material_variances >= 0.90",
+          "severity": "error"
+        },
+        {
+          "rule_id": "VAR007",
+          "name": "Exception Flagging",
+          "condition": "is_material AND commentary IS NULL => is_exception = true",
+          "severity": "warning"
+        },
+        {
+          "rule_id": "VAR008",
+          "name": "Major Driver Identification",
+          "condition": "is_material => major_driver IS NOT NULL",
+          "severity": "warning"
+        }
+      ],
+      "trial_balance_rules": [
+        {
+          "rule_id": "TB001",
+          "name": "Balance Equation",
+          "formula": "closing_balance = opening_balance + debits - credits",
+          "severity": "error"
+        },
+        {
+          "rule_id": "TB002",
+          "name": "Debit Credit Balance",
+          "condition": "sum(debits) = sum(credits)",
+          "severity": "error"
+        },
+        {
+          "rule_id": "TB003",
+          "name": "IFRS Classification",
+          "condition": "ifrs_schedule IS NOT NULL",
+          "severity": "error"
+        },
+        {
+          "rule_id": "TB004",
+          "name": "Period Data Accuracy",
+          "condition": "fiscal_period matches expected_period",
+          "severity": "error"
+        },
+        {
+          "rule_id": "TB005",
+          "name": "GCOA Mapping Completeness",
+          "condition": "unmapped_accounts_count = 0",
+          "severity": "error"
+        },
+        {
+          "rule_id": "TB006",
+          "name": "Global Mapping Currency",
+          "condition": "gcoa_version = current_gcoa_version",
+          "severity": "warning"
+        }
+      ],
+      "exchange_rate_rules": [
+        {
+          "rule_id": "FX001",
+          "name": "From Currency Mandatory",
+          "condition": "from_currency IS NOT NULL",
+          "severity": "error"
+        },
+        {
+          "rule_id": "FX002",
+          "name": "To Currency Mandatory",
+          "condition": "to_currency IS NOT NULL",
+          "severity": "error"
+        },
+        {
+          "rule_id": "FX003",
+          "name": "Rate Positive",
+          "condition": "exchange_rate > 0",
+          "severity": "error"
+        },
+        {
+          "rule_id": "FX004",
+          "name": "Ratio Positive",
+          "condition": "from_ratio > 0 AND to_ratio > 0",
+          "severity": "error"
+        },
+        {
+          "rule_id": "FX005",
+          "name": "Exchange Rate Verification",
+          "condition": "rate = group_published_rate",
+          "severity": "error"
+        },
+        {
+          "rule_id": "FX006",
+          "name": "Period-Specific Rate",
+          "condition": "rate_period = transaction_period",
+          "severity": "error"
+        },
+        {
+          "rule_id": "FX007",
+          "name": "Group Rate Source",
+          "condition": "rate_source IN ('GROUP_TREASURY', 'ECB', 'FED')",
+          "severity": "warning"
+        }
+      ]
+    },
+    "summary": {
+      "total_rules": 21,
+      "variance_rules": 8,
+      "trial_balance_rules": 6,
+      "exchange_rate_rules": 7,
+      "rules_mapped_to_requirements": 18
+    }
+  }
+}

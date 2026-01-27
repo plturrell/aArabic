@@ -3,10 +3,7 @@ sap.ui.define([
 ], function (Controller) {
     "use strict";
 
-    return Controller.extend("trial.balance.controller.App", {
-        onInit: function () {
-            // Apply content density class
-            this.getView().addStyleClass(this.getOwnerComponent().getContentDensityClass());
-        }
+    return Controller.extend("trialbalance.controller.App", {
+        // Empty controller - routing handles everything
     });
 });

@@ -1,0 +1,124 @@
+<mvc:View
+    controllerName="trialbalance.controller.Overview"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:layout="sap.ui.layout"
+    xmlns:core="sap.ui.core"
+    displayBlock="true"
+    height="100%">
+    
+    <Page
+        id="overviewPage"
+        title="Trial Balance Overview"
+        showNavButton="true"
+        navButtonPress=".onNavBack">
+        
+        <headerContent>
+            <Button icon="sap-icon://menu2" press=".onMenuPress"/>
+            <Button icon="sap-icon://search" press=".onSearch"/>
+            <Button icon="sap-icon://bell" press=".onNotificationsPress" text="3" type="Emphasized"/>
+        </headerContent>
+        
+        <content>
+            <VBox class="sapUiSmallMargin">
+                <Title text="Key Performance Indicators" level="H2" class="sapUiSmallMarginBottom"/>
+                <Text text="Summary of current period" class="sapUiSmallMarginBottom"/>
+                
+                <!-- KPI Section -->
+                <layout:Grid
+                    defaultSpan="L4 M6 S12"
+                    class="sapUiSmallMarginBottom">
+                    
+                    <!-- KPI Card 1: Total Debits -->
+                    <GenericTile
+                        header="Total Debits"
+                        subheader="Current Period"
+                        press=".onKPIPress">
+                        <TileContent>
+                            <NumericContent
+                                value="$0.00"
+                                icon="sap-icon://sales-order"
+                                state="Good"/>
+                        </TileContent>
+                    </GenericTile>
+                    
+                    <!-- KPI Card 2: Total Credits -->
+                    <GenericTile
+                        header="Total Credits"
+                        subheader="Current Period"
+                        press=".onKPIPress">
+                        <TileContent>
+                            <NumericContent
+                                value="$0.00"
+                                icon="sap-icon://payment-approval"
+                                state="Good"/>
+                        </TileContent>
+                    </GenericTile>
+                    
+                    <!-- KPI Card 3: Balance -->
+                    <GenericTile
+                        header="Balance"
+                        subheader="Net Position"
+                        press=".onKPIPress">
+                        <TileContent>
+                            <NumericContent
+                                value="$0.00"
+                                icon="sap-icon://create-form"
+                                state="None"/>
+                        </TileContent>
+                    </GenericTile>
+                </layout:Grid>
+                
+                <!-- Action Section -->
+                <Panel headerText="Quick Actions" class="sapUiResponsiveMargin">
+                    <content>
+                        <HBox>
+                            <Button
+                                text="Calculate Trial Balance"
+                                type="Emphasized"
+                                icon="sap-icon://simulate"
+                                press=".onCalculate"
+                                class="sapUiSmallMarginEnd"/>
+                            <Button
+                                text="Export to Excel"
+                                icon="sap-icon://excel-attachment"
+                                press=".onExport"
+                                class="sapUiSmallMarginEnd"/>
+                            <Button
+                                text="Refresh Data"
+                                icon="sap-icon://refresh"
+                                press=".onRefresh"/>
+                        </HBox>
+                    </content>
+                </Panel>
+                
+                <!-- Summary Section -->
+                <Panel headerText="Summary" class="sapUiResponsiveMargin">
+                    <content>
+                        <VBox>
+                            <Text text="Ready to connect to backend calculation engine" class="sapUiSmallMarginBottom"/>
+                            <Text text="Status: Waiting for data..." class="sapUiSmallMarginBottom"/>
+                        </VBox>
+                    </content>
+                </Panel>
+            </VBox>
+        </content>
+    </Page>
+    
+    <!-- Side Menu (ActionSheet) -->
+    <ActionSheet id="navigationMenu" title="Navigation" placement="Bottom">
+        <buttons>
+            <Button icon="sap-icon://home" text="Home" press=".onMenuItemPress"/>
+            <Button icon="sap-icon://overview-chart" text="Overview" press=".onMenuItemPress"/>
+            <Button icon="sap-icon://database" text="ODPS Catalog" press=".onMenuItemPress"/>
+            <Button icon="sap-icon://quality-issue" text="Quality Dashboard" press=".onMenuItemPress"/>
+            <Button icon="sap-icon://chain-link" text="Data Lineage" press=".onMenuItemPress"/>
+            <Button icon="sap-icon://trend-up" text="YTD Analysis" press=".onMenuItemPress"/>
+            <Button icon="sap-icon://table-view" text="Raw Data" press=".onMenuItemPress"/>
+            <Button icon="sap-icon://line-chart" text="BS Variance" press=".onMenuItemPress"/>
+            <Button icon="sap-icon://checklist" text="Checklist" press=".onMenuItemPress"/>
+            <Button icon="sap-icon://settings" text="Metadata" press=".onMenuItemPress"/>
+        </buttons>
+    </ActionSheet>
+    
+</mvc:View>

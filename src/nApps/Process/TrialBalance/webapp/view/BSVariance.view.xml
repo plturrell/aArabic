@@ -1,0 +1,60 @@
+<mvc:View
+    controllerName="trialbalance.controller.BSVariance"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:f="sap.f"
+    displayBlock="true"
+    height="100%">
+    
+    <Page
+        id="bsVariancePage"
+        showHeader="false"
+        showNavButton="true"
+        navButtonPress=".onNavBack">
+        
+        <content>
+            <f:ShellBar
+                id="shellBar"
+                title="Trial Balance"
+                showSearch="true"
+                showNotifications="true"
+                notificationsNumber="3"
+                search=".onSearch"
+                notificationsPressed=".onNotificationsPress">
+                <f:profile>
+                    <Avatar initials="TB" displaySize="XS" press=".onAvatarPress"/>
+                </f:profile>
+            </f:ShellBar>
+
+            <VBox class="sapUiSmallMargin">
+                <Title text="BS Variance Analysis" level="H1" class="sapUiSmallMarginBottom"/>
+                <Text text="Balance Sheet Variance Page" class="sapUiSmallMarginBottom"/>
+                
+                <Panel headerText="Variance Analysis" class="sapUiResponsiveMargin">
+                    <content>
+                        <Table id="varianceTable">
+                            <columns>
+                                <Column><Text text="Account"/></Column>
+                                <Column><Text text="Budget"/></Column>
+                                <Column><Text text="Actual"/></Column>
+                                <Column><Text text="Variance"/></Column>
+                                <Column><Text text="Variance %"/></Column>
+                            </columns>
+                            <items>
+                                <ColumnListItem>
+                                    <cells>
+                                        <Text text="Awaiting data"/>
+                                        <Text text="$0.00"/>
+                                        <Text text="$0.00"/>
+                                        <Text text="$0.00"/>
+                                        <Text text="0%"/>
+                                    </cells>
+                                </ColumnListItem>
+                            </items>
+                        </Table>
+                    </content>
+                </Panel>
+            </VBox>
+        </content>
+    </Page>
+</mvc:View>

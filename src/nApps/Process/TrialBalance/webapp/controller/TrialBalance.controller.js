@@ -1,136 +1,51 @@
+/**
+ * ============================================================================
+ * Trial Balance Controller
+ * Main controller for Trial Balance calculation and display
+ * ============================================================================
+ *
+ * [CODE:file=TrialBalance.controller.js]
+ * [CODE:module=controller]
+ * [CODE:language=javascript]
+ *
+ * [ODPS:product=trial-balance-aggregated]
+ * [ODPS:rules=TB001,TB002,TB003,TB004,TB005,TB006,VAR001,VAR002,VAR003,VAR004]
+ *
+ * [DOI:controls=VAL-001,REC-001,REC-002,REC-004,MKR-CHK-001]
+ *
+ * [PETRI:stages=S04,S05,S08]
+ * [PETRI:process=TB_PROCESS_petrinet.pnml]
+ *
+ * [TABLE:displays=TB_TRIAL_BALANCE,TB_VARIANCE_DETAILS]
+ *
+ * [API:consumes=/api/v1/trial-balance,/api/v1/trial-balance/calculate]
+ *
+ * [RELATION:displays=ODPS:trial-balance-aggregated]
+ * [RELATION:calls=CODE:balance_engine.zig]
+ * [RELATION:calls=CODE:odps_api.zig]
+ *
+ * This controller displays trial balance data and validation results.
+ * It calls the backend API which invokes balance_engine.zig for calculations.
+ */
 sap.ui.define([
     "sap/ui/core/mvc/Controller",
-    "sap/ui/core/routing/History",
-    "sap/ui/model/json/JSONModel",
     "sap/m/MessageToast"
-], function (Controller, History, JSONModel, MessageToast) {
+], function (Controller, MessageToast) {
     "use strict";
 
-    return Controller.extend("trial.balance.controller.TrialBalance", {
-        onInit: function () {
-            var oRouter = this.getOwnerComponent().getRouter();
-            oRouter.getRoute("trialBalance").attachPatternMatched(this._onObjectMatched, this);
+    return Controller.extend("trialbalance.controller.TrialBalance", {
 
-            // Initialize model with mock data
-            this._initializeModel();
-        },
-
-        _onObjectMatched: function () {
-            // Load data when route is matched
-            this._loadTrialBalanceData();
-        },
-
-        _initializeModel: function () {
-            var oModel = new JSONModel({
-                accounts: [],
-                summary: {
-                    totalDebit: 0,
-                    totalCredit: 0,
-                    difference: 0,
-                    differenceState: "Success"
-                }
-            });
-            this.getView().setModel(oModel, "trialBalance");
-        },
-
-        _loadTrialBalanceData: function () {
-            // TODO: Replace with actual service call
-            var oModel = this.getView().getModel("trialBalance");
+        onCalculate: function () {
+            MessageToast.show("Calculating Trial Balance... (Backend integration coming soon)");
             
-            // Mock data
-            var aAccounts = [
-                {
-                    accountNumber: "1000",
-                    accountName: "Cash",
-                    debit: 50000,
-                    credit: 0,
-                    balance: 50000,
-                    currency: "USD",
-                    status: "Balanced",
-                    statusState: "Success",
-                    balanceState: "None"
-                },
-                {
-                    accountNumber: "2000",
-                    accountName: "Accounts Payable",
-                    debit: 0,
-                    credit: 50000,
-                    balance: -50000,
-                    currency: "USD",
-                    status: "Balanced",
-                    statusState: "Success",
-                    balanceState: "None"
-                }
-            ];
-
-            oModel.setProperty("/accounts", aAccounts);
-            this._updateSummary();
-        },
-
-        _updateSummary: function () {
-            var oModel = this.getView().getModel("trialBalance");
-            var aAccounts = oModel.getProperty("/accounts");
-
-            var totalDebit = 0;
-            var totalCredit = 0;
-
-            aAccounts.forEach(function (oAccount) {
-                totalDebit += oAccount.debit;
-                totalCredit += oAccount.credit;
-            });
-
-            var difference = totalDebit - totalCredit;
-            var differenceState = difference === 0 ? "Success" : "Error";
-
-            oModel.setProperty("/summary", {
-                totalDebit: totalDebit,
-                totalCredit: totalCredit,
-                difference: Math.abs(difference),
-                differenceState: differenceState
-            });
-        },
-
-        onNavBack: function () {
-            var oHistory = History.getInstance();
-            var sPreviousHash = oHistory.getPreviousHash();
-
-            if (sPreviousHash !== undefined) {
-                window.history.go(-1);
-            } else {
-                var oRouter = this.getOwnerComponent().getRouter();
-                oRouter.navTo("home", {}, true);
-            }
-        },
-
-        onRefresh: function () {
-            this._loadTrialBalanceData();
-            MessageToast.show("Data refreshed");
-        },
-
-        onExport: function () {
-            MessageToast.show("Export functionality to be implemented");
-            // TODO: Implement export to Excel
-        },
-
-        onFilterChange: function () {
-            MessageToast.show("Filter functionality to be implemented");
-            // TODO: Implement filtering
-        },
-
-        onSearch: function () {
-            MessageToast.show("Search functionality to be implemented");
-            // TODO: Implement search
-        },
-
-        onRowSelect: function (oEvent) {
-            var oSelectedRow = oEvent.getParameter("rowContext");
-            if (oSelectedRow) {
-                var oAccount = oSelectedRow.getObject();
-                var oRouter = this.getOwnerComponent().getRouter();
-                oRouter.navTo("accountDetail", {
-                    accountId: oAccount.accountNumber
-                });
-            }
+            // TODO: Connect to backend API
+            // Example:
+            // fetch("http://localhost:8080/api/trial-balance/calculate")
+            //     .then(response => response.json())
+            //     .then(data => {
+            //         // Update UI with data
+            //     });
         }
+
     });
 });

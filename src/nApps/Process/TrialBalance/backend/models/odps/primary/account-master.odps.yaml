@@ -1,0 +1,181 @@
+# ODPS v4.1 - G/L Account Master Data Product
+# Master data product for chart of accounts
+
+product:
+  productID: "urn:uuid:account-master-v1"
+  name: "G/L Account Master Data"
+  description: "General Ledger account master data containing account codes, names, classifications (Asset, Liability, Equity, Revenue, Expense), IFRS categories, and hierarchical relationships. Provides the foundation for financial reporting and analysis by defining the complete chart of accounts structure."
+  version: "1.0.0"
+  status: "active"
+  visibility: "organization"
+  
+  details:
+    type: "dataset"
+    category: "master-data"
+    subcategory: "chart-of-accounts"
+    tags:
+      - "account-master"
+      - "chart-of-accounts"
+      - "coa"
+      - "gl-accounts"
+      - "ifrs-classification"
+      - "account-hierarchy"
+    owner:
+      name: "Trial Balance Team"
+      email: "trial-balance-team@company.com"
+      organizationalUnit: "Finance & Accounting"
+    domain: "Finance"
+    updateFrequency: "on-change"
+    latestUpdateDate: "2026-01-27"
+    
+  contract:
+    termsAndConditions:
+      type: "internal-use"
+      licenseType: "proprietary"
+      confidentiality: "internal"
+    dataFormat: "CSN"
+    contractRef: "../../csn/trial-balance.csn.json#AccountMaster"
+    schemaSpecification: "https://github.com/SAP/cds-spec/blob/main/csn-interop-v2.md"
+    dataModel:
+      type: "relational"
+      primaryKeys: ["account_code"]
+      hierarchical: true
+      parentField: "parent_account"
+      
+  dataQuality:
+    dataQualityScore: 98.0
+    qualityDimensions:
+      - dimension: "completeness"
+        description: "All active accounts present"
+        score: 99
+        measurementMethod: "Account code coverage"
+      - dimension: "accuracy"
+        description: "Names and classifications accurate"
+        score: 98
+        measurementMethod: "Manual review + validation rules"
+      - dimension: "consistency"
+        description: "Hierarchies consistent"
+        score: 97
+        measurementMethod: "Parent-child relationship validation"
+      - dimension: "uniqueness"
+        description: "No duplicate account codes"
+        score: 100
+        measurementMethod: "Primary key constraint"
+    validationRules:
+      - ruleID: "AM001"
+        name: "Account Code Unique"
+        description: "Account code must be unique"
+        severity: "error"
+        field: "account_code"
+      - ruleID: "AM002"
+        name: "Account Name Required"
+        description: "Account name is mandatory"
+        severity: "error"
+        field: "account_name"
+      - ruleID: "AM003"
+        name: "Account Type Valid"
+        description: "Account type must be Asset/Liability/Equity/Revenue/Expense"
+        severity: "error"
+        field: "account_type"
+      - ruleID: "AM004"
+        name: "IFRS Category"
+        description: "IFRS category should be assigned"
+        severity: "warning"
+        field: "ifrs_category"
+      - ruleID: "AM005"
+        name: "Hierarchy Integrity"
+        description: "Parent account must exist if specified"
+        severity: "error"
+        field: "parent_account"
+    dataLineage:
+      upstream:
+        - productID: "urn:sap:s4hana:ska1-table"
+          name: "SAP S/4HANA SKA1 (G/L Account Master)"
+          type: "source-system"
+      transformations:
+        - transformationID: "extract-chart-of-accounts"
+          description: "Extract active G/L accounts from SAP"
+          method: "extract"
+      downstream:
+        - productID: "urn:uuid:acdoca-journal-entries-v1"
+          name: "ACDOCA Journal Entries"
+          relationship: "enriches-account-info"
+        - productID: "urn:uuid:trial-balance-aggregated-v1"
+          name: "Trial Balance Aggregated"
+          relationship: "provides-account-metadata"
+          
+  outputPort:
+    - portID: "account-master-rest-api"
+      name: "Account Master REST API"
+      description: "RESTful API for querying account master data"
+      format: "JSON"
+      protocol: "HTTPS"
+      endpoint: "/api/v1/accounts"
+      authentication: "oauth2"
+      methods: ["GET"]
+      pagination: true
+      filtering:
+        - field: "account_type"
+          operators: ["eq", "in"]
+        - field: "is_active"
+          operators: ["eq"]
+        - field: "ifrs_category"
+          operators: ["eq", "in"]
+      rateLimit: "1000 requests/minute"
+    - portID: "account-hierarchy-api"
+      name: "Account Hierarchy API"
+      description: "API for navigating account hierarchies"
+      format: "JSON"
+      protocol: "HTTPS"
+      endpoint: "/api/v1/accounts/hierarchy"
+      authentication: "oauth2"
+      methods: ["GET"]
+      
+  pricingPlans:
+    - planID: "internal-use"
+      name: "Internal Use Only"
+      description: "Free access for all internal users"
+      price: 0
+      currency: "USD"
+      billingPeriod: "monthly"
+      limitations:
+        - type: "rate-limit"
+          value: "1000 requests/minute"
+      features:
+        - "Full account master access"
+        - "Hierarchical navigation"
+        - "IFRS classifications"
+        - "Real-time updates"
+        
+  SLA:
+    availability: 99.9
+    uptime: "24/7/365"
+    responseTime:
+      p50: "50ms"
+      p95: "150ms"
+      p99: "300ms"
+    throughput: "1000 requests/second"
+    dataFreshness: "on-change (immediate)"
+    support:
+      - level: "business-hours"
+        hours: "9AM-5PM HKT"
+        responseTime: "4 hours"
+        channels: ["email"]
+      - level: "critical"
+        hours: "24/7"
+        responseTime: "1 hour"
+        channels: ["phone", "email"]
+    maintenance:
+      window: "Scheduled during SAP maintenance"
+      frequency: "quarterly"
+      notificationPeriod: "14 days"
+      
+  extensions:
+    sapORD: "../../ord/trial-balance-product.json#sap.nApps.Process:dataProduct:Variances:v1"
+    sapCSN: "../../csn/trial-balance.csn.json#VarianceEntry"
+    sapSourceTable: "SKA1"
+    recordCount: "~800 accounts"
+    avgRecordSize: "300B"
+    industryStandards:
+      - "IFRS"
+      - "US-GAAP"

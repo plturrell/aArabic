@@ -11,6 +11,12 @@ downloads/
 eggs/
 .eggs/
 lib/
+!src/nLang/n-c-sdk/lib/
+src/nLang/n-c-sdk/lib/*
+!src/nLang/n-c-sdk/lib/libc/
+src/nLang/n-c-sdk/lib/libc/*
+!src/nLang/n-c-sdk/lib/libc/zig-libc/
+!src/nLang/n-c-sdk/lib/libc/zig-libc/**
 lib64/
 parts/
 sdist/

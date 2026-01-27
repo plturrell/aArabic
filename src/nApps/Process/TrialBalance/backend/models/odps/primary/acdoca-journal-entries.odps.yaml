@@ -1,0 +1,214 @@
+# ODPS v4.1 - ACDOCA Universal Journal Entries Data Product
+# Primary transactional data product from SAP S/4HANA
+
+product:
+  productID: "urn:uuid:acdoca-journal-entries-v1"
+  name: "ACDOCA Universal Journal Entries"
+  description: "Complete SAP S/4HANA ACDOCA universal journal entries with full field set including ledger, company code, fiscal year, document number, line items, G/L accounts, amounts in multiple currencies, debit/credit indicators, posting periods, and segment reporting dimensions. Each entry includes SHA-256 hash for lineage tracking and data quality classification per IFRS requirements."
+  version: "1.0.0"
+  status: "active"
+  visibility: "organization"
+  
+  details:
+    type: "dataset"
+    category: "transactional-data"
+    subcategory: "financial-accounting"
+    tags:
+      - "acdoca"
+      - "universal-journal"
+      - "journal-entries"
+      - "general-ledger"
+      - "ifrs"
+      - "sap-s4hana"
+      - "financial-accounting"
+      - "multi-currency"
+    owner:
+      name: "Trial Balance Team"
+      email: "trial-balance-team@company.com"
+      organizationalUnit: "Finance & Accounting"
+    domain: "Finance"
+    updateFrequency: "real-time"
+    latestUpdateDate: "2026-01-27"
+    
+  contract:
+    termsAndConditions:
+      type: "internal-use"
+      licenseType: "proprietary"
+      confidentiality: "confidential"
+    dataFormat: "CSN"
+    contractRef: "../../csn/trial-balance.csn.json#JournalEntry"
+    schemaSpecification: "https://github.com/SAP/cds-spec/blob/main/csn-interop-v2.md"
+    dataModel:
+      type: "relational"
+      primaryKeys: ["rldnr", "rbukrs", "gjahr", "belnr", "docln"]
+      partitionKeys: ["poper", "rbukrs"]
+      
+  dataQuality:
+    dataQualityScore: 95.0
+    qualityDimensions:
+      - dimension: "completeness"
+        description: "All mandatory ACDOCA fields present"
+        score: 98
+        measurementMethod: "Field presence validation"
+      - dimension: "accuracy"
+        description: "Debit/credit indicators and amounts valid"
+        score: 95
+        measurementMethod: "IFRS validation rules (R001-R010)"
+      - dimension: "consistency"
+        description: "Cross-field consistency checks"
+        score: 92
+        measurementMethod: "Balance verification (Debit = Credit)"
+      - dimension: "timeliness"
+        description: "Data freshness"
+        score: 99
+        measurementMethod: "Extraction timestamp tracking"
+    validationRules:
+      - ruleID: "R001"
+        name: "RACCT Mandatory"
+        description: "G/L Account (RACCT) is mandatory per IFRS requirements"
+        severity: "error"
+        field: "racct"
+      - ruleID: "R002"
+        name: "DRCRK Valid"
+        description: "Debit/Credit indicator must be 'S' or 'H'"
+        severity: "error"
+        field: "drcrk"
+      - ruleID: "R003"
+        name: "POPER Range"
+        description: "Posting period must be between 1 and 12"
+        severity: "error"
+        field: "poper"
+      - ruleID: "R004"
+        name: "Zero Amount Warning"
+        description: "HSL amount should not be zero"
+        severity: "warning"
+        field: "hsl"
+      - ruleID: "R005"
+        name: "Company Code Mandatory"
+        description: "Company code (RBUKRS) is mandatory"
+        severity: "error"
+        field: "rbukrs"
+      - ruleID: "R006"
+        name: "Fiscal Year Range"
+        description: "Fiscal year must be between 2000 and 2099"
+        severity: "error"
+        field: "gjahr"
+      - ruleID: "R007"
+        name: "Document Number Mandatory"
+        description: "Document number (BELNR) required for audit trail"
+        severity: "error"
+        field: "belnr"
+      - ruleID: "R008"
+        name: "Currency Code Valid"
+        description: "Currency code must be 3 characters (ISO 4217)"
+        severity: "error"
+        field: "rhcur"
+      - ruleID: "R009"
+        name: "Exchange Rate Positive"
+        description: "Exchange rate (UKURS) must be positive"
+        severity: "error"
+        field: "ukurs"
+      - ruleID: "R010"
+        name: "Date Format Check"
+        description: "Posting date should be YYYY-MM-DD format"
+        severity: "info"
+        field: "budat"
+    dataLineage:
+      upstream:
+        - productID: "urn:sap:s4hana:acdoca-table"
+          name: "SAP S/4HANA ACDOCA Table"
+          type: "source-system"
+      transformations:
+        - transformationID: "extract"
+          description: "Extract from SAP S/4HANA via OData/RFC"
+          method: "incremental-load"
+      downstream:
+        - productID: "urn:uuid:trial-balance-aggregated-v1"
+          name: "Trial Balance Aggregated"
+          relationship: "aggregates"
+        - productID: "urn:uuid:variances-v1"
+          name: "Period Variances"
+          relationship: "calculates"
+          
+  outputPort:
+    - portID: "acdoca-rest-api"
+      name: "ACDOCA REST API"
+      description: "RESTful API for querying journal entries"
+      format: "JSON"
+      protocol: "HTTPS"
+      endpoint: "/api/v1/journal-entries"
+      authentication: "oauth2"
+      methods: ["GET", "POST"]
+      pagination: true
+      filtering:
+        - field: "poper"
+          operators: ["eq", "in", "between"]
+        - field: "racct"
+          operators: ["eq", "in", "like"]
+        - field: "rbukrs"
+          operators: ["eq", "in"]
+      rateLimit: "1000 requests/minute"
+    - portID: "acdoca-lineage-api"
+      name: "ACDOCA Lineage API"
+      description: "Data lineage tracking API"
+      format: "JSON"
+      protocol: "HTTPS"
+      endpoint: "/api/v1/lineage/acdoca"
+      authentication: "oauth2"
+      methods: ["GET"]
+      
+  pricingPlans:
+    - planID: "internal-use"
+      name: "Internal Use Only"
+      description: "Free access for internal finance teams"
+      price: 0
+      currency: "USD"
+      billingPeriod: "monthly"
+      limitations:
+        - type: "rate-limit"
+          value: "1000 requests/minute"
+        - type: "data-retention"
+          value: "2 years"
+      features:
+        - "Full API access"
+        - "Real-time data"
+        - "Data lineage tracking"
+        - "Quality metrics"
+        
+  SLA:
+    availability: 99.99
+    uptime: "24/7/365"
+    responseTime:
+      p50: "50ms"
+      p95: "100ms"
+      p99: "200ms"
+    throughput: "1000 requests/second"
+    dataFreshness: "real-time"
+    support:
+      - level: "business-hours"
+        hours: "9AM-5PM HKT"
+        responseTime: "4 hours"
+        channels: ["email", "slack"]
+      - level: "critical"
+        hours: "24/7"
+        responseTime: "1 hour"
+        channels: ["phone", "pager"]
+    maintenance:
+      window: "Sunday 2AM-4AM HKT"
+      frequency: "monthly"
+      notificationPeriod: "7 days"
+      
+  extensions:
+    sapORD: "../../ord/trial-balance-product.json#sap.nApps.Process:dataProduct:ACDOCA:v1"
+    sapCSN: "../../csn/trial-balance.csn.json#JournalEntry"
+    sapTableName: "ACDOCA"
+    sapSystem: "S/4HANA"
+    sapClient: "800"
+    recordCount: "~50000 per month"
+    avgRecordSize: "2KB"
+    storageSize: "~100MB per month"
+    industryStandards:
+      - "IFRS"
+      - "US-GAAP"
+      - "ISO-4217"
+      - "SAP-ACDOCA-Spec-v1"

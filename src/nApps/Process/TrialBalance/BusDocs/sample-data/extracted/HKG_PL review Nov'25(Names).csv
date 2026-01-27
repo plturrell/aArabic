@@ -1,0 +1,274 @@
+IFRS Pack Sch Ref,IFRS Pack Sch Description,IFRS Line Item / General Ref,Names
+1A,Cash & Bal. at C.Bnk,Cash in Hand,Balaji
+1A,Cash & Bal. at C.Bnk,Unrestricted Bal. with C.Bnk,Balaji
+1CA,Due from Other Banks,Items in Collectn fr Oth Banks,Balaji
+1BA,Treasury & Oth. Eligible Bills,Treasury Bills,Harish
+1CA,Due from Other Banks,Depo & Oth Ln w Bnk & Cr Instn,Yellore Rammurthy
+1J,Other Assets,Other Accounts,Hemanth
+1A,Cash & Bal. at C.Bnk,Restricted Bal. at C.Bnk,Balaji
+1CA,Due from Other Banks,Cr Bills Negotiated-Banks,Yellore Rammurthy
+1CA,Due from Other Banks,Adv to Banks Reverse Repos,Yellore Rammurthy
+1J,Other Assets,Cash Collateral-Asts,Harish
+1CA,Due from Other Banks,ECL Allowances - Stage 1 to 3,Yellore Rammurthy
+1DA,Loans and Advances to Customers,Loans-C.Bnks and C.Govts,Yellore Rammurthy
+1DA,Loans and Advances to Customers,Loan-Public Sector Entities,Yellore Rammurthy
+1DA,Loans and Advances to Customers,Loan-Securd By Mrtg-Resid Prop,Yellore Rammurthy
+1DA,Loans and Advances to Customers,Cr Bills Negotiated-Cust,Yellore Rammurthy
+1DA,Loans and Advances to Customers,"Other Loans, Advances & Bills",Yellore Rammurthy
+1DA,Loans and Advances to Customers,Adv to Customers Reverse Repos,Yellore Rammurthy
+1DA,Loans and Advances to Customers,Cash collateral on stock borrowings-Cus,Yellore Rammurthy
+1DA,Loans and Advances to Customers,Interest in Suspense,Yellore Rammurthy
+1DA,Loans and Advances to Customers,ECL Allowances - Stage 1 to 3,Yellore Rammurthy
+1DA,Loans and Advances to Customers,"Other loans, advances and bills",Yellore Rammurthy
+1EA,Investmt Sec.-Debt Sec,Cert of Depo-Banks & Bldg Soc,Harish
+1EA,Investmt Sec.-Debt Sec.-NGp,Cert of Depo-Banks & Bldg Soc,Harish
+1EA,Investmt Sec.-Debt Sec.-NGp,Cert of Depo-Other,Harish
+1EA,Investmt Sec.-Debt Sec,Cert of Depo-Other,Harish
+1EA,Investmt Sec.-Debt Sec,Other Debt Sec-C.Bnks&C.Govts,Harish
+1EA,Investmt Sec.-Debt Sec,Other Debt Sec-Banks,Harish
+1EA,Investmt Sec.-Debt Sec,Other Debt Sec-Other,Harish
+1EA,Investmt Sec.-Debt Sec.-NGp,Other Debt Sec-Other,Harish
+1EA,Investmt Sec.-Debt Sec,ECL Allowances - Stage 1 to 3,Harish
+1FA,Investmt Sec.-Equity Shares,Other Equity Shares,Harish
+1FA,Investmt Sec.-Equity Shares,Capital of Other Banks,Harish
+1I,Prepayments & Accrued Income,Prepayments,Balaji
+1H,Property and Equipment,Freehold Property-Cost,Balaji
+1H,Property and Equipment,Freehold Property-AccDpr,Balaji
+1H,Property and Equipment,Short Leases-Cost,Balaji
+1H,Property and Equipment,Short Leases-AccDpr,Balaji
+1G,Intangible Fixed Assets,Work In Progress-Intangible,Balaji
+1H,Property and Equipment,Work In Progress-PPE,Balaji
+1H,Property and Equipment,Construction Accounts,Balaji
+1H,Property and Equipment,"Premises, Plant & Eqmt-Cost",Balaji
+1H,Property and Equipment,"Premises, Plant & Eqmt-AccDpr",Balaji
+1H,Property and Equipment,Office Equipment-Cost,Balaji
+1H,Property and Equipment,Furniture & Fitting-Cost,Balaji
+1H,Property and Equipment,Motor Vehicles-Cost,Balaji
+1G,Intangible Fixed Assets,Capitalised Software,Balaji
+1H,Property and Equipment,Office Equipment-AccDpr,Balaji
+1H,Property and Equipment,Furniture & Fitting-AccDpr,Balaji
+1H,Property and Equipment,Motor Vehicles-AccDpr,Balaji
+1H,Property and Equipment,Capitalised Leased Eqmt-Cost,Balaji
+1H,Property and Equipment,Short Leases-Acc Impairment,Balaji
+1H,Property and Equipment,Capitalised Leased Eqmt-AccDpr,Balaji
+1H,Property and Equipment,Investment Property-Cost,Balaji
+1J,Other Assets,Sundry Debtors,Hemanth
+1J,Other Assets,Unsettled Trades-Asts,Harish
+1K,Inter-co/brnch Bal. Due,Interco PE Cost Receivables,Interco
+1K,Inter-co/brnch Bal. Due,AIR - Group,Interco
+1I,Prepayments & Accrued Income,AIR-C.Bnks & C.Governments,Yellore Rammurthy
+1I,Prepayments & Accrued Income,AIR -Banks,Yellore Rammurthy
+1I,Prepayments & Accrued Income,AIR-Public Sector Entities,Yellore Rammurthy
+1I,Prepayments & Accrued Income,AIR-Ln-Secd By Mrtg-Resid Prop,Yellore Rammurthy
+1I,Prepayments & Accrued Income,"AIR-Oth Loan, Adv & Bills Held",Yellore Rammurthy
+1I,Prepayments & Accrued Income,AIR-Other,Yellore Rammurthy
+1J,Other Assets,Commodities Purchased,Harish
+1G,Intangible Fixed Assets,Goodwill,Balaji
+N7A,Derivative Financial Instruments Assets,Deriv. Fin. Instrmnts Assts,Rajesh
+N3A/N5A,Inter-co/brnch Derivatives,Inter-co/brnch Derivtvs.-Asts,Interco
+1J,Other Assets,Margin Money against derv contracts,Hemanth
+1J,Other Assets,NGrp Accptncs&Endrsemts-Asts,Hemanth
+1J,Other Assets,HK Govt Cert of Indebtedness,Hemanth
+1K,Inter-co/brnch Bal. Due,Interco PE Loans & Deposits Receivables,Interco
+1EA,Investmt Sec.-Debt Sec,Other Debt Securities-Group,Harish
+1K,Inter-co/brnch Bal. Due,Interco PE Loans & Deposit Receivables,Interco
+1K,Inter-co/brnch Bal. Due,Interco Nostro,Interco
+1K,Inter-co/brnch Bal. Due,Interco PE Other Receivables,Interco
+1K,Inter-co/brnch Bal. Due,Interco - CBR Asset,Interco
+1K,Inter-co/brnch Bal. Due,Interco - Share Options Asset,Interco
+1K,Inter-co/brnch Bal. Due,Interco - FGCR,Interco
+1K,Inter-co/brnch Bal. Due,Interco PE Revenue Receivables,Interco
+1L,Investments in Associates & JVs,Investmt in Associates-Equity,Balaji
+1L,Investments in Associates & JVs,Provision for Impairment-Assoc,Balaji
+1M,Investments in Subsidiaries,Investmt in Subsid-Cost,Balaji
+1M,Investments in Subsidiaries,Provision for Impairment-Subs,Balaji
+2P,Reserves,Reval.Reserves-Premises,Balaji
+2P,Reserves,FV Gain/Loss-FVOCI Invstmt,Balaji
+2P,Reserves,Revenue Reserves,Balaji
+2P,Reserves,Associates Company Reserves,Balaji
+2P,Reserves,FV Gain/Loss-Cash Flow Hdges,Balaji
+2P,Reserves,Own Credit Adjustment Reserves,Balaji
+2P,Reserves,Tax on Fair Value adjustments in the period,Balaji
+2P,Reserves,Merger Reserve,Balaji
+2P,Reserves,ECL Allowances - Stage 1 to 3,Yellore Rammurthy
+02,Subordinated Ln Cap Grp,Subordinated Ln Cap Grp,Balaji
+2T,Branch Reserves and Profits,P/L Awaiting Remittance,Balaji
+2T,Branch Reserves and Profits,BrchRsv-Reval.Rsv-Premises,Balaji
+2T,Branch Reserves and Profits,BrchRsv-Reval.Rsv-CF Hedges,Balaji
+2U,Deposits by Banks,Dep Bk-Current & Deposit Accts,Parameswaran
+2U,Deposits by Banks,Dep Bk-Time Deposits,Parameswaran
+2U,Deposits by Banks,Dep Bk-Liabs-Sale&Repo Agreemt,Parameswaran
+2Z,Other Liabilities,Cash Collateral-Liab,Harish
+2V,Customer Accounts,Cust Acc-Current&Deposit Accts,Parameswaran
+2V,Customer Accounts,Cust Acc-Time Deposits,Parameswaran
+2V,Customer Accounts,Cust Acc-Saving Deposits,Parameswaran
+2V,Customer Accounts,Cust Acc-Liabs-Sale&Repo Agrmt,Parameswaran
+2V,Customer Accounts,Cust Acc-Other Deposits,Parameswaran
+2W,Debt Securities in Issue,Other Debt Securities in Issue,Harish
+2Z,Other Liabilities,Lease liabilities - Property,Balaji
+2K,Inter-co/brnch Bal. Owing,AIP - Inter-co/brnch Bal. Owing,Interco
+2K,Inter-co/brnch Bal. Owing,Interdesk - AIP - Inter-co/brnch Bal. Owing,Interco
+2X,Accruals and Deferred Income,AIP-Non Group,Parameswaran
+2X,Accruals and Deferred Income,Sundry Accruals & Deferred Inc,Balaji
+2Z,Other Liabilities,Other Liability Accounts,Hemanth
+2X,Accruals and Deferred Income,Holiday Pay Accrual,Balaji
+2Y,Provs. for Liabs. and Charges,ECL Allowances - Stage 1 to 3,Yellore Rammurthy
+2Y,Provs. for Liabs. and Charges,Prov-Deferred Taxation,Balaji
+2Y,Provs. for Liabs. and Charges,Prov-Retirement Benefits,Balaji
+2Y,Provs. for Liabs. and Charges,Prov-Contgnt Liabs & Commtmt,Balaji
+2Y,Provs. for Liabs. and Charges,Prov-Op Losses & Other Liabs-Ext,Balaji
+2Y,Provs. for Liabs. and Charges,Provision Utilised - External,Balaji
+2Y,Provs. for Liabs. and Charges,Prov-Op Losses & Other Liabs-Int,Balaji
+2Z,Other Liabilities,ShrtPst-TrsuryBills&SimilarSec,Harish
+2Z,Other Liabilities,ShrtPst-DebtSec-Govt Sec,Harish
+2Z,Other Liabilities,ShrtPst-DebtSec-Oth Debt Sec,Harish
+2Z,Other Liabilities,ShrtPst-EqSh&OthVarYieldSec,Harish
+2Z,Other Liabilities,Current Taxation,Hemanth
+2Z,Other Liabilities,Drafts Payable,Hemanth
+N7A,Derivative Financial Instruments Liabilities,Deriv. Fin. Instrmnts Liabs,Rajesh
+N3A/N5A,Inter-co/brnch Derivatives,Inter-co/brnch Derivtvs.-Liab,Interco
+2Z,Other Liabilities,Notes in Circulation,Hemanth
+2Y,Provs. for Liabs. and Charges,Prov-Legal Claims & Costs,Balaji
+2Z,Other Liabilities,NGrp Accptncs&Endrsemts-Liab,Yellore Rammurthy
+2Z,Other Liabilities,S.Creditors & Oth.Payables,Hemanth
+2Z,Other Liabilities,Unsettled Trades-Liab,Harish
+2K,Inter-co/brnch Bal. Owing,Interco PE Other Payables,Interco
+2K,Inter-co/brnch Bal. Owing,Interco PE Loans & Deposit Payables,Interco
+2K,Inter-co/brnch Bal. Owing,Interco PE Cost Payables,Interco
+2K,Inter-co/brnch Bal. Owing,Interco - CBR Liability,Interco
+2KA,Share Options - Movement Analysis,Share Option Accruals,Balaji
+2K,Inter-co/brnch Bal. Owing,Interco - FGCR,Interco
+2K,Inter-co/brnch Bal. Owing,Interco PE Revenue Payables,Interco
+2K,Inter-co/brnch Bal. Owing,Interdesk - Interco PE Payables,Interco
+2K,Inter-co/brnch Bal. Owing,Interco Vostro,Interco
+N3A/N5A,Inter-co/brnch Derivatives,Interdesk - Inter-co/brnch Derivtvs.-Liab,Rajesh
+3D,Interest Receivable & Similar Income,"Int Rcv-Lns,Adv&Oth-Non Group",Yellore Rammurthy
+3D,Interest Receivable & Similar Income,Amortn-Treasury&OthEligbBills,Vinay/Harish
+3D,Interest Receivable & Similar Income,EIR Amortisation-Non Group,Vinay/Harish
+3D,Interest Receivable & Similar Income,Interest receivable on impaired loans,Yellore Rammurthy
+3D,Interest Receivable & Similar Income,Int Inc-DebtSec&OthFixedIncSec,Vinay/Harish
+3D,Interest Receivable & Similar Income,Amortn-DebtSec&OthFixedIncSec,Vinay/Harish
+3D,Interest Receivable & Similar Income,"NTP - Int Rcv-Lns,Adv&Oth-SCB",Harish
+3D,Profit & Loss,"NTP - Int Rcv-Lns,Adv&Oth-SCB",Harish
+3D,Interest Receivable & Similar Income,"Int Rcv-Lns,Adv&Oth-SCB",Yellore Rammurthy
+3E,Interest Payable,Other Int Payable-Non Group,Vinay/Harish
+3E,Interest Payable,Depo by Banks & Cust-Non Group,Parameswaran
+3E,Interest Payable,Int Payable-Subord Loan Cap,Balaji
+3E,Interest Payable,NTP Interco - Depo by Banks & Cust-Group,Balaji
+3E,Interest Payable,IntPayable-SubordLoanCap-Grp,Balaji
+3E,Interest Payable,Other Interest Payable-Group,Balaji
+3H,Analysis of Other Operating Income,DivIncEqSh&TrdInvstmt-Unlisted,Vinay/Harish
+3A,Profit & Loss,Fee & Commission Inc-NGp,Hemanth
+3A,Profit & Loss,Fee & Commission Exp-NGp,Balaji
+3A,Profit & Loss,NTP Interco - Fee & Commission Exp-Grp,Balaji
+3A,Profit & Loss,TP Interco - Fee & Commission Exp-Grp,Balaji
+3G,Analysis of Net Trading Income,Inter Group Inc/Exp Alloc Net,Vinay/Harish
+3G,Analysis of Net Trading Income,P/L-Disposal-Trdg Assets/Liabs,Vinay/Harish
+3G,Analysis of Net Trading Income,G/L-Trdng Instrument-Trdg Sec,Vinay/Harish
+3J,Gains & Losses on Disposal of Non Trading Inv Sec,Recycled G/L Tfr fr FVOCI Sec,Vinay/Harish
+3J,Gains & Losses on Disposal of Non Trading Inv Sec,NetG/L-Disp-Non-FVOCIInvstmtSec,Vinay/Harish
+3G,Analysis of Net Trading Income,Mvmt on MTM-Trdg Assets/Liabs,Vinay/Harish
+3G,Analysis of Net Trading Income,Designated at Fair Value Liabs,Vinay/Harish
+3G,Analysis of Net Trading Income,Equity Instruments - Mandtytrdg,Vinay/Harish
+3G,Analysis of Net Trading Income,Fair Value Hedge Adj-Asst/Liab,Vinay/Harish
+3G,Analysis of Net Trading Income,Loans and Advances ( Banks & Customers) - Mandtytrdg,Yellore Rammurthy
+3G,Analysis of Net Trading Income,Debt Securities - Mandtytrdg,Vinay/Harish
+3G,Analysis of Net Trading Income,G/L-Trdng Instrument-FX Deriv,Vinay/Harish
+3G,Analysis of Net Trading Income,G/L-Trdng Instrument-Ex Reval,Vinay/Harish
+3G,Analysis of Net Trading Income,Fair Value Hedge Derivatives,Rajesh
+3G,Analysis of Net Trading Income,G/L-Trdng Instrumt-IRD/CRD/OTH,Vinay/Harish
+3A,Profit & Loss,NTP Interco - Fee & Commission Inc-Grp,Hemanth
+3A,Profit & Loss,TP Interco - Fee & Commission Inc-Grp,Hemanth
+3H,Analysis of Other Operating Income,Rents Receivable,Balaji
+3H,Analysis of Other Operating Income,IFRS 16 Lease modification Gain/Loss,Balaji
+3H,Analysis of Other Operating Income,Miscellaneous Income,Balaji
+3H,Analysis of Other Operating Income,Revaluation of Investment Property - Surplus/(Deficit),Balaji
+3L,Analysis of Operating Costs,Salaries and Allowances,Cost Controller/LEC
+3L,Analysis of Operating Costs,Bonuses,Cost Controller/LEC
+3L,Analysis of Operating Costs,Share Awards,Cost Controller/LEC
+3L,Analysis of Operating Costs,Retirement Benefits,Cost Controller/LEC
+3L,Analysis of Operating Costs,Staff Training,Cost Controller/LEC
+3L,Analysis of Operating Costs,Travel,Cost Controller/LEC
+3L,Analysis of Operating Costs,Other Staff Costs,Cost Controller/LEC
+3L,Analysis of Operating Costs,Holiday Pay Accrual-Cost,Cost Controller/LEC
+3L,Analysis of Operating Costs,Rent Paid,Cost Controller/LEC
+3L,Analysis of Operating Costs,Other Premises Costs,Cost Controller/LEC
+3L,Analysis of Operating Costs,Lease Finance Cost-non Property,Cost Controller/LEC
+3L,Analysis of Operating Costs,Premises-Renewals & Maint.,Cost Controller/LEC
+3L,Analysis of Operating Costs,Equipment-Renewals & Maint,Cost Controller/LEC
+3L,Analysis of Operating Costs,Depreciation-Premises,Cost Controller/LEC
+3L,Analysis of Operating Costs,Depreciation-Equipment,Cost Controller/LEC
+3L,Analysis of Operating Costs,Hire of Equipment,Cost Controller/LEC
+3L,Analysis of Operating Costs,Insurance-Premises & Eqmt,Cost Controller/LEC
+3L,Analysis of Operating Costs,EY Companies-Audit Fees,Cost Controller/LEC
+3L,Analysis of Operating Costs,EY Companies-Non-Audit Work,Cost Controller/LEC
+3L,Analysis of Operating Costs,Non EY Comp-Audit Fees,Cost Controller/LEC
+3L,Analysis of Operating Costs,Prof-Consultant Costs & Others,Cost Controller/LEC
+3L,Analysis of Operating Costs,Legal Claims & Related Costs,Cost Controller/LEC
+3L,Analysis of Operating Costs,Communications,Cost Controller/LEC
+3L,Analysis of Operating Costs,Computer Costs,Cost Controller/LEC
+3L,Analysis of Operating Costs,Depreciation-Capitalised S/W,Cost Controller/LEC
+3L,Analysis of Operating Costs,Entertainment,Cost Controller/LEC
+3L,Analysis of Operating Costs,Stationery,Cost Controller/LEC
+3L,Analysis of Operating Costs,Printing and Publications,Cost Controller/LEC
+3L,Analysis of Operating Costs,Advertising and Publicity,Cost Controller/LEC
+3L,Analysis of Operating Costs,"Frauds, Shortages & Losses",Cost Controller/LEC
+3L,Analysis of Operating Costs,Amt w-off w/o Pro-Op Loss Ext,Cost Controller/LEC
+3L,Analysis of Operating Costs,P/L-New Prov Creat-Op.Loss Int,Cost Controller/LEC
+3L,Analysis of Operating Costs,Rec amt prev w/off-Op.Loss Int,Cost Controller/LEC
+3L,Analysis of Operating Costs,Operational Losses (Ext & Int),Cost Controller/LEC
+3L,Analysis of Operating Costs,Insurance-Non Premises & Eqmt,Cost Controller/LEC
+3L,Analysis of Operating Costs,Community Expenditure,Cost Controller/LEC
+3L,Analysis of Operating Costs,Subscriptions,Cost Controller/LEC
+3L,Analysis of Operating Costs,Financial Grp Cost Recharges - HOAE Only,Cost Controller/LEC
+3L,Analysis of Operating Costs,Financial Grp Cost Recharges - GINGER,Cost Controller/LEC
+3L,Analysis of Operating Costs,Other Costs,Cost Controller/LEC
+3L,Analysis of Operating Costs,Recharge from GBS M'ysia,Cost Controller/LEC
+3L,Analysis of Operating Costs,Recharge from GBS India,Cost Controller/LEC
+3L,Analysis of Operating Costs,Indirect Taxes,Cost Controller/LEC
+3L,Analysis of Operating Costs,Recharge from/(to) GBS-Poland,Cost Controller/LEC
+3L,Analysis of Operating Costs,Recharge from/(to) GBS-China,Cost Controller/LEC
+3A,Profit & Loss,ECL Allowances - Stage 1 to 3,Yellore Rammurthy
+3U,Other Impairment,Impairment-Others,Balaji
+3U,Other Impairment,Impairment-Capitalised S/W,Balaji
+3A,Profit & Loss,Div Inc-Invstmt in Subsid,Balaji
+3A,Profit & Loss,Share of PBT of Assoc Company,Hemanth
+3R,Tax Charge Analysis,Ovrs Tax-CurrTaxThisPeriod,Balaji
+3R,Tax Charge Analysis,Ovrs Tax-CurrTaxPriorPeriod,Balaji
+3R,Tax Charge Analysis,Ovrs Tax-DefrTaxThisPeriod,Balaji
+3R,Tax Charge Analysis,Ovrs Tax-DefrTaxPriorPeriodAdj,Balaji
+NAA,IFRS Contingent Liabs (Non Group), Contra Accounts,Yellore Rammurthy
+NAA,IFRS Contingent Liabs (Non Group),Irrevocable Letters of Credit - DCS,Yellore Rammurthy
+NAA,IFRS Contingent Liabs (Non Group),Guarantees & Bonds-TxnRel-NG,Yellore Rammurthy
+NAA,IFRS Contingent Assets (Non Group),Guarantees & Bonds-TxnRel-NG,Yellore Rammurthy
+NAA,IFRS Contingent Liabs (Non Group),Irrevocable Letters of Credit,Yellore Rammurthy
+NAA,IFRS Contingent Liabs (Non Group),Sale & Pur. Agreement N-Group,Yellore Rammurthy
+NAA,IFRS Contingent Liabs (Non Group),Forwd Forwd Dep.Placed N-Group,Yellore Rammurthy
+NAA,IFRS Contingent Assets (Non Group),Forwd Forwd Dep.Placed N-Group,Yellore Rammurthy
+NAA,IFRS Contingent Liabs (Non Group),Other DCS contingent liabilities - DCS,Yellore Rammurthy
+NAA,IFRS Contingent Liabs (Non Group),Oth.Comt (<1yr orig. mat.)N-Gp,Yellore Rammurthy
+NAA,IFRS Contingent Liabs (Non Group),Oth.Comt(>1 yr orig.mat.) N-Gp,Yellore Rammurthy
+NAA,IFRS Contingent Liabs (Non Group),Oth.Com uncondition Cancel NGp,Yellore Rammurthy
+NBA,IFRS Contingent Liabs (Group),Contra Accounts Group,Yellore Rammurthy
+NBA,IFRS Contingent Liabs (Group),Tran.related contingnt-Group,Yellore Rammurthy
+NBA,IFRS Contingent Liabs (Group),Intra Group-SCB-Trd-DCS,Yellore Rammurthy
+NBA,IFRS Contingent Liabs (Group),Intra Group-SCB-Fwd Dep,Yellore Rammurthy
+NBA,IFRS Contingent Assets (Group),Intra Group-SCB-Fwd Dep,Yellore Rammurthy
+NBA,IFRS Contingent Liabs (Group),Intra Group-Oth-Oth Com >1yr,Yellore Rammurthy
+CAD,IFRS Contingent Liabs (Non Group),Treasury Contingents-Non Group,Yellore Rammurthy
+CAD,Derivative Schedules,Contingent Liabs-IRRC-Bnkg,Rajesh
+CAD,Derivative Schedules,Contingent Assets-IRRC Bnkg,Rajesh
+CAD,Derivative Schedules,Contingent Liabs-FERC Trd NG,Rajesh
+CAD,Derivative Schedules,Contingent Assets-FERC Trd NG,Rajesh
+CAD,IFRS Contingent Liabs (Non Group),Treasury Contingent-Group Con,Yellore Rammurthy
+CAD,Derivative Schedules,Contingent Liabs-IRRC Bnkg Grp,Rajesh
+CAD,Derivative Schedules,Contingent Assets-IRRC Bnkg Gr,Rajesh
+CAD,Derivative Schedules,Contingent Assets-IRRC Trd Grp,Rajesh
+CAD,Derivative Schedules,Contingent Liabs-Inter desk,Rajesh
+CAD,Derivative Schedules,Contingent Liabs-FERC-Trd-Grp,Rajesh
+CAD,Derivative Schedules,Contingent Assets-FERC-Trd-Grp,Rajesh
+CAD,Derivative Schedules,Contingent Assets-Inter desk,Rajesh
+CAD,Derivative Schedules,ERC Contingent Assets Grp,Rajesh
+1L,Investments in Associates & JVs,Investmt in Associates-Cost,Balaji
+2O,Share Capital,Share Capital,Balaji
+3T,Analysis of Divends Paid & Declared,Dividend Paid,Balaji

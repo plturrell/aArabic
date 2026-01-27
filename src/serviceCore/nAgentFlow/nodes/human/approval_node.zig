@@ -446,7 +446,7 @@ pub const ApprovalManager = struct {
     pub fn init(allocator: Allocator, task_manager: *TaskManager) ApprovalManager {
         return ApprovalManager{
             .chains = std.StringHashMap(*ApprovalChain).init(allocator),
-            .chains_by_workflow = std.StringHashMap(std.ArrayList([]const u8)){},
+            .chains_by_workflow = std.StringHashMap(std.ArrayList([]const u8)).init(allocator),
             .task_manager = task_manager,
             .chain_counter = 0,
             .allocator = allocator,

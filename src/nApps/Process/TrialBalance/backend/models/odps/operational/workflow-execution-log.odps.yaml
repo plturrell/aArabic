@@ -1,0 +1,410 @@
+# ODPS v4.1 - Workflow Execution Log Data Product
+# Operational data product for tracking workflow instance executions
+
+product:
+  productID: "urn:uuid:workflow-execution-log-v1"
+  name: "Workflow Execution Log"
+  description: "Records all Trial Balance workflow execution instances including start/end times, stage transitions, control checkpoint results, user actions, approvals, rejections, and rework cycles. Each execution is linked to the Petri Net workflow definition and tracks token movements through places and transitions. Supports audit requirements, SLA monitoring, and process improvement analysis."
+  version: "1.0.0"
+  status: "active"
+  visibility: "organization"
+  
+  details:
+    type: "dataset"
+    category: "operational-data"
+    subcategory: "workflow-execution"
+    tags:
+      - "workflow-execution"
+      - "audit-trail"
+      - "petri-net"
+      - "process-monitoring"
+      - "sla-tracking"
+      - "compliance"
+    owner:
+      name: "Trial Balance Team"
+      email: "trial-balance-team@company.com"
+      organizationalUnit: "Finance & Accounting"
+    domain: "Finance"
+    updateFrequency: "real-time"
+    latestUpdateDate: "2026-01-27"
+    
+  contract:
+    termsAndConditions:
+      type: "internal-use"
+      licenseType: "proprietary"
+      confidentiality: "internal"
+    dataFormat: "CSN"
+    contractRef: "../../csn/trial-balance.csn.json#WorkflowExecutionLog"
+    schemaSpecification: "https://github.com/SAP/cds-spec/blob/main/csn-interop-v2.md"
+    dataModel:
+      type: "relational"
+      primaryKeys: ["execution_id"]
+      foreignKeys:
+        - field: "workflow_id"
+          references: "trial-balance-petrinet.odps.yaml#workflowID"
+          
+  dataQuality:
+    dataQualityScore: 98.0
+    qualityDimensions:
+      - dimension: "completeness"
+        description: "All executions logged"
+        score: 100
+        measurementMethod: "Automatic logging"
+      - dimension: "accuracy"
+        description: "Timestamps and user actions accurate"
+        score: 98
+        measurementMethod: "System clock synchronization"
+      - dimension: "consistency"
+        description: "Petri Net state transitions consistent"
+        score: 96
+        measurementMethod: "Token flow verification"
+      - dimension: "timeliness"
+        description: "Real-time logging"
+        score: 99
+        measurementMethod: "Event latency measurement"
+    validationRules:
+      - ruleID: "EXEC001"
+        name: "Execution ID Unique"
+        description: "Each execution must have unique UUID"
+        severity: "error"
+        field: "execution_id"
+      - ruleID: "EXEC002"
+        name: "Workflow ID Valid"
+        description: "Must reference valid Petri Net workflow"
+        severity: "error"
+        field: "workflow_id"
+      - ruleID: "EXEC003"
+        name: "Transition Sequence Valid"
+        description: "Transition sequence must follow Petri Net definition"
+        severity: "error"
+        field: "transitions"
+      - ruleID: "EXEC004"
+        name: "Checkpoint Results Complete"
+        description: "All control checkpoints must have results"
+        severity: "warning"
+        field: "checkpoint_results"
+    dataLineage:
+      upstream:
+        - productID: "urn:uuid:tb-petrinet-v1"
+          name: "Petri Net Workflow"
+          type: "workflow-definition"
+        - productID: "urn:uuid:checklist-items-v1"
+          name: "Checklist Items"
+          type: "workflow-state"
+      transformations:
+        - transformationID: "log-execution"
+          description: "Log workflow execution events"
+          method: "event-sourcing"
+      downstream:
+        - productID: "urn:uuid:audit-report-v1"
+          name: "Audit Report"
+          relationship: "provides-execution-evidence"
+          
+  outputPort:
+    - portID: "execution-log-api"
+      name: "Execution Log REST API"
+      description: "API for querying workflow executions"
+      format: "JSON"
+      protocol: "HTTPS"
+      endpoint: "/api/v1/workflow/executions"
+      authentication: "oauth2"
+      methods: ["GET"]
+      filtering:
+        - field: "execution_id"
+          operators: ["eq"]
+        - field: "business_unit"
+          operators: ["eq", "in"]
+        - field: "fiscal_period"
+          operators: ["eq", "in"]
+        - field: "status"
+          operators: ["eq", "in"]
+        - field: "start_time"
+          operators: ["gte", "lte", "between"]
+      rateLimit: "200 requests/minute"
+    - portID: "execution-timeline-api"
+      name: "Execution Timeline API"
+      description: "Timeline visualization of execution stages"
+      format: "JSON"
+      protocol: "HTTPS"
+      endpoint: "/api/v1/workflow/executions/:id/timeline"
+      authentication: "oauth2"
+      methods: ["GET"]
+      
+  pricingPlans:
+    - planID: "internal-use"
+      name: "Internal Use Only"
+      description: "Free access for process participants and auditors"
+      price: 0
+      currency: "USD"
+      billingPeriod: "monthly"
+      limitations:
+        - type: "rate-limit"
+          value: "200 requests/minute"
+        - type: "data-retention"
+          value: "7 years"
+      features:
+        - "Full execution history"
+        - "Stage timing analysis"
+        - "Checkpoint verification"
+        - "SLA compliance reports"
+        
+  SLA:
+    availability: 99.5
+    uptime: "24/7"
+    responseTime:
+      p50: "200ms"
+      p95: "500ms"
+      p99: "1000ms"
+    throughput: "500 events/second"
+    dataFreshness: "real-time"
+    support:
+      - level: "business-hours"
+        hours: "9AM-5PM HKT"
+        responseTime: "8 hours"
+        channels: ["email", "slack"]
+      - level: "audit-period"
+        hours: "Extended during audits"
+        responseTime: "4 hours"
+        channels: ["email", "slack", "phone"]
+    maintenance:
+      window: "Sunday 4AM-5AM HKT"
+      frequency: "monthly"
+      notificationPeriod: "7 days"
+      
+  extensions:
+    sapCSN: "../../csn/trial-balance.csn.json#WorkflowExecutionLog"
+    petriNetSpec: "./trial-balance-petrinet.odps.yaml"
+    eventSourcing: true
+    retentionPeriod: "7 years"
+    auditCompliance: "SOX, IFRS, BCBS-239"
+    
+  # EXECUTION LOG SCHEMA
+  executionSchema:
+    fields:
+      - name: "execution_id"
+        type: "UUID"
+        description: "Unique execution instance identifier"
+        
+      - name: "workflow_id"
+        type: "String"
+        description: "Reference to Petri Net workflow definition"
+        default: "urn:uuid:tb-petrinet-v1"
+        
+      - name: "business_unit"
+        type: "String"
+        description: "Business unit code (e.g., SG01, HK01)"
+        
+      - name: "fiscal_period"
+        type: "String"
+        description: "Fiscal period (e.g., 2026-01)"
+        
+      - name: "report_type"
+        type: "Enum"
+        values: ["balance-sheet", "profit-and-loss", "combined"]
+        description: "Type of variance analysis"
+        
+      - name: "frequency"
+        type: "Enum"
+        values: ["monthly", "quarterly"]
+        description: "Reporting frequency"
+        
+      - name: "status"
+        type: "Enum"
+        values: ["pending", "in-progress", "completed", "failed", "cancelled"]
+        description: "Overall execution status"
+        
+      - name: "start_time"
+        type: "Timestamp"
+        description: "Execution start time"
+        
+      - name: "end_time"
+        type: "Timestamp"
+        description: "Execution end time (null if in progress)"
+        
+      - name: "duration_seconds"
+        type: "Integer"
+        description: "Total execution duration"
+        
+      - name: "current_stage"
+        type: "String"
+        description: "Current stage ID (S01-S13)"
+        
+      - name: "current_place"
+        type: "String"
+        description: "Current Petri Net place ID"
+        
+      - name: "maker_user_id"
+        type: "String"
+        description: "Maker user identifier"
+        
+      - name: "checker_user_id"
+        type: "String"
+        description: "Checker user identifier"
+        
+      - name: "rework_count"
+        type: "Integer"
+        description: "Number of rework cycles"
+        default: 0
+        
+  # STAGE TRANSITION LOG SCHEMA
+  stageTransitionSchema:
+    description: "Individual stage transition records"
+    fields:
+      - name: "transition_id"
+        type: "UUID"
+        description: "Unique transition identifier"
+        
+      - name: "execution_id"
+        type: "UUID"
+        description: "Parent execution reference"
+        
+      - name: "stage_id"
+        type: "String"
+        description: "Stage ID (S01-S13)"
+        
+      - name: "petri_net_transition"
+        type: "String"
+        description: "Petri Net transition ID (T_EXTRACT, etc.)"
+        
+      - name: "from_place"
+        type: "String"
+        description: "Petri Net place before transition"
+        
+      - name: "to_place"
+        type: "String"
+        description: "Petri Net place after transition"
+        
+      - name: "status"
+        type: "Enum"
+        values: ["pending", "in-progress", "completed", "failed", "skipped"]
+        description: "Stage status"
+        
+      - name: "start_time"
+        type: "Timestamp"
+        description: "Stage start time"
+        
+      - name: "end_time"
+        type: "Timestamp"
+        description: "Stage end time"
+        
+      - name: "duration_seconds"
+        type: "Integer"
+        description: "Stage duration"
+        
+      - name: "user_id"
+        type: "String"
+        description: "User who completed the stage (for human tasks)"
+        
+      - name: "automated"
+        type: "Boolean"
+        description: "Whether stage was automated"
+        
+  # CONTROL CHECKPOINT RESULT SCHEMA
+  checkpointResultSchema:
+    description: "Control checkpoint verification results"
+    fields:
+      - name: "result_id"
+        type: "UUID"
+        description: "Unique result identifier"
+        
+      - name: "execution_id"
+        type: "UUID"
+        description: "Parent execution reference"
+        
+      - name: "checkpoint_id"
+        type: "String"
+        description: "Checkpoint ID (CP-MKR-001, CP-REC-001, etc.)"
+        
+      - name: "control_id"
+        type: "String"
+        description: "DOI control ID (MKR-CHK-001, REC-001, etc.)"
+        
+      - name: "transition_id"
+        type: "String"
+        description: "Associated Petri Net transition"
+        
+      - name: "status"
+        type: "Enum"
+        values: ["passed", "failed", "warning", "skipped", "not-applicable"]
+        description: "Checkpoint result"
+        
+      - name: "data_quality_rules_checked"
+        type: "Array[String]"
+        description: "Data quality rules evaluated"
+        
+      - name: "rule_results"
+        type: "Object"
+        description: "Individual rule pass/fail results"
+        
+      - name: "verification_timestamp"
+        type: "Timestamp"
+        description: "When checkpoint was verified"
+        
+      - name: "verified_by"
+        type: "Enum"
+        values: ["automated", "maker", "checker"]
+        description: "Who verified the checkpoint"
+        
+      - name: "notes"
+        type: "String"
+        description: "Additional notes or exception details"
+        
+  # SLA METRICS
+  slaMetrics:
+    timeline:
+      quarterly:
+        deadline: "M+7"
+        warningThreshold: "M+5"
+        criticalThreshold: "M+6"
+      monthly:
+        deadline: "M+12"
+        warningThreshold: "M+10"
+        criticalThreshold: "M+11"
+    stageTargets:
+      - stageID: "S01"
+        targetDuration: "30 minutes"
+        maxDuration: "60 minutes"
+      - stageID: "S02"
+        targetDuration: "15 minutes"
+        maxDuration: "30 minutes"
+      - stageID: "S03"
+        targetDuration: "10 minutes"
+        maxDuration: "20 minutes"
+      - stageID: "S04"
+        targetDuration: "20 minutes"
+        maxDuration: "45 minutes"
+      - stageID: "S05"
+        targetDuration: "15 minutes"
+        maxDuration: "30 minutes"
+      - stageID: "S06"
+        targetDuration: "5 minutes"
+        maxDuration: "15 minutes"
+      - stageID: "S07"
+        targetDuration: "4 hours"
+        maxDuration: "8 hours"
+      - stageID: "S08"
+        targetDuration: "48 hours"
+        maxDuration: "72 hours"
+      - stageID: "S09"
+        targetDuration: "24 hours"
+        maxDuration: "48 hours"
+      - stageID: "S10"
+        targetDuration: "45 minutes"
+        maxDuration: "90 minutes"
+      - stageID: "S11"
+        targetDuration: "30 minutes"
+        maxDuration: "60 minutes"
+      - stageID: "S12"
+        targetDuration: "2 hours"
+        maxDuration: "4 hours"
+      - stageID: "S13"
+        targetDuration: "15 minutes"
+        maxDuration: "30 minutes"
+        
+  # REQUIREMENTS TRACEABILITY
+  requirementsTraceability:
+    petriNetSpec: "./trial-balance-petrinet.odps.yaml"
+    checklistItems: "./checklist-items.odps.yaml"
+    controlRequirements: "../requirements/control-requirements.odps.yaml"
+    processFlow: "../requirements/process-flow.odps.yaml"
+    lastReconciled: "2026-01-27"

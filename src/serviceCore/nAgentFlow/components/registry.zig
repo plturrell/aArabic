@@ -40,7 +40,7 @@ pub const ComponentRegistry = struct {
         return ComponentRegistry{
             .allocator = allocator,
             .components = std.StringHashMap(ComponentMetadata).init(allocator),
-            .category_index = std.AutoHashMap(ComponentCategory, std.ArrayList([]const u8)){},
+            .category_index = std.AutoHashMap(ComponentCategory, std.ArrayList([]const u8)).init(allocator),
         };
     }
     

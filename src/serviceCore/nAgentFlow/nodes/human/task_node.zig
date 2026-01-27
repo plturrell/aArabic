@@ -516,8 +516,8 @@ pub const TaskManager = struct {
     pub fn init(allocator: Allocator) TaskManager {
         return TaskManager{
             .tasks = std.StringHashMap(*HumanTask).init(allocator),
-            .tasks_by_workflow = std.StringHashMap(std.ArrayList([]const u8)){},
-            .tasks_by_user = std.StringHashMap(std.ArrayList([]const u8)){},
+            .tasks_by_workflow = std.StringHashMap(std.ArrayList([]const u8)).init(allocator),
+            .tasks_by_user = std.StringHashMap(std.ArrayList([]const u8)).init(allocator),
             .task_counter = 0,
             .allocator = allocator,
         };

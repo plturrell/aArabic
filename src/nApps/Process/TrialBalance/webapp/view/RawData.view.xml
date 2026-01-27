@@ -1,0 +1,66 @@
+<mvc:View
+    controllerName="trialbalance.controller.RawData"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:f="sap.f"
+    xmlns:uxap="sap.uxap"
+    displayBlock="true"
+    height="100%">
+    
+    <Page
+        id="rawDataPage"
+        showHeader="false"
+        showNavButton="true"
+        navButtonPress=".onNavBack">
+        
+        <content>
+            <f:ShellBar
+                id="shellBar"
+                title="Trial Balance"
+                showSearch="true"
+                showNotifications="true"
+                notificationsNumber="3"
+                search=".onSearch"
+                notificationsPressed=".onNotificationsPress">
+                <f:profile>
+                    <Avatar initials="TB" displaySize="XS" press=".onAvatarPress"/>
+                </f:profile>
+            </f:ShellBar>
+
+            <VBox class="sapUiSmallMargin">
+                <Title text="Raw Data Explorer" level="H1" class="sapUiSmallMarginBottom"/>
+                <Text text="Object Page - Explore Raw Accounting Data" class="sapUiSmallMarginBottom"/>
+                
+                <Panel headerText="Data Explorer" class="sapUiResponsiveMargin">
+                    <content>
+                        <Table
+                            id="rawDataTable"
+                            growing="true"
+                            growingThreshold="50">
+                            <columns>
+                                <Column><Text text="Transaction ID"/></Column>
+                                <Column><Text text="Date"/></Column>
+                                <Column><Text text="Account"/></Column>
+                                <Column><Text text="Description"/></Column>
+                                <Column><Text text="Debit"/></Column>
+                                <Column><Text text="Credit"/></Column>
+                            </columns>
+                            <items>
+                                <ColumnListItem>
+                                    <cells>
+                                        <Text text="Pending backend connection"/>
+                                        <Text text="-"/>
+                                        <Text text="-"/>
+                                        <Text text="-"/>
+                                        <Text text="$0.00"/>
+                                        <Text text="$0.00"/>
+                                    </cells>
+                                </ColumnListItem>
+                            </items>
+                        </Table>
+                    </content>
+                </Panel>
+            </VBox>
+        </content>
+    </Page>
+</mvc:View>

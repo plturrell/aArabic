@@ -1,37 +1,22 @@
 specVersion: '3.0'
 metadata:
-  name: trial.balance
+  name: trialbalance
 type: application
-builder:
-  customTasks:
-    - name: ui5-tooling-transpile-task
-      afterTask: replaceVersion
+resources:
+  configuration:
+    paths:
+      webapp: "."
 framework:
   name: SAPUI5
-  version: '1.120.0'
+  version: "1.130.0"
   libraries:
     - name: sap.m
     - name: sap.ui.core
+    - name: sap.f
     - name: sap.ui.layout
     - name: sap.tnt
-    - name: sap.f
-    - name: sap.ui.table
-    - name: sap.suite.ui.microchart
-    - name: sap.uxap
+    - name: sap.viz
+    - name: themelib_sap_horizon
 server:
-  customMiddleware:
-    - name: fiori-tools-proxy
-      afterMiddleware: compression
-      configuration:
-        ignoreCertError: false
-        backend:
-          - path: /api
-            url: http://localhost:8080
-          - path: /destinations
-            url: http://localhost:8080
-    - name: fiori-tools-appreload
-      afterMiddleware: compression
-      configuration:
-        port: 35729
-        path: webapp
-        delay: 300
+  settings:
+    httpPort: 8092

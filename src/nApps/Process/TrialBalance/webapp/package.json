@@ -1,23 +1,13 @@
 {
-  "name": "trial.balance.webapp",
+  "name": "trialbalance",
   "version": "1.0.0",
-  "description": "Trial Balance UI5 Application",
-  "private": true,
+  "description": "IFRS-Compliant Trial Balance Application",
   "scripts": {
-    "start": "ui5 serve --open index.html",
-    "build": "ui5 build --clean-dest",
-    "test": "karma start",
-    "lint": "eslint ."
+    "start": "ui5 serve --port 8092",
+    "build": "ui5 build --dest dist",
+    "serve:dist": "ui5 serve --port 8092 --config ui5-dist.yaml"
   },
   "devDependencies": {
-    "@ui5/cli": "^3.9.0",
-    "@sap/ux-ui5-tooling": "^1.14.0",
-    "ui5-tooling-transpile": "^3.3.0"
-  },
-  "ui5": {
-    "dependencies": [
-      "@sap/ux-ui5-tooling",
-      "ui5-tooling-transpile"
-    ]
+    "@ui5/cli": "^3.11.13"
   }
 }

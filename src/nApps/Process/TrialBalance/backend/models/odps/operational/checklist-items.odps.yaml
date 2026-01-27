@@ -1,0 +1,622 @@
+# ODPS v4.1 - Workflow Checklist Items Data Product
+# Operational data product for workflow tracking
+# Enhanced with Petri Net integration and DOI control requirements
+
+product:
+  productID: "urn:uuid:checklist-items-v1"
+  name: "Trial Balance Workflow Checklist"
+  description: "Workflow checklist items tracking the 13-stage IFRS-compliant trial balance process from data extraction through audit archive. Each item represents a workflow stage (S01-S13) with status (Pending/InProgress/Complete), assigned users, due dates, completion timestamps, and notes. Integrates with Petri Net workflow engine for process orchestration and enforces DOI control requirements at each checkpoint."
+  version: "2.0.0"
+  status: "active"
+  visibility: "organization"
+  
+  details:
+    type: "dataset"
+    category: "operational-data"
+    subcategory: "workflow-tracking"
+    tags:
+      - "workflow"
+      - "checklist"
+      - "process-tracking"
+      - "petri-net"
+      - "ifrs-process"
+      - "13-stages"
+      - "maker-checker"
+    owner:
+      name: "Trial Balance Team"
+      email: "trial-balance-team@company.com"
+      organizationalUnit: "Finance & Accounting"
+    domain: "Finance"
+    updateFrequency: "real-time"
+    latestUpdateDate: "2026-01-27"
+    
+  contract:
+    termsAndConditions:
+      type: "internal-use"
+      licenseType: "proprietary"
+      confidentiality: "internal"
+    dataFormat: "CSN"
+    contractRef: "../../csn/trial-balance.csn.json#ChecklistItem"
+    schemaSpecification: "https://github.com/SAP/cds-spec/blob/main/csn-interop-v2.md"
+    dataModel:
+      type: "relational"
+      primaryKeys: ["id"]
+      
+  dataQuality:
+    dataQualityScore: 85.0
+    qualityDimensions:
+      - dimension: "completeness"
+        description: "All 13 workflow stages represented"
+        score: 100
+        measurementMethod: "Stage count validation"
+      - dimension: "accuracy"
+        description: "Status tracking accuracy"
+        score: 90
+        measurementMethod: "User verification"
+      - dimension: "timeliness"
+        description: "Completion timestamps accurate"
+        score: 95
+        measurementMethod: "Timestamp validation"
+      - dimension: "usability"
+        description: "Clear descriptions and instructions"
+        score: 80
+        measurementMethod: "User feedback"
+    validationRules:
+      - ruleID: "CHK001"
+        name: "Unique ID"
+        description: "Each checklist item must have unique ID"
+        severity: "error"
+        field: "id"
+      - ruleID: "CHK002"
+        name: "Stage ID Valid"
+        description: "Stage ID must be S01-S13"
+        severity: "error"
+        field: "stage_id"
+      - ruleID: "CHK003"
+        name: "Status Valid"
+        description: "Status must be Pending/InProgress/Complete"
+        severity: "error"
+        field: "status"
+      - ruleID: "CHK004"
+        name: "Sequential Completion"
+        description: "Stages should complete in sequence"
+        severity: "warning"
+        field: "completed_at"
+    dataLineage:
+      upstream:
+        - productID: "urn:workflow:petri-net-config"
+          name: "Petri Net Workflow Configuration"
+          type: "configuration"
+      transformations:
+        - transformationID: "workflow-execution"
+          description: "Execute Petri net workflow stages"
+          method: "state-machine"
+      downstream:
+        - productID: "urn:uuid:audit-report-v1"
+          name: "Audit Report"
+          relationship: "provides-completion-evidence"
+          
+  outputPort:
+    - portID: "checklist-rest-api"
+      name: "Checklist REST API"
+      description: "API for managing checklist items"
+      format: "JSON"
+      protocol: "HTTPS"
+      endpoint: "/api/v1/trial-balance/checklist"
+      authentication: "oauth2"
+      methods: ["GET", "PUT", "POST"]
+      filtering:
+        - field: "stage_id"
+          operators: ["eq", "in"]
+        - field: "status"
+          operators: ["eq", "in"]
+        - field: "assigned_to"
+          operators: ["eq"]
+      rateLimit: "200 requests/minute"
+    - portID: "workflow-state-api"
+      name: "Workflow State API"
+      description: "API for getting current workflow state"
+      format: "JSON"
+      protocol: "HTTPS"
+      endpoint: "/api/v1/workflow/state"
+      authentication: "oauth2"
+      methods: ["GET"]
+      
+  pricingPlans:
+    - planID: "internal-use"
+      name: "Internal Use Only"
+      description: "Free access for process participants"
+      price: 0
+      currency: "USD"
+      billingPeriod: "monthly"
+      limitations:
+        - type: "rate-limit"
+          value: "200 requests/minute"
+      features:
+        - "Real-time status updates"
+        - "Assignment management"
+        - "Due date tracking"
+        - "Petri net integration"
+        
+  SLA:
+    availability: 99.0
+    uptime: "Business hours"
+    responseTime:
+      p50: "200ms"
+      p95: "600ms"
+      p99: "1200ms"
+    throughput: "200 requests/second"
+    dataFreshness: "real-time"
+    support:
+      - level: "business-hours"
+        hours: "9AM-5PM HKT"
+        responseTime: "8 hours"
+        channels: ["email", "slack"]
+      - level: "month-end-close"
+        hours: "Extended during close"
+        responseTime: "2 hours"
+        channels: ["email", "phone", "slack"]
+    maintenance:
+      window: "Sunday 5AM-6AM HKT"
+      frequency: "monthly"
+      notificationPeriod: "7 days"
+      
+  extensions:
+    sapCSN: "../../csn/trial-balance.csn.json#ChecklistItem"
+    workflowEngine: "Petri Net (petrinet_engine.zig)"
+    stageCount: 13
+    workflowConfig: "../../workflow/workflow_config.json"
+    visualizationComponent: "ProcessFlowControl.js"
+    petriNetSpec: "./trial-balance-petrinet.odps.yaml"
+    
+  # PETRI NET INTEGRATION
+  petriNetIntegration:
+    workflowID: "urn:uuid:tb-petrinet-v1"
+    netID: "PN-TB-VARIANCE-001"
+    sourceSpec: "./trial-balance-petrinet.odps.yaml"
+    synchronization: "real-time"
+    
+  # DETAILED WORKFLOW STAGES (13 Stages mapped to Petri Net)
+  workflowStages:
+    - stageID: "S01"
+      name: "Data Extraction"
+      description: "Extract PSGL/S4 balance query for P&L and BS for current and comparative periods"
+      petriNetTransition: "T_EXTRACT"
+      petriNetPlace: "P_DATA_READY"
+      automated: true
+      estimatedDuration: "30 minutes"
+      systems: ["PSGL", "S4"]
+      dataProducts: ["acdoca-journal-entries.odps.yaml"]
+      controlChecks: []
+      checklist:
+        - item: "Current period date range configured"
+          mandatory: true
+        - item: "Comparative period date range configured"
+          mandatory: true
+        - item: "Account selection criteria defined"
+          mandatory: true
+          
+    - stageID: "S02"
+      name: "GCOA Mapping"
+      description: "Map PSGL/S4 balances into IFRS Categories and schedules using GCOA"
+      petriNetTransition: "T_MAP_GCOA"
+      petriNetPlace: "P_GCOA_MAPPED"
+      automated: true
+      estimatedDuration: "15 minutes"
+      dataProducts: ["account-master.odps.yaml"]
+      controlChecks:
+        - checkID: "REC-002"
+          checkName: "GCOA Mapping Verification"
+          checkpointID: "CP-REC-002"
+          dataQualityRules: ["TB003", "TB005"]
+      checklist:
+        - item: "Latest GCOA version used"
+          mandatory: true
+          controlRef: "REC-002"
+        - item: "No unmapped accounts"
+          mandatory: true
+          controlRef: "REC-002"
+        - item: "IFRS schedule mapping verified"
+          mandatory: true
+          
+    - stageID: "S03"
+      name: "Currency Conversion"
+      description: "Apply Group exchange rates for non-USD units"
+      petriNetTransition: "T_CONVERT_FX"
+      petriNetPlace: "P_FX_CONVERTED"
+      automated: true
+      estimatedDuration: "10 minutes"
+      applicability: "Non-USD reporting units"
+      dataProducts: ["exchange-rates.odps.yaml"]
+      controlChecks:
+        - checkID: "REC-005"
+          checkName: "Exchange Rate Verification"
+          checkpointID: "CP-REC-005"
+          dataQualityRules: ["FX005", "FX006"]
+      checklist:
+        - item: "Current period exchange rate applied"
+          mandatory: true
+          controlRef: "REC-005"
+        - item: "Comparative period exchange rate applied"
+          mandatory: true
+          controlRef: "REC-005"
+        - item: "Group exchange rate source verified"
+          mandatory: true
+          controlRef: "REC-005"
+          
+    - stageID: "S04"
+      name: "Trial Balance Aggregation"
+      description: "Aggregate balances by IFRS schedule and category"
+      petriNetTransition: "T_AGGREGATE"
+      petriNetPlace: "P_TB_AGGREGATED"
+      automated: true
+      estimatedDuration: "20 minutes"
+      dataProducts: ["trial-balance-aggregated.odps.yaml"]
+      controlChecks:
+        - checkID: "REC-001"
+          checkName: "Period Data Accuracy"
+          checkpointID: "CP-REC-001"
+          dataQualityRules: ["TB004"]
+        - checkID: "REC-004"
+          checkName: "Global Mapping Changes"
+          checkpointID: "CP-REC-004"
+          dataQualityRules: ["TB006"]
+      checklist:
+        - item: "Current period data loaded correctly"
+          mandatory: true
+          controlRef: "REC-001"
+        - item: "Prior period data loaded correctly"
+          mandatory: true
+          controlRef: "REC-001"
+        - item: "Global mapping changes incorporated"
+          mandatory: true
+          controlRef: "REC-004"
+        - item: "Classification table updated (BS only)"
+          mandatory: false
+          
+    - stageID: "S05"
+      name: "Variance Calculation"
+      description: "Compute period-over-period variances and percentages"
+      petriNetTransition: "T_CALC_VARIANCE"
+      petriNetPlace: "P_VARIANCE_CALC"
+      automated: true
+      estimatedDuration: "15 minutes"
+      dataProducts: ["variances.odps.yaml"]
+      controlChecks:
+        - checkID: "REC-003"
+          checkName: "Pivot and Formula Refresh"
+          checkpointID: "CP-REC-003"
+          dataQualityRules: ["VAR001", "VAR002"]
+      checklist:
+        - item: "Pivots refreshed"
+          mandatory: true
+          controlRef: "REC-003"
+        - item: "Variance formulas updated across all lines"
+          mandatory: true
+          controlRef: "REC-003"
+        - item: "Variance = Current - Comparative verified"
+          mandatory: true
+          
+    - stageID: "S06"
+      name: "Threshold Application"
+      description: "Apply group thresholds and identify material variances"
+      petriNetTransition: "T_APPLY_THRESH"
+      petriNetPlace: "P_THRESH_APPLIED"
+      automated: true
+      estimatedDuration: "5 minutes"
+      controlChecks:
+        - checkID: "MKR-CHK-001"
+          checkName: "Variance Threshold Applied"
+          checkpointID: "CP-MKR-001"
+          dataQualityRules: ["VAR003", "VAR004"]
+      checklist:
+        - item: "Balance Sheet threshold applied ($100M AND 10%)"
+          mandatory: true
+          controlRef: "MKR-CHK-001"
+          threshold: 
+            amount: 100000000
+            percent: 10
+        - item: "P&L threshold applied ($3M AND 10%)"
+          mandatory: true
+          controlRef: "MKR-CHK-001"
+          threshold:
+            amount: 3000000
+            percent: 10
+        - item: "Material variances flagged at IFRS node level"
+          mandatory: true
+          
+    - stageID: "S07"
+      name: "Commentary Initiation"
+      description: "Engage business finance and accounting teams for material variances"
+      petriNetTransition: "T_INIT_COMMENTARY"
+      petriNetPlace: "P_COMMENTARY_INIT"
+      automated: false
+      humanTask: true
+      assignRole: "Maker"
+      estimatedDuration: "Variable"
+      checklist:
+        - item: "Material variance list prepared"
+          mandatory: true
+        - item: "Business Finance teams engaged"
+          mandatory: true
+        - item: "Accounting teams engaged"
+          mandatory: true
+        - item: "Commentary request sent via email"
+          mandatory: true
+          
+    - stageID: "S08"
+      name: "Commentary Collection"
+      description: "Collate commentaries received from business teams"
+      petriNetTransition: "T_COLLECT_COMMENTARY"
+      petriNetPlace: "P_COMMENTARY_COLLECTED"
+      automated: false
+      humanTask: true
+      assignRole: "Maker"
+      estimatedDuration: "2-3 days"
+      stakeholders: ["Business Finance", "Accounting Teams"]
+      checklist:
+        - item: "Commentaries received from Business Finance"
+          mandatory: true
+        - item: "Commentaries received from Accounting Teams"
+          mandatory: true
+        - item: "Commentaries collated and organized"
+          mandatory: true
+          
+    - stageID: "S09"
+      name: "Driver Analysis"
+      description: "Identify major deals and products/segments contributing to movements"
+      petriNetTransition: "T_IDENTIFY_DRIVERS"
+      petriNetPlace: "P_DRIVERS_IDENTIFIED"
+      automated: false
+      humanTask: true
+      assignRole: "Maker"
+      estimatedDuration: "1 day"
+      dataSources: ["TP System", "GL Data"]
+      controlChecks:
+        - checkID: "REQ-THRESH-004"
+          checkName: "Major Driver Identification"
+          dataQualityRules: ["VAR008"]
+      checklist:
+        - item: "Major deals identified from TP data"
+          mandatory: true
+          controlRef: "REQ-THRESH-004"
+        - item: "Major products/segments identified from GL data (P&L)"
+          mandatory: true
+          controlRef: "REQ-THRESH-004"
+        - item: "Deal information added to business commentaries"
+          mandatory: true
+          
+    - stageID: "S10"
+      name: "Coverage Verification"
+      description: "Verify 90% commentary coverage and flag exceptions"
+      petriNetTransition: ["T_VERIFY_COVERAGE", "T_FLAG_EXCEPTIONS"]
+      petriNetPlace: ["P_COVERAGE_MET", "P_EXCEPTIONS_FLAGGED"]
+      automated: true
+      estimatedDuration: "45 minutes"
+      controlChecks:
+        - checkID: "MKR-CHK-001"
+          checkName: "Commentary Coverage 90%"
+          checkpointID: "CP-MKR-002"
+          dataQualityRules: ["VAR005", "VAR006"]
+          threshold: 90
+        - checkID: "MKR-CHK-002"
+          checkName: "Exception Identification"
+          checkpointID: "CP-MKR-003"
+          dataQualityRules: ["VAR007"]
+      checklist:
+        - item: "90% of material variances explained"
+          mandatory: true
+          controlRef: "MKR-CHK-001"
+          coverageThreshold: 90
+        - item: "Major drivers documented for all material variances"
+          mandatory: true
+          controlRef: "MKR-CHK-001"
+        - item: "Unexplained variances flagged as exceptions"
+          mandatory: true
+          controlRef: "MKR-CHK-002"
+        - item: "Exceptions escalated to GPM"
+          mandatory: true
+          controlRef: "MKR-CHK-002"
+          escalationPath: "GPM"
+          
+    - stageID: "S11"
+      name: "Maker Review"
+      description: "Maker completes all checklist items and uploads to SharePoint"
+      petriNetTransition: "T_MAKER_REVIEW"
+      petriNetPlace: "P_MAKER_COMPLETE"
+      automated: false
+      humanTask: true
+      assignRole: "Maker"
+      estimatedDuration: "30 minutes"
+      checklist:
+        - item: "Variance threshold applied and verified"
+          mandatory: true
+          controlRef: "MKR-CHK-001"
+        - item: "Comments updated for all material variances"
+          mandatory: true
+          controlRef: "MKR-CHK-001"
+        - item: "90% variance coverage achieved"
+          mandatory: true
+          controlRef: "MKR-CHK-001"
+        - item: "Major drivers identified and documented"
+          mandatory: true
+          controlRef: "REQ-THRESH-004"
+        - item: "Exceptions identified and escalated"
+          mandatory: true
+          controlRef: "MKR-CHK-002"
+        - item: "File uploaded to SharePoint"
+          mandatory: true
+          
+    - stageID: "S12"
+      name: "Checker Review"
+      description: "Checker reviews file, verifies controls, approves or rejects"
+      petriNetTransition: ["T_SUBMIT_CHECKER", "T_CHECKER_REVIEW", "T_REWORK"]
+      petriNetPlace: ["P_CHECKER_REVIEW", "P_CHECKER_APPROVED", "P_REWORK_REQUIRED"]
+      automated: false
+      humanTask: true
+      assignRole: "Checker"
+      roleRequirement: "Grade 5 or above (or most senior if no Grade 5 available)"
+      estimatedDuration: "1-2 hours"
+      controlChecks:
+        - checkID: "VAL-001"
+          checkName: "Workings to PSGL/S4 Reconciliation"
+          checkpointID: "CP-VAL-001"
+          dataQualityRules: ["TB001", "TB002"]
+      checklist:
+        - item: "Checklist received via email from maker"
+          mandatory: true
+        - item: "Period data accuracy verified"
+          mandatory: true
+          controlRef: "REC-001"
+        - item: "GCOA mapping verified"
+          mandatory: true
+          controlRef: "REC-002"
+        - item: "Pivots and formulas refreshed and verified"
+          mandatory: true
+          controlRef: "REC-003"
+        - item: "Global mapping changes incorporated"
+          mandatory: true
+          controlRef: "REC-004"
+        - item: "Exchange rates verified (non-USD units)"
+          mandatory: true
+          controlRef: "REC-005"
+          applicability: "Non-USD units only"
+        - item: "Check cells equal zero (reconciliation passed)"
+          mandatory: true
+          controlRef: "VAL-001"
+        - item: "Approval confirmed via email"
+          mandatory: true
+      reworkFlow:
+        condition: "Discrepancy identified"
+        action: "Route back to maker for correction"
+        returnToStage: "S05"
+        petriNetTransition: "T_REWORK"
+        
+    - stageID: "S13"
+      name: "Submission & Archive"
+      description: "Submit approved report to Group Reporting and archive"
+      petriNetTransition: ["T_SUBMIT", "T_ARCHIVE"]
+      petriNetPlace: ["P_SUBMITTED", "P_ARCHIVED"]
+      automated: true
+      estimatedDuration: "15 minutes"
+      destination: "Group Reporting System"
+      retentionPeriod: "7 years"
+      checklist:
+        - item: "Report submitted to Group Reporting"
+          mandatory: true
+        - item: "Submission confirmation received"
+          mandatory: true
+        - item: "Process archived with full audit trail"
+          mandatory: true
+        - item: "All supporting documents attached"
+          mandatory: true
+          
+  # MAKER CHECKLIST SUMMARY (from DOI Control Requirements)
+  makerChecklist:
+    role: "Maker"
+    roleDescription: "LEC team member"
+    sourceRequirement: "../requirements/control-requirements.odps.yaml#REQ-CTRL-001"
+    items:
+      - checkID: "MKR-CHK-001"
+        name: "Variance Threshold Applied"
+        description: "Variance threshold applied and comments updated for balances beyond threshold"
+        criteria:
+          - "90% of the variances are explained"
+          - "Major drivers for the movements are provided"
+        mandatory: true
+        dataQualityRules: ["VAR003", "VAR004", "VAR005", "VAR006"]
+        petriNetCheckpoint: "CP-MKR-001"
+        
+      - checkID: "MKR-CHK-002"
+        name: "Exception Identification"
+        description: "List of exceptions identified and addressed, else escalated & reported to GPM"
+        escalationPath: "GPM"
+        mandatory: true
+        dataQualityRules: ["VAR007"]
+        petriNetCheckpoint: "CP-MKR-003"
+        
+      - checkID: "MKR-CHK-003"
+        name: "Unadjusted Exception Communication"
+        description: "Open unadjusted exceptions communicated to country finance"
+        reportingMechanism: "Quarterly CFO Declaration / Country FORTM"
+        mandatory: true
+        dataQualityRules: ["VAR007"]
+        
+  # CHECKER CHECKLIST SUMMARY (from DOI Control Requirements)
+  checkerChecklist:
+    role: "Checker"
+    roleDescription: "Grade 5 or above (or most senior if no Grade 5 available)"
+    sourceRequirement: "../requirements/control-requirements.odps.yaml#REQ-CTRL-002"
+    items:
+      - checkID: "REC-001"
+        name: "Period Data Accuracy"
+        description: "Check whether current period and prior period data are updated correctly"
+        type: "data-accuracy"
+        mandatory: true
+        dataQualityRules: ["TB004"]
+        petriNetCheckpoint: "CP-REC-001"
+        
+      - checkID: "REC-002"
+        name: "GCOA Mapping Verification"
+        description: "Check whether latest GCOA is used for mapping and are there any unmapped accounts"
+        type: "mapping-completeness"
+        mandatory: true
+        dataQualityRules: ["TB003", "TB005"]
+        petriNetCheckpoint: "CP-REC-002"
+        
+      - checkID: "REC-003"
+        name: "Pivot and Formula Refresh"
+        description: "Check whether pivots are refreshed and variance formulas are updated across all lines"
+        type: "calculation-integrity"
+        mandatory: true
+        dataQualityRules: ["VAR001", "VAR002"]
+        petriNetCheckpoint: "CP-REC-003"
+        
+      - checkID: "REC-004"
+        name: "Global Mapping Changes"
+        description: "Check whether all global mapping changes are incorporated in the variance analysis"
+        type: "mapping-currency"
+        mandatory: true
+        dataQualityRules: ["TB006"]
+        petriNetCheckpoint: "CP-REC-004"
+        
+      - checkID: "REC-005"
+        name: "Exchange Rate Verification"
+        description: "Check whether exchange rates used for conversion are correct"
+        type: "rate-accuracy"
+        mandatory: true
+        applicability: "Non-USD reporting units"
+        dataQualityRules: ["FX005", "FX006"]
+        petriNetCheckpoint: "CP-REC-005"
+        
+  # VALIDATION CHECKLIST (from DOI Control Requirements)
+  validationChecklist:
+    role: "Financial Controller"
+    sourceRequirement: "../requirements/control-requirements.odps.yaml#REQ-CTRL-003"
+    items:
+      - checkID: "VAL-001"
+        name: "Workings to PSGL/S4 Reconciliation"
+        description: "Control checks between workings and numbers in PSGL/S4 are built in the file"
+        expectedResult: "Check cells should be equal to Zero"
+        type: "built-in-control"
+        mandatory: true
+        dataQualityRules: ["TB001", "TB002"]
+        petriNetCheckpoint: "CP-VAL-001"
+        
+  # REQUIREMENTS TRACEABILITY
+  requirementsTraceability:
+    petriNetSpec: "./trial-balance-petrinet.odps.yaml"
+    controlRequirements: "../requirements/control-requirements.odps.yaml"
+    businessRules: "../requirements/business-rules-thresholds.odps.yaml"
+    processFlow: "../requirements/process-flow.odps.yaml"
+    lastReconciled: "2026-01-27"
+    
+  # TIMELINE REQUIREMENTS
+  timeline:
+    quarterly:
+      deadline: "M+7"
+      description: "7 working days after month-end"
+    monthly:
+      deadline: "M+12"
+      description: "12 working days after month-end"
+    source: "Group FRA Template"

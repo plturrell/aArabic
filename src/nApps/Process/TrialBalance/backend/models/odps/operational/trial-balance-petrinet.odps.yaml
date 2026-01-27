@@ -1,0 +1,817 @@
+# ODPS v4.1 - Trial Balance Petri Net Process Specification
+# Formal process model derived from DOI requirements
+# Supports workflow orchestration and control checkpoint verification
+
+workflow:
+  workflowID: "urn:uuid:tb-petrinet-v1"
+  name: "Trial Balance Variance Analysis Workflow"
+  description: "Petri Net specification for the Trial Balance Review process including Balance Sheet and P&L variance analysis, maker-checker controls, and IFRS compliance verification. Models the complete process flow from data extraction through audit archive with control checkpoints at each stage."
+  version: "2.0.0"
+  status: "active"
+  
+  metadata:
+    type: "petri-net"
+    category: "workflow-specification"
+    subcategory: "financial-process"
+    tags:
+      - "petri-net"
+      - "workflow"
+      - "variance-analysis"
+      - "maker-checker"
+      - "ifrs"
+      - "control-checkpoints"
+      - "bcbs-239"
+    owner:
+      name: "Trial Balance Team"
+      email: "trial-balance-team@company.com"
+      organizationalUnit: "Finance & Accounting"
+    domain: "Finance"
+    sourceRequirements:
+      - "../requirements/process-flow.odps.yaml"
+      - "../requirements/control-requirements.odps.yaml"
+      - "../requirements/business-rules-thresholds.odps.yaml"
+    regulatoryFramework: "BCBS 239"
+    approvalDate: "2026-01-27"
+    
+  # PETRI NET FORMAL DEFINITION
+  petriNet:
+    netID: "PN-TB-VARIANCE-001"
+    netType: "Colored Petri Net"
+    
+    # PLACES (States/Conditions)
+    places:
+      # Initial States
+      - placeID: "P_INIT"
+        name: "Process Initialized"
+        type: "start"
+        tokens: 1
+        description: "Initial state when workflow is triggered"
+        
+      # Data Extraction Phase
+      - placeID: "P_DATA_READY"
+        name: "Source Data Available"
+        type: "intermediate"
+        tokens: 0
+        description: "PSGL/S4 data extracted for current and comparative periods"
+        dataProducts: ["acdoca-journal-entries.odps.yaml"]
+        
+      # Mapping Phase
+      - placeID: "P_GCOA_MAPPED"
+        name: "GCOA Mapping Complete"
+        type: "intermediate"
+        tokens: 0
+        description: "GL accounts mapped to IFRS categories via GCOA"
+        dataProducts: ["account-master.odps.yaml"]
+        controlCheck: "REC-002"
+        
+      # Currency Conversion Phase
+      - placeID: "P_FX_CONVERTED"
+        name: "Currency Conversion Complete"
+        type: "intermediate"
+        tokens: 0
+        description: "Non-USD amounts converted using Group exchange rates"
+        dataProducts: ["exchange-rates.odps.yaml"]
+        controlCheck: "REC-005"
+        applicability: "Non-USD reporting units"
+        
+      # Aggregation Phase
+      - placeID: "P_TB_AGGREGATED"
+        name: "Trial Balance Aggregated"
+        type: "intermediate"
+        tokens: 0
+        description: "Balances aggregated by IFRS schedule and category"
+        dataProducts: ["trial-balance-aggregated.odps.yaml"]
+        controlCheck: "REC-001"
+        
+      # Variance Calculation Phase
+      - placeID: "P_VARIANCE_CALC"
+        name: "Variances Calculated"
+        type: "intermediate"
+        tokens: 0
+        description: "Period-over-period variances computed"
+        dataProducts: ["variances.odps.yaml"]
+        controlCheck: "REC-003"
+        
+      # Threshold Application Phase
+      - placeID: "P_THRESH_APPLIED"
+        name: "Thresholds Applied"
+        type: "intermediate"
+        tokens: 0
+        description: "Materiality thresholds applied, material variances flagged"
+        controlCheck: "MKR-CHK-001"
+        thresholds:
+          balanceSheet: "$100M AND 10%"
+          profitLoss: "$3M AND 10%"
+          
+      # Commentary Collection Phase
+      - placeID: "P_COMMENTARY_INIT"
+        name: "Commentary Collection Started"
+        type: "intermediate"
+        tokens: 0
+        description: "Material variances identified, business teams engaged"
+        
+      - placeID: "P_COMMENTARY_COLLECTED"
+        name: "Business Commentary Collected"
+        type: "intermediate"
+        tokens: 0
+        description: "Commentaries received from business and accounting teams"
+        
+      - placeID: "P_DRIVERS_IDENTIFIED"
+        name: "Major Drivers Identified"
+        type: "intermediate"
+        tokens: 0
+        description: "Deal info and product/segment analysis completed"
+        controlCheck: "REQ-THRESH-004"
+        
+      - placeID: "P_COVERAGE_MET"
+        name: "Commentary Coverage Met"
+        type: "intermediate"
+        tokens: 0
+        description: "90% variance coverage achieved"
+        controlCheck: "MKR-CHK-001"
+        threshold: 90
+        
+      # Exception Handling
+      - placeID: "P_EXCEPTIONS_FLAGGED"
+        name: "Exceptions Identified"
+        type: "intermediate"
+        tokens: 0
+        description: "Unexplained variances flagged as exceptions"
+        controlCheck: "MKR-CHK-002"
+        
+      # Maker Review Phase
+      - placeID: "P_MAKER_COMPLETE"
+        name: "Maker Review Complete"
+        type: "intermediate"
+        tokens: 0
+        description: "Maker has completed all checklist items"
+        role: "Maker"
+        
+      # Checker Review Phase
+      - placeID: "P_CHECKER_REVIEW"
+        name: "Awaiting Checker Review"
+        type: "intermediate"
+        tokens: 0
+        description: "File shared to checker for review"
+        role: "Checker"
+        
+      - placeID: "P_CHECKER_APPROVED"
+        name: "Checker Approved"
+        type: "intermediate"
+        tokens: 0
+        description: "Checker has verified all controls and approved"
+        controlCheck: "VAL-001"
+        
+      # Rejection/Rework Loop
+      - placeID: "P_REWORK_REQUIRED"
+        name: "Rework Required"
+        type: "intermediate"
+        tokens: 0
+        description: "Checker identified issues, sent back for correction"
+        
+      # Final States
+      - placeID: "P_SUBMITTED"
+        name: "Submission Complete"
+        type: "intermediate"
+        tokens: 0
+        description: "Report submitted to Group Reporting"
+        
+      - placeID: "P_ARCHIVED"
+        name: "Process Archived"
+        type: "end"
+        tokens: 0
+        description: "Process completed and archived for audit trail"
+        
+    # TRANSITIONS (Activities/Actions)
+    transitions:
+      # T01: Data Extraction
+      - transitionID: "T_EXTRACT"
+        name: "Extract Source Data"
+        description: "Extract PSGL/S4 balance query for P&L and BS for current and comparative periods"
+        stageID: "S01"
+        requirementRef: "REQ-FLOW-001"
+        inputPlaces: ["P_INIT"]
+        outputPlaces: ["P_DATA_READY"]
+        guard: "period_dates_valid"
+        duration: "30 minutes"
+        automated: true
+        systems: ["PSGL", "S4"]
+        dataQualityRules: []
+        
+      # T02: GCOA Mapping
+      - transitionID: "T_MAP_GCOA"
+        name: "Map to IFRS Categories"
+        description: "Map PSGL/S4 balances into IFRS Categories and schedules using GCOA"
+        stageID: "S02"
+        requirementRef: "REQ-FLOW-002"
+        inputPlaces: ["P_DATA_READY"]
+        outputPlaces: ["P_GCOA_MAPPED"]
+        guard: "gcoa_version_current"
+        duration: "15 minutes"
+        automated: true
+        dataQualityRules: ["TB003", "TB005"]
+        controlChecks:
+          - checkID: "REC-002"
+            validation: "No unmapped accounts"
+            
+      # T03: Currency Conversion
+      - transitionID: "T_CONVERT_FX"
+        name: "Apply Exchange Rates"
+        description: "Convert non-USD balances to USD using Group exchange rates"
+        stageID: "S03"
+        requirementRef: "REQ-FLOW-003"
+        inputPlaces: ["P_GCOA_MAPPED"]
+        outputPlaces: ["P_FX_CONVERTED"]
+        guard: "non_usd_unit OR always_pass"
+        duration: "10 minutes"
+        automated: true
+        dataQualityRules: ["FX005", "FX006", "FX007"]
+        controlChecks:
+          - checkID: "REC-005"
+            validation: "Exchange rates match Group rates"
+            
+      # T04: Aggregation
+      - transitionID: "T_AGGREGATE"
+        name: "Aggregate Trial Balance"
+        description: "Aggregate balances by IFRS schedule and category"
+        stageID: "S04"
+        requirementRef: "REQ-FLOW-002"
+        inputPlaces: ["P_FX_CONVERTED"]
+        outputPlaces: ["P_TB_AGGREGATED"]
+        guard: "all_mappings_complete"
+        duration: "20 minutes"
+        automated: true
+        dataQualityRules: ["TB001", "TB002", "TB004"]
+        controlChecks:
+          - checkID: "REC-001"
+            validation: "Period data accurate"
+            
+      # T05: Variance Calculation
+      - transitionID: "T_CALC_VARIANCE"
+        name: "Calculate Variances"
+        description: "Compute period-over-period variances and percentages"
+        stageID: "S05"
+        requirementRef: "REQ-THRESH-005"
+        inputPlaces: ["P_TB_AGGREGATED"]
+        outputPlaces: ["P_VARIANCE_CALC"]
+        guard: "comparative_period_available"
+        duration: "15 minutes"
+        automated: true
+        dataQualityRules: ["VAR001", "VAR002"]
+        controlChecks:
+          - checkID: "REC-003"
+            validation: "Formulas updated correctly"
+            
+      # T06: Threshold Application
+      - transitionID: "T_APPLY_THRESH"
+        name: "Apply Materiality Thresholds"
+        description: "Flag variances exceeding $100M/10% (BS) or $3M/10% (P&L)"
+        stageID: "S06"
+        requirementRef: "REQ-FLOW-004"
+        inputPlaces: ["P_VARIANCE_CALC"]
+        outputPlaces: ["P_THRESH_APPLIED"]
+        guard: "thresholds_configured"
+        duration: "5 minutes"
+        automated: true
+        dataQualityRules: ["VAR003", "VAR004"]
+        controlChecks:
+          - checkID: "MKR-CHK-001"
+            validation: "Thresholds applied at IFRS node level"
+            
+      # T07: Initiate Commentary Collection
+      - transitionID: "T_INIT_COMMENTARY"
+        name: "Initiate Commentary Collection"
+        description: "Engage business finance and accounting teams for material variances"
+        stageID: "S07"
+        requirementRef: "REQ-FLOW-005"
+        inputPlaces: ["P_THRESH_APPLIED"]
+        outputPlaces: ["P_COMMENTARY_INIT"]
+        guard: "material_variances_exist"
+        duration: "Variable"
+        automated: false
+        humanTask: true
+        assignTo: "Maker"
+        
+      # T08: Collect Business Commentary
+      - transitionID: "T_COLLECT_COMMENTARY"
+        name: "Collect Business Commentary"
+        description: "Collate commentaries received from business teams"
+        stageID: "S08"
+        requirementRef: "REQ-FLOW-005"
+        inputPlaces: ["P_COMMENTARY_INIT"]
+        outputPlaces: ["P_COMMENTARY_COLLECTED"]
+        duration: "2-3 days"
+        automated: false
+        humanTask: true
+        assignTo: "Maker"
+        stakeholders: ["Business Finance", "Accounting Teams"]
+        
+      # T09: Identify Major Drivers
+      - transitionID: "T_IDENTIFY_DRIVERS"
+        name: "Identify Major Drivers"
+        description: "Analyze deals from TP data and products/segments from GL"
+        stageID: "S09"
+        requirementRef: "REQ-THRESH-004"
+        inputPlaces: ["P_COMMENTARY_COLLECTED"]
+        outputPlaces: ["P_DRIVERS_IDENTIFIED"]
+        duration: "1 day"
+        automated: false
+        humanTask: true
+        assignTo: "Maker"
+        dataQualityRules: ["VAR008"]
+        dataSources: ["TP System", "GL Data"]
+        
+      # T10: Verify Coverage
+      - transitionID: "T_VERIFY_COVERAGE"
+        name: "Verify 90% Commentary Coverage"
+        description: "Ensure 90% of material variances have explanatory commentary"
+        stageID: "S10"
+        requirementRef: "REQ-THRESH-003"
+        inputPlaces: ["P_DRIVERS_IDENTIFIED"]
+        outputPlaces: ["P_COVERAGE_MET", "P_EXCEPTIONS_FLAGGED"]
+        guard: "coverage_percent >= 90"
+        duration: "30 minutes"
+        automated: true
+        dataQualityRules: ["VAR005", "VAR006"]
+        controlChecks:
+          - checkID: "MKR-CHK-001"
+            validation: "90% coverage achieved"
+            threshold: 90
+            
+      # T11: Flag Exceptions
+      - transitionID: "T_FLAG_EXCEPTIONS"
+        name: "Flag Unexplained Variances"
+        description: "Mark unexplained variances as exceptions for escalation"
+        stageID: "S10"
+        requirementRef: "REQ-CTRL-001"
+        inputPlaces: ["P_COVERAGE_MET"]
+        outputPlaces: ["P_EXCEPTIONS_FLAGGED"]
+        guard: "has_unexplained_variances"
+        duration: "15 minutes"
+        automated: true
+        dataQualityRules: ["VAR007"]
+        controlChecks:
+          - checkID: "MKR-CHK-002"
+            validation: "Exceptions identified and documented"
+            escalationPath: "GPM"
+            
+      # T12: Complete Maker Review
+      - transitionID: "T_MAKER_REVIEW"
+        name: "Complete Maker Checklist"
+        description: "Maker completes all checklist items and uploads to SharePoint"
+        stageID: "S11"
+        requirementRef: "REQ-FLOW-008"
+        inputPlaces: ["P_EXCEPTIONS_FLAGGED"]
+        outputPlaces: ["P_MAKER_COMPLETE"]
+        duration: "30 minutes"
+        automated: false
+        humanTask: true
+        assignTo: "Maker"
+        checklist:
+          - "Variance threshold applied"
+          - "Comments updated for material variances"
+          - "90% variance coverage achieved"
+          - "Major drivers identified"
+          - "Exceptions identified and escalated"
+          
+      # T13: Submit for Checker Review
+      - transitionID: "T_SUBMIT_CHECKER"
+        name: "Submit to Checker"
+        description: "Share checklist via email to checker for review"
+        stageID: "S12"
+        requirementRef: "REQ-FLOW-008"
+        inputPlaces: ["P_MAKER_COMPLETE"]
+        outputPlaces: ["P_CHECKER_REVIEW"]
+        duration: "5 minutes"
+        automated: true
+        notification: true
+        emailTemplate: "checker-review-request"
+        
+      # T14: Checker Review
+      - transitionID: "T_CHECKER_REVIEW"
+        name: "Checker Review and Approval"
+        description: "Checker reviews file, verifies controls, approves or rejects"
+        stageID: "S12"
+        requirementRef: "REQ-FLOW-009"
+        inputPlaces: ["P_CHECKER_REVIEW"]
+        outputPlaces: ["P_CHECKER_APPROVED", "P_REWORK_REQUIRED"]
+        guard: "all_controls_pass"
+        duration: "1-2 hours"
+        automated: false
+        humanTask: true
+        assignTo: "Checker"
+        roleRequirement: "Grade 5 or above"
+        checklist:
+          - "Period data accuracy verified"
+          - "GCOA mapping verified"
+          - "Pivots and formulas refreshed"
+          - "Global mapping changes incorporated"
+          - "Exchange rates verified"
+          - "Check cells equal zero"
+        controlChecks:
+          - checkID: "VAL-001"
+            validation: "Workings reconcile to PSGL/S4"
+            
+      # T15: Handle Rejection
+      - transitionID: "T_REWORK"
+        name: "Rework Required"
+        description: "Route back to maker for correction"
+        stageID: "S12"
+        requirementRef: "REQ-FLOW-009"
+        inputPlaces: ["P_REWORK_REQUIRED"]
+        outputPlaces: ["P_VARIANCE_CALC"]
+        duration: "Variable"
+        automated: false
+        humanTask: true
+        assignTo: "Maker"
+        notification: true
+        emailTemplate: "rework-required"
+        
+      # T16: Submit Report
+      - transitionID: "T_SUBMIT"
+        name: "Submit to Group Reporting"
+        description: "Submit approved report to Group Reporting"
+        stageID: "S13"
+        inputPlaces: ["P_CHECKER_APPROVED"]
+        outputPlaces: ["P_SUBMITTED"]
+        duration: "10 minutes"
+        automated: true
+        destination: "Group Reporting System"
+        
+      # T17: Archive
+      - transitionID: "T_ARCHIVE"
+        name: "Archive for Audit"
+        description: "Archive completed process with full audit trail"
+        stageID: "S13"
+        inputPlaces: ["P_SUBMITTED"]
+        outputPlaces: ["P_ARCHIVED"]
+        duration: "5 minutes"
+        automated: true
+        retentionPeriod: "7 years"
+        
+    # ARCS (Connections)
+    arcs:
+      # Forward Flow
+      - arcID: "A01"
+        from: "P_INIT"
+        to: "T_EXTRACT"
+        type: "input"
+      - arcID: "A02"
+        from: "T_EXTRACT"
+        to: "P_DATA_READY"
+        type: "output"
+      - arcID: "A03"
+        from: "P_DATA_READY"
+        to: "T_MAP_GCOA"
+        type: "input"
+      - arcID: "A04"
+        from: "T_MAP_GCOA"
+        to: "P_GCOA_MAPPED"
+        type: "output"
+      - arcID: "A05"
+        from: "P_GCOA_MAPPED"
+        to: "T_CONVERT_FX"
+        type: "input"
+      - arcID: "A06"
+        from: "T_CONVERT_FX"
+        to: "P_FX_CONVERTED"
+        type: "output"
+      - arcID: "A07"
+        from: "P_FX_CONVERTED"
+        to: "T_AGGREGATE"
+        type: "input"
+      - arcID: "A08"
+        from: "T_AGGREGATE"
+        to: "P_TB_AGGREGATED"
+        type: "output"
+      - arcID: "A09"
+        from: "P_TB_AGGREGATED"
+        to: "T_CALC_VARIANCE"
+        type: "input"
+      - arcID: "A10"
+        from: "T_CALC_VARIANCE"
+        to: "P_VARIANCE_CALC"
+        type: "output"
+      - arcID: "A11"
+        from: "P_VARIANCE_CALC"
+        to: "T_APPLY_THRESH"
+        type: "input"
+      - arcID: "A12"
+        from: "T_APPLY_THRESH"
+        to: "P_THRESH_APPLIED"
+        type: "output"
+      - arcID: "A13"
+        from: "P_THRESH_APPLIED"
+        to: "T_INIT_COMMENTARY"
+        type: "input"
+      - arcID: "A14"
+        from: "T_INIT_COMMENTARY"
+        to: "P_COMMENTARY_INIT"
+        type: "output"
+      - arcID: "A15"
+        from: "P_COMMENTARY_INIT"
+        to: "T_COLLECT_COMMENTARY"
+        type: "input"
+      - arcID: "A16"
+        from: "T_COLLECT_COMMENTARY"
+        to: "P_COMMENTARY_COLLECTED"
+        type: "output"
+      - arcID: "A17"
+        from: "P_COMMENTARY_COLLECTED"
+        to: "T_IDENTIFY_DRIVERS"
+        type: "input"
+      - arcID: "A18"
+        from: "T_IDENTIFY_DRIVERS"
+        to: "P_DRIVERS_IDENTIFIED"
+        type: "output"
+      - arcID: "A19"
+        from: "P_DRIVERS_IDENTIFIED"
+        to: "T_VERIFY_COVERAGE"
+        type: "input"
+      - arcID: "A20"
+        from: "T_VERIFY_COVERAGE"
+        to: "P_COVERAGE_MET"
+        type: "output"
+        condition: "coverage >= 90%"
+      - arcID: "A21"
+        from: "P_COVERAGE_MET"
+        to: "T_FLAG_EXCEPTIONS"
+        type: "input"
+      - arcID: "A22"
+        from: "T_FLAG_EXCEPTIONS"
+        to: "P_EXCEPTIONS_FLAGGED"
+        type: "output"
+      - arcID: "A23"
+        from: "P_EXCEPTIONS_FLAGGED"
+        to: "T_MAKER_REVIEW"
+        type: "input"
+      - arcID: "A24"
+        from: "T_MAKER_REVIEW"
+        to: "P_MAKER_COMPLETE"
+        type: "output"
+      - arcID: "A25"
+        from: "P_MAKER_COMPLETE"
+        to: "T_SUBMIT_CHECKER"
+        type: "input"
+      - arcID: "A26"
+        from: "T_SUBMIT_CHECKER"
+        to: "P_CHECKER_REVIEW"
+        type: "output"
+      - arcID: "A27"
+        from: "P_CHECKER_REVIEW"
+        to: "T_CHECKER_REVIEW"
+        type: "input"
+      - arcID: "A28"
+        from: "T_CHECKER_REVIEW"
+        to: "P_CHECKER_APPROVED"
+        type: "output"
+        condition: "all_controls_pass"
+      - arcID: "A29"
+        from: "T_CHECKER_REVIEW"
+        to: "P_REWORK_REQUIRED"
+        type: "output"
+        condition: "controls_failed"
+      - arcID: "A30"
+        from: "P_REWORK_REQUIRED"
+        to: "T_REWORK"
+        type: "input"
+      - arcID: "A31"
+        from: "T_REWORK"
+        to: "P_VARIANCE_CALC"
+        type: "output"
+        note: "Rework loop back to variance calculation"
+      - arcID: "A32"
+        from: "P_CHECKER_APPROVED"
+        to: "T_SUBMIT"
+        type: "input"
+      - arcID: "A33"
+        from: "T_SUBMIT"
+        to: "P_SUBMITTED"
+        type: "output"
+      - arcID: "A34"
+        from: "P_SUBMITTED"
+        to: "T_ARCHIVE"
+        type: "input"
+      - arcID: "A35"
+        from: "T_ARCHIVE"
+        to: "P_ARCHIVED"
+        type: "output"
+        
+  # CONTROL CHECKPOINTS
+  controlCheckpoints:
+    description: "Control verification points mapped to Petri Net transitions"
+    checkpoints:
+      # Maker Controls
+      - checkpointID: "CP-MKR-001"
+        name: "Variance Threshold Checkpoint"
+        controlRef: "MKR-CHK-001"
+        transitionID: "T_APPLY_THRESH"
+        verification:
+          type: "automated"
+          rules: ["VAR003", "VAR004"]
+          passCriteria: "All material variances flagged"
+          
+      - checkpointID: "CP-MKR-002"
+        name: "Commentary Coverage Checkpoint"
+        controlRef: "MKR-CHK-001"
+        transitionID: "T_VERIFY_COVERAGE"
+        verification:
+          type: "automated"
+          rules: ["VAR005", "VAR006"]
+          passCriteria: "coverage_percent >= 90"
+          
+      - checkpointID: "CP-MKR-003"
+        name: "Exception Identification Checkpoint"
+        controlRef: "MKR-CHK-002"
+        transitionID: "T_FLAG_EXCEPTIONS"
+        verification:
+          type: "automated"
+          rules: ["VAR007"]
+          passCriteria: "All exceptions flagged for escalation"
+          
+      # Reconciliation Checks
+      - checkpointID: "CP-REC-001"
+        name: "Period Data Accuracy Checkpoint"
+        controlRef: "REC-001"
+        transitionID: "T_AGGREGATE"
+        verification:
+          type: "automated"
+          rules: ["TB004"]
+          passCriteria: "Period dates match expected reporting period"
+          
+      - checkpointID: "CP-REC-002"
+        name: "GCOA Mapping Checkpoint"
+        controlRef: "REC-002"
+        transitionID: "T_MAP_GCOA"
+        verification:
+          type: "automated"
+          rules: ["TB003", "TB005"]
+          passCriteria: "No unmapped accounts AND latest GCOA version"
+          
+      - checkpointID: "CP-REC-003"
+        name: "Calculation Integrity Checkpoint"
+        controlRef: "REC-003"
+        transitionID: "T_CALC_VARIANCE"
+        verification:
+          type: "automated"
+          rules: ["VAR001", "VAR002"]
+          passCriteria: "All variance formulas correctly computed"
+          
+      - checkpointID: "CP-REC-004"
+        name: "Mapping Currency Checkpoint"
+        controlRef: "REC-004"
+        transitionID: "T_AGGREGATE"
+        verification:
+          type: "automated"
+          rules: ["TB006"]
+          passCriteria: "mapping_version = current_gcoa_version"
+          
+      - checkpointID: "CP-REC-005"
+        name: "Exchange Rate Checkpoint"
+        controlRef: "REC-005"
+        transitionID: "T_CONVERT_FX"
+        verification:
+          type: "automated"
+          rules: ["FX005", "FX006"]
+          passCriteria: "Rates match Group exchange rates for respective periods"
+          applicability: "Non-USD units only"
+          
+      # Validation Checks
+      - checkpointID: "CP-VAL-001"
+        name: "Source Reconciliation Checkpoint"
+        controlRef: "VAL-001"
+        transitionID: "T_CHECKER_REVIEW"
+        verification:
+          type: "automated"
+          rules: ["TB001", "TB002"]
+          passCriteria: "Closing = Opening + Debits - Credits AND Debits = Credits"
+          
+  # WORKFLOW STAGES MAPPING (13 Stages)
+  stageMapping:
+    totalStages: 13
+    stages:
+      - stageID: "S01"
+        name: "Data Extraction"
+        transitionIDs: ["T_EXTRACT"]
+        duration: "30 min"
+        automated: true
+        
+      - stageID: "S02"
+        name: "GCOA Mapping"
+        transitionIDs: ["T_MAP_GCOA"]
+        duration: "15 min"
+        automated: true
+        
+      - stageID: "S03"
+        name: "Currency Conversion"
+        transitionIDs: ["T_CONVERT_FX"]
+        duration: "10 min"
+        automated: true
+        
+      - stageID: "S04"
+        name: "Trial Balance Aggregation"
+        transitionIDs: ["T_AGGREGATE"]
+        duration: "20 min"
+        automated: true
+        
+      - stageID: "S05"
+        name: "Variance Calculation"
+        transitionIDs: ["T_CALC_VARIANCE"]
+        duration: "15 min"
+        automated: true
+        
+      - stageID: "S06"
+        name: "Threshold Application"
+        transitionIDs: ["T_APPLY_THRESH"]
+        duration: "5 min"
+        automated: true
+        
+      - stageID: "S07"
+        name: "Commentary Initiation"
+        transitionIDs: ["T_INIT_COMMENTARY"]
+        duration: "Variable"
+        automated: false
+        
+      - stageID: "S08"
+        name: "Commentary Collection"
+        transitionIDs: ["T_COLLECT_COMMENTARY"]
+        duration: "2-3 days"
+        automated: false
+        
+      - stageID: "S09"
+        name: "Driver Analysis"
+        transitionIDs: ["T_IDENTIFY_DRIVERS"]
+        duration: "1 day"
+        automated: false
+        
+      - stageID: "S10"
+        name: "Coverage Verification"
+        transitionIDs: ["T_VERIFY_COVERAGE", "T_FLAG_EXCEPTIONS"]
+        duration: "45 min"
+        automated: true
+        
+      - stageID: "S11"
+        name: "Maker Review"
+        transitionIDs: ["T_MAKER_REVIEW"]
+        duration: "30 min"
+        automated: false
+        
+      - stageID: "S12"
+        name: "Checker Review"
+        transitionIDs: ["T_SUBMIT_CHECKER", "T_CHECKER_REVIEW", "T_REWORK"]
+        duration: "1-2 hours"
+        automated: false
+        
+      - stageID: "S13"
+        name: "Submission & Archive"
+        transitionIDs: ["T_SUBMIT", "T_ARCHIVE"]
+        duration: "15 min"
+        automated: true
+        
+  # TIMELINE REQUIREMENTS
+  timeline:
+    quarterly:
+      deadline: "M+7"
+      description: "7 working days after month-end"
+    monthly:
+      deadline: "M+12"
+      description: "12 working days after month-end"
+    source: "Group FRA Template"
+    
+  # REQUIREMENTS TRACEABILITY
+  requirementsTraceability:
+    sourceRequirements: "../requirements/"
+    lastReconciled: "2026-01-27"
+    mappings:
+      processFlow:
+        - requirementID: "REQ-FLOW-001"
+          implementedBy: "T_EXTRACT"
+        - requirementID: "REQ-FLOW-002"
+          implementedBy: ["T_MAP_GCOA", "T_AGGREGATE"]
+        - requirementID: "REQ-FLOW-003"
+          implementedBy: "T_CONVERT_FX"
+        - requirementID: "REQ-FLOW-004"
+          implementedBy: "T_APPLY_THRESH"
+        - requirementID: "REQ-FLOW-005"
+          implementedBy: ["T_INIT_COMMENTARY", "T_COLLECT_COMMENTARY", "T_IDENTIFY_DRIVERS"]
+        - requirementID: "REQ-FLOW-008"
+          implementedBy: ["T_MAKER_REVIEW", "T_SUBMIT_CHECKER"]
+        - requirementID: "REQ-FLOW-009"
+          implementedBy: ["T_CHECKER_REVIEW", "T_REWORK"]
+      controls:
+        - controlID: "MKR-CHK-001"
+          implementedBy: "CP-MKR-001"
+        - controlID: "MKR-CHK-002"
+          implementedBy: "CP-MKR-003"
+        - controlID: "REC-001"
+          implementedBy: "CP-REC-001"
+        - controlID: "REC-002"
+          implementedBy: "CP-REC-002"
+        - controlID: "REC-003"
+          implementedBy: "CP-REC-003"
+        - controlID: "REC-004"
+          implementedBy: "CP-REC-004"
+        - controlID: "REC-005"
+          implementedBy: "CP-REC-005"
+        - controlID: "VAL-001"
+          implementedBy: "CP-VAL-001"

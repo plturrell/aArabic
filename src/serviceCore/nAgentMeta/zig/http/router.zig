@@ -94,7 +94,7 @@ pub const Router = struct {
     
     /// Clean up router resources
     pub fn deinit(self: *Router) void {
-        self.routes.deinit();
+        self.routes.deinit(self.allocator);
     }
     
     /// Add a route to the router
@@ -110,7 +110,7 @@ pub const Router = struct {
             .handler = handler,
         };
         
-        try self.routes.append(route);
+        try self.routes.append(self.allocator, route);
     }
     
     /// Handle incoming request
@@ -119,7 +119,7 @@ pub const Router = struct {
         for (self.routes.items) |*route| {
             if (route.matches(req.method, req.path)) {
                 // Extract path parameters
-                const params = try extractParams(self.allocator, route.path, req.path);
+                var params = try extractParams(self.allocator, route.path, req.path);
                 defer {
                     var iter = params.iterator();
                     while (iter.next()) |entry| {

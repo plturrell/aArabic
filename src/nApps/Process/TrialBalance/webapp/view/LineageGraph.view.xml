@@ -1,0 +1,192 @@
+<mvc:View
+    controllerName="trialbalance.controller.LineageGraph"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:l="sap.ui.layout"
+    xmlns:custom="sap.nApps.Process.TrialBalance.control"
+    displayBlock="true">
+    
+    <Page
+        title="Data Lineage Graph - ODPS Traceability"
+        showNavButton="true"
+        navButtonPress=".onNavBack">
+        
+        <headerContent>
+            <SegmentedButton
+                selectedKey="{view>/vizType}"
+                selectionChange=".onVizTypeChange">
+                <items>
+                    <SegmentedButtonItem key="dag" text="DAG" icon="sap-icon://org-chart" />
+                    <SegmentedButtonItem key="sankey" text="Sankey" icon="sap-icon://bar-chart" />
+                    <SegmentedButtonItem key="network" text="Network" icon="sap-icon://chain-link" />
+                </items>
+            </SegmentedButton>
+            <Button
+                icon="sap-icon://full-screen"
+                tooltip="Full Screen"
+                press=".onFullScreen" />
+            <Button
+                icon="sap-icon://download"
+                tooltip="Export SVG"
+                press=".onExportSVG" />
+        </headerContent>
+        
+        <content>
+            <l:VerticalLayout class="sapUiSmallMargin" width="100%">
+                
+                <!-- Lineage Overview -->
+                <Panel
+                    headerText="Lineage Chain Overview"
+                    class="sapUiMediumMarginBottom">
+                    <content>
+                        <l:HorizontalLayout class="sapUiSmallMargin">
+                            <VBox class="sapUiSmallMarginEnd" width="150px">
+                                <Label text="Source System" design="Bold" />
+                                <Text text="SAP S/4HANA" />
+                                <Label text="Tables" />
+                                <Text text="ACDOCA, SKA1" />
+                            </VBox>
+                            
+                            <core:Icon
+                                src="sap-icon://open-command-field"
+                                size="2rem"
+                                class="sapUiSmallMarginTop" />
+                            
+                            <VBox class="sapUiSmallMarginEnd" width="150px">
+                                <Label text="Extraction" design="Bold" />
+                                <Text text="Journal Entries" />
+                                <Text text="Exchange Rates" />
+                                <ObjectStatus text="95% Quality" state="Success" />
+                            </VBox>
+                            
+                            <core:Icon
+                                src="sap-icon://open-command-field"
+                                size="2rem"
+                                class="sapUiSmallMarginTop" />
+                            
+                            <VBox class="sapUiSmallMarginEnd" width="150px">
+                                <Label text="Aggregation" design="Bold" />
+                                <Text text="Trial Balance" />
+                                <ObjectStatus text="92% Quality" state="Success" />
+                            </VBox>
+                            
+                            <core:Icon
+                                src="sap-icon://open-command-field"
+                                size="2rem"
+                                class="sapUiSmallMarginTop" />
+                            
+                            <VBox class="sapUiSmallMarginEnd" width="150px">
+                                <Label text="Analysis" design="Bold" />
+                                <Text text="Variances" />
+                                <Text text="AI Commentary" />
+                                <ObjectStatus text="90% Quality" state="Warning" />
+                            </VBox>
+                            
+                            <core:Icon
+                                src="sap-icon://open-command-field"
+                                size="2rem"
+                                class="sapUiSmallMarginTop" />
+                            
+                            <VBox width="150px">
+                                <Label text="Output" design="Bold" />
+                                <Text text="Management Report" />
+                                <Text text="Audit Archive" />
+                            </VBox>
+                        </l:HorizontalLayout>
+                    </content>
+                </Panel>
+                
+                <!-- Interactive Lineage Graph -->
+                <Panel
+                    headerText="Interactive Data Lineage Graph"
+                    height="600px">
+                    <content>
+                        <custom:NetworkGraphControl
+                            id="lineageGraph"
+                            graphData="{lineage>/graph}"
+                            width="100%"
+                            height="550px" />
+                    </content>
+                </Panel>
+                
+                <!-- Lineage Details Table -->
+                <Panel
+                    headerText="Lineage Details"
+                    expandable="true"
+                    expanded="true"
+                    class="sapUiSmallMarginTop">
+                    <content>
+                        <Table
+                            items="{lineage>/entries}">
+                            <columns>
+                                <Column width="10em">
+                                    <Text text="Lineage ID" />
+                                </Column>
+                                <Column width="12em">
+                                    <Text text="Source Dataset" />
+                                </Column>
+                                <Column width="12em">
+                                    <Text text="Target Dataset" />
+                                </Column>
+                                <Column width="10em">
+                                    <Text text="Transformation" />
+                                </Column>
+                                <Column width="8em" hAlign="Center">
+                                    <Text text="Quality Score" />
+                                </Column>
+                                <Column width="8em">
+                                    <Text text="Record Count" />
+                                </Column>
+                                <Column width="10em">
+                                    <Text text="Timestamp" />
+                                </Column>
+                            </columns>
+                            <items>
+                                <ColumnListItem type="Navigation" press=".onLineageItemPress">
+                                    <cells>
+                                        <Text text="{lineage>lineage_id}" />
+                                        <VBox>
+                                            <Text text="{lineage>source_dataset_id}" />
+                                            <Label text="{lineage>source_hash}" class="sapUiTinyMarginTop" />
+                                        </VBox>
+                                        <VBox>
+                                            <Text text="{lineage>target_dataset_id}" />
+                                            <Label text="{lineage>target_hash}" class="sapUiTinyMarginTop" />
+                                        </VBox>
+                                        <ObjectStatus
+                                            text="{lineage>transformation}"
+                                            state="Information" />
+                                        <ObjectNumber
+                                            number="{lineage>quality_score}"
+                                            unit="%"
+                                            state="{= ${lineage>quality_score} >= 95 ? 'Success' : 'Warning' }" />
+                                        <ObjectNumber
+                                            number="{lineage>record_count}"
+                                            unit="records" />
+                                        <Text text="{lineage>transformation_timestamp}" />
+                                    </cells>
+                                </ColumnListItem>
+                            </items>
+                        </Table>
+                    </content>
+                </Panel>
+                
+            </l:VerticalLayout>
+        </content>
+        
+        <footer>
+            <Toolbar>
+                <ToolbarSpacer />
+                <Button
+                    text="View Catalog"
+                    icon="sap-icon://product"
+                    press=".onViewCatalog" />
+                <Button
+                    text="View Quality"
+                    icon="sap-icon://quality-issue"
+                    press=".onViewQuality" />
+            </Toolbar>
+        </footer>
+        
+    </Page>
+</mvc:View>

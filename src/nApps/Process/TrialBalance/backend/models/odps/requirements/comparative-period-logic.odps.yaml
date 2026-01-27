@@ -1,0 +1,250 @@
+# ODPS v4.1 - Trial Balance Comparative Period Logic Requirements
+# Extracted from DOI for Trial Balance Process v2.0 (BCBS 239)
+
+requirement:
+  requirementID: "urn:uuid:tb-req-comparative-periods-v1"
+  name: "Trial Balance Comparative Period Logic"
+  description: "Defines the comparative period rules for monthly and quarterly variance analysis including Balance Sheet and P&L comparison logic."
+  version: "2.0.0"
+  status: "active"
+  sourceDocument:
+    name: "DOI for Trial Balance Process"
+    version: "2.0"
+    approvedDate: "2025-10-23"
+    section: "Section 3 - Report Summary (TB Review Comparative)"
+    
+  details:
+    type: "requirement-specification"
+    category: "business-logic"
+    subcategory: "period-comparison"
+    tags:
+      - "comparative-periods"
+      - "variance-analysis"
+      - "monthly-review"
+      - "quarterly-review"
+      - "ytd"
+      - "mtd"
+      - "yoy"
+    owner:
+      name: "Global Finance Services"
+      organization: "Standard Chartered Global Business Services Ltd"
+    domain: "Finance"
+    
+  requirements:
+    # REQ-PERIOD-001: Monthly Balance Sheet Comparative
+    - requirementID: "REQ-PERIOD-001"
+      name: "Monthly Balance Sheet Comparative Logic"
+      category: "period-logic"
+      priority: "mandatory"
+      reportType: "balance-sheet"
+      frequency: "monthly"
+      description: "Year-to-date current month vs Year-to-date previous month of same fiscal year"
+      rule:
+        type: "period-comparison"
+        currentPeriod:
+          type: "YTD"
+          description: "Year-to-date as of current month"
+        comparativePeriod:
+          type: "YTD"
+          offset: -1
+          unit: "month"
+          constraint: "same-fiscal-year"
+          description: "Year-to-date as of previous month (same FY)"
+        formula: "YTD_Current_Month - YTD_Previous_Month"
+        example:
+          current: "YTD Aug'25"
+          comparative: "YTD July'25"
+          calculation: "YTD Aug'25 - YTD July'25"
+          
+    # REQ-PERIOD-002: Monthly P&L Comparative
+    - requirementID: "REQ-PERIOD-002"
+      name: "Monthly P&L Comparative Logic"
+      category: "period-logic"
+      priority: "optional"
+      reportType: "profit-and-loss"
+      frequency: "monthly"
+      description: "Month-to-date current month vs Month-to-date previous month of same fiscal year"
+      mandatory: false
+      note: "Not mandatory but completed as good practice by M+12"
+      rule:
+        type: "period-comparison"
+        currentPeriod:
+          type: "MTD"
+          description: "Month-to-date for current month"
+        comparativePeriod:
+          type: "MTD"
+          offset: -1
+          unit: "month"
+          constraint: "same-fiscal-year"
+          description: "Month-to-date for previous month (same FY)"
+        formula: "MTD_Current_Month - MTD_Previous_Month"
+        example:
+          current: "MTD Aug'25"
+          comparative: "MTD July'25"
+          calculation: "MTD Aug'25 - MTD July'25"
+          
+    # REQ-PERIOD-003: Quarterly Balance Sheet Comparative
+    - requirementID: "REQ-PERIOD-003"
+      name: "Quarterly Balance Sheet Comparative Logic"
+      category: "period-logic"
+      priority: "mandatory"
+      reportType: "balance-sheet"
+      frequency: "quarterly"
+      description: "Current quarter YTD vs December of previous fiscal year"
+      rule:
+        type: "period-comparison"
+        currentPeriod:
+          type: "YTD"
+          description: "Year-to-date as of current quarter end"
+        comparativePeriod:
+          type: "YTD"
+          reference: "december-previous-fy"
+          description: "December (year-end) of previous fiscal year"
+        formula: "YTD_Current_Quarter - YTD_Dec_Previous_FY"
+        quarterlyExamples:
+          - quarter: "Q1"
+            current: "Mar'25"
+            comparative: "Dec'24"
+            calculation: "YTD Mar'25 - YTD Dec'24"
+          - quarter: "Q2"
+            current: "June'25"
+            comparative: "Dec'24"
+            calculation: "YTD June'25 - YTD Dec'24"
+          - quarter: "Q3"
+            current: "Sept'25"
+            comparative: "Dec'24"
+            calculation: "YTD Sept'25 - YTD Dec'24"
+          - quarter: "Q4"
+            current: "Dec'25"
+            comparative: "Dec'24"
+            calculation: "YTD Dec'25 - YTD Dec'24"
+            
+    # REQ-PERIOD-004: Quarterly P&L Comparative
+    - requirementID: "REQ-PERIOD-004"
+      name: "Quarterly P&L Comparative Logic (YoY)"
+      category: "period-logic"
+      priority: "mandatory"
+      reportType: "profit-and-loss"
+      frequency: "quarterly"
+      description: "Year-on-Year comparison - Current period YTD vs Previous year YTD"
+      rule:
+        type: "period-comparison"
+        comparisonType: "year-on-year"
+        abbreviation: "YoY"
+        currentPeriod:
+          type: "YTD"
+          description: "Year-to-date as of current period"
+        comparativePeriod:
+          type: "YTD"
+          offset: -1
+          unit: "year"
+          description: "Year-to-date as of same period in previous year"
+        formula: "YTD_Current_Year - YTD_Previous_Year"
+        example:
+          current: "Jan-Sept'25"
+          comparative: "Jan-Sept'24"
+          calculation: "YTD Sept'25 - YTD Sept'24"
+          
+    # REQ-PERIOD-005: Period Terminology Definitions
+    - requirementID: "REQ-PERIOD-005"
+      name: "Period Terminology Definitions"
+      category: "terminology"
+      priority: "mandatory"
+      definitions:
+        - term: "MTD"
+          fullName: "Month-to-Date"
+          description: "Cumulative balance from the first day of the month to the current date"
+          
+        - term: "YTD"
+          fullName: "Year-to-Date"
+          description: "Cumulative balance from the first day of the fiscal year to the current date"
+          
+        - term: "YoY"
+          fullName: "Year-on-Year"
+          description: "Comparison between current period and the same period in the previous year"
+          
+        - term: "Current Period"
+          description: "The reporting period being analyzed"
+          
+        - term: "Comparative Period"
+          description: "The reference period against which current period is compared"
+          
+        - term: "FY"
+          fullName: "Fiscal Year"
+          description: "12-month accounting period used for financial reporting"
+          
+    # REQ-PERIOD-006: Quarter End Months
+    - requirementID: "REQ-PERIOD-006"
+      name: "Quarter End Month Definitions"
+      category: "calendar"
+      priority: "mandatory"
+      quarterEnds:
+        Q1:
+          month: "March"
+          monthNumber: 3
+        Q2:
+          month: "June"
+          monthNumber: 6
+        Q3:
+          month: "September"
+          monthNumber: 9
+        Q4:
+          month: "December"
+          monthNumber: 12
+      note: "Accelerated timelines (M+7) apply for quarter ending months per Group FRA requirements"
+      
+  periodMatrix:
+    monthly:
+      balanceSheet:
+        current: "YTD Current Month"
+        comparative: "YTD Previous Month (same FY)"
+        mandatory: true
+      profitAndLoss:
+        current: "MTD Current Month"
+        comparative: "MTD Previous Month (same FY)"
+        mandatory: false
+        timeline: "M+12"
+    quarterly:
+      balanceSheet:
+        current: "YTD Current Quarter"
+        comparative: "YTD Dec (Previous FY)"
+        mandatory: true
+        timeline: "M+7"
+      profitAndLoss:
+        current: "YTD Current Period"
+        comparative: "YTD Same Period Previous Year"
+        comparisonType: "YoY"
+        mandatory: true
+        timeline: "M+7"
+        
+  validation:
+    - ruleID: "VAL-PERIOD-001"
+      name: "Correct Comparative Period Used"
+      description: "Verify the correct comparative period is used for the report type and frequency"
+      severity: "error"
+      
+    - ruleID: "VAL-PERIOD-002"
+      name: "YoY Alignment"
+      description: "For YoY comparisons, ensure periods align (e.g., Sept vs Sept)"
+      severity: "error"
+      
+    - ruleID: "VAL-PERIOD-003"
+      name: "Same Fiscal Year Check"
+      description: "For monthly comparisons, verify both periods are in the same fiscal year"
+      severity: "error"
+      
+    - ruleID: "VAL-PERIOD-004"
+      name: "Quarter End Detection"
+      description: "Automatically detect quarter-end months and apply M+7 timeline"
+      severity: "warning"
+      
+  traceability:
+    sourceDocument: "DOI for Trial Balance Process .docx"
+    section: "Section 3 - Report Summary"
+    subsection: "TB Review Comparative"
+    version: "2.0"
+    changeHistory:
+      - version: "2.0"
+        date: "2025-10-23"
+        change: "Accelerated timelines from M+10 to M+7 for quarter ending months"
+        reason: "Align with Group FRA reporting requirements"

@@ -1,0 +1,347 @@
+# ODPS v4.1 - Trial Balance Process Flow Requirements
+# Extracted from DOI for Trial Balance Process v2.0 (BCBS 239)
+
+requirement:
+  requirementID: "urn:uuid:tb-req-process-flow-v1"
+  name: "Trial Balance Process Flow Requirements"
+  description: "Detailed process flow steps for Balance Sheet and P&L variance analysis including data extraction, mapping, transformation, and commentary collection."
+  version: "2.0.0"
+  status: "active"
+  sourceDocument:
+    name: "DOI for Trial Balance Process"
+    version: "2.0"
+    approvedDate: "2025-10-23"
+    sections:
+      - "Section 5 - Process Flow Chart"
+      - "Section 6 - Detailed Procedures and Responsibilities"
+    
+  details:
+    type: "requirement-specification"
+    category: "process-flow"
+    subcategory: "variance-analysis"
+    tags:
+      - "process-flow"
+      - "workflow"
+      - "data-extraction"
+      - "variance-analysis"
+      - "commentary"
+      - "maker-checker"
+    owner:
+      name: "Global Finance Services"
+      organization: "Standard Chartered Global Business Services Ltd"
+    domain: "Finance"
+    
+  requirements:
+    # REQ-FLOW-001: Data Extraction Process
+    - requirementID: "REQ-FLOW-001"
+      name: "Data Extraction Process"
+      category: "process-step"
+      priority: "mandatory"
+      sequence: 1
+      description: "Extract GL balance data from source systems"
+      steps:
+        - stepID: "EXTRACT-001"
+          name: "Extract PSGL/S4 Balance Query"
+          description: "Extract PSGL/S4 balance query for P&L and Balance Sheet for current and comparative periods"
+          inputs:
+            - "Current period date range"
+            - "Comparative period date range"
+            - "Account selection criteria"
+          outputs:
+            - "Raw GL balance data for current period"
+            - "Raw GL balance data for comparative period"
+          systems:
+            - "PSGL (PeopleSoft General Ledger)"
+            - "S4 (SAP S/4HANA)"
+          dataTypes:
+            - "Balance Sheet accounts"
+            - "P&L accounts"
+            
+    # REQ-FLOW-002: GCOA Mapping Process
+    - requirementID: "REQ-FLOW-002"
+      name: "GCOA Mapping Process"
+      category: "process-step"
+      priority: "mandatory"
+      sequence: 2
+      description: "Map GL balances to IFRS categories and schedules"
+      steps:
+        - stepID: "MAP-001"
+          name: "Map to IFRS Categories"
+          description: "Map PSGL/S4 balances into IFRS Categories and schedules using Global Chart of Accounts"
+          inputs:
+            - "Raw GL balance data"
+            - "Global Chart of Accounts (GCOA)"
+          outputs:
+            - "Mapped balances by IFRS category"
+            - "Mapped balances by IFRS schedule"
+          mappingCategories:
+            balanceSheet:
+              - "Assets"
+              - "Liabilities"
+              - "Off Balance Sheet"
+            profitAndLoss:
+              - "Income"
+              - "Expense"
+              - "Impairment"
+          validation:
+            - "Check for unmapped accounts"
+            - "Verify latest GCOA version is used"
+            
+    # REQ-FLOW-003: Currency Conversion Process
+    - requirementID: "REQ-FLOW-003"
+      name: "Currency Conversion Process"
+      category: "process-step"
+      priority: "mandatory"
+      sequence: 3
+      description: "Apply exchange rates for currency conversion to USD"
+      applicability: "Units with reporting currency other than USD"
+      steps:
+        - stepID: "FX-001"
+          name: "Apply Group Exchange Rates"
+          description: "Apply Group exchange rates for current and comparative periods to arrive at USD balances"
+          inputs:
+            - "Local currency balances"
+            - "Current period exchange rates"
+            - "Comparative period exchange rates"
+          outputs:
+            - "USD converted current period balances"
+            - "USD converted comparative period balances"
+          rules:
+            - "Use current period rate for current period amounts"
+            - "Use comparative period rate for comparative period amounts"
+          targetCurrency: "USD"
+          examples:
+            - "SGD to USD"
+            - "INR to USD"
+            
+    # REQ-FLOW-004: Threshold Application Process
+    - requirementID: "REQ-FLOW-004"
+      name: "Threshold Application Process"
+      category: "process-step"
+      priority: "mandatory"
+      sequence: 4
+      description: "Apply group thresholds and identify material variances"
+      steps:
+        - stepID: "THRESH-001"
+          name: "Apply Group Thresholds"
+          description: "Apply group thresholds on variance at IFRS node level"
+          inputs:
+            - "Variance amounts by IFRS node"
+            - "Threshold configuration"
+          outputs:
+            - "List of variances above threshold"
+            - "Materiality flags"
+          thresholds:
+            balanceSheet:
+              amount: 100000000
+              percent: 10.0
+            profitAndLoss:
+              amount: 3000000
+              percent: 10.0
+              
+        - stepID: "THRESH-002"
+          name: "Identify Material Variances"
+          description: "Identify IFRS line disclosures where variances are above thresholds"
+          outputs:
+            - "List of material IFRS lines requiring commentary"
+            
+    # REQ-FLOW-005: Commentary Collection Process
+    - requirementID: "REQ-FLOW-005"
+      name: "Commentary Collection Process"
+      category: "process-step"
+      priority: "mandatory"
+      sequence: 5
+      description: "Engage with teams and collect business commentaries"
+      steps:
+        - stepID: "COMM-001"
+          name: "Engage Business Teams"
+          description: "Engage with business finance and accounting teams for commentaries"
+          stakeholders:
+            - "Business Finance"
+            - "Accounting Teams"
+            
+        - stepID: "COMM-002"
+          name: "Collate Commentaries"
+          description: "Collate commentaries received from business"
+          
+        - stepID: "COMM-003"
+          name: "Identify Major Deals"
+          description: "Identify major deals contributing to movements from TP data"
+          dataSource: "TP System"
+          
+        - stepID: "COMM-004"
+          name: "Add Deal Information"
+          description: "Add deal information to business commentaries received"
+          
+    # REQ-FLOW-006: Balance Sheet Variance Analysis Flow
+    - requirementID: "REQ-FLOW-006"
+      name: "Balance Sheet Variance Analysis Flow"
+      category: "detailed-process"
+      priority: "mandatory"
+      reportType: "balance-sheet"
+      description: "Complete step-by-step process for Balance Sheet variance analysis"
+      comparativePeriod: "Current period vs period of last published result"
+      steps:
+        - step: 1
+          action: "Extract PSGL/S4 balance query for current and comparative period for BS accounts"
+          
+        - step: 2
+          action: "Convert reporting currency balances (SGD, INR etc.) into USD for non-USD units"
+          
+        - step: 3
+          action: "Map balances into Assets/Liabilities/Off Balance sheet and IFRS schedule categories per GCOA"
+          
+        - step: 4
+          action: "Update the classification table for financial assets and liabilities"
+          
+        - step: 5
+          action: "Refresh category-wise pivots for Assets, Liabilities & Off-balance sheet"
+          
+        - step: 6
+          action: "Update the variance formulas"
+          
+        - step: 7
+          action: "Apply thresholds on variances as stated under group reporting instruction"
+          
+        - step: 8
+          action: "Identify IFRS line disclosures where variances are above thresholds"
+          
+        - step: 9
+          action: "Engage with business finance, accounting teams for business commentaries"
+          
+        - step: 10
+          action: "Collate commentaries received from business"
+          
+        - step: 11
+          action: "Identify major deals contributing to movements from TP data"
+          
+        - step: 12
+          action: "Add deal information to business commentaries"
+          
+        - step: 13
+          action: "Ensure 90% variance coverage and major driver identification"
+          
+    # REQ-FLOW-007: P&L Variance Analysis Flow
+    - requirementID: "REQ-FLOW-007"
+      name: "P&L Variance Analysis Flow"
+      category: "detailed-process"
+      priority: "mandatory"
+      reportType: "profit-and-loss"
+      description: "Complete step-by-step process for P&L variance analysis"
+      comparativeType: "Year-on-Year (YoY)"
+      steps:
+        - step: 1
+          action: "Extract PSGL/S4 balance query for current and comparative period for P&L accounts"
+          
+        - step: 2
+          action: "Convert reporting currency balances (SGD, INR etc.) into USD using Group exchange rates for respective periods"
+          
+        - step: 3
+          action: "Map balances into Income/Expense/Impairment under IFRS schedule categories per GCOA"
+          
+        - step: 4
+          action: "Update interest income and interest expense per Average Balance sheet categorization"
+          
+        - step: 5
+          action: "Refresh category-wise pivots for Income/Expense & Impairment"
+          
+        - step: 6
+          action: "Update the variance formulas"
+          
+        - step: 7
+          action: "Apply group thresholds on variances observed"
+          
+        - step: 8
+          action: "Identify IFRS line disclosures where variances are above thresholds"
+          
+        - step: 9
+          action: "Engage with business finance, accounting teams for business commentaries"
+          
+        - step: 10
+          action: "Collate commentaries received from business"
+          
+        - step: 11
+          action: "Identify major products/segments contributing to movements from GL data"
+          
+        - step: 12
+          action: "Ensure 90% variance coverage and major driver identification"
+          
+    # REQ-FLOW-008: Maker Process Steps
+    - requirementID: "REQ-FLOW-008"
+      name: "Maker Process Steps"
+      category: "workflow"
+      priority: "mandatory"
+      role: "Maker"
+      roleDescription: "LEC team member"
+      steps:
+        - step: 1
+          action: "Update details in share drive"
+          location: "SharePoint"
+          
+        - step: 2
+          action: "Share checklist via email to checker for review and approval"
+          deliverable: "Control checklist"
+          
+    # REQ-FLOW-009: Checker Process Steps
+    - requirementID: "REQ-FLOW-009"
+      name: "Checker Process Steps"
+      category: "workflow"
+      priority: "mandatory"
+      role: "Checker"
+      roleDescription: "Grade 5 or above (or most senior if no Grade 5 available)"
+      steps:
+        - step: 1
+          action: "Review file as placed in share drive"
+          
+        - step: 2
+          action: "Confirm via email along with checklist"
+          
+        - step: 3
+          condition: "In case of discrepancy"
+          action: "Route back to maker for correction and follow approval process"
+          
+  processFlowDiagram:
+    stages:
+      - stage: "Input"
+        activities:
+          - "Extract PSGL/S4 Balance query"
+      - stage: "Process"
+        activities:
+          - "Map to IFRS Categories"
+          - "Apply Exchange Rates"
+          - "Apply Thresholds"
+          - "Refresh Pivots"
+          - "Update Variance Formulas"
+      - stage: "Output"
+        activities:
+          - "Collect Commentaries"
+          - "Maker-Checker Review"
+          - "Final Submission"
+          
+  validation:
+    - ruleID: "VAL-FLOW-001"
+      name: "All Steps Completed"
+      description: "Verify all process steps are completed in sequence"
+      severity: "error"
+      
+    - ruleID: "VAL-FLOW-002"
+      name: "Pivots Refreshed"
+      description: "Verify all pivots are refreshed with latest data"
+      severity: "error"
+      
+    - ruleID: "VAL-FLOW-003"
+      name: "Formulas Updated"
+      description: "Verify variance formulas are updated across all lines"
+      severity: "error"
+      
+    - ruleID: "VAL-FLOW-004"
+      name: "Maker-Checker Completed"
+      description: "Verify maker-checker workflow is completed"
+      severity: "error"
+      
+  traceability:
+    sourceDocument: "DOI for Trial Balance Process .docx"
+    sections:
+      - "Section 5 - Process Flow Chart"
+      - "Section 6 - Detailed Procedures and Responsibilities"
+    version: "2.0"

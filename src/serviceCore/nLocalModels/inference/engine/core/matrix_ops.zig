@@ -567,7 +567,7 @@ pub fn matmul_f32(
                     .end_row = end,
                 };
                 
-                try tp.submit(.{
+                tp.submit(.{
                     .work_fn = work_fn,
                     .context = @ptrCast(&contexts[t]),
                 });
@@ -871,7 +871,7 @@ pub fn matmul_batch_with_mhc(
             tp.submit(.{
                 .work_fn = batch_work,
                 .context = @ptrCast(&contexts[t]),
-            }) catch {};
+            });
         }
         tp.waitAll();
     } else {
@@ -1314,7 +1314,7 @@ pub fn matmul_quantized(
                              .n = n, .nb = nb, .blk = block_size, .qk = QK4_0,
                              .start = start, .end = end
                          };
-                         tp.submit(.{ .work_fn = work, .context = @ptrCast(&contexts[t]) }) catch {};
+                         tp.submit(.{ .work_fn = work, .context = @ptrCast(&contexts[t]) });
                      }
                      tp.waitAll();
                      allocator.free(contexts); // Free AFTER threads complete
@@ -1421,7 +1421,7 @@ pub fn matmul_quantized(
                              .n = n, .nb = nb, .blk = block_size, .qk = QK4_K,
                              .start = start, .end = end
                          };
-                         tp.submit(.{ .work_fn = work, .context = @ptrCast(&contexts[t]) }) catch {};
+                         tp.submit(.{ .work_fn = work, .context = @ptrCast(&contexts[t]) });
                      }
                      tp.waitAll();
                      allocator.free(contexts); // Free AFTER threads complete
@@ -1512,7 +1512,7 @@ pub fn matmul_quantized(
                              .n = n, .nb = nb, .blk = block_size, .qk = QK6_K,
                              .start = start, .end = end
                          };
-                         tp.submit(.{ .work_fn = work, .context = @ptrCast(&contexts[t]) }) catch {};
+                         tp.submit(.{ .work_fn = work, .context = @ptrCast(&contexts[t]) });
                      }
                      tp.waitAll();
                      allocator.free(contexts); // Free AFTER threads complete

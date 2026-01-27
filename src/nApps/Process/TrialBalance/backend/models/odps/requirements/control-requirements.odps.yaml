@@ -1,0 +1,411 @@
+# ODPS v4.1 - Trial Balance Control Requirements
+# Extracted from DOI for Trial Balance Process v2.0 (BCBS 239)
+
+requirement:
+  requirementID: "urn:uuid:tb-req-controls-v1"
+  name: "Trial Balance Control Requirements"
+  description: "Maker-Checker controls, reconciliation checks, validation rules, and control sample testing requirements for the Trial Balance Review process."
+  version: "2.0.0"
+  status: "active"
+  sourceDocument:
+    name: "DOI for Trial Balance Process"
+    version: "2.0"
+    approvedDate: "2025-10-23"
+    section: "Section 6 - Control Requirements for Maker and Checker"
+    
+  details:
+    type: "requirement-specification"
+    category: "controls"
+    subcategory: "maker-checker"
+    tags:
+      - "controls"
+      - "maker-checker"
+      - "reconciliation"
+      - "validation"
+      - "data-quality"
+      - "operational-risk"
+    owner:
+      name: "Global Finance Services"
+      organization: "Standard Chartered Global Business Services Ltd"
+    domain: "Finance"
+    referenceDocuments:
+      - "Data Quality Management Framework"
+      - "Data Quality Standards & Controls"
+      - "Operational Risk Framework"
+      - "Group Operational Risk Procedures"
+    
+  requirements:
+    # REQ-CTRL-001: Maker Checklist Controls
+    - requirementID: "REQ-CTRL-001"
+      name: "Maker Checklist Controls"
+      category: "maker-controls"
+      priority: "mandatory"
+      role: "Maker"
+      roleDescription: "LEC team member"
+      checklistItems:
+        - checkID: "MKR-CHK-001"
+          name: "Variance Threshold Applied"
+          description: "Variance threshold applied and comments updated for balances beyond threshold"
+          criteria:
+            - "90% of the variances are explained"
+            - "Major drivers for the movements are provided"
+          mandatory: true
+          
+        - checkID: "MKR-CHK-002"
+          name: "Exception Identification"
+          description: "List of exceptions identified and addressed, else escalated & reported to GPM"
+          escalationPath: "GPM"
+          mandatory: true
+          
+        - checkID: "MKR-CHK-003"
+          name: "Unadjusted Exception Communication"
+          description: "Open unadjusted exceptions communicated to country finance"
+          reportingMechanism: "Quarterly CFO Declaration / Country FORTM"
+          mandatory: true
+          
+    # REQ-CTRL-002: Reconciliation Checks
+    - requirementID: "REQ-CTRL-002"
+      name: "Reconciliation Checks"
+      category: "reconciliation"
+      priority: "mandatory"
+      responsibility: "Maker and Checker"
+      checks:
+        - checkID: "REC-001"
+          name: "Period Data Accuracy"
+          description: "Check whether current period and prior period data are updated correctly"
+          type: "data-accuracy"
+          mandatory: true
+          
+        - checkID: "REC-002"
+          name: "GCOA Mapping Verification"
+          description: "Check whether latest GCOA is used for mapping and are there any unmapped accounts"
+          type: "mapping-completeness"
+          mandatory: true
+          
+        - checkID: "REC-003"
+          name: "Pivot and Formula Refresh"
+          description: "Check whether pivots are refreshed and variance formulas are updated across all lines"
+          type: "calculation-integrity"
+          mandatory: true
+          
+        - checkID: "REC-004"
+          name: "Global Mapping Changes"
+          description: "Check whether all global mapping changes are incorporated in the variance analysis"
+          type: "mapping-currency"
+          mandatory: true
+          
+        - checkID: "REC-005"
+          name: "Exchange Rate Verification"
+          description: "Check whether exchange rates used for conversion of current and prior period numbers into USD are correct"
+          type: "rate-accuracy"
+          mandatory: true
+          applicability: "Non-USD reporting units"
+          
+    # REQ-CTRL-003: Validation Checks
+    - requirementID: "REQ-CTRL-003"
+      name: "Validation Checks"
+      category: "validation"
+      priority: "mandatory"
+      responsibility: "Financial Controller"
+      checks:
+        - checkID: "VAL-001"
+          name: "Workings to PSGL/S4 Reconciliation"
+          description: "Control checks between workings and numbers in PSGL/S4 are built in the file"
+          expectedResult: "Check cells should be equal to Zero"
+          type: "built-in-control"
+          mandatory: true
+          
+    # REQ-CTRL-004: EUC Controls
+    - requirementID: "REQ-CTRL-004"
+      name: "End User Computing Controls"
+      category: "euc-controls"
+      priority: "mandatory"
+      applicability: "Excel-based reporting with formulae"
+      checks:
+        - checkID: "EUC-001"
+          name: "Formula Cell Protection"
+          description: "Confirmation on formula cell protection"
+          type: "integrity-control"
+          mandatory: true
+          
+        - checkID: "EUC-002"
+          name: "EUC Registration"
+          description: "EUC registration reference documented"
+          type: "governance"
+          mandatory: true
+          
+        - checkID: "EUC-003"
+          name: "EUC Documentation"
+          description: "EUC documentation confirmation (if EUC contains Macro)"
+          type: "documentation"
+          conditionalOn: "Contains macros"
+          
+        - checkID: "EUC-004"
+          name: "EUC/ECN Dispensation"
+          description: "EUC/ECN Dispensation documentation if applicable"
+          type: "exception-management"
+          conditionalOn: "Dispensation required"
+          
+    # REQ-CTRL-005: Key Control Checks / Control Sample Testing
+    - requirementID: "REQ-CTRL-005"
+      name: "Key Control Checks"
+      category: "control-testing"
+      priority: "mandatory"
+      controlSampleTesting:
+        applicable: false
+        note: "None specified in current DOI"
+      referenceDocuments:
+        - "Optial and Internal Management Checks"
+        - "Knox (Process Universe, ORF)"
+        
+    # REQ-CTRL-006: Key Risk Indicators
+    - requirementID: "REQ-CTRL-006"
+      name: "Key Risk Indicators / Key Control Indicators"
+      category: "risk-indicators"
+      priority: "mandatory"
+      KRIs:
+        referToSection: "Control Requirements above"
+      referenceDocuments:
+        - "Internal Management Checks"
+        - "Knox (Process Universe, ORF)"
+      note: "Check Knox system for ORF/Process Universe and relevant KCI/CST details"
+      
+    # REQ-CTRL-007: Operational Risk Activities
+    - requirementID: "REQ-CTRL-007"
+      name: "Operational Risk Activities"
+      category: "operational-risk"
+      priority: "mandatory"
+      processDetails:
+        processID: "TBD"
+        processName: "Variance Analysis – P&L and Balance Sheet"
+      referenceDocuments:
+        - "Operational Risk Framework"
+        - "Group Operational Risk Procedures"
+        - "Operational Risk Process Universe"
+      note: "Check Knox system for ORF/Process Universe and relevant KCI/CST details"
+      
+  controlMatrix:
+    makerChecks:
+      - "Variance threshold applied"
+      - "Comments updated for material variances"
+      - "90% variance coverage achieved"
+      - "Major drivers identified"
+      - "Exceptions identified and escalated"
+    
+    checkerChecks:
+      - "Period data accuracy verified"
+      - "GCOA mapping verified"
+      - "Pivots and formulas refreshed"
+      - "Global mapping changes incorporated"
+      - "Exchange rates verified"
+      
+    validationChecks:
+      - "Workings reconcile to source systems"
+      - "Check cells equal zero"
+      - "Formula protection confirmed"
+      
+  reconciliationDefinition:
+    term: "Reconciliation"
+    description: "The process of ensuring that the quantitative content of reports is consistent with the source data or with accounting data where relevant."
+    process: "Reconciliation by reporting units involves comparing two sets of data and providing explanations of any material differences."
+    outcome: "Where reconciliation rules indicate a difference, the reconciling items with meaningful and justifiable descriptions should be identified such that the remaining unreconciled differences can be considered immaterial."
+    scope:
+      - "Data quality checks covering accuracy"
+      - "Data quality checks covering consistency"
+      - "Data quality checks covering completeness"
+      
+  validationDefinition:
+    term: "Validation"
+    description: "Validation pertains to data quality control checks to ensure that the reported data conforms to its specification."
+    types:
+      - "Enumeration checks"
+      - "Range checks"
+      - "Business rules"
+    relationship: "Complementary to reconciliation - together they represent rule-based data quality checks"
+    
+  validation:
+    - ruleID: "VAL-CTRL-001"
+      name: "Maker Checklist Complete"
+      description: "All maker checklist items must be completed"
+      severity: "error"
+      
+    - ruleID: "VAL-CTRL-002"
+      name: "Reconciliation Checks Passed"
+      description: "All 5 reconciliation checks must pass"
+      severity: "error"
+      
+    - ruleID: "VAL-CTRL-003"
+      name: "Validation Cells Zero"
+      description: "All validation check cells must equal zero"
+      severity: "error"
+      
+    - ruleID: "VAL-CTRL-004"
+      name: "Checker Sign-off"
+      description: "Checker sign-off must be obtained before submission"
+      severity: "error"
+      
+  traceability:
+    sourceDocument: "DOI for Trial Balance Process .docx"
+    sections:
+      - "Section 6 - Control Requirements for Maker and Checker"
+      - "Section 10 - Appendix Notes (Reconciliation/Validation definitions)"
+    version: "2.0"
+    
+  # BIDIRECTIONAL IMPLEMENTATION STATUS
+  # This section links requirements to primary data products that implement them
+  implementationStatus:
+    lastReconciled: "2026-01-27"
+    overallStatus: "fully-implemented"
+    coveragePercent: 100
+    
+    implementations:
+      # Maker Checklist Controls
+      - requirementID: "REQ-CTRL-001"
+        requirementName: "Maker Checklist Controls"
+        status: "fully-implemented"
+        implementedIn:
+          - productFile: "../primary/variances.odps.yaml"
+            productID: "urn:uuid:variances-v1"
+            productName: "Period-over-Period Variances"
+            checkIDs: ["MKR-CHK-001", "MKR-CHK-002", "MKR-CHK-003"]
+            implementingRules: ["VAR003", "VAR004", "VAR005", "VAR006", "VAR007", "VAR008"]
+            coveragePercent: 100
+            mappingDetails:
+              - checkID: "MKR-CHK-001"
+                checkName: "Variance Threshold Applied"
+                rules: ["VAR003", "VAR004", "VAR006"]
+              - checkID: "MKR-CHK-002"
+                checkName: "Exception Identification"
+                rules: ["VAR007"]
+              - checkID: "MKR-CHK-003"
+                checkName: "Unadjusted Exception Communication"
+                rules: ["VAR007"]
+                
+      # Reconciliation Checks
+      - requirementID: "REQ-CTRL-002"
+        requirementName: "Reconciliation Checks"
+        status: "fully-implemented"
+        implementedIn:
+          - productFile: "../primary/trial-balance-aggregated.odps.yaml"
+            productID: "urn:uuid:trial-balance-aggregated-v1"
+            productName: "Trial Balance (Aggregated)"
+            checkIDs: ["REC-001", "REC-002", "REC-004"]
+            implementingRules: ["TB004", "TB005", "TB006"]
+            coveragePercent: 60
+            mappingDetails:
+              - checkID: "REC-001"
+                checkName: "Period Data Accuracy"
+                rules: ["TB004"]
+              - checkID: "REC-002"
+                checkName: "GCOA Mapping Verification"
+                rules: ["TB003", "TB005"]
+              - checkID: "REC-004"
+                checkName: "Global Mapping Changes"
+                rules: ["TB006"]
+          - productFile: "../primary/variances.odps.yaml"
+            productID: "urn:uuid:variances-v1"
+            productName: "Period-over-Period Variances"
+            checkIDs: ["REC-003"]
+            implementingRules: ["VAR001", "VAR002"]
+            coveragePercent: 20
+            mappingDetails:
+              - checkID: "REC-003"
+                checkName: "Pivot and Formula Refresh"
+                rules: ["VAR001", "VAR002"]
+          - productFile: "../primary/exchange-rates.odps.yaml"
+            productID: "urn:uuid:exchange-rates-v1"
+            productName: "Foreign Exchange Rates"
+            checkIDs: ["REC-005"]
+            implementingRules: ["FX005", "FX006"]
+            coveragePercent: 20
+            mappingDetails:
+              - checkID: "REC-005"
+                checkName: "Exchange Rate Verification"
+                rules: ["FX005", "FX006"]
+                
+      # Validation Checks
+      - requirementID: "REQ-CTRL-003"
+        requirementName: "Validation Checks"
+        status: "fully-implemented"
+        implementedIn:
+          - productFile: "../primary/trial-balance-aggregated.odps.yaml"
+            productID: "urn:uuid:trial-balance-aggregated-v1"
+            productName: "Trial Balance (Aggregated)"
+            checkIDs: ["VAL-001"]
+            implementingRules: ["TB001", "TB002"]
+            coveragePercent: 100
+            mappingDetails:
+              - checkID: "VAL-001"
+                checkName: "Workings to PSGL/S4 Reconciliation"
+                rules: ["TB001", "TB002"]
+                note: "Balance equation ensures reconciliation to source"
+                
+      # EUC Controls - N/A for automated system
+      - requirementID: "REQ-CTRL-004"
+        requirementName: "End User Computing Controls"
+        status: "not-applicable"
+        note: "EUC controls apply to Excel-based reporting. Automated system does not use Excel."
+        implementedIn: []
+        
+      # Key Control Checks
+      - requirementID: "REQ-CTRL-005"
+        requirementName: "Key Control Checks"
+        status: "fully-implemented"
+        implementedIn:
+          - productFile: "../primary/variances.odps.yaml"
+            productID: "urn:uuid:variances-v1"
+            productName: "Period-over-Period Variances"
+            implementingRules: ["VAR003", "VAR004", "VAR005", "VAR006", "VAR007", "VAR008"]
+            coveragePercent: 50
+          - productFile: "../primary/trial-balance-aggregated.odps.yaml"
+            productID: "urn:uuid:trial-balance-aggregated-v1"
+            productName: "Trial Balance (Aggregated)"
+            implementingRules: ["TB001", "TB002", "TB003", "TB004", "TB005", "TB006"]
+            coveragePercent: 50
+            
+    # Complete Control-to-Rule Mapping Matrix
+    controlToRuleMatrix:
+      - controlID: "MKR-CHK-001"
+        controlName: "Variance Threshold Applied"
+        dataQualityRules: ["VAR003", "VAR004"]
+        products: ["variances.odps.yaml"]
+        
+      - controlID: "MKR-CHK-002"
+        controlName: "Exception Identification"
+        dataQualityRules: ["VAR007"]
+        products: ["variances.odps.yaml"]
+        
+      - controlID: "MKR-CHK-003"
+        controlName: "Unadjusted Exception Communication"
+        dataQualityRules: ["VAR007"]
+        products: ["variances.odps.yaml"]
+        
+      - controlID: "REC-001"
+        controlName: "Period Data Accuracy"
+        dataQualityRules: ["TB004"]
+        products: ["trial-balance-aggregated.odps.yaml"]
+        
+      - controlID: "REC-002"
+        controlName: "GCOA Mapping Verification"
+        dataQualityRules: ["TB003", "TB005"]
+        products: ["trial-balance-aggregated.odps.yaml"]
+        
+      - controlID: "REC-003"
+        controlName: "Pivot and Formula Refresh"
+        dataQualityRules: ["VAR001", "VAR002"]
+        products: ["variances.odps.yaml"]
+        
+      - controlID: "REC-004"
+        controlName: "Global Mapping Changes"
+        dataQualityRules: ["TB006"]
+        products: ["trial-balance-aggregated.odps.yaml"]
+        
+      - controlID: "REC-005"
+        controlName: "Exchange Rate Verification"
+        dataQualityRules: ["FX005", "FX006"]
+        products: ["exchange-rates.odps.yaml"]
+        
+      - controlID: "VAL-001"
+        controlName: "Workings to PSGL/S4 Reconciliation"
+        dataQualityRules: ["TB001", "TB002"]
+        products: ["trial-balance-aggregated.odps.yaml"]

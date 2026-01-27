@@ -1,3 +1,18 @@
+//! ============================================================================
+//! Agent Manager - Core agent orchestration (nLocalModels pattern)
+//! Manages agent registry, assignments, and performance tracking
+//! ============================================================================
+//!
+//! [CODE:file=agent_manager.zig]
+//! [CODE:module=agents/core]
+//! [CODE:language=zig]
+//!
+//! [RELATION:uses=CODE:agent_cache.zig]
+//! [RELATION:supports=CODE:maker_checker.zig]
+//!
+//! Note: Infrastructure code for agent/user task assignment.
+//! Integrates with HANA for persistence and nLocalModels for AI selection.
+
 const std = @import("std");
 
 /// Agent Manager - Core agent orchestration (nLocalModels pattern)

@@ -1,0 +1,309 @@
+# ODPS v4.1 - Period-over-Period Variances Data Product
+# Derived analytical data product for variance analysis
+
+product:
+  productID: "urn:uuid:variances-v1"
+  name: "Period-over-Period Variances"
+  description: "Period-over-period variance analysis showing absolute and percentage changes in account balances. Includes significance flagging based on IFRS materiality thresholds (Balance Sheet: $100M or 10%, P&L: $3M or 10%), AI-generated commentary for material variances, and drill-down capabilities to underlying journal entries. Enables management to identify and explain significant financial movements."
+  version: "1.0.0"
+  status: "active"
+  visibility: "organization"
+  
+  details:
+    type: "dataset"
+    category: "analytical-data"
+    subcategory: "financial-analysis"
+    tags:
+      - "variance-analysis"
+      - "period-comparison"
+      - "financial-analysis"
+      - "commentary"
+      - "materiality"
+      - "ifrs"
+      - "ai-generated"
+    owner:
+      name: "Trial Balance Team"
+      email: "trial-balance-team@company.com"
+      organizationalUnit: "Finance & Accounting"
+    domain: "Finance"
+    updateFrequency: "monthly"
+    latestUpdateDate: "2026-01-27"
+    
+  contract:
+    termsAndConditions:
+      type: "internal-use"
+      licenseType: "proprietary"
+      confidentiality: "highly-confidential"
+    dataFormat: "CSN"
+    contractRef: "../../csn/trial-balance.csn.json#VarianceEntry"
+    schemaSpecification: "https://github.com/SAP/cds-spec/blob/main/csn-interop-v2.md"
+    dataModel:
+      type: "relational"
+      primaryKeys: ["account_code", "business_unit", "current_period"]
+      
+  dataQuality:
+    dataQualityScore: 90.0
+    qualityDimensions:
+      - dimension: "completeness"
+        description: "All accounts with material variances covered"
+        score: 92
+        measurementMethod: "Variance coverage by account type"
+      - dimension: "accuracy"
+        description: "Variance calculations verified"
+        score: 98
+        measurementMethod: "Current - Previous = Variance"
+      - dimension: "consistency"
+        description: "Consistent with source trial balance"
+        score: 88
+        measurementMethod: "Period-over-period reconciliation"
+      - dimension: "explainability"
+        description: "AI commentary quality"
+        score: 85
+        measurementMethod: "Commentary coverage for material items"
+    validationRules:
+      - ruleID: "VAR001"
+        name: "Variance Calculation"
+        description: "Variance = Current - Previous"
+        severity: "error"
+        field: "variance_amount"
+      - ruleID: "VAR002"
+        name: "Variance Percent"
+        description: "Variance % = (Variance / |Previous|) × 100"
+        severity: "error"
+        field: "variance_percent"
+      - ruleID: "VAR003"
+        name: "Materiality Threshold BS"
+        description: "Balance sheet variance >$100M or >10% is material"
+        severity: "warning"
+        field: "is_significant"
+      - ruleID: "VAR004"
+        name: "Materiality Threshold PL"
+        description: "P&L variance >$3M or >10% is material"
+        severity: "warning"
+        field: "is_significant"
+      - ruleID: "VAR005"
+        name: "Commentary Required"
+        description: "Material variances require AI commentary"
+        severity: "warning"
+        field: "commentary"
+      # NEW RULES - Added for DOI requirement compliance
+      - ruleID: "VAR006"
+        name: "Commentary Coverage 90%"
+        description: "At least 90% of material variances must have explanatory commentary (REQ-THRESH-003)"
+        severity: "error"
+        field: "commentary_coverage_percent"
+        threshold: 90
+        requirementRef: "REQ-THRESH-003"
+      - ruleID: "VAR007"
+        name: "Exception Flagging"
+        description: "Variances without commentary must be flagged as exceptions for escalation (MKR-CHK-002)"
+        severity: "warning"
+        field: "is_exception"
+        requirementRef: "REQ-CTRL-001"
+      - ruleID: "VAR008"
+        name: "Major Driver Identification"
+        description: "Material variances must have major drivers identified (REQ-THRESH-004)"
+        severity: "warning"
+        field: "has_driver_analysis"
+        requirementRef: "REQ-THRESH-004"
+    dataLineage:
+      upstream:
+        - productID: "urn:uuid:trial-balance-aggregated-v1"
+          name: "Trial Balance Aggregated"
+          type: "source-dataset"
+      transformations:
+        - transformationID: "period-comparison"
+          description: "Compare current period vs previous period balances"
+          method: "subtraction"
+          logic: "Current_Amount - Previous_Amount"
+        - transformationID: "materiality-check"
+          description: "Apply IFRS materiality thresholds"
+          method: "threshold-evaluation"
+        - transformationID: "ai-commentary"
+          description: "Generate AI commentary for material variances"
+          method: "llm-generation"
+          model: "nLocalModels"
+      downstream:
+        - productID: "urn:uuid:management-report-v1"
+          name: "Management Report"
+          relationship: "populates-variance-section"
+          
+  outputPort:
+    - portID: "variance-rest-api"
+      name: "Variance REST API"
+      description: "RESTful API for querying period variances"
+      format: "JSON"
+      protocol: "HTTPS"
+      endpoint: "/api/v1/trial-balance/variance"
+      authentication: "oauth2"
+      methods: ["GET"]
+      pagination: true
+      filtering:
+        - field: "is_significant"
+          operators: ["eq"]
+        - field: "account_type"
+          operators: ["eq", "in"]
+        - field: "business_unit"
+          operators: ["eq", "in"]
+      rateLimit: "300 requests/minute"
+    - portID: "commentary-api"
+      name: "AI Commentary API"
+      description: "API for generating/regenerating AI commentary"
+      format: "JSON"
+      protocol: "HTTPS"
+      endpoint: "/api/v1/ai/commentary/generate"
+      authentication: "oauth2"
+      methods: ["POST"]
+      
+  pricingPlans:
+    - planID: "internal-use"
+      name: "Internal Use Only"
+      description: "Free access for finance management"
+      price: 0
+      currency: "USD"
+      billingPeriod: "monthly"
+      limitations:
+        - type: "rate-limit"
+          value: "300 requests/minute"
+        - type: "ai-calls"
+          value: "1000 commentary generations/month"
+      features:
+        - "Period-over-period analysis"
+        - "Materiality flagging"
+        - "AI-generated commentary"
+        - "Drill-down to ACDOCA"
+        
+  SLA:
+    availability: 99.5
+    uptime: "Business hours + on-demand"
+    responseTime:
+      p50: "500ms"
+      p95: "1000ms"
+      p99: "2000ms"
+    throughput: "300 requests/second"
+    dataFreshness: "daily at 8AM HKT"
+    support:
+      - level: "business-hours"
+        hours: "9AM-5PM HKT"
+        responseTime: "8 hours"
+        channels: ["email", "slack"]
+      - level: "month-end-close"
+        hours: "Extended during month-end"
+        responseTime: "2 hours"
+        channels: ["email", "phone", "slack"]
+    maintenance:
+      window: "Sunday 3AM-5AM HKT"
+      frequency: "monthly"
+      notificationPeriod: "7 days"
+      
+  extensions:
+    sapORD: "../../ord/trial-balance-product.json#sap.nApps.Process:dataProduct:Variances:v1"
+    sapCSN: "../../csn/trial-balance.csn.json#VarianceEntry"
+    thresholds:
+      balanceSheet:
+        amount: 100000000  # $100M
+        percent: 10.0
+      profitLoss:
+        amount: 3000000  # $3M
+        percent: 10.0
+    aiModel: "nLocalModels/llama3-70b"
+    commentaryCoverage: "90% of material variances"
+    industryStandards:
+      - "IFRS"
+      - "IAS-1"
+      
+  # BIDIRECTIONAL REQUIREMENTS TRACEABILITY
+  # This section links primary data product to DOI requirements
+  requirementsTraceability:
+    sourceRequirements: "../requirements/"
+    lastReconciled: "2026-01-27"
+    reconciliationStatus: "fully-mapped"
+    
+    implements:
+      # Business Rules & Thresholds Requirements
+      - requirementID: "REQ-THRESH-001"
+        requirementName: "Balance Sheet Variance Threshold"
+        requirementFile: "../requirements/business-rules-thresholds.odps.yaml"
+        implementedByRules: ["VAR003"]
+        coverage: 100
+        status: "fully-implemented"
+        
+      - requirementID: "REQ-THRESH-002"
+        requirementName: "P&L Variance Threshold"
+        requirementFile: "../requirements/business-rules-thresholds.odps.yaml"
+        implementedByRules: ["VAR004"]
+        coverage: 100
+        status: "fully-implemented"
+        
+      - requirementID: "REQ-THRESH-003"
+        requirementName: "Commentary Coverage Requirement"
+        requirementFile: "../requirements/business-rules-thresholds.odps.yaml"
+        implementedByRules: ["VAR005", "VAR006"]
+        coverage: 100
+        status: "fully-implemented"
+        
+      - requirementID: "REQ-THRESH-005"
+        requirementName: "Variance Calculation Rules"
+        requirementFile: "../requirements/business-rules-thresholds.odps.yaml"
+        implementedByRules: ["VAR001", "VAR002"]
+        coverage: 100
+        status: "fully-implemented"
+        
+      # Control Requirements - Maker Checklist
+      - requirementID: "REQ-CTRL-001"
+        requirementName: "Maker Checklist Controls"
+        requirementFile: "../requirements/control-requirements.odps.yaml"
+        checkIDs: ["MKR-CHK-001", "MKR-CHK-002"]
+        implementedByRules: ["VAR003", "VAR004", "VAR005", "VAR006", "VAR007"]
+        coverage: 100
+        status: "fully-implemented"
+        
+      # Control Requirements - Reconciliation Checks
+      - requirementID: "REQ-CTRL-002"
+        requirementName: "Reconciliation Checks"
+        requirementFile: "../requirements/control-requirements.odps.yaml"
+        checkIDs: ["REC-003"]
+        implementedByRules: ["VAR001", "VAR002"]
+        coverage: 100
+        status: "fully-implemented"
+        note: "Pivot and Formula Refresh implemented via calculation verification"
+        
+      # Comparative Period Logic Requirements
+      - requirementID: "REQ-PERIOD-001"
+        requirementName: "Monthly Balance Sheet Comparative Logic"
+        requirementFile: "../requirements/comparative-period-logic.odps.yaml"
+        implementedByTransformation: "period-comparison"
+        coverage: 100
+        status: "fully-implemented"
+        
+      - requirementID: "REQ-PERIOD-003"
+        requirementName: "Quarterly Balance Sheet Comparative Logic"
+        requirementFile: "../requirements/comparative-period-logic.odps.yaml"
+        implementedByTransformation: "period-comparison"
+        coverage: 100
+        status: "fully-implemented"
+        
+      - requirementID: "REQ-PERIOD-004"
+        requirementName: "Quarterly P&L Comparative Logic (YoY)"
+        requirementFile: "../requirements/comparative-period-logic.odps.yaml"
+        implementedByTransformation: "period-comparison"
+        coverage: 100
+        status: "fully-implemented"
+        
+    # Validation rules mapped to requirement control checks
+    controlToRuleMapping:
+      - controlCheckID: "MKR-CHK-001"
+        controlName: "Variance Threshold Applied"
+        dataQualityRules: ["VAR003", "VAR004"]
+        
+      - controlCheckID: "MKR-CHK-002"
+        controlName: "Exception Identification"
+        dataQualityRules: ["VAR007"]
+        
+      - controlCheckID: "REC-003"
+        controlName: "Pivot and Formula Refresh"
+        dataQualityRules: ["VAR001", "VAR002"]
+        
+      - controlCheckID: "VAR005"
+        controlName: "Commentary Required"
+        dataQualityRules: ["VAR005"]

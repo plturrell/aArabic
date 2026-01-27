@@ -1,0 +1,189 @@
+# ODPS v4.1 - Trial Balance Dissemination Requirements
+# Extracted from DOI for Trial Balance Process v2.0 (BCBS 239)
+
+requirement:
+  requirementID: "urn:uuid:tb-req-dissemination-v1"
+  name: "Trial Balance Dissemination Requirements"
+  description: "Report sign-off, distribution modes, recipients, and data confidentiality requirements for the Trial Balance Review process."
+  version: "2.0.0"
+  status: "active"
+  sourceDocument:
+    name: "DOI for Trial Balance Process"
+    version: "2.0"
+    approvedDate: "2025-10-23"
+    section: "Section 7 - Dissemination"
+    
+  details:
+    type: "requirement-specification"
+    category: "dissemination"
+    subcategory: "report-distribution"
+    tags:
+      - "dissemination"
+      - "sign-off"
+      - "distribution"
+      - "recipients"
+      - "confidentiality"
+    owner:
+      name: "Global Finance Services"
+      organization: "Standard Chartered Global Business Services Ltd"
+    domain: "Finance"
+    
+  requirements:
+    # REQ-DISS-001: Report Sign-Off Requirements
+    - requirementID: "REQ-DISS-001"
+      name: "Report Sign-Off Requirements"
+      category: "sign-off"
+      priority: "mandatory"
+      signOffAuthority:
+        signOffBy: "Respective LEC / Caption Lead"
+        designation: "Grade 5 or above"
+        alternativeRule: "If no Grade 5 in respective LEC, then most senior person available"
+      requirements:
+        - "Sign-off must be obtained before report distribution"
+        - "Sign-off confirms accuracy of variance analysis"
+        - "Sign-off confirms completeness of commentaries"
+        - "Sign-off confirms all controls have been executed"
+        
+    # REQ-DISS-002: Report Distribution Modes
+    - requirementID: "REQ-DISS-002"
+      name: "Report Distribution Modes"
+      category: "distribution"
+      priority: "mandatory"
+      distributionChannels:
+        - channelID: "EMAIL"
+          name: "Email Distribution"
+          type: "electronic"
+          applicability: "TB review file distribution"
+          securityRequirements:
+            - "Encryption required for external recipients"
+            - "SCB Network internal only for standard distribution"
+            
+        - channelID: "SHAREPOINT"
+          name: "SharePoint Distribution"
+          type: "electronic"
+          applicability: "TB review file storage and access"
+          location: "FARO Controllers SharePoint"
+          path: "Documents/2. TB Review/All Documents"
+          securityRequirements:
+            - "Secured SharePoint with access controls"
+            - "Role-based access permissions"
+            
+    # REQ-DISS-003: Recipients
+    - requirementID: "REQ-DISS-003"
+      name: "Report Recipients"
+      category: "distribution"
+      priority: "mandatory"
+      recipientGroups:
+        - groupID: "TB-FILE"
+          name: "TB Review File Recipients"
+          recipients:
+            - "Financial Control Cluster Lead"
+          distributionMode: "SharePoint"
+          
+        - groupID: "EXCEPTIONS"
+          name: "Exception Report Recipients"
+          recipients:
+            - "GPM (Group Process Manager)"
+            - "Command Center"
+            - "CFO Declaration process"
+          distributionMode: "Email"
+          triggerCondition: "When exceptions are identified"
+          
+    # REQ-DISS-004: Data Confidentiality Controls
+    - requirementID: "REQ-DISS-004"
+      name: "Data Confidentiality Controls"
+      category: "security"
+      priority: "mandatory"
+      controls:
+        - controlID: "CONF-001"
+          name: "Email Encryption"
+          description: "Encryption required for emails sent outside SCB Network"
+          applicability: "External distribution"
+          
+        - controlID: "CONF-002"
+          name: "Secured SharePoint"
+          description: "Use secured SharePoint with appropriate access controls"
+          applicability: "Document storage"
+          
+        - controlID: "CONF-003"
+          name: "Secured Shared Drive"
+          description: "Use secured shared drive with appropriate permissions"
+          applicability: "Alternative storage"
+          
+    # REQ-DISS-005: Exception Escalation Path
+    - requirementID: "REQ-DISS-005"
+      name: "Exception Escalation Path"
+      category: "escalation"
+      priority: "mandatory"
+      escalationLevels:
+        - level: 1
+          recipient: "GPM (Group Process Manager)"
+          trigger: "Exception identified during TB review"
+          
+        - level: 2
+          recipient: "Command Center"
+          trigger: "Unresolved exception or significant issue"
+          
+        - level: 3
+          recipient: "CFO Declaration"
+          trigger: "Open unadjusted exceptions requiring disclosure"
+          reportingMechanism: "Quarterly CFO Declaration / Country FORTM"
+          
+    # REQ-DISS-006: Archival Requirements
+    - requirementID: "REQ-DISS-006"
+      name: "Archival Requirements"
+      category: "retention"
+      priority: "mandatory"
+      archivalPeriod: "As per Group Policy"
+      note: "Specific period to be confirmed with Document Owner"
+      storageLocation: "Central location for DOI approval"
+      
+  distributionMatrix:
+    deliverables:
+      - deliverable: "TB Review File"
+        mode: "SharePoint"
+        recipients: "Financial Control Cluster Lead"
+        frequency: "Monthly/Quarterly"
+        
+      - deliverable: "Exception Report"
+        mode: "Email"
+        recipients: "GPM, Command Center"
+        frequency: "As needed"
+        
+      - deliverable: "CFO Declaration Items"
+        mode: "Formal Declaration"
+        recipients: "CFO Declaration Process"
+        frequency: "Quarterly"
+        
+  confidentialityClassification:
+    classification: "Highly Confidential"
+    handling:
+      internal: "Standard SCB Network distribution"
+      external: "Encrypted email required"
+    accessControl: "Role-based, need-to-know basis"
+    
+  validation:
+    - ruleID: "VAL-DISS-001"
+      name: "Sign-off Obtained"
+      description: "Report must have Grade 5+ sign-off before distribution"
+      severity: "error"
+      
+    - ruleID: "VAL-DISS-002"
+      name: "Correct Distribution Channel"
+      description: "Report must be distributed via approved channels"
+      severity: "error"
+      
+    - ruleID: "VAL-DISS-003"
+      name: "Encryption Applied"
+      description: "External communications must be encrypted"
+      severity: "error"
+      
+    - ruleID: "VAL-DISS-004"
+      name: "Recipients Verified"
+      description: "Distribution list must include all mandatory recipients"
+      severity: "warning"
+      
+  traceability:
+    sourceDocument: "DOI for Trial Balance Process .docx"
+    section: "Section 7 - Dissemination"
+    version: "2.0"

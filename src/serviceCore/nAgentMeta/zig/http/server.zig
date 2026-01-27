@@ -24,7 +24,9 @@ const net = std.net;
 const http = std.http;
 const Allocator = std.mem.Allocator;
 
-const Router = @import("router.zig").Router;
+const router_mod = @import("router.zig");
+const Router = router_mod.Router;
+const RouterHandler = router_mod.Handler;
 const Request = @import("types.zig").Request;
 const Response = @import("types.zig").Response;
 const Middleware = @import("middleware.zig").Middleware;
@@ -108,7 +110,7 @@ pub const Server = struct {
         self: *Server,
         method: http.Method,
         path: []const u8,
-        handler: Router.Handler,
+        handler: RouterHandler,
     ) !void {
         try self.router.addRoute(method, path, handler);
     }
@@ -127,7 +129,6 @@ pub const Server = struct {
         // Start listening
         self.listener = try address.listen(.{
             .reuse_address = true,
-            .reuse_port = true,
         });
         
         self.state = .running;
@@ -194,14 +195,19 @@ pub const Server = struct {
         const arena_allocator = arena.allocator();
         
         // Read HTTP request
-        var http_server = http.Server.init(connection, .{ .allocator = arena_allocator });
+        var read_buffer: [8192]u8 = undefined;
+        var reader = connection.stream.reader(read_buffer[0..]);
+        const reader_io = reader.interface();
+        var write_buffer: [8192]u8 = undefined;
+        var writer = connection.stream.writer(write_buffer[0..]);
+        var http_server = http.Server.init(reader_io, &writer.interface);
         var request = http_server.receiveHead() catch |err| {
             try self.sendErrorResponse(connection.stream, 400, "Bad Request");
             return err;
         };
         
         // Parse request
-        const req = try self.parseRequest(arena_allocator, &request);
+        var req = try self.parseRequest(arena_allocator, &request);
         
         // Create response
         var resp = Response.init(arena_allocator);
@@ -261,9 +267,15 @@ pub const Server = struct {
         // Read body if present
         if (http_request.head.content_length) |length| {
             if (length > 0 and length <= self.config.max_body_size) {
-                var body_buffer = try allocator.alloc(u8, length);
-                const bytes_read = try http_request.reader().readAll(body_buffer);
-                req.body = body_buffer[0..bytes_read];
+                const body_buffer = try allocator.alloc(u8, @intCast(length));
+                var transfer_buffer: [4096]u8 = undefined;
+                const body_reader = http_request.server.reader.bodyReader(
+                    transfer_buffer[0..],
+                    http_request.head.transfer_encoding,
+                    http_request.head.content_length,
+                );
+                try body_reader.readSliceAll(body_buffer);
+                req.body = body_buffer;
             }
         }
         
@@ -280,7 +292,7 @@ pub const Server = struct {
         
         // Status line
         try writer.print("HTTP/1.1 {d} {s}\r\n", .{
-            @intFromEnum(response.status),
+            response.status,
             response.getStatusText(),
         });
         

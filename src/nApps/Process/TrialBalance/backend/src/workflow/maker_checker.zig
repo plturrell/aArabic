@@ -1,3 +1,26 @@
+//! ============================================================================
+//! Maker-Checker-Manager Workflow Implementation
+//! Three-tier approval process for trial balance entries
+//! ============================================================================
+//!
+//! [CODE:file=maker_checker.zig]
+//! [CODE:module=workflow]
+//! [CODE:language=zig]
+//!
+//! [DOI:controls=MKR-CHK-001,MKR-CHK-002]
+//!
+//! [PETRI:stages=S11,S12]
+//! [PETRI:transitions=T_MAKER_REVIEW,T_CHECKER_REVIEW]
+//!
+//! [TABLE:reads=TB_WORKFLOW_ENTRIES,TB_AUDIT_TRAIL]
+//! [TABLE:writes=TB_WORKFLOW_ENTRIES,TB_AUDIT_TRAIL]
+//!
+//! [RELATION:supports=CODE:odps_petrinet_bridge.zig]
+//! [RELATION:called_by=CODE:trial_balance.zig]
+//!
+//! Implements the maker-checker-manager workflow per DOI requirements.
+//! All workflow actions are audit-logged for compliance.
+
 const std = @import("std");
 
 /// Maker-Checker-Manager Workflow Implementation

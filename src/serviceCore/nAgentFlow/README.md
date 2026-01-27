@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 [![Zig](https://img.shields.io/badge/zig-0.15.2+-orange)](https://ziglang.org)
 
-**Enterprise Workflow Automation Engine** — A high-performance, type-safe workflow engine built on Petri Net theory, replacing Langflow and n8n with a unified solution.
+**Enterprise Workflow Automation Engine** — A high-performance, type-safe workflow engine built on Petri Net theory with SAP BTP and SAP HANA Cloud integration.
 
 ---
 
@@ -15,7 +15,7 @@
 - **Petri Net Execution Engine** — Mathematical guarantees for concurrency, deadlock detection, and formal verification
 - **Visual SAPUI5 Editor** — Production-ready enterprise UI with JointJS canvas
 - **Native Performance** — 10-50x faster than Python/Node.js alternatives (Zig + Mojo)
-- **Enterprise Integrations** — Keycloak SSO, APISIX Gateway, PostgreSQL, DragonflyDB, Marquez lineage
+- **SAP Integration** — SAP HANA Cloud, SAP BTP Destination Service, SAP XSUAA Security, OData
 
 ### Key Features
 
@@ -25,10 +25,10 @@
 | 🔄 **10+ Node Types** | Triggers, Actions, Conditions, Transforms, LLM |
 | ⚡ **Petri Net Engine** | Formal verification, parallel execution |
 | 🏢 **Multi-Tenancy** | Row-Level Security (RLS) isolation |
-| 🔐 **Keycloak Auth** | OAuth2/OIDC, SSO, RBAC |
-| 🚀 **DragonflyDB Cache** | High-performance Redis-compatible caching |
-| 🗄️ **PostgreSQL** | Workflow persistence with versioning |
-| 📊 **Marquez Lineage** | Data lineage tracking |
+| 🔐 **SAP XSUAA/IAS** | OAuth2/OIDC, SSO, RBAC via SAP BTP |
+| 🗄️ **SAP HANA Cloud** | Unified data storage, caching, and analytics |
+| 🔗 **SAP Destination** | Secure connectivity to SAP and non-SAP systems |
+| 📊 **SAP OData** | Standard protocol for data integration |
 | 📡 **WebSocket** | Real-time execution updates |
 | 📝 **Audit Logging** | GDPR-compliant audit trail |
 
@@ -38,14 +38,8 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                      APISIX API Gateway                         │
-│            Rate Limiting │ Auth │ Routing │ Load Balancing      │
-└─────────────────────────────┬───────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Keycloak Identity                            │
-│               OAuth2 │ SSO │ RBAC │ Multi-tenant                │
+│                      SAP BTP Platform                           │
+│        Destination Service │ XSUAA/IAS │ Connectivity           │
 └─────────────────────────────┬───────────────────────────────────┘
                               │
                               ▼
@@ -61,22 +55,22 @@
 │  └─────────────┘  └─────────────┘  └─────────────┘             │
 └─────────────────────────────┬───────────────────────────────────┘
                               │
-        ┌─────────────────────┼─────────────────────┐
-        ▼                     ▼                     ▼
-┌───────────────┐    ┌───────────────┐    ┌───────────────┐
-│  PostgreSQL   │    │  DragonflyDB  │    │    Marquez    │
-│  (Workflows)  │    │   (Cache)     │    │  (Lineage)    │
-└───────────────┘    └───────────────┘    └───────────────┘
+                              ▼
+                    ┌───────────────────┐
+                    │  SAP HANA Cloud   │
+                    │  Storage + Cache  │
+                    │  + Analytics      │
+                    └───────────────────┘
 ```
 
 ### Data Flow
 
-1. **Request** → APISIX validates rate limits, routes to nWorkflow
-2. **Auth** → Keycloak validates JWT, extracts tenant context
+1. **Request** → SAP BTP handles routing and rate limiting
+2. **Auth** → SAP XSUAA/IAS validates JWT, extracts tenant context
 3. **Parse** → Workflow definition compiled to Petri Net
 4. **Execute** → Engine fires transitions, processes tokens
-5. **Persist** → State saved to PostgreSQL, cached in DragonflyDB
-6. **Track** → Lineage recorded in Marquez
+5. **Persist** → State saved to SAP HANA Cloud with integrated caching
+6. **Track** → Audit trail in SAP HANA Cloud
 
 ---
 
@@ -103,16 +97,19 @@ zig build bench
 ### Docker Compose (Development)
 
 ```bash
-# Start all services
-docker-compose up -d
+# Set SAP BTP environment variables first
+export HANA_HOST=your-hana-instance.hanacloud.ondemand.com
+export HANA_PASSWORD=your-password
+export BTP_SUBACCOUNT=your-subaccount
+# ... set other BTP variables
 
-# Start with optional services (Memgraph, Qdrant)
-docker-compose --profile graph --profile vector up -d
+# Start nWorkflow service
+docker-compose up -d
 
 # View logs
 docker-compose logs -f nworkflow
 
-# Stop services
+# Stop service
 docker-compose down
 ```
 
@@ -231,21 +228,19 @@ curl -X GET http://localhost:8090/api/v1/executions/{id} \
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `NWORKFLOW_PORT` | HTTP server port | `8090` |
-| `POSTGRES_HOST` | PostgreSQL hostname | `localhost` |
-| `POSTGRES_PORT` | PostgreSQL port | `5432` |
-| `POSTGRES_DB` | Database name | `nworkflow` |
-| `POSTGRES_USER` | Database user | `nworkflow` |
-| `POSTGRES_PASSWORD` | Database password | — |
-| `DRAGONFLY_HOST` | DragonflyDB hostname | `localhost` |
-| `DRAGONFLY_PORT` | DragonflyDB port | `6379` |
-| `KEYCLOAK_URL` | Keycloak server URL | `http://localhost:8080` |
-| `KEYCLOAK_REALM` | Keycloak realm | `nworkflow` |
-| `KEYCLOAK_CLIENT_ID` | OAuth2 client ID | `nworkflow-api` |
-| `MARQUEZ_URL` | Marquez lineage server | `http://localhost:5000` |
-| `MEMGRAPH_HOST` | Memgraph hostname | `localhost` |
-| `MEMGRAPH_PORT` | Memgraph Bolt port | `7687` |
-| `QDRANT_HOST` | Qdrant hostname | `localhost` |
-| `QDRANT_PORT` | Qdrant REST port | `6333` |
+| `HANA_HOST` | SAP HANA Cloud hostname | — |
+| `HANA_PORT` | SAP HANA Cloud port | `443` |
+| `HANA_USER` | HANA database user | `DBADMIN` |
+| `HANA_PASSWORD` | HANA database password | — |
+| `HANA_SCHEMA` | HANA schema name | `DBADMIN` |
+| `HANA_USE_TLS` | Use TLS for HANA connection | `true` |
+| `BTP_SUBACCOUNT` | SAP BTP subaccount ID | — |
+| `BTP_CLIENT_ID` | BTP OAuth2 client ID | — |
+| `BTP_CLIENT_SECRET` | BTP OAuth2 client secret | — |
+| `DESTINATION_SERVICE_URL` | SAP Destination Service URL | — |
+| `XSUAA_URL` | SAP XSUAA service URL | — |
+| `XSUAA_CLIENT_ID` | XSUAA client ID | — |
+| `XSUAA_CLIENT_SECRET` | XSUAA client secret | — |
 
 ### Workflow Definition Format
 

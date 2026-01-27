@@ -1,0 +1,80 @@
+<mvc:View
+    controllerName="trialbalance.controller.Metadata"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:f="sap.f"
+    xmlns:form="sap.ui.layout.form"
+    displayBlock="true"
+    height="100%">
+    
+    <Page
+        id="metadataPage"
+        showHeader="false"
+        showNavButton="true"
+        navButtonPress=".onNavBack">
+        
+        <content>
+            <f:ShellBar
+                id="shellBar"
+                title="Trial Balance"
+                showSearch="true"
+                showNotifications="true"
+                notificationsNumber="3"
+                search=".onSearch"
+                notificationsPressed=".onNotificationsPress">
+                <f:profile>
+                    <Avatar initials="TB" displaySize="XS" press=".onAvatarPress"/>
+                </f:profile>
+            </f:ShellBar>
+
+            <VBox class="sapUiSmallMargin">
+                <Title text="Meta Data" level="H1" class="sapUiSmallMarginBottom"/>
+                <Text text="Configuration and Metadata Management" class="sapUiSmallMarginBottom"/>
+                
+                <Panel headerText="System Configuration" class="sapUiResponsiveMargin">
+                    <content>
+                        <form:SimpleForm
+                            editable="true"
+                            layout="ResponsiveGridLayout">
+                            <form:content>
+                                <Label text="Company Code"/>
+                                <Input value="1000" enabled="false"/>
+                                
+                                <Label text="Fiscal Year"/>
+                                <Input value="2026" enabled="false"/>
+                                
+                                <Label text="Currency"/>
+                                <Input value="USD" enabled="false"/>
+                                
+                                <Label text="Backend API"/>
+                                <Input value="http://localhost:8080" enabled="false"/>
+                                
+                                <Label text="Calculation Engine"/>
+                                <Input value="Zig Backend" enabled="false"/>
+                            </form:content>
+                        </form:SimpleForm>
+                    </content>
+                </Panel>
+                
+                <Panel headerText="Data Sources" class="sapUiResponsiveMargin">
+                    <content>
+                        <List>
+                            <StandardListItem
+                                title="SAP HANA Database"
+                                description="Primary data source"
+                                icon="sap-icon://database"/>
+                            <StandardListItem
+                                title="Zig Calculation Engine"
+                                description="High-performance processing"
+                                icon="sap-icon://overlay"/>
+                            <StandardListItem
+                                title="REST API"
+                                description="Backend integration"
+                                icon="sap-icon://chain-link"/>
+                        </List>
+                    </content>
+                </Panel>
+            </VBox>
+        </content>
+    </Page>
+</mvc:View>

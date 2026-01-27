@@ -1,3 +1,19 @@
+//! ============================================================================
+//! HANA Agent Cache - Persistent agent storage (nLocalModels pattern)
+//! Provides HANA-backed agent registry, assignments, and performance tracking
+//! ============================================================================
+//!
+//! [CODE:file=agent_cache.zig]
+//! [CODE:module=agents/integrations/hana]
+//! [CODE:language=zig]
+//!
+//! [TABLE:manages=AGENT_REGISTRY,AGENT_ASSIGNMENTS,AGENT_PERFORMANCE]
+//!
+//! [RELATION:used_by=CODE:agent_manager.zig]
+//!
+//! Note: Infrastructure code for HANA persistence of agent data.
+//! Mirrors nLocalModels' hana_cache.zig structure.
+
 const std = @import("std");
 
 /// HANA Agent Cache - Persistent agent storage (nLocalModels pattern)

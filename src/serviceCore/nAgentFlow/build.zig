@@ -882,106 +882,7 @@ pub fn build(b: *std.Build) void {
     const run_hana_nodes_tests = b.addRunArtifact(hana_nodes_tests);
     test_step.dependOn(&run_hana_nodes_tests.step);
 
-    // Day 34 Identity modules
-    const http_client_mod = b.addModule("http_client", .{
-        .root_source_file = b.path("identity/http_client.zig"),
-    });
-    
-    const keycloak_types_mod = b.addModule("keycloak_types", .{
-        .root_source_file = b.path("identity/keycloak_types.zig"),
-    });
-    
-    const keycloak_config_mod = b.addModule("keycloak_config", .{
-        .root_source_file = b.path("identity/keycloak_config.zig"),
-    });
-    
-    const keycloak_client_mod = b.addModule("keycloak_client", .{
-        .root_source_file = b.path("identity/keycloak_client.zig"),
-    });
-    keycloak_client_mod.addImport("http_client", http_client_mod);
-    keycloak_client_mod.addImport("keycloak_types", keycloak_types_mod);
-    keycloak_client_mod.addImport("keycloak_config", keycloak_config_mod);
-    
-    // Tests for HTTP Client (Day 34)
-    const http_client_test_mod = b.createModule(.{
-        .root_source_file = b.path("identity/http_client.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    
-    const http_client_tests = b.addTest(.{
-        .root_module = http_client_test_mod,
-    });
-    const run_http_client_tests = b.addRunArtifact(http_client_tests);
-    test_step.dependOn(&run_http_client_tests.step);
-    
-    // Tests for Keycloak Types (Day 34)
-    const keycloak_types_test_mod = b.createModule(.{
-        .root_source_file = b.path("identity/keycloak_types.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    
-    const keycloak_types_tests = b.addTest(.{
-        .root_module = keycloak_types_test_mod,
-    });
-    const run_keycloak_types_tests = b.addRunArtifact(keycloak_types_tests);
-    test_step.dependOn(&run_keycloak_types_tests.step);
-    
-    // Tests for Keycloak Config (Day 34)
-    const keycloak_config_test_mod = b.createModule(.{
-        .root_source_file = b.path("identity/keycloak_config.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    
-    const keycloak_config_tests = b.addTest(.{
-        .root_module = keycloak_config_test_mod,
-    });
-    const run_keycloak_config_tests = b.addRunArtifact(keycloak_config_tests);
-    test_step.dependOn(&run_keycloak_config_tests.step);
-    
-    // Tests for Keycloak Client (Day 34)
-    const keycloak_client_test_mod = b.createModule(.{
-        .root_source_file = b.path("identity/keycloak_client.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    keycloak_client_test_mod.addImport("http_client", http_client_mod);
-    keycloak_client_test_mod.addImport("keycloak_types", keycloak_types_mod);
-    keycloak_client_test_mod.addImport("keycloak_config", keycloak_config_mod);
-    
-    const keycloak_client_tests = b.addTest(.{
-        .root_module = keycloak_client_test_mod,
-    });
-    const run_keycloak_client_tests = b.addRunArtifact(keycloak_client_tests);
-    test_step.dependOn(&run_keycloak_client_tests.step);
-    
-    // Day 38 Keycloak Integration module
-    const keycloak_integration_mod = b.addModule("keycloak_integration", .{
-        .root_source_file = b.path("identity/keycloak_integration.zig"),
-    });
-    keycloak_integration_mod.addImport("http_client", http_client_mod);
-    keycloak_integration_mod.addImport("keycloak_types", keycloak_types_mod);
-    keycloak_integration_mod.addImport("keycloak_config", keycloak_config_mod);
-    keycloak_integration_mod.addImport("keycloak_client", keycloak_client_mod);
-    
-    // Tests for Keycloak Integration (Day 38)
-    const keycloak_integration_test_mod = b.createModule(.{
-        .root_source_file = b.path("identity/keycloak_integration.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    keycloak_integration_test_mod.addImport("http_client", http_client_mod);
-    keycloak_integration_test_mod.addImport("keycloak_types", keycloak_types_mod);
-    keycloak_integration_test_mod.addImport("keycloak_config", keycloak_config_mod);
-    keycloak_integration_test_mod.addImport("keycloak_client", keycloak_client_mod);
-    
-    const keycloak_integration_tests = b.addTest(.{
-        .root_module = keycloak_integration_test_mod,
-    });
-    const run_keycloak_integration_tests = b.addRunArtifact(keycloak_integration_tests);
-    test_step.dependOn(&run_keycloak_integration_tests.step);
+    // Identity and API Gateway modules removed - SAP BTP services will be used instead
 
     // Lean4 nLeanProof Integration Nodes
     const lean_nodes_mod = b.addModule("lean_nodes", .{
@@ -1120,16 +1021,7 @@ pub fn build(b: *std.Build) void {
     const run_hana_store_tests = b.addRunArtifact(hana_store_tests);
     test_step.dependOn(&run_hana_store_tests.step);
 
-    // Tests for Marquez Client
-    const marquez_tests = b.addTest(.{
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("lineage/marquez_client.zig"),
-            .target = target,
-            .optimize = optimize,
-        }),
-    });
-    const run_marquez_tests = b.addRunArtifact(marquez_tests);
-    test_step.dependOn(&run_marquez_tests.step);
+    // Lineage tracking removed - SAP BTP services will be used instead
 
     // Tests for Security Audit
     const audit_tests = b.addTest(.{

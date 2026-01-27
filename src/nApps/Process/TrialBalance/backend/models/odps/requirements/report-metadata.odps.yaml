@@ -1,0 +1,179 @@
+# ODPS v4.1 - Trial Balance Report Metadata Requirements
+# Extracted from DOI for Trial Balance Process v2.0 (BCBS 239)
+
+requirement:
+  requirementID: "urn:uuid:tb-req-report-metadata-v1"
+  name: "Trial Balance Report Metadata Requirements"
+  description: "Report identification, ownership, scope, frequency, timing, and system requirements for the Trial Balance Review process per BCBS 239 compliance."
+  version: "2.0.0"
+  status: "active"
+  sourceDocument:
+    name: "DOI for Trial Balance Process"
+    version: "2.0"
+    approvedDate: "2025-10-23"
+    section: "Section 2 - Report Specification"
+    
+  details:
+    type: "requirement-specification"
+    category: "regulatory-compliance"
+    subcategory: "bcbs-239"
+    tags:
+      - "report-metadata"
+      - "bcbs-239"
+      - "trial-balance"
+      - "financial-control"
+      - "gfs"
+    owner:
+      name: "Global Finance Services"
+      organization: "Standard Chartered Global Business Services Ltd"
+      parentEntity: "Standard Chartered Bank"
+    domain: "Finance"
+    regulatoryFramework: "BCBS 239"
+    
+  requirements:
+    # REQ-META-001: Report Identification
+    - requirementID: "REQ-META-001"
+      name: "Report Identification"
+      category: "metadata"
+      priority: "mandatory"
+      attributes:
+        - name: "reportTitle"
+          value: "Trial Balance Review"
+          type: "string"
+        - name: "reportID"
+          value: "TB-REVIEW-001"
+          type: "string"
+        - name: "function"
+          value: "Financial Control"
+          type: "string"
+        - name: "regulatoryFramework"
+          value: "BCBS 239"
+          type: "string"
+          
+    # REQ-META-002: Report Ownership
+    - requirementID: "REQ-META-002"
+      name: "Report Ownership"
+      category: "governance"
+      priority: "mandatory"
+      attributes:
+        - name: "reportOwner"
+          value: "Respective LEC / Caption Lead"
+          type: "string"
+        - name: "signOffAuthority"
+          value: "Grade 5 or above"
+          type: "string"
+        - name: "escalationPath"
+          value: "GPM -> Command Center -> CFO Declaration"
+          type: "string"
+        - name: "makerResponsibility"
+          value: "LEC team member"
+          type: "string"
+        - name: "checkerResponsibility"
+          value: "Grade 5 or above (or most senior if no Grade 5 available)"
+          type: "string"
+          
+    # REQ-META-003: Reporting Unit Scope
+    - requirementID: "REQ-META-003"
+      name: "Reporting Unit Scope"
+      category: "scope"
+      priority: "mandatory"
+      attributes:
+        - name: "reportingUnit"
+          value: "All Business Units (BUs)"
+          type: "string"
+        - name: "organization"
+          value: "Standard Chartered Global Business Services Ltd"
+          type: "string"
+        - name: "parentEntity"
+          value: "Standard Chartered Bank"
+          type: "string"
+        - name: "serviceFunction"
+          value: "Global Finance Services (GFS)"
+          type: "string"
+        - name: "coverageType"
+          value: "All level 1 IFRS schedules"
+          type: "string"
+          
+    # REQ-META-004: Frequency and Timing
+    - requirementID: "REQ-META-004"
+      name: "Frequency and Timing Requirements"
+      category: "timing"
+      priority: "mandatory"
+      attributes:
+        - name: "reportFrequency"
+          value: "Monthly"
+          type: "string"
+        - name: "expectedFrequency"
+          value: "Quarterly (BS and P&L) / Monthly (BS only)"
+          type: "string"
+        - name: "timeline"
+          value: "M+7"
+          type: "string"
+          description: "Per Group FRA template"
+        - name: "processingWindow"
+          startDay: 1
+          endDay: 7
+          unit: "days-after-month-end"
+          type: "range"
+        - name: "reviewFrequency"
+          value: "Annual"
+          period: 12
+          unit: "months"
+          type: "string"
+        - name: "plCommentsMandatory"
+          monthly: false
+          quarterly: true
+          note: "Monthly P&L comments not mandatory but completed as good practice by M+12"
+          
+    # REQ-META-005: System Requirements
+    - requirementID: "REQ-META-005"
+      name: "System Requirements"
+      category: "technical"
+      priority: "mandatory"
+      attributes:
+        - name: "reportingApplication"
+          value: "Microsoft Excel"
+          type: "string"
+        - name: "storageLocation"
+          value: "FARO Controllers SharePoint"
+          path: "Documents/2. TB Review/All Documents"
+          type: "string"
+        - name: "dataSources"
+          type: "array"
+          values:
+            - name: "PSGL"
+              fullName: "PeopleSoft General Ledger"
+              type: "erp-system"
+            - name: "S4"
+              fullName: "SAP S/4HANA"
+              type: "erp-system"
+        - name: "reportFormat"
+          value: "Excel"
+          type: "string"
+        - name: "templateReference"
+          value: "Group FRA template"
+          type: "string"
+          
+  validation:
+    - ruleID: "VAL-META-001"
+      name: "Report Owner Assigned"
+      description: "Every report must have an assigned LEC/Caption Lead owner"
+      severity: "error"
+      
+    - ruleID: "VAL-META-002"
+      name: "Timeline Compliance"
+      description: "Report must be completed by M+7"
+      severity: "error"
+      
+    - ruleID: "VAL-META-003"
+      name: "Sign-off Authority"
+      description: "Sign-off must be by Grade 5 or above"
+      severity: "error"
+      
+  traceability:
+    sourceDocument: "DOI for Trial Balance Process .docx"
+    section: "Section 2 - Report Specification"
+    version: "2.0"
+    approvedBy: "Santhoshi Sai Narayanan"
+    approvedDate: "2025-10-23"
+    editedBy: "Lalit Lalwani"

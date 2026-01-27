@@ -177,7 +177,7 @@ pub const GGUFModelLoader = struct {
         // Load tokenizer
         std.debug.print("\n📝 Loading tokenizer...\n", .{});
         const tok = try tokenizer.Tokenizer.loadFromModel(self.allocator, &model);
-        var tok_ptr = try self.allocator.create(tokenizer.Tokenizer);
+        const tok_ptr = try self.allocator.create(tokenizer.Tokenizer);
         tok_ptr.* = tok;
 
         // Load weights based on strategy

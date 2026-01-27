@@ -29,7 +29,11 @@ pub fn graphqlHandler(req: *Request, resp: *Response) !void {
     };
     
     // Simple query routing based on operation name
-    const query_lower = std.ascii.lowerString(req.allocator, body.query) catch body.query;
+    const query_lower = blk: {
+        const buf = req.allocator.alloc(u8, body.query.len) catch break :blk body.query;
+        defer req.allocator.free(buf);
+        break :blk std.ascii.lowerString(buf, body.query);
+    };
     
     if (std.mem.indexOf(u8, query_lower, "dataset(") != null) {
         // Single dataset query

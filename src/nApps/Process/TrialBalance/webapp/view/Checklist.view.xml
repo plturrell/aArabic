@@ -1,0 +1,82 @@
+<mvc:View
+    controllerName="trialbalance.controller.Checklist"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:f="sap.f"
+    xmlns:custom="trialbalance.control"
+    displayBlock="true"
+    height="100%">
+    
+    <Page
+        id="checklistPage"
+        showHeader="false"
+        showNavButton="true"
+        navButtonPress=".onNavBack">
+        
+        <content>
+            <f:ShellBar
+                id="shellBar"
+                title="Trial Balance"
+                showSearch="true"
+                showNotifications="true"
+                notificationsNumber="3"
+                search=".onSearch"
+                notificationsPressed=".onNotificationsPress">
+                <f:profile>
+                    <Avatar initials="TB" displaySize="XS" press=".onAvatarPress"/>
+                </f:profile>
+            </f:ShellBar>
+
+            <VBox class="sapUiSmallMargin">
+                <Title text="Checklist Phase" level="H1" class="sapUiSmallMarginBottom"/>
+                <Text text="Trial Balance Process Tracking" class="sapUiSmallMarginBottom"/>
+                
+                <!-- Process Flow Visualization -->
+                <Panel headerText="Process Flow" class="sapUiResponsiveMargin">
+                    <content>
+                        <custom:ProcessFlowControl 
+                            height="400px"
+                            width="100%"/>
+                    </content>
+                </Panel>
+                
+                <Panel headerText="Process Checklist" class="sapUiResponsiveMargin">
+                    <content>
+                        <List items="{/checklist}">
+                            <StandardListItem
+                                title="Data Collection"
+                                description="Gather all accounting data"
+                                icon="sap-icon://document"
+                                type="Active"
+                                press=".onChecklistItemPress"/>
+                            <StandardListItem
+                                title="Data Validation"
+                                description="Verify data integrity"
+                                icon="sap-icon://validate"
+                                type="Active"
+                                press=".onChecklistItemPress"/>
+                            <StandardListItem
+                                title="Calculation"
+                                description="Calculate trial balance"
+                                icon="sap-icon://simulate"
+                                type="Active"
+                                press=".onChecklistItemPress"/>
+                            <StandardListItem
+                                title="Review"
+                                description="Review results"
+                                icon="sap-icon://inspection"
+                                type="Active"
+                                press=".onChecklistItemPress"/>
+                            <StandardListItem
+                                title="Approval"
+                                description="Final approval"
+                                icon="sap-icon://approvals"
+                                type="Active"
+                                press=".onChecklistItemPress"/>
+                        </List>
+                    </content>
+                </Panel>
+            </VBox>
+        </content>
+    </Page>
+</mvc:View>

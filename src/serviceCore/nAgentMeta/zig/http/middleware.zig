@@ -45,24 +45,24 @@ pub const Middleware = struct {
 /// Middleware chain executor
 pub const MiddlewareChain = struct {
     allocator: Allocator,
-    middlewares: std.ArrayList(Middleware),
+    middlewares: std.ArrayListUnmanaged(Middleware),
     
     /// Initialize new middleware chain
     pub fn init(allocator: Allocator) MiddlewareChain {
         return MiddlewareChain{
             .allocator = allocator,
-            .middlewares = std.ArrayList(Middleware){},
+            .middlewares = std.ArrayListUnmanaged(Middleware){},
         };
     }
     
     /// Clean up middleware chain
     pub fn deinit(self: *MiddlewareChain) void {
-        self.middlewares.deinit();
+        self.middlewares.deinit(self.allocator);
     }
     
     /// Add middleware to chain
     pub fn add(self: *MiddlewareChain, middleware: Middleware) !void {
-        try self.middlewares.append(middleware);
+        try self.middlewares.append(self.allocator, middleware);
     }
     
     /// Execute middleware chain
@@ -109,33 +109,29 @@ pub const CorsConfig = struct {
     max_age: u32 = 86400, // 24 hours
 };
 
-/// Create CORS middleware with config
-pub fn corsMiddleware(config: CorsConfig) Middleware {
+/// Create CORS middleware with config (must be comptime-known)
+pub fn corsMiddleware(comptime config: CorsConfig) Middleware {
+    const Handler = struct {
+        fn run(req: *Request, resp: *Response) !bool {
+            try resp.setHeader("Access-Control-Allow-Origin", config.allow_origin);
+            try resp.setHeader("Access-Control-Allow-Methods", config.allow_methods);
+            try resp.setHeader("Access-Control-Allow-Headers", config.allow_headers);
+
+            const max_age_str = try std.fmt.allocPrint(resp.allocator, "{d}", .{config.max_age});
+            try resp.setHeader("Access-Control-Max-Age", max_age_str);
+
+            if (req.method == .OPTIONS) {
+                resp.status = 204;
+                return false;
+            }
+
+            return true;
+        }
+    };
+
     return Middleware{
         .name = "cors",
-        .handler = struct {
-            fn handle(req: *Request, resp: *Response) !bool {
-                // Set CORS headers
-                try resp.setHeader("Access-Control-Allow-Origin", config.allow_origin);
-                try resp.setHeader("Access-Control-Allow-Methods", config.allow_methods);
-                try resp.setHeader("Access-Control-Allow-Headers", config.allow_headers);
-                
-                const max_age_str = try std.fmt.allocPrint(
-                    resp.allocator,
-                    "{d}",
-                    .{config.max_age},
-                );
-                try resp.setHeader("Access-Control-Max-Age", max_age_str);
-                
-                // Handle preflight OPTIONS request
-                if (req.method == .OPTIONS) {
-                    resp.status = 204;
-                    return false; // Stop processing
-                }
-                
-                return true;
-            }
-        }.handle,
+        .handler = Handler.run,
     };
 }
 

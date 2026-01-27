@@ -1,12 +1,13 @@
 <mvc:View
-    controllerName="trial.balance.controller.App"
-    xmlns:mvc="sap.ui.core.mvc"
+    controllerName="trialbalance.controller.App"
     xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:f="sap.f"
     displayBlock="true"
     height="100%">
-    <Shell id="shell">
-        <App id="appContainer" busy="{app>/busy}">
-            <!-- Pages will be added by router -->
-        </App>
-    </Shell>
+    
+    <App id="app" height="100%">
+        <!-- Pages will be loaded by router -->
+    </App>
+    
 </mvc:View>

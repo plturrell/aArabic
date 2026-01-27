@@ -1,0 +1,321 @@
+# ODPS v4.1 - Trial Balance Business Rules & Thresholds Requirements
+# Extracted from DOI for Trial Balance Process v2.0 (BCBS 239)
+
+requirement:
+  requirementID: "urn:uuid:tb-req-business-rules-v1"
+  name: "Trial Balance Business Rules & Thresholds"
+  description: "Variance thresholds, commentary coverage requirements, and business rules for the Trial Balance Review process per Group Reporting Instructions and IFRS standards."
+  version: "2.0.0"
+  status: "active"
+  sourceDocument:
+    name: "DOI for Trial Balance Process"
+    version: "2.0"
+    approvedDate: "2025-10-23"
+    section: "Section 3 - Report Summary"
+    
+  details:
+    type: "requirement-specification"
+    category: "business-rules"
+    subcategory: "variance-thresholds"
+    tags:
+      - "thresholds"
+      - "variance-analysis"
+      - "materiality"
+      - "ifrs"
+      - "commentary"
+      - "group-reporting"
+    owner:
+      name: "Global Finance Services"
+      organization: "Standard Chartered Global Business Services Ltd"
+    domain: "Finance"
+    regulatoryFramework: "BCBS 239"
+    standardsReference:
+      - "IFRS"
+      - "IAS-1"
+      - "Group FRA Template"
+    
+  requirements:
+    # REQ-THRESH-001: Balance Sheet Variance Threshold
+    - requirementID: "REQ-THRESH-001"
+      name: "Balance Sheet Variance Threshold"
+      category: "threshold"
+      priority: "mandatory"
+      description: "Materiality threshold for Balance Sheet variance analysis"
+      effectiveDate: "2025-10-23"
+      source: "Group Reporting Instruction (FRA template)"
+      rule:
+        type: "threshold"
+        accountType: "balance-sheet"
+        conditions:
+          - condition: "amount"
+            operator: "greater-than-or-equal"
+            value: 100000000
+            unit: "USD"
+            description: "Variance >= $100 million USD"
+          - condition: "percent"
+            operator: "greater-than-or-equal"
+            value: 10.0
+            unit: "percent"
+            description: "Variance >= 10% of base amount"
+        logic: "amount >= 100000000 AND percent >= 10"
+        note: "Subject to 10% variance - both conditions must be evaluated"
+        
+    # REQ-THRESH-002: P&L Variance Threshold
+    - requirementID: "REQ-THRESH-002"
+      name: "P&L Variance Threshold"
+      category: "threshold"
+      priority: "mandatory"
+      description: "Materiality threshold for Profit & Loss variance analysis"
+      effectiveDate: "2025-10-23"
+      source: "Group Reporting Instruction (FRA template)"
+      rule:
+        type: "threshold"
+        accountType: "profit-and-loss"
+        conditions:
+          - condition: "amount"
+            operator: "greater-than-or-equal"
+            value: 3000000
+            unit: "USD"
+            description: "Variance >= $3 million USD"
+          - condition: "percent"
+            operator: "greater-than-or-equal"
+            value: 10.0
+            unit: "percent"
+            description: "Variance >= 10% of base amount"
+        logic: "amount >= 3000000 AND percent >= 10"
+        note: "Subject to 10% variance - both conditions must be evaluated"
+        
+    # REQ-THRESH-003: Commentary Coverage Requirement
+    - requirementID: "REQ-THRESH-003"
+      name: "Commentary Coverage Requirement"
+      category: "quality"
+      priority: "mandatory"
+      description: "Minimum percentage of material variances that must have explanatory commentary"
+      rule:
+        type: "coverage"
+        metric: "variance-explanation-rate"
+        target:
+          value: 90
+          unit: "percent"
+        condition: "At least 90% of variances above threshold must be explained"
+        applicability: "All variances exceeding materiality thresholds"
+        
+    # REQ-THRESH-004: Major Driver Identification
+    - requirementID: "REQ-THRESH-004"
+      name: "Major Driver Identification"
+      category: "quality"
+      priority: "mandatory"
+      description: "Requirement to identify and document major drivers for material variances"
+      rule:
+        type: "documentation"
+        requiredElements:
+          - element: "driver-identification"
+            description: "Major drivers for movements must be provided"
+            mandatory: true
+          - element: "deal-information"
+            description: "Include deal information contributing to movements"
+            mandatory: true
+            source: "TP data"
+          - element: "product-segment-analysis"
+            description: "Identify major products/segments contributing to movements"
+            mandatory: true
+            source: "GL data"
+          - element: "business-commentary"
+            description: "Collate commentaries received from business"
+            mandatory: true
+            sources:
+              - "Business Finance"
+              - "Accounting Teams"
+              
+    # REQ-THRESH-005: Variance Calculation Rules
+    - requirementID: "REQ-THRESH-005"
+      name: "Variance Calculation Rules"
+      category: "calculation"
+      priority: "mandatory"
+      description: "Standard formulas for calculating variances"
+      rules:
+        - ruleID: "CALC-001"
+          name: "Absolute Variance"
+          formula: "Current_Period_Amount - Comparative_Period_Amount"
+          outputField: "variance_amount"
+          
+        - ruleID: "CALC-002"
+          name: "Percentage Variance"
+          formula: "(Variance_Amount / ABS(Comparative_Period_Amount)) * 100"
+          outputField: "variance_percent"
+          note: "Use absolute value of comparative to handle negative base amounts"
+          
+        - ruleID: "CALC-003"
+          name: "Materiality Flag - Balance Sheet"
+          formula: "ABS(variance_amount) >= 100000000 AND ABS(variance_percent) >= 10"
+          outputField: "is_material_bs"
+          
+        - ruleID: "CALC-004"
+          name: "Materiality Flag - P&L"
+          formula: "ABS(variance_amount) >= 3000000 AND ABS(variance_percent) >= 10"
+          outputField: "is_material_pl"
+          
+    # REQ-THRESH-006: Exchange Rate Application
+    - requirementID: "REQ-THRESH-006"
+      name: "Exchange Rate Application"
+      category: "calculation"
+      priority: "mandatory"
+      description: "Rules for applying exchange rates for currency conversion"
+      rule:
+        type: "currency-conversion"
+        targetCurrency: "USD"
+        applicability: "Units with reporting currency other than USD"
+        exchangeRateSource: "Group exchange rates"
+        periodRequirements:
+          - period: "current"
+            rate: "Current period group exchange rate"
+          - period: "comparative"
+            rate: "Comparative period group exchange rate"
+        note: "Apply respective period's exchange rate for accurate comparison"
+        
+    # REQ-THRESH-007: GCOA Mapping Requirement
+    - requirementID: "REQ-THRESH-007"
+      name: "Global Chart of Accounts Mapping"
+      category: "data-mapping"
+      priority: "mandatory"
+      description: "Requirement to map GL balances to IFRS categories using GCOA"
+      rule:
+        type: "mapping"
+        source: "PSGL/S4 GL accounts"
+        target: "IFRS schedule categories"
+        mappingReference: "Global Chart of Accounts (GCOA)"
+        categories:
+          balanceSheet:
+            - "Assets"
+            - "Liabilities"
+            - "Off Balance Sheet"
+          profitAndLoss:
+            - "Income"
+            - "Expense"
+            - "Impairment"
+        validation: "Check for unmapped accounts after each refresh"
+        
+  thresholdSummary:
+    balanceSheet:
+      amount: 100000000
+      amountFormatted: "$100M"
+      percent: 10.0
+      condition: "AND"
+    profitAndLoss:
+      amount: 3000000
+      amountFormatted: "$3M"
+      percent: 10.0
+      condition: "AND"
+    commentaryCoverage: 90
+    
+  validation:
+    - ruleID: "VAL-THRESH-001"
+      name: "Threshold Applied"
+      description: "Verify materiality thresholds are applied at IFRS node level"
+      severity: "error"
+      
+    - ruleID: "VAL-THRESH-002"
+      name: "Commentary Coverage Met"
+      description: "Verify 90% commentary coverage for material variances"
+      severity: "error"
+      
+    - ruleID: "VAL-THRESH-003"
+      name: "Driver Identification Complete"
+      description: "Major drivers must be documented for all material variances"
+      severity: "error"
+      
+    - ruleID: "VAL-THRESH-004"
+      name: "Exchange Rates Applied"
+      description: "Verify correct exchange rates applied for non-USD units"
+      severity: "error"
+      
+  traceability:
+    sourceDocument: "DOI for Trial Balance Process .docx"
+    sections:
+      - "Section 3 - Report Summary"
+      - "Section 6 - Detailed Procedures"
+    version: "2.0"
+    changeHistory:
+      - version: "2.0"
+        date: "2025-10-23"
+        change: "Updated TB review limit to $100m for BS per group reporting instruction"
+        previousValue: "Not specified"
+        newValue: "$100M"
+        
+  # BIDIRECTIONAL IMPLEMENTATION STATUS
+  # This section links requirements to primary data products that implement them
+  implementationStatus:
+    lastReconciled: "2026-01-27"
+    overallStatus: "fully-implemented"
+    coveragePercent: 100
+    
+    implementations:
+      - requirementID: "REQ-THRESH-001"
+        requirementName: "Balance Sheet Variance Threshold"
+        status: "fully-implemented"
+        implementedIn:
+          - productFile: "../primary/variances.odps.yaml"
+            productID: "urn:uuid:variances-v1"
+            productName: "Period-over-Period Variances"
+            implementingRules: ["VAR003"]
+            coveragePercent: 100
+            
+      - requirementID: "REQ-THRESH-002"
+        requirementName: "P&L Variance Threshold"
+        status: "fully-implemented"
+        implementedIn:
+          - productFile: "../primary/variances.odps.yaml"
+            productID: "urn:uuid:variances-v1"
+            productName: "Period-over-Period Variances"
+            implementingRules: ["VAR004"]
+            coveragePercent: 100
+            
+      - requirementID: "REQ-THRESH-003"
+        requirementName: "Commentary Coverage Requirement"
+        status: "fully-implemented"
+        implementedIn:
+          - productFile: "../primary/variances.odps.yaml"
+            productID: "urn:uuid:variances-v1"
+            productName: "Period-over-Period Variances"
+            implementingRules: ["VAR005", "VAR006"]
+            coveragePercent: 100
+            
+      - requirementID: "REQ-THRESH-004"
+        requirementName: "Major Driver Identification"
+        status: "fully-implemented"
+        implementedIn:
+          - productFile: "../primary/variances.odps.yaml"
+            productID: "urn:uuid:variances-v1"
+            productName: "Period-over-Period Variances"
+            implementingRules: ["VAR008"]
+            coveragePercent: 100
+            
+      - requirementID: "REQ-THRESH-005"
+        requirementName: "Variance Calculation Rules"
+        status: "fully-implemented"
+        implementedIn:
+          - productFile: "../primary/variances.odps.yaml"
+            productID: "urn:uuid:variances-v1"
+            productName: "Period-over-Period Variances"
+            implementingRules: ["VAR001", "VAR002"]
+            coveragePercent: 100
+            
+      - requirementID: "REQ-THRESH-006"
+        requirementName: "Exchange Rate Application"
+        status: "fully-implemented"
+        implementedIn:
+          - productFile: "../primary/exchange-rates.odps.yaml"
+            productID: "urn:uuid:exchange-rates-v1"
+            productName: "Foreign Exchange Rates"
+            implementingRules: ["FX005", "FX006", "FX007"]
+            coveragePercent: 100
+            
+      - requirementID: "REQ-THRESH-007"
+        requirementName: "Global Chart of Accounts Mapping"
+        status: "fully-implemented"
+        implementedIn:
+          - productFile: "../primary/trial-balance-aggregated.odps.yaml"
+            productID: "urn:uuid:trial-balance-aggregated-v1"
+            productName: "Trial Balance (Aggregated)"
+            implementingRules: ["TB003", "TB005"]
+            coveragePercent: 100

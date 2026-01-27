@@ -1,0 +1,269 @@
+{
+  "$schema": "https://sap.github.io/open-resource-discovery/spec-v1/interfaces/Document.schema.json",
+  "openResourceDiscovery": "1.9",
+  "products": [
+    {
+      "ordId": "sap.nApps.Process:product:TrialBalance:v1",
+      "title": "Trial Balance Data Product",
+      "shortDescription": "IFRS-compliant trial balance with ACDOCA journal entry lineage tracking",
+      "description": "Enterprise trial balance system providing complete SAP S/4HANA ACDOCA universal journal entries with data lineage, quality metrics, and IFRS compliance validation. Supports multi-currency conversion, variance analysis, and automated commentary generation.",
+      "version": "1.0.0",
+      "vendor": "sap.nApps.Process",
+      "dataProducts": [
+        {
+          "ordId": "sap.nApps.Process:dataProduct:ACDOCA:v1",
+          "localId": "acdoca-journal-entries",
+          "title": "ACDOCA Journal Entries",
+          "shortDescription": "SAP S/4HANA universal journal entries (ACDOCA table)",
+          "description": "Complete ACDOCA universal journal entries with full field set including ledger, company code, fiscal year, document number, line items, G/L accounts, amounts in multiple currencies, debit/credit indicators, posting periods, and segment reporting dimensions. Each entry includes SHA-256 hash for lineage tracking and data quality classification.",
+          "version": "1.0.0",
+          "type": "primary",
+          "category": "transactional",
+          "entityTypes": [
+            "JournalEntry"
+          ],
+          "outputPorts": [
+            {
+              "ordId": "sap.nApps.Process:apiResource:ACDOCA-API:v1"
+            }
+          ],
+          "responsible": "trial-balance-team@company.com",
+          "dataProductLinks": [
+            {
+              "type": "service",
+              "url": "/api/v1/journal-entries"
+            },
+            {
+              "type": "lineage",
+              "url": "/api/v1/lineage/acdoca"
+            }
+          ],
+          "links": [
+            {
+              "title": "Data Lineage Viewer",
+              "url": "/webapp/index.html#/metadata"
+            },
+            {
+              "title": "Data Quality Dashboard",
+              "url": "/api/v1/data-products/acdoca/quality"
+            }
+          ],
+          "industryStandards": [
+            "IFRS",
+            "US-GAAP",
+            "ISO-4217"
+          ],
+          "lineOfBusiness": [
+            "Finance",
+            "Accounting"
+          ],
+          "tags": [
+            "journal-entries",
+            "general-ledger",
+            "ifrs",
+            "acdoca",
+            "universal-journal",
+            "financial-accounting"
+          ]
+        },
+        {
+          "ordId": "sap.nApps.Process:dataProduct:ExchangeRates:v1",
+          "localId": "exchange-rates",
+          "title": "Foreign Exchange Rates",
+          "shortDescription": "Multi-currency exchange rates for financial consolidation",
+          "description": "Exchange rates for converting amounts between currencies, supporting multiple rate types (standard, average, historical). Includes source tracking (ECB, Fed, SAP), validity periods, and conversion ratios for proper multi-currency accounting.",
+          "version": "1.0.0",
+          "type": "reference",
+          "category": "master-data",
+          "entityTypes": [
+            "ExchangeRate"
+          ],
+          "outputPorts": [
+            {
+              "ordId": "sap.nApps.Process:apiResource:FX-API:v1"
+            }
+          ],
+          "responsible": "trial-balance-team@company.com",
+          "links": [
+            {
+              "title": "Exchange Rate API",
+              "url": "/api/v1/exchange-rates"
+            }
+          ],
+          "industryStandards": [
+            "ISO-4217"
+          ],
+          "lineOfBusiness": [
+            "Finance",
+            "Treasury"
+          ],
+          "tags": [
+            "exchange-rates",
+            "currency-conversion",
+            "fx-rates",
+            "multi-currency"
+          ]
+        },
+        {
+          "ordId": "sap.nApps.Process:dataProduct:TrialBalance:v1",
+          "localId": "trial-balance-aggregated",
+          "title": "Trial Balance (Aggregated)",
+          "shortDescription": "Aggregated trial balance by account with opening, closing balances",
+          "description": "Aggregated trial balance entries showing opening balance, debit/credit movements, and closing balance for each G/L account. Includes account classifications (Asset, Liability, Equity, Revenue, Expense), IFRS categories, and data quality indicators. Derived from ACDOCA journal entries through validated aggregation pipeline.",
+          "version": "1.0.0",
+          "type": "derived",
+          "category": "analytical",
+          "entityTypes": [
+            "TrialBalanceEntry"
+          ],
+          "inputPorts": [
+            {
+              "ordId": "sap.nApps.Process:dataProduct:ACDOCA:v1"
+            }
+          ],
+          "outputPorts": [
+            {
+              "ordId": "sap.nApps.Process:apiResource:TB-API:v1"
+            }
+          ],
+          "responsible": "trial-balance-team@company.com",
+          "lineage": {
+            "parents": [
+              "sap.nApps.Process:dataProduct:ACDOCA:v1"
+            ],
+            "transformation": "aggregate-by-account"
+          },
+          "links": [
+            {
+              "title": "Trial Balance Overview",
+              "url": "/webapp/index.html#/overview"
+            },
+            {
+              "title": "YTD Analysis",
+              "url": "/webapp/index.html#/ytd-analysis"
+            }
+          ],
+          "industryStandards": [
+            "IFRS",
+            "US-GAAP"
+          ],
+          "lineOfBusiness": [
+            "Finance",
+            "Financial Reporting"
+          ],
+          "tags": [
+            "trial-balance",
+            "general-ledger",
+            "financial-statements",
+            "balances"
+          ]
+        },
+        {
+          "ordId": "sap.nApps.Process:dataProduct:Variances:v1",
+          "localId": "period-variances",
+          "title": "Period-over-Period Variances",
+          "shortDescription": "Variance analysis comparing current vs previous periods",
+          "description": "Period-over-period variance analysis showing absolute and percentage changes in account balances. Includes significance flagging based on IFRS thresholds (BS: $100M or 10%, PL: $3M or 10%), AI-generated commentary for material variances, and drill-down capabilities to underlying journal entries.",
+          "version": "1.0.0",
+          "type": "derived",
+          "category": "analytical",
+          "entityTypes": [
+            "VarianceEntry"
+          ],
+          "inputPorts": [
+            {
+              "ordId": "sap.nApps.Process:dataProduct:TrialBalance:v1"
+            }
+          ],
+          "outputPorts": [
+            {
+              "ordId": "sap.nApps.Process:apiResource:Variance-API:v1"
+            }
+          ],
+          "responsible": "trial-balance-team@company.com",
+          "lineage": {
+            "parents": [
+              "sap.nApps.Process:dataProduct:TrialBalance:v1"
+            ],
+            "transformation": "period-comparison"
+          },
+          "links": [
+            {
+              "title": "BS Variance Analysis",
+              "url": "/webapp/index.html#/bs-variance"
+            }
+          ],
+          "industryStandards": [
+            "IFRS"
+          ],
+          "lineOfBusiness": [
+            "Finance",
+            "Financial Analysis"
+          ],
+          "tags": [
+            "variance-analysis",
+            "period-comparison",
+            "financial-analysis",
+            "commentary"
+          ]
+        }
+      ],
+      "apiResources": [
+        {
+          "ordId": "sap.nApps.Process:apiResource:ACDOCA-API:v1",
+          "title": "ACDOCA Journal Entries API",
+          "shortDescription": "REST API for querying ACDOCA journal entries",
+          "description": "RESTful API providing access to SAP S/4HANA ACDOCA universal journal entries with filtering, pagination, and data quality metrics.",
+          "version": "v1",
+          "releaseStatus": "active",
+          "resourceDefinitions": [
+            {
+              "type": "openapi-v3",
+              "mediaType": "application/json",
+              "url": "/docs/api/acdoca-openapi.yaml"
+            }
+          ],
+          "entryPoints": [
+            "/api/v1/journal-entries"
+          ],
+          "apiProtocol": "rest"
+        },
+        {
+          "ordId": "sap.nApps.Process:apiResource:TB-API:v1",
+          "title": "Trial Balance API",
+          "shortDescription": "REST API for trial balance queries",
+          "version": "v1",
+          "releaseStatus": "active",
+          "entryPoints": [
+            "/api/v1/trial-balance"
+          ],
+          "apiProtocol": "rest"
+        }
+      ]
+    }
+  ],
+  "consumptionBundles": [
+    {
+      "ordId": "sap.nApps.Process:consumptionBundle:TrialBalance:v1",
+      "title": "Trial Balance Analytics Bundle",
+      "shortDescription": "Complete trial balance analytics and reporting",
+      "description": "Comprehensive bundle providing access to ACDOCA journal entries, aggregated trial balances, variance analysis, and exchange rates with full lineage tracking and data quality monitoring.",
+      "version": "1.0.0",
+      "credentialExchangeStrategies": [
+        {
+          "type": "custom",
+          "customType": "sap:basic-authentication",
+          "customDescription": "Basic authentication with username/password"
+        }
+      ]
+    }
+  ],
+  "describedSystemInstance": {
+    "productId": "sap.nApps.Process:product:TrialBalance:v1",
+    "labels": {
+      "environment": ["development", "staging", "production"],
+      "region": ["asia-pacific"],
+      "businessUnit": ["HKG"]
+    }
+  }
+}

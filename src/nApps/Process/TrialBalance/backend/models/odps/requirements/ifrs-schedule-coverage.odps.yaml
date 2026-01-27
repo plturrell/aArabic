@@ -1,0 +1,361 @@
+# ODPS v4.1 - Trial Balance IFRS Schedule Coverage Requirements
+# Extracted from DOI for Trial Balance Process v2.0 (BCBS 239)
+
+requirement:
+  requirementID: "urn:uuid:tb-req-ifrs-coverage-v1"
+  name: "Trial Balance IFRS Schedule Coverage"
+  description: "Complete list of IFRS Level 1 schedules covered by the Trial Balance Review process including Assets, Liabilities, and P&L schedules."
+  version: "2.0.0"
+  status: "active"
+  sourceDocument:
+    name: "DOI for Trial Balance Process"
+    version: "2.0"
+    approvedDate: "2025-10-23"
+    section: "Section 3 - Report Summary (Coverage)"
+    
+  details:
+    type: "requirement-specification"
+    category: "data-coverage"
+    subcategory: "ifrs-schedules"
+    tags:
+      - "ifrs"
+      - "schedules"
+      - "balance-sheet"
+      - "profit-loss"
+      - "assets"
+      - "liabilities"
+      - "level-1"
+    owner:
+      name: "Global Finance Services"
+      organization: "Standard Chartered Global Business Services Ltd"
+    domain: "Finance"
+    standardsReference:
+      - "IFRS"
+      - "IAS-1"
+      
+  requirements:
+    # Balance Sheet - Assets Schedules
+    - requirementID: "REQ-IFRS-ASSETS"
+      name: "Balance Sheet Assets Coverage"
+      category: "ifrs-coverage"
+      scheduleGroup: "balance-sheet-assets"
+      priority: "mandatory"
+      schedules:
+        - scheduleID: "01"
+          name: "Balance Sheet – Assets"
+          description: "Main balance sheet assets schedule"
+          level: 1
+          
+        - scheduleID: "1A"
+          name: "Cash & balances at Central Bank"
+          description: "Cash and central bank balances"
+          level: 1
+          
+        - scheduleID: "1BA"
+          name: "IFRS Treasury Bills"
+          description: "Treasury bills held"
+          level: 1
+          
+        - scheduleID: "1CA"
+          name: "IFRS Loans & Advances to Banks"
+          description: "Interbank loans and advances"
+          level: 1
+          
+        - scheduleID: "1DA"
+          name: "IFRS Loans & Advances to Customers"
+          description: "Customer loans and advances"
+          level: 1
+          
+        - scheduleID: "DP"
+          name: "Non-Performing Loans"
+          description: "Non-performing loan analysis"
+          level: 1
+          
+        - scheduleID: "1EA"
+          name: "IFRS Debt Securities"
+          description: "Debt securities held"
+          level: 1
+          
+        - scheduleID: "1FA"
+          name: "IFRS Equity Shares & Trade Inv"
+          description: "Equity shares and trading investments"
+          level: 1
+          
+        - scheduleID: "1G"
+          name: "Intangible Fixed Assets"
+          description: "Intangible assets"
+          level: 1
+          
+        - scheduleID: "HA"
+          name: "Movement on premises & property"
+          description: "Property and premises movements"
+          level: 1
+          
+        - scheduleID: "HB"
+          name: "Movement on equipment"
+          description: "Equipment movements"
+          level: 1
+          
+        - scheduleID: "1I"
+          name: "Prepayments & accrued income"
+          description: "Prepayments and accrued income"
+          level: 1
+          
+        - scheduleID: "1J"
+          name: "Other assets"
+          description: "Other asset categories"
+          level: 1
+          
+        - scheduleID: "1L"
+          name: "Mvmts on investments in Associates & JVs"
+          description: "Associate and joint venture investment movements"
+          level: 1
+          
+        - scheduleID: "1M"
+          name: "Movements on investments in subsidiaries"
+          description: "Subsidiary investment movements"
+          level: 1
+          
+    # Balance Sheet - Liabilities Schedules
+    - requirementID: "REQ-IFRS-LIABILITIES"
+      name: "Balance Sheet Liabilities Coverage"
+      category: "ifrs-coverage"
+      scheduleGroup: "balance-sheet-liabilities"
+      priority: "mandatory"
+      schedules:
+        - scheduleID: "02"
+          name: "Balance sheet – Liabilities"
+          description: "Main balance sheet liabilities schedule"
+          level: 1
+          
+        - scheduleID: "02A"
+          name: "IFRS Balance Sheet Rec – Liabilities"
+          description: "Liabilities reconciliation"
+          level: 1
+          
+        - scheduleID: "2O"
+          name: "Movement on issued share capital"
+          description: "Share capital movements"
+          level: 1
+          
+        - scheduleID: "2P"
+          name: "Movement on reserves"
+          description: "Reserves movements"
+          level: 1
+          
+        - scheduleID: "2Q"
+          name: "Movement on minority interests"
+          description: "Minority interest movements"
+          level: 1
+          
+        - scheduleID: "2R"
+          name: "Movement on subordinated loan capital"
+          description: "Subordinated loan capital movements"
+          level: 1
+          
+        - scheduleID: "2T"
+          name: "Movement on branch reserves"
+          description: "Branch reserves movements"
+          level: 1
+          
+        - scheduleID: "2U"
+          name: "Deposits from banks"
+          description: "Interbank deposits"
+          level: 1
+          
+        - scheduleID: "2V"
+          name: "Customer accounts"
+          description: "Customer deposits and accounts"
+          level: 1
+          
+        - scheduleID: "2W"
+          name: "Debt Securities in issue"
+          description: "Issued debt securities"
+          level: 1
+          
+        - scheduleID: "2X"
+          name: "Accruals and deferred income"
+          description: "Accruals and deferred income"
+          level: 1
+          
+        - scheduleID: "2Y"
+          name: "Provisions for liabilities and charges"
+          description: "Liability provisions"
+          level: 1
+          
+        - scheduleID: "YL"
+          name: "Mvmt Legal/Reg/Restruct Op Loss & Other Liabs"
+          description: "Legal, regulatory, restructuring operational loss and other liabilities"
+          level: 1
+          
+        - scheduleID: "YS"
+          name: "Movements analysis on retirement benefits prov"
+          description: "Retirement benefits provision movements"
+          level: 1
+          
+        - scheduleID: "2Z"
+          name: "Analysis of other liabilities"
+          description: "Other liabilities analysis"
+          level: 1
+          
+        - scheduleID: "ZAA"
+          name: "Analysis of Liabilities Held for Sale"
+          description: "Liabilities held for sale"
+          level: 1
+          
+        - scheduleID: "2KA"
+          name: "Share Options - Mvmt Analysis"
+          description: "Share options movement analysis"
+          level: 1
+          
+    # Profit & Loss Schedules
+    - requirementID: "REQ-IFRS-PL"
+      name: "Profit & Loss Coverage"
+      category: "ifrs-coverage"
+      scheduleGroup: "profit-and-loss"
+      priority: "mandatory"
+      schedules:
+        - scheduleID: "3A"
+          name: "Profit & Loss Account Summary"
+          description: "Main P&L summary schedule"
+          level: 1
+          
+        - scheduleID: "3B"
+          name: "Profit & Loss A/c - Fee Income/Expense Analysis"
+          description: "Fee income and expense analysis"
+          level: 1
+          
+        - scheduleID: "3D"
+          name: "Interest receivable & similar income"
+          description: "Interest income"
+          level: 1
+          
+        - scheduleID: "3E"
+          name: "Interest payable"
+          description: "Interest expense"
+          level: 1
+          
+        - scheduleID: "3G"
+          name: "Analysis of dealing profits"
+          description: "Trading/dealing profits"
+          level: 1
+          
+        - scheduleID: "3H"
+          name: "Analysis of other operating income"
+          description: "Other operating income"
+          level: 1
+          
+        - scheduleID: "3J"
+          name: "Gains & losses on disposal of Non Trading Inv Sec"
+          description: "Investment securities disposal gains/losses"
+          level: 1
+          
+        - scheduleID: "3L"
+          name: "Analysis of operating costs"
+          description: "Operating costs analysis"
+          level: 1
+          
+        - scheduleID: "3N"
+          name: "Share Awards"
+          description: "Share-based compensation"
+          level: 1
+          
+        - scheduleID: "3R"
+          name: "Analysis of tax charge/credit"
+          description: "Tax analysis"
+          level: 1
+          
+        - scheduleID: "3S"
+          name: "Analysis of exceptional items"
+          description: "Exceptional items analysis"
+          level: 1
+          
+        - scheduleID: "3T"
+          name: "Analysis of dividends paid and declared"
+          description: "Dividend analysis"
+          level: 1
+          
+        - scheduleID: "3U"
+          name: "IFRS7 Impairment Charge Analysis"
+          description: "Impairment charges per IFRS 7"
+          level: 1
+          
+    # Average Balance Sheet Schedules
+    - requirementID: "REQ-IFRS-AVG-BS"
+      name: "Average Balance Sheet Coverage"
+      category: "ifrs-coverage"
+      scheduleGroup: "average-balance-sheet"
+      priority: "mandatory"
+      schedules:
+        - scheduleID: "04"
+          name: "Av Balance Sheet - Assets & Interest Income"
+          description: "Average balance sheet assets with interest income"
+          level: 1
+          
+        - scheduleID: "05"
+          name: "Av Balance Sheet - Liabilities & Interest Expense"
+          description: "Average balance sheet liabilities with interest expense"
+          level: 1
+          
+    # Off-Balance Sheet / Contingent Liabilities
+    - requirementID: "REQ-IFRS-OBS"
+      name: "Off-Balance Sheet Coverage"
+      category: "ifrs-coverage"
+      scheduleGroup: "off-balance-sheet"
+      priority: "mandatory"
+      schedules:
+        - scheduleID: "NAA"
+          name: "IFRS Contingent liabs (Non Group)"
+          description: "Non-group contingent liabilities"
+          level: 1
+          
+        - scheduleID: "NBA"
+          name: "IFRS Contingent liabs (Intra Group)"
+          description: "Intra-group contingent liabilities"
+          level: 1
+          
+  scheduleSummary:
+    totalSchedules: 43
+    categories:
+      - category: "Balance Sheet - Assets"
+        count: 15
+        scheduleIDs: ["01", "1A", "1BA", "1CA", "1DA", "DP", "1EA", "1FA", "1G", "HA", "HB", "1I", "1J", "1L", "1M"]
+      - category: "Balance Sheet - Liabilities"
+        count: 17
+        scheduleIDs: ["02", "02A", "2O", "2P", "2Q", "2R", "2T", "2U", "2V", "2W", "2X", "2Y", "YL", "YS", "2Z", "ZAA", "2KA"]
+      - category: "Profit & Loss"
+        count: 13
+        scheduleIDs: ["3A", "3B", "3D", "3E", "3G", "3H", "3J", "3L", "3N", "3R", "3S", "3T", "3U"]
+      - category: "Average Balance Sheet"
+        count: 2
+        scheduleIDs: ["04", "05"]
+      - category: "Off-Balance Sheet"
+        count: 2
+        scheduleIDs: ["NAA", "NBA"]
+        
+  crisisReporting:
+    applicable: false
+    expectedFrequency: "N/A"
+    expectedTimeframe: "N/A"
+    
+  validation:
+    - ruleID: "VAL-IFRS-001"
+      name: "All Schedules Covered"
+      description: "Verify all 43 level 1 schedules are included in variance analysis"
+      severity: "error"
+      
+    - ruleID: "VAL-IFRS-002"
+      name: "Schedule Mapping Complete"
+      description: "All GL accounts must map to an IFRS schedule"
+      severity: "error"
+      
+    - ruleID: "VAL-IFRS-003"
+      name: "No Unmapped Accounts"
+      description: "Check for and report any unmapped accounts"
+      severity: "warning"
+      
+  traceability:
+    sourceDocument: "DOI for Trial Balance Process .docx"
+    section: "Section 3 - Report Summary"
+    subsection: "Coverage"
+    version: "2.0"

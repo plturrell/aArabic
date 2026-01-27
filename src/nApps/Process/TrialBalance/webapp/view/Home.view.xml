@@ -1,107 +1,134 @@
 <mvc:View
-    controllerName="trial.balance.controller.Home"
-    xmlns:mvc="sap.ui.core.mvc"
+    controllerName="trialbalance.controller.Home"
     xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
     xmlns:f="sap.f"
-    xmlns:card="sap.f.cards"
-    displayBlock="true">
+    xmlns:core="sap.ui.core"
+    displayBlock="true"
+    height="100%">
+    
     <Page
         id="homePage"
-        title="{i18n>homeTitle}"
-        showNavButton="false">
-        <headerContent>
-            <Button
-                icon="sap-icon://user-settings"
-                text="{app>/user/name}"
-                press="onUserMenuPress" />
-        </headerContent>
+        showHeader="false">
+        
         <content>
-            <f:GridContainer
-                id="homeGrid"
-                snapToRow="true"
-                class="sapUiSmallMargin">
+            <!-- SAP Fiori ShellBar -->
+            <f:ShellBar
+                id="shellBar"
+                title="Trial Balance"
+                showMenuButton="false"
+                showSearch="true"
+                showNotifications="true"
+                notificationsNumber="3"
+                search=".onSearch"
+                notificationsPressed=".onNotificationsPress">
+                <f:profile>
+                    <Avatar
+                        initials="TB"
+                        displaySize="XS"
+                        press=".onAvatarPress"/>
+                </f:profile>
+            </f:ShellBar>
+
+            <!-- Launchpad Content -->
+            <VBox class="sapUiSmallMargin">
+                <Title text="My Home" level="H1" class="sapUiSmallMarginBottom"/>
+                <Text text="Welcome to Trial Balance Application" class="sapUiSmallMarginBottom"/>
                 
-                <!-- Trial Balance Card -->
-                <f:Card class="sapUiMediumMargin">
-                    <f:header>
-                        <card:Header
-                            title="{i18n>trialBalanceTitle}"
-                            subtitle="{i18n>trialBalanceSubtitle}"
-                            iconSrc="sap-icon://accounting-document-verification" />
-                    </f:header>
-                    <f:content>
-                        <VBox class="sapUiSmallMargin">
-                            <Label text="{i18n>trialBalanceDescription}" />
-                            <Button
-                                text="{i18n>openTrialBalance}"
-                                type="Emphasized"
-                                press="onNavigateToTrialBalance"
-                                class="sapUiTinyMarginTop" />
-                        </VBox>
-                    </f:content>
-                </f:Card>
-
-                <!-- Reconciliation Card -->
-                <f:Card class="sapUiMediumMargin">
-                    <f:header>
-                        <card:Header
-                            title="{i18n>reconciliationTitle}"
-                            subtitle="{i18n>reconciliationSubtitle}"
-                            iconSrc="sap-icon://complete" />
-                    </f:header>
-                    <f:content>
-                        <VBox class="sapUiSmallMargin">
-                            <Label text="{i18n>reconciliationDescription}" />
-                            <Button
-                                text="{i18n>openReconciliation}"
-                                type="Emphasized"
-                                press="onNavigateToReconciliation"
-                                class="sapUiTinyMarginTop" />
-                        </VBox>
-                    </f:content>
-                </f:Card>
-
-                <!-- Approval Card -->
-                <f:Card class="sapUiMediumMargin">
-                    <f:header>
-                        <card:Header
-                            title="{i18n>approvalTitle}"
-                            subtitle="{i18n>approvalSubtitle}"
-                            iconSrc="sap-icon://workflow-tasks" />
-                    </f:header>
-                    <f:content>
-                        <VBox class="sapUiSmallMargin">
-                            <Label text="{i18n>approvalDescription}" />
-                            <Button
-                                text="{i18n>openApproval}"
-                                type="Emphasized"
-                                press="onNavigateToApproval"
-                                class="sapUiTinyMarginTop" />
-                        </VBox>
-                    </f:content>
-                </f:Card>
-
-                <!-- Analytics Card -->
-                <f:Card class="sapUiMediumMargin">
-                    <f:header>
-                        <card:Header
-                            title="{i18n>analyticsTitle}"
-                            subtitle="{i18n>analyticsSubtitle}"
-                            iconSrc="sap-icon://chart-table-view" />
-                    </f:header>
-                    <f:content>
-                        <VBox class="sapUiSmallMargin">
-                            <Label text="{i18n>analyticsDescription}" />
-                            <Button
-                                text="{i18n>openAnalytics}"
-                                type="Emphasized"
-                                press="onNavigateToAnalytics"
-                                class="sapUiTinyMarginTop" />
-                        </VBox>
-                    </f:content>
-                </f:Card>
-
-            </f:GridContainer>
+                <!-- Tile Grid -->
+                <f:GridContainer class="sapUiSmallMarginTop">
+                    <!-- Tile 1: Metadata -->
+                            <GenericTile
+                                header="Metadata"
+                                subheader="ORD &amp; CSN"
+                                press="onNavigateToMetadata">
+                                <TileContent>
+                                    <ImageContent src="sap-icon://database" />
+                                </TileContent>
+                            </GenericTile>
+                            
+                            <GenericTile
+                                header="ODPS Catalog"
+                                subheader="Data Products"
+                                press="onODPSCatalog">
+                                <TileContent>
+                                    <ImageContent src="sap-icon://product" />
+                                </TileContent>
+                            </GenericTile>
+                            
+                            <GenericTile
+                                header="Quality Dashboard"
+                                subheader="ODPS v4.1"
+                                press="onQualityDashboard">
+                                <TileContent>
+                                    <NumericContent
+                                        value="94.6"
+                                        valueColor="Good"
+                                        icon="sap-icon://quality-issue" />
+                                </TileContent>
+                            </GenericTile>
+                            
+                            <GenericTile
+                                header="Data Lineage"
+                                subheader="Traceability"
+                                press="onLineageGraph">
+                                <TileContent>
+                                    <ImageContent src="sap-icon://chain-link" />
+                                </TileContent>
+                            </GenericTile>
+                    
+                    <!-- Tile 5: YTD Analysis -->
+                    <GenericTile
+                        header="YTD Analysis"
+                        subheader="Analytical List Page"
+                        press="onNavigateToYTD">
+                        <TileContent>
+                            <ImageContent src="sap-icon://line-chart"/>
+                        </TileContent>
+                    </GenericTile>
+                    
+                    <!-- Tile 6: Raw Data -->
+                    <GenericTile
+                        header="Raw Data Explorer"
+                        subheader="Object Page"
+                        press="onNavigateToRawData">
+                        <TileContent>
+                            <ImageContent src="sap-icon://table-view"/>
+                        </TileContent>
+                    </GenericTile>
+                    
+                    <!-- Tile 7: BS Variance -->
+                    <GenericTile
+                        header="BS Variance"
+                        subheader="Balance Sheet Analysis"
+                        press="onNavigateToBSVariance">
+                        <TileContent>
+                            <ImageContent src="sap-icon://compare"/>
+                        </TileContent>
+                    </GenericTile>
+                    
+                    <!-- Tile 8: Checklist -->
+                    <GenericTile
+                        header="Checklist Phase"
+                        subheader="Process Tracking"
+                        press="onNavigateToChecklist">
+                        <TileContent>
+                            <ImageContent src="sap-icon://checklist"/>
+                        </TileContent>
+                    </GenericTile>
+                    
+                    <!-- Tile 9: Meta Data (duplicate, using same handler as Tile 1) -->
+                    <GenericTile
+                        header="Meta Data"
+                        subheader="Configuration"
+                        press="onNavigateToMetadata">
+                        <TileContent>
+                            <ImageContent src="sap-icon://settings"/>
+                        </TileContent>
+                    </GenericTile>
+                </f:GridContainer>
+            </VBox>
         </content>
     </Page>
+    
 </mvc:View>

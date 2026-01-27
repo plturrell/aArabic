@@ -1,0 +1,237 @@
+<mvc:View
+    controllerName="trialbalance.controller.QualityDashboard"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:l="sap.ui.layout"
+    xmlns:viz="sap.viz.ui5.controls"
+    xmlns:viz.feeds="sap.viz.ui5.controls.common.feeds"
+    xmlns:viz.data="sap.viz.ui5.data"
+    displayBlock="true">
+    
+    <Page
+        title="Data Quality Dashboard - ODPS v4.1"
+        showNavButton="true"
+        navButtonPress=".onNavBack">
+        
+        <headerContent>
+            <Button
+                icon="sap-icon://refresh"
+                tooltip="Refresh Quality Metrics"
+                press=".onRefresh" />
+            <Button
+                icon="sap-icon://download"
+                tooltip="Export Report"
+                press=".onExportReport" />
+        </headerContent>
+        
+        <content>
+            <l:VerticalLayout class="sapUiSmallMargin" width="100%">
+                
+                <!-- Quality Overview Tiles -->
+                <l:HorizontalLayout class="sapUiMediumMarginBottom">
+                    <GenericTile
+                        header="Average Quality Score"
+                        subheader="All Data Products"
+                        class="sapUiSmallMarginEnd"
+                        press=".onTilePress">
+                        <TileContent>
+                            <NumericContent
+                                value="{quality>/averageQuality}"
+                                valueColor="{= ${quality>/averageQuality} >= 90 ? 'Good' : ${quality>/averageQuality} >= 80 ? 'Critical' : 'Error' }"
+                                icon="sap-icon://quality-issue"
+                                withMargin="false" />
+                        </TileContent>
+                    </GenericTile>
+                    
+                    <GenericTile
+                        header="Products Above 95%"
+                        subheader="High Quality"
+                        class="sapUiSmallMarginEnd">
+                        <TileContent>
+                            <NumericContent
+                                value="{quality>/highQualityCount}"
+                                valueColor="Good"
+                                icon="sap-icon://accept"
+                                withMargin="false" />
+                        </TileContent>
+                    </GenericTile>
+                    
+                    <GenericTile
+                        header="Products Below 90%"
+                        subheader="Needs Attention"
+                        class="sapUiSmallMarginEnd">
+                        <TileContent>
+                            <NumericContent
+                                value="{quality>/lowQualityCount}"
+                                valueColor="Critical"
+                                icon="sap-icon://warning"
+                                withMargin="false" />
+                        </TileContent>
+                    </GenericTile>
+                    
+                    <GenericTile
+                        header="Last Updated"
+                        subheader="Quality Metrics">
+                        <TileContent>
+                            <NumericContent
+                                value="{quality>/lastUpdateTime}"
+                                icon="sap-icon://time-entry-request"
+                                withMargin="false" />
+                        </TileContent>
+                    </GenericTile>
+                </l:HorizontalLayout>
+                
+                <!-- Quality Score Chart -->
+                <Panel
+                    headerText="Quality Scores by Product"
+                    class="sapUiMediumMarginBottom">
+                    <content>
+                        <viz:VizFrame
+                            id="qualityChart"
+                            height="400px"
+                            width="100%"
+                            vizType="column"
+                            uiConfig="{applicationSet:'fiori'}">
+                            <viz:dataset>
+                                <viz.data:FlattenedDataset data="{quality>/products}">
+                                    <viz.data:dimensions>
+                                        <viz.data:DimensionDefinition name="Product" value="{quality>name}" />
+                                    </viz.data:dimensions>
+                                    <viz.data:measures>
+                                        <viz.data:MeasureDefinition name="Quality Score" value="{quality>qualityScore}" />
+                                    </viz.data:measures>
+                                </viz.data:FlattenedDataset>
+                            </viz:dataset>
+                            <viz:feeds>
+                                <viz.feeds:FeedItem uid="valueAxis" type="Measure" values="Quality Score" />
+                                <viz.feeds:FeedItem uid="categoryAxis" type="Dimension" values="Product" />
+                            </viz:feeds>
+                        </viz:VizFrame>
+                    </content>
+                </Panel>
+                
+                <!-- Quality Dimensions Table -->
+                <Panel
+                    headerText="Quality Dimensions Detail"
+                    class="sapUiMediumMarginBottom">
+                    <content>
+                        <Table
+                            id="dimensionsTable"
+                            items="{dimensions>/dimensions}">
+                            <columns>
+                                <Column width="12em">
+                                    <Text text="Data Product" />
+                                </Column>
+                                <Column width="8em" hAlign="Center">
+                                    <Text text="Completeness" />
+                                </Column>
+                                <Column width="8em" hAlign="Center">
+                                    <Text text="Accuracy" />
+                                </Column>
+                                <Column width="8em" hAlign="Center">
+                                    <Text text="Consistency" />
+                                </Column>
+                                <Column width="8em" hAlign="Center">
+                                    <Text text="Timeliness" />
+                                </Column>
+                                <Column width="8em" hAlign="Center">
+                                    <Text text="Overall" />
+                                </Column>
+                            </columns>
+                            <items>
+                                <ColumnListItem>
+                                    <cells>
+                                        <Text text="{dimensions>product}" />
+                                        <ObjectNumber
+                                            number="{dimensions>completeness}"
+                                            unit="%"
+                                            state="{= ${dimensions>completeness} >= 95 ? 'Success' : 'Warning' }" />
+                                        <ObjectNumber
+                                            number="{dimensions>accuracy}"
+                                            unit="%"
+                                            state="{= ${dimensions>accuracy} >= 95 ? 'Success' : 'Warning' }" />
+                                        <ObjectNumber
+                                            number="{dimensions>consistency}"
+                                            unit="%"
+                                            state="{= ${dimensions>consistency} >= 95 ? 'Success' : 'Warning' }" />
+                                        <ObjectNumber
+                                            number="{dimensions>timeliness}"
+                                            unit="%"
+                                            state="{= ${dimensions>timeliness} >= 95 ? 'Success' : 'Warning' }" />
+                                        <ObjectNumber
+                                            number="{dimensions>overall}"
+                                            unit="%"
+                                            state="{= ${dimensions>overall} >= 95 ? 'Success' : ${dimensions>overall} >= 85 ? 'Warning' : 'Error' }"
+                                            emphasized="true" />
+                                    </cells>
+                                </ColumnListItem>
+                            </items>
+                        </Table>
+                    </content>
+                </Panel>
+                
+                <!-- Validation Rules -->
+                <Panel
+                    headerText="Active Validation Rules"
+                    expandable="true"
+                    expanded="false">
+                    <content>
+                        <Table
+                            items="{rules>/rules}">
+                            <columns>
+                                <Column width="6em">
+                                    <Text text="Rule ID" />
+                                </Column>
+                                <Column width="12em">
+                                    <Text text="Rule Name" />
+                                </Column>
+                                <Column width="20em">
+                                    <Text text="Description" />
+                                </Column>
+                                <Column width="6em" hAlign="Center">
+                                    <Text text="Severity" />
+                                </Column>
+                                <Column width="8em">
+                                    <Text text="Field" />
+                                </Column>
+                                <Column width="8em">
+                                    <Text text="Product" />
+                                </Column>
+                            </columns>
+                            <items>
+                                <ColumnListItem>
+                                    <cells>
+                                        <Text text="{rules>ruleID}" />
+                                        <Text text="{rules>name}" />
+                                        <Text text="{rules>description}" />
+                                        <ObjectStatus
+                                            text="{rules>severity}"
+                                            state="{= ${rules>severity} === 'error' ? 'Error' : ${rules>severity} === 'warning' ? 'Warning' : 'Information' }" />
+                                        <Text text="{rules>field}" />
+                                        <Text text="{rules>product}" />
+                                    </cells>
+                                </ColumnListItem>
+                            </items>
+                        </Table>
+                    </content>
+                </Panel>
+                
+            </l:VerticalLayout>
+        </content>
+        
+        <footer>
+            <Toolbar>
+                <ToolbarSpacer />
+                <Button
+                    text="View Catalog"
+                    icon="sap-icon://product"
+                    press=".onViewCatalog" />
+                <Button
+                    text="View Lineage"
+                    icon="sap-icon://chain-link"
+                    press=".onViewLineage" />
+            </Toolbar>
+        </footer>
+        
+    </Page>
+</mvc:View>

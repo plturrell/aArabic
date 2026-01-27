@@ -1,0 +1,123 @@
+<mvc:View
+    controllerName="trialbalance.controller.YTDAnalysis"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:f="sap.f"
+    xmlns:core="sap.ui.core"
+    xmlns:table="sap.ui.table"
+    xmlns:custom="trialbalance.control"
+    displayBlock="true"
+    height="100%">
+    
+    <Page
+        id="ytdPage"
+        showHeader="false"
+        showNavButton="true"
+        navButtonPress=".onNavBack">
+        
+        <content>
+            <!-- SAP Fiori ShellBar -->
+            <f:ShellBar
+                id="shellBar"
+                title="Trial Balance"
+                showMenuButton="false"
+                showSearch="true"
+                showNotifications="true"
+                notificationsNumber="3"
+                search=".onSearch"
+                notificationsPressed=".onNotificationsPress">
+                <f:profile>
+                    <Avatar initials="TB" displaySize="XS" press=".onAvatarPress"/>
+                </f:profile>
+            </f:ShellBar>
+
+            <!-- Analytical List Page Content -->
+            <VBox class="sapUiSmallMargin">
+                <Title text="YTD Analysis" level="H1" class="sapUiSmallMarginBottom"/>
+                <Text text="Year-to-Date Analytical List Page" class="sapUiSmallMarginBottom"/>
+                
+                <!-- Filter Bar -->
+                <Panel headerText="Filters" class="sapUiResponsiveMargin" expandable="true" expanded="true">
+                    <content>
+                        <HBox>
+                            <VBox class="sapUiSmallMarginEnd">
+                                <Label text="Period" class="sapUiTinyMarginBottom"/>
+                                <Select id="periodSelect" selectedKey="2026">
+                                    <items>
+                                        <core:Item key="2026" text="2026"/>
+                                        <core:Item key="2025" text="2025"/>
+                                        <core:Item key="2024" text="2024"/>
+                                    </items>
+                                </Select>
+                            </VBox>
+                            <VBox class="sapUiSmallMarginEnd">
+                                <Label text="Account Type" class="sapUiTinyMarginBottom"/>
+                                <Select id="accountTypeSelect">
+                                    <items>
+                                        <core:Item key="all" text="All"/>
+                                        <core:Item key="asset" text="Assets"/>
+                                        <core:Item key="liability" text="Liabilities"/>
+                                        <core:Item key="equity" text="Equity"/>
+                                    </items>
+                                </Select>
+                            </VBox>
+                            <VBox justifyContent="End">
+                                <Button text="Apply Filters" type="Emphasized" press=".onApplyFilters"/>
+                            </VBox>
+                        </HBox>
+                    </content>
+                </Panel>
+                
+                <!-- Network Graph Visualization -->
+                <Panel headerText="Account Relationships" class="sapUiResponsiveMargin">
+                    <content>
+                        <custom:NetworkGraphControl 
+                            height="500px"
+                            width="100%"/>
+                    </content>
+                </Panel>
+                
+                <!-- Chart Section -->
+                <Panel headerText="YTD Trend" class="sapUiResponsiveMargin">
+                    <content>
+                        <VBox alignItems="Center" justifyContent="Center" height="200px">
+                            <Text text="Chart: YTD trend visualization will be displayed here"/>
+                            <Text text="(Integration with chart library pending)"/>
+                        </VBox>
+                    </content>
+                </Panel>
+                
+                <!-- Analytical Table -->
+                <Panel headerText="Account Analysis" class="sapUiResponsiveMargin">
+                    <content>
+                        <Table
+                            id="ytdTable"
+                            items="{/accounts}"
+                            growing="true"
+                            growingThreshold="20">
+                            <columns>
+                                <Column><Text text="Account"/></Column>
+                                <Column><Text text="Description"/></Column>
+                                <Column><Text text="YTD Debit"/></Column>
+                                <Column><Text text="YTD Credit"/></Column>
+                                <Column><Text text="Balance"/></Column>
+                            </columns>
+                            <items>
+                                <ColumnListItem>
+                                    <cells>
+                                        <Text text="Sample data pending"/>
+                                        <Text text="Connect to backend"/>
+                                        <Text text="$0.00"/>
+                                        <Text text="$0.00"/>
+                                        <Text text="$0.00"/>
+                                    </cells>
+                                </ColumnListItem>
+                            </items>
+                        </Table>
+                    </content>
+                </Panel>
+            </VBox>
+        </content>
+    </Page>
+    
+</mvc:View>

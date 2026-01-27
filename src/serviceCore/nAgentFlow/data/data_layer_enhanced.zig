@@ -544,32 +544,7 @@ pub fn ConnectionPool(comptime T: type, comptime ConnectorFn: type) type {
 // ============================================================================
 
 
-/// Qdrant configuration
-pub const QdrantConfig = struct {
-    url: []const u8 = "http://localhost:6333",
-    api_key: ?[]const u8 = null,
-    collection: []const u8 = "workflow_vectors",
-    timeout_ms: u32 = 5000,
-};
-
-/// Memgraph configuration
-pub const MemgraphConfig = struct {
-    host: []const u8 = "localhost",
-    port: u16 = 7687,
-    user: []const u8 = "memgraph",
-    password: []const u8 = "",
-    pool: ConnectionPoolConfig = .{},
-};
-
-/// Marquez configuration
-pub const MarquezConfig = struct {
-    url: []const u8 = "http://localhost:5000",
-    namespace: []const u8 = "nworkflow",
-    api_key: ?[]const u8 = null,
-    timeout_ms: u32 = 5000,
-};
-
-/// SAP HANA configuration
+/// SAP HANA Cloud configuration
 pub const HanaPoolConfig = struct {
     host: []const u8 = "localhost",
     port: u16 = 443, // Default port for HANA Cloud
@@ -594,12 +569,9 @@ pub const HanaPoolConfig = struct {
     }
 };
 
-/// Complete data layer configuration
+/// Complete data layer configuration (SAP-only)
 pub const DataLayerConfig = struct {
     hana: HanaPoolConfig,
-    qdrant: QdrantConfig = .{},
-    memgraph: MemgraphConfig = .{},
-    marquez: MarquezConfig = .{},
     health_check_interval_ms: u32 = 30000,
     enable_metrics: bool = true,
     enable_circuit_breakers: bool = true,
@@ -765,43 +737,7 @@ pub const HealthChecker = struct {
     }
 
 
-    /// Check Qdrant health
-    pub fn checkQdrant(self: *HealthChecker, url: []const u8) !HealthStatus {
-        _ = url;
-        const start = std.time.milliTimestamp();
-
-        // Simulate health check - in production would call GET /health
-        const latency = @as(u64, @intCast(std.time.milliTimestamp() - start));
-        const status = ServiceStatus.fromLatency(latency + 1, self.config.health_check_interval_ms / 10);
-
-        return HealthStatus.init(self.allocator, "qdrant", status, latency + 1);
-    }
-
-    /// Check Memgraph health
-    pub fn checkMemgraph(self: *HealthChecker, conn_string: []const u8) !HealthStatus {
-        _ = conn_string;
-        const start = std.time.milliTimestamp();
-
-        // Simulate health check - in production would execute RETURN 1
-        const latency = @as(u64, @intCast(std.time.milliTimestamp() - start));
-        const status = ServiceStatus.fromLatency(latency + 1, self.config.health_check_interval_ms / 10);
-
-        return HealthStatus.init(self.allocator, "memgraph", status, latency + 1);
-    }
-
-    /// Check Marquez health
-    pub fn checkMarquez(self: *HealthChecker, url: []const u8) !HealthStatus {
-        _ = url;
-        const start = std.time.milliTimestamp();
-
-        // Simulate health check - in production would call GET /api/v1/namespaces
-        const latency = @as(u64, @intCast(std.time.milliTimestamp() - start));
-        const status = ServiceStatus.fromLatency(latency + 1, self.config.health_check_interval_ms / 10);
-
-        return HealthStatus.init(self.allocator, "marquez", status, latency + 1);
-    }
-
-    /// Check SAP HANA health
+    /// Check SAP HANA Cloud health
     pub fn checkHana(self: *HealthChecker, config: HanaPoolConfig) !HealthStatus {
         const start = std.time.milliTimestamp();
 
@@ -814,7 +750,7 @@ pub const HealthChecker = struct {
         return HealthStatus.init(self.allocator, "hana", status, latency + 1);
     }
 
-    /// Check all services
+    /// Check all services (SAP HANA only)
     pub fn checkAll(self: *HealthChecker) ![]HealthStatus {
         self.mutex.lock();
         if (self.check_in_progress) {
@@ -830,15 +766,12 @@ pub const HealthChecker = struct {
             self.mutex.unlock();
         }
 
-        const service_count: usize = 4; // HANA + Qdrant + Memgraph + Marquez
+        const service_count: usize = 1; // SAP HANA Cloud only
 
         var results = try self.allocator.alloc(HealthStatus, service_count);
         errdefer self.allocator.free(results);
 
         results[0] = try self.checkHana(self.config.hana);
-        results[1] = try self.checkQdrant(self.config.qdrant.url);
-        results[2] = try self.checkMemgraph("placeholder");
-        results[3] = try self.checkMarquez(self.config.marquez.url);
 
         // Store results
         self.mutex.lock();

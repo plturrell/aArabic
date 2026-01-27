@@ -1,135 +1,51 @@
 <mvc:View
-    controllerName="trial.balance.controller.TrialBalance"
-    xmlns:mvc="sap.ui.core.mvc"
+    controllerName="trialbalance.controller.TrialBalance"
     xmlns="sap.m"
-    xmlns:table="sap.ui.table"
-    displayBlock="true">
+    xmlns:mvc="sap.ui.core.mvc"
+    displayBlock="true"
+    height="100%">
+    
     <Page
         id="trialBalancePage"
-        title="{i18n>trialBalanceTitle}"
-        showNavButton="true"
-        navButtonPress="onNavBack">
+        title="Trial Balance"
+        showNavButton="false">
+        
         <content>
             <VBox class="sapUiSmallMargin">
-                <HBox justifyContent="SpaceBetween" class="sapUiSmallMarginBottom">
-                    <Title text="{i18n>trialBalanceOverview}" level="H2" />
-                    <HBox>
-                        <Button
-                            text="{i18n>refresh}"
-                            icon="sap-icon://refresh"
-                            press="onRefresh" />
-                        <Button
-                            text="{i18n>export}"
-                            icon="sap-icon://excel-attachment"
-                            press="onExport"
-                            class="sapUiTinyMarginBegin" />
-                    </HBox>
-                </HBox>
-
-                <!-- Filters -->
-                <Toolbar>
-                    <ComboBox
-                        id="periodFilter"
-                        placeholder="{i18n>selectPeriod}"
-                        width="200px"
-                        change="onFilterChange" />
-                    <ComboBox
-                        id="companyCodeFilter"
-                        placeholder="{i18n>selectCompanyCode}"
-                        width="200px"
-                        change="onFilterChange" />
-                    <SearchField
-                        id="accountSearch"
-                        placeholder="{i18n>searchAccounts}"
-                        width="300px"
-                        search="onSearch" />
-                </Toolbar>
-
-                <!-- Trial Balance Table -->
-                <table:Table
-                    id="trialBalanceTable"
-                    rows="{trialBalance>/accounts}"
-                    selectionMode="Single"
-                    visibleRowCount="20"
-                    rowSelectionChange="onRowSelect"
-                    class="sapUiSmallMarginTop">
-                    <table:columns>
-                        <table:Column width="120px">
-                            <Label text="{i18n>accountNumber}" />
-                            <table:template>
-                                <Text text="{trialBalance>accountNumber}" />
-                            </table:template>
-                        </table:Column>
-                        <table:Column width="300px">
-                            <Label text="{i18n>accountName}" />
-                            <table:template>
-                                <Text text="{trialBalance>accountName}" />
-                            </table:template>
-                        </table:Column>
-                        <table:Column width="150px" hAlign="Right">
-                            <Label text="{i18n>debit}" />
-                            <table:template>
-                                <ObjectNumber
-                                    number="{trialBalance>debit}"
-                                    unit="{trialBalance>currency}" />
-                            </table:template>
-                        </table:Column>
-                        <table:Column width="150px" hAlign="Right">
-                            <Label text="{i18n>credit}" />
-                            <table:template>
-                                <ObjectNumber
-                                    number="{trialBalance>credit}"
-                                    unit="{trialBalance>currency}" />
-                            </table:template>
-                        </table:Column>
-                        <table:Column width="150px" hAlign="Right">
-                            <Label text="{i18n>balance}" />
-                            <table:template>
-                                <ObjectNumber
-                                    number="{trialBalance>balance}"
-                                    unit="{trialBalance>currency}"
-                                    state="{trialBalance>balanceState}" />
-                            </table:template>
-                        </table:Column>
-                        <table:Column width="120px">
-                            <Label text="{i18n>status}" />
-                            <table:template>
-                                <ObjectStatus
-                                    text="{trialBalance>status}"
-                                    state="{trialBalance>statusState}" />
-                            </table:template>
-                        </table:Column>
-                    </table:columns>
-                </table:Table>
-
-                <!-- Summary Panel -->
-                <Panel headerText="{i18n>summary}" class="sapUiSmallMarginTop">
-                    <HBox justifyContent="SpaceAround" class="sapUiSmallMargin">
-                        <VBox alignItems="Center">
-                            <Title text="{i18n>totalDebit}" level="H4" />
-                            <ObjectNumber
-                                number="{trialBalance>/summary/totalDebit}"
-                                unit="USD"
-                                emphasized="true" />
+                <Title text="Trial Balance Overview" level="H2"/>
+                <Text text="View and analyze your trial balance data" class="sapUiSmallMarginBottom"/>
+                
+                <!-- Sample content - will connect to backend later -->
+                <Panel headerText="Account Summary" class="sapUiResponsiveMargin">
+                    <content>
+                        <VBox>
+                            <HBox justifyContent="SpaceBetween" class="sapUiSmallMarginBottom">
+                                <Label text="Total Debits:" design="Bold"/>
+                                <Text text="$0.00"/>
+                            </HBox>
+                            <HBox justifyContent="SpaceBetween" class="sapUiSmallMarginBottom">
+                                <Label text="Total Credits:" design="Bold"/>
+                                <Text text="$0.00"/>
+                            </HBox>
+                            <HBox justifyContent="SpaceBetween">
+                                <Label text="Balance:" design="Bold"/>
+                                <Text text="$0.00"/>
+                            </HBox>
                         </VBox>
-                        <VBox alignItems="Center">
-                            <Title text="{i18n>totalCredit}" level="H4" />
-                            <ObjectNumber
-                                number="{trialBalance>/summary/totalCredit}"
-                                unit="USD"
-                                emphasized="true" />
-                        </VBox>
-                        <VBox alignItems="Center">
-                            <Title text="{i18n>difference}" level="H4" />
-                            <ObjectNumber
-                                number="{trialBalance>/summary/difference}"
-                                unit="USD"
-                                state="{trialBalance>/summary/differenceState}"
-                                emphasized="true" />
-                        </VBox>
-                    </HBox>
+                    </content>
                 </Panel>
+                
+                <Button
+                    text="Calculate Trial Balance"
+                    type="Emphasized"
+                    press=".onCalculate"
+                    class="sapUiSmallMarginTop"/>
+                    
+                <Text
+                    text="Ready to connect to backend API"
+                    class="sapUiSmallMarginTop"/>
             </VBox>
         </content>
     </Page>
+    
 </mvc:View>

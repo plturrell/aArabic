@@ -1,0 +1,346 @@
+# ODPS v4.1 - Dataset Metadata Data Product
+# Metadata product for dataset quality and lineage management
+
+product:
+  productID: "urn:uuid:dataset-metadata-v1"
+  name: "Dataset Quality Metrics"
+  description: "Comprehensive metadata for all trial balance datasets including quality scores (0-100), validation metrics (total/valid/invalid records), source system information, extraction timestamps, data hashes for verification, lineage relationships (parent dataset tracking), transformation types, and publication status. Enables data quality monitoring, governance compliance, and dataset discovery."
+  version: "1.0.0"
+  status: "active"
+  visibility: "organization"
+  
+  details:
+    type: "metadata"
+    category: "data-governance"
+    subcategory: "data-quality"
+    tags:
+      - "dataset-metadata"
+      - "data-quality"
+      - "quality-metrics"
+      - "governance"
+      - "discovery"
+      - "monitoring"
+    owner:
+      name: "Trial Balance Team"
+      email: "trial-balance-team@company.com"
+      organizationalUnit: "Finance & Data Governance"
+    domain: "Data Governance"
+    updateFrequency: "real-time"
+    latestUpdateDate: "2026-01-27"
+    
+  contract:
+    termsAndConditions:
+      type: "internal-use"
+      licenseType: "proprietary"
+      confidentiality: "internal"
+    dataFormat: "CSN"
+    contractRef: "../../csn/trial-balance.csn.json#DatasetMetadata"
+    schemaSpecification: "https://github.com/SAP/cds-spec/blob/main/csn-interop-v2.md"
+    dataModel:
+      type: "relational"
+      primaryKeys: ["dataset_id"]
+      
+  dataQuality:
+    dataQualityScore: 100.0
+    qualityDimensions:
+      - dimension: "completeness"
+        description: "Metadata captured for all datasets"
+        score: 100
+        measurementMethod: "Automatic metadata generation"
+      - dimension: "accuracy"
+        description: "Quality scores calculated correctly"
+        score: 100
+        measurementMethod: "Formula verification"
+      - dimension: "consistency"
+        description: "Consistent metadata structure"
+        score: 100
+        measurementMethod: "Schema validation"
+      - dimension: "timeliness"
+        description: "Real-time metadata updates"
+        score: 100
+        measurementMethod: "Timestamp synchronization"
+    validationRules:
+      - ruleID: "META001"
+        name: "Dataset ID Unique"
+        description: "Each dataset must have unique ID"
+        severity: "error"
+        field: "dataset_id"
+      - ruleID: "META002"
+        name: "Quality Score Range"
+        description: "Quality score must be 0-100"
+        severity: "error"
+        field: "data_quality_score"
+      - ruleID: "META003"
+        name: "Record Count Positive"
+        description: "Total records must be positive"
+        severity: "error"
+        field: "total_records"
+      - ruleID: "META004"
+        name: "Status Valid"
+        description: "Status must be draft/validated/published/archived"
+        severity: "error"
+        field: "status"
+    dataLineage:
+      upstream:
+        - productID: "system-generated"
+          name: "System Generated"
+          type: "automated"
+      transformations:
+        - transformationID: "calculate-quality"
+          description: "Calculate quality scores from validation results"
+          method: "aggregation"
+          formula: "(valid_records / total_records) × 100"
+      downstream:
+        - productID: "urn:uuid:quality-dashboard-v1"
+          name: "Data Quality Dashboard"
+          relationship: "visualizes-quality"
+          
+  outputPort:
+    - portID: "metadata-rest-api"
+      name: "Dataset Metadata REST API"
+      description: "API for querying dataset metadata"
+      format: "JSON"
+      protocol: "HTTPS"
+      endpoint: "/api/v1/metadata"
+      authentication: "oauth2"
+      methods: ["GET"]
+      filtering:
+        - field: "business_unit"
+          operators: ["eq", "in"]
+        - field: "fiscal_period"
+          operators: ["eq", "in"]
+        - field: "status"
+          operators: ["eq", "in"]
+      rateLimit: "300 requests/minute"
+    - portID: "quality-metrics-api"
+      name: "Quality Metrics API"
+      description: "API for getting quality scores and metrics"
+      format: "JSON"
+      protocol: "HTTPS"
+      endpoint: "/api/v1/data-products/:id/quality"
+      authentication: "oauth2"
+      methods: ["GET"]
+      
+  pricingPlans:
+    - planID: "internal-use"
+      name: "Internal Use Only"
+      description: "Free access for data governance teams"
+      price: 0
+      currency: "USD"
+      billingPeriod: "monthly"
+      limitations:
+        - type: "rate-limit"
+          value: "300 requests/minute"
+      features:
+        - "Real-time quality monitoring"
+        - "Quality score dashboard"
+        - "Validation rule tracking"
+        - "Dataset discovery"
+        
+  SLA:
+    availability: 95.0
+    uptime: "Business hours"
+    responseTime:
+      p50: "500ms"
+      p95: "1500ms"
+      p99: "3000ms"
+    throughput: "100 requests/second"
+    dataFreshness: "real-time"
+    support:
+      - level: "business-hours"
+        hours: "9AM-5PM HKT"
+        responseTime: "1 day"
+        channels: ["email"]
+    maintenance:
+      window: "Sunday 6AM-7AM HKT"
+      frequency: "quarterly"
+      notificationPeriod: "7 days"
+      
+  extensions:
+    sapCSN: "../../csn/trial-balance.csn.json#DatasetMetadata"
+    qualityScoreFormula: "(valid_records / total_records) × 100 - penalties"
+    qualityPenalties:
+      suspect: "20% per record"
+      missing_required: "30% per record"
+    monitoringDashboard: "/webapp/index.html#/metadata"
+    
+  # DATA PRODUCTS CATALOG
+  # Registry of all Trial Balance data products with quality tracking
+  dataProductsCatalog:
+    description: "Complete catalog of Trial Balance data products with quality metrics"
+    lastUpdated: "2026-01-27"
+    
+    products:
+      # Primary Data Products
+      - productID: "urn:uuid:acdoca-journal-entries-v1"
+        name: "ACDOCA Journal Entries"
+        category: "primary"
+        productFile: "../primary/acdoca-journal-entries.odps.yaml"
+        qualityTarget: 95
+        updateFrequency: "daily"
+        
+      - productID: "urn:uuid:account-master-v1"
+        name: "G/L Account Master"
+        category: "primary"
+        productFile: "../primary/account-master.odps.yaml"
+        qualityTarget: 99
+        updateFrequency: "monthly"
+        
+      - productID: "urn:uuid:exchange-rates-v1"
+        name: "Foreign Exchange Rates"
+        category: "primary"
+        productFile: "../primary/exchange-rates.odps.yaml"
+        qualityTarget: 98
+        updateFrequency: "daily"
+        
+      - productID: "urn:uuid:trial-balance-aggregated-v1"
+        name: "Trial Balance (Aggregated)"
+        category: "primary"
+        productFile: "../primary/trial-balance-aggregated.odps.yaml"
+        qualityTarget: 92
+        updateFrequency: "daily"
+        
+      - productID: "urn:uuid:variances-v1"
+        name: "Period-over-Period Variances"
+        category: "primary"
+        productFile: "../primary/variances.odps.yaml"
+        qualityTarget: 90
+        updateFrequency: "monthly"
+        
+      # Operational Data Products
+      - productID: "urn:uuid:checklist-items-v1"
+        name: "Workflow Checklist"
+        category: "operational"
+        productFile: "../operational/checklist-items.odps.yaml"
+        qualityTarget: 85
+        updateFrequency: "real-time"
+        
+      - productID: "urn:uuid:tb-petrinet-v1"
+        name: "Petri Net Workflow"
+        category: "operational"
+        productFile: "../operational/trial-balance-petrinet.odps.yaml"
+        qualityTarget: 100
+        updateFrequency: "on-change"
+        
+      - productID: "urn:uuid:workflow-execution-log-v1"
+        name: "Workflow Execution Log"
+        category: "operational"
+        productFile: "../operational/workflow-execution-log.odps.yaml"
+        qualityTarget: 98
+        updateFrequency: "real-time"
+        
+      # Metadata Products
+      - productID: "urn:uuid:data-lineage-v1"
+        name: "Data Lineage Tracking"
+        category: "metadata"
+        productFile: "./data-lineage.odps.yaml"
+        qualityTarget: 100
+        updateFrequency: "real-time"
+        
+      - productID: "urn:uuid:dataset-metadata-v1"
+        name: "Dataset Quality Metrics"
+        category: "metadata"
+        productFile: "./dataset-metadata.odps.yaml"
+        qualityTarget: 100
+        updateFrequency: "real-time"
+        
+  # QUALITY RULE CATALOG
+  # Complete catalog of all data quality validation rules
+  qualityRuleCatalog:
+    description: "All data quality validation rules across data products"
+    lastUpdated: "2026-01-27"
+    
+    rulesByProduct:
+      # Variances rules
+      - productID: "urn:uuid:variances-v1"
+        rules:
+          - ruleID: "VAR001"
+            name: "Variance Calculation"
+            requirementRef: "REQ-THRESH-005"
+          - ruleID: "VAR002"
+            name: "Variance Percent"
+            requirementRef: "REQ-THRESH-005"
+          - ruleID: "VAR003"
+            name: "Materiality Threshold BS"
+            requirementRef: "REQ-THRESH-001"
+          - ruleID: "VAR004"
+            name: "Materiality Threshold PL"
+            requirementRef: "REQ-THRESH-002"
+          - ruleID: "VAR005"
+            name: "Commentary Required"
+            requirementRef: "REQ-THRESH-003"
+          - ruleID: "VAR006"
+            name: "Commentary Coverage 90%"
+            requirementRef: "REQ-THRESH-003"
+          - ruleID: "VAR007"
+            name: "Exception Flagging"
+            requirementRef: "REQ-CTRL-001"
+          - ruleID: "VAR008"
+            name: "Major Driver Identification"
+            requirementRef: "REQ-THRESH-004"
+            
+      # Trial Balance Aggregated rules
+      - productID: "urn:uuid:trial-balance-aggregated-v1"
+        rules:
+          - ruleID: "TB001"
+            name: "Balance Equation"
+            requirementRef: "VAL-001"
+          - ruleID: "TB002"
+            name: "Debit Credit Balance"
+            requirementRef: "VAL-001"
+          - ruleID: "TB003"
+            name: "IFRS Classification"
+            requirementRef: "REC-002"
+          - ruleID: "TB004"
+            name: "Period Data Accuracy"
+            requirementRef: "REC-001"
+          - ruleID: "TB005"
+            name: "GCOA Mapping Completeness"
+            requirementRef: "REC-002"
+          - ruleID: "TB006"
+            name: "Global Mapping Currency"
+            requirementRef: "REC-004"
+            
+      # Exchange Rates rules
+      - productID: "urn:uuid:exchange-rates-v1"
+        rules:
+          - ruleID: "FX001"
+            name: "From Currency Mandatory"
+            requirementRef: null
+          - ruleID: "FX002"
+            name: "To Currency Mandatory"
+            requirementRef: null
+          - ruleID: "FX003"
+            name: "Rate Positive"
+            requirementRef: null
+          - ruleID: "FX004"
+            name: "Ratio Positive"
+            requirementRef: null
+          - ruleID: "FX005"
+            name: "Exchange Rate Verification"
+            requirementRef: "REC-005"
+          - ruleID: "FX006"
+            name: "Period-Specific Rate Application"
+            requirementRef: "REQ-THRESH-006"
+          - ruleID: "FX007"
+            name: "Group Rate Source"
+            requirementRef: "REQ-THRESH-006"
+            
+    # Summary statistics
+    summary:
+      totalRules: 21
+      rulesByCategory:
+        variance: 8
+        trialBalance: 6
+        exchangeRates: 7
+      rulesMappedToRequirements: 18
+      rulesUnmapped: 3
+      
+  # REQUIREMENTS TRACEABILITY
+  requirementsTraceability:
+    sourceRequirements: "../requirements/"
+    primaryProducts: "../primary/"
+    operationalProducts: "../operational/"
+    petriNetSpec: "../operational/trial-balance-petrinet.odps.yaml"
+    reconciliationMatrix: "../RECONCILIATION_MATRIX.md"
+    lastReconciled: "2026-01-27"

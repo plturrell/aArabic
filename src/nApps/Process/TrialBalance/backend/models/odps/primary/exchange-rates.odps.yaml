@@ -1,0 +1,252 @@
+# ODPS v4.1 - Foreign Exchange Rates Data Product
+# Master data product for multi-currency conversion
+
+product:
+  productID: "urn:uuid:exchange-rates-v1"
+  name: "Foreign Exchange Rates"
+  description: "Multi-currency exchange rates for financial consolidation supporting standard, average, and historical rate types. Includes source tracking (ECB, Federal Reserve, SAP), validity periods, and conversion ratios for proper multi-currency accounting in compliance with IAS 21 (The Effects of Changes in Foreign Exchange Rates)."
+  version: "1.0.0"
+  status: "active"
+  visibility: "organization"
+  
+  details:
+    type: "dataset"
+    category: "master-data"
+    subcategory: "treasury"
+    tags:
+      - "exchange-rates"
+      - "currency-conversion"
+      - "fx-rates"
+      - "multi-currency"
+      - "iso-4217"
+      - "treasury"
+      - "ias-21"
+    owner:
+      name: "Trial Balance Team"
+      email: "trial-balance-team@company.com"
+      organizationalUnit: "Finance & Treasury"
+    domain: "Finance"
+    updateFrequency: "daily"
+    latestUpdateDate: "2026-01-27"
+    
+  contract:
+    termsAndConditions:
+      type: "internal-use"
+      licenseType: "proprietary"
+      confidentiality: "internal"
+    dataFormat: "CSN"
+    contractRef: "../../csn/trial-balance.csn.json#ExchangeRate"
+    schemaSpecification: "https://github.com/SAP/cds-spec/blob/main/csn-interop-v2.md"
+    dataModel:
+      type: "relational"
+      primaryKeys: ["from_curr", "to_curr", "rate_type", "valid_from"]
+      
+  dataQuality:
+    dataQualityScore: 98.0
+    qualityDimensions:
+      - dimension: "completeness"
+        description: "All required currency pairs present"
+        score: 99
+        measurementMethod: "Field presence validation"
+      - dimension: "accuracy"
+        description: "Rates validated against external sources"
+        score: 98
+        measurementMethod: "Cross-reference with ECB/Fed rates"
+      - dimension: "consistency"
+        description: "No conflicting rates for same date"
+        score: 97
+        measurementMethod: "Duplicate rate detection"
+      - dimension: "timeliness"
+        description: "Daily rate updates"
+        score: 99
+        measurementMethod: "Last update timestamp"
+    validationRules:
+      - ruleID: "FX001"
+        name: "From Currency Mandatory"
+        description: "Source currency is mandatory"
+        severity: "error"
+        field: "from_curr"
+      - ruleID: "FX002"
+        name: "To Currency Mandatory"
+        description: "Target currency is mandatory"
+        severity: "error"
+        field: "to_curr"
+      - ruleID: "FX003"
+        name: "Rate Positive"
+        description: "Exchange rate must be positive"
+        severity: "error"
+        field: "exchange_rate"
+      - ruleID: "FX004"
+        name: "Ratio Positive"
+        description: "Currency ratios must be positive"
+        severity: "error"
+        field: "ratio_from, ratio_to"
+      # NEW RULES - Added for DOI requirement compliance
+      - ruleID: "FX005"
+        name: "Exchange Rate Verification"
+        description: "Exchange rates for current and prior period must be correct for non-USD units (REC-005)"
+        severity: "error"
+        field: "exchange_rate"
+        requirementRef: "REC-005"
+        validation: "Rate must match Group exchange rate for period"
+      - ruleID: "FX006"
+        name: "Period-Specific Rate Application"
+        description: "Apply respective period's exchange rate for accurate comparison (REQ-THRESH-006)"
+        severity: "error"
+        field: "valid_from"
+        requirementRef: "REQ-THRESH-006"
+        validation: "Current period uses current rate, comparative uses comparative rate"
+      - ruleID: "FX007"
+        name: "Group Rate Source"
+        description: "Exchange rates must be sourced from Group exchange rates"
+        severity: "warning"
+        field: "rate_source"
+        requirementRef: "REQ-THRESH-006"
+        validation: "rate_source IN ('ECB', 'GROUP', 'SAP')"
+    dataLineage:
+      upstream:
+        - productID: "urn:ecb:exchange-rates"
+          name: "European Central Bank Exchange Rates"
+          type: "external-source"
+        - productID: "urn:fed:exchange-rates"
+          name: "Federal Reserve Exchange Rates"
+          type: "external-source"
+      transformations:
+        - transformationID: "consolidate-rates"
+          description: "Consolidate rates from multiple sources"
+          method: "weighted-average"
+      downstream:
+        - productID: "urn:uuid:acdoca-journal-entries-v1"
+          name: "ACDOCA Journal Entries"
+          relationship: "converts-currency"
+        - productID: "urn:uuid:trial-balance-aggregated-v1"
+          name: "Trial Balance Aggregated"
+          relationship: "enables-conversion"
+          
+  outputPort:
+    - portID: "fx-rest-api"
+      name: "Exchange Rate REST API"
+      description: "RESTful API for querying exchange rates"
+      format: "JSON"
+      protocol: "HTTPS"
+      endpoint: "/api/v1/exchange-rates"
+      authentication: "oauth2"
+      methods: ["GET"]
+      pagination: true
+      filtering:
+        - field: "from_curr"
+          operators: ["eq", "in"]
+        - field: "to_curr"
+          operators: ["eq", "in"]
+        - field: "valid_from"
+          operators: ["eq", "gte", "lte", "between"]
+      rateLimit: "500 requests/minute"
+    - portID: "fx-conversion-api"
+      name: "Currency Conversion API"
+      description: "API for converting amounts between currencies"
+      format: "JSON"
+      protocol: "HTTPS"
+      endpoint: "/api/v1/exchange-rates/convert"
+      authentication: "oauth2"
+      methods: ["POST"]
+      
+  pricingPlans:
+    - planID: "internal-use"
+      name: "Internal Use Only"
+      description: "Free access for internal finance and treasury teams"
+      price: 0
+      currency: "USD"
+      billingPeriod: "monthly"
+      limitations:
+        - type: "rate-limit"
+          value: "500 requests/minute"
+        - type: "data-retention"
+          value: "5 years historical"
+      features:
+        - "Daily rate updates"
+        - "Multiple rate types"
+        - "Historical rates"
+        - "Conversion API"
+        
+  SLA:
+    availability: 99.9
+    uptime: "24/7/365"
+    responseTime:
+      p50: "100ms"
+      p95: "300ms"
+      p99: "500ms"
+    throughput: "500 requests/second"
+    dataFreshness: "daily at 2PM HKT"
+    support:
+      - level: "business-hours"
+        hours: "9AM-5PM HKT"
+        responseTime: "8 hours"
+        channels: ["email"]
+      - level: "critical"
+        hours: "24/7"
+        responseTime: "2 hours"
+        channels: ["email", "phone"]
+    maintenance:
+      window: "Daily 2AM-2:15AM HKT"
+      frequency: "daily"
+      notificationPeriod: "1 day"
+      
+  extensions:
+    sapORD: "../../ord/trial-balance-product.json#sap.nApps.Process:dataProduct:ExchangeRates:v1"
+    sapCSN: "../../csn/trial-balance.csn.json#ExchangeRate"
+    rateSources: ["ECB", "FED", "SAP", "MANUAL"]
+    supportedCurrencies: ["HKD", "USD", "EUR", "GBP", "JPY", "CNY", "SGD"]
+    historicalDepth: "5 years"
+    industryStandards:
+      - "ISO-4217"
+      - "IAS-21"
+      
+  # BIDIRECTIONAL REQUIREMENTS TRACEABILITY
+  # This section links primary data product to DOI requirements
+  requirementsTraceability:
+    sourceRequirements: "../requirements/"
+    lastReconciled: "2026-01-27"
+    reconciliationStatus: "fully-mapped"
+    
+    implements:
+      # Business Rules & Thresholds Requirements
+      - requirementID: "REQ-THRESH-006"
+        requirementName: "Exchange Rate Application"
+        requirementFile: "../requirements/business-rules-thresholds.odps.yaml"
+        implementedByRules: ["FX005", "FX006", "FX007"]
+        coverage: 100
+        status: "fully-implemented"
+        details:
+          targetCurrency: "USD"
+          applicability: "Units with reporting currency other than USD"
+          periodRequirements:
+            - "Current period uses current period group exchange rate"
+            - "Comparative period uses comparative period group exchange rate"
+        
+      # Control Requirements - Reconciliation Checks
+      - requirementID: "REQ-CTRL-002"
+        requirementName: "Reconciliation Checks"
+        requirementFile: "../requirements/control-requirements.odps.yaml"
+        checkIDs: ["REC-005"]
+        implementedByRules: ["FX005", "FX006"]
+        coverage: 100
+        status: "fully-implemented"
+        note: "Exchange rate verification for non-USD units"
+        
+      # Comparative Period Logic
+      - requirementID: "REQ-PERIOD-005"
+        requirementName: "Exchange Rate Period Application"
+        requirementFile: "../requirements/comparative-period-logic.odps.yaml"
+        implementedByRules: ["FX006"]
+        coverage: 100
+        status: "fully-implemented"
+        
+    # Validation rules mapped to requirement control checks
+    controlToRuleMapping:
+      - controlCheckID: "REC-005"
+        controlName: "Exchange Rate Verification"
+        dataQualityRules: ["FX005", "FX006"]
+        
+      - controlCheckID: "REQ-THRESH-006"
+        controlName: "Exchange Rate Application Rules"
+        dataQualityRules: ["FX005", "FX006", "FX007"]

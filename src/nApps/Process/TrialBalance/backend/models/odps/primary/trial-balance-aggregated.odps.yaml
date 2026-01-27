@@ -1,0 +1,404 @@
+# ============================================================================
+# ODPS v4.1 - Trial Balance (Aggregated) Data Product
+# Derived analytical data product aggregated from ACDOCA journal entries
+# ============================================================================
+#
+# [ODPS:product=trial-balance-aggregated]
+# [ODPS:product.version=1.0.0]
+# [ODPS:rules=TB001,TB002,TB003,TB004,TB005,TB006]
+#
+# [DOI:controls=VAL-001,REC-001,REC-002,REC-004]
+# [DOI:thresholds=REQ-THRESH-001,REQ-THRESH-002,REQ-THRESH-007]
+#
+# [PETRI:process=TB_PROCESS_petrinet.pnml]
+# [PETRI:stages=S02,S03,S04,S05,S08]
+#
+# [TABLE:stores=TB_TRIAL_BALANCE,TB_GL_ACCOUNTS]
+#
+# [RELATION:implemented_by=CODE:balance_engine.zig]
+# [RELATION:implemented_by=CODE:fx_converter.zig]
+# [RELATION:displayed_by=CODE:TrialBalance.controller.js]
+# [RELATION:served_by=CODE:odps_api.zig]
+#
+# This ODPS specification is the single source of truth for Trial Balance
+# data quality rules. All implementing code must reference this specification.
+
+product:
+  productID: "urn:uuid:trial-balance-aggregated-v1"
+  name: "Trial Balance (Aggregated)"
+  description: "Aggregated trial balance entries showing opening balance, debit/credit movements, and closing balance for each G/L account. Includes account classifications (Asset, Liability, Equity, Revenue, Expense), IFRS categories, and data quality indicators. Derived from ACDOCA journal entries through validated aggregation pipeline with full traceability."
+  version: "1.0.0"
+  status: "active"
+  visibility: "organization"
+  
+  details:
+    type: "dataset"
+    category: "analytical-data"
+    subcategory: "financial-reporting"
+    tags:
+      - "trial-balance"
+      - "general-ledger"
+      - "financial-statements"
+      - "balances"
+      - "ifrs"
+      - "aggregated"
+      - "mtd"
+      - "ytd"
+    owner:
+      name: "Trial Balance Team"
+      email: "trial-balance-team@company.com"
+      organizationalUnit: "Finance & Accounting"
+    domain: "Finance"
+    updateFrequency: "daily"
+    latestUpdateDate: "2026-01-27"
+    
+  contract:
+    termsAndConditions:
+      type: "internal-use"
+      licenseType: "proprietary"
+      confidentiality: "confidential"
+    dataFormat: "CSN"
+    contractRef: "../../csn/trial-balance.csn.json#TrialBalanceEntry"
+    schemaSpecification: "https://github.com/SAP/cds-spec/blob/main/csn-interop-v2.md"
+    dataModel:
+      type: "relational"
+      primaryKeys: ["account_code", "business_unit", "fiscal_period"]
+      
+  dataQuality:
+    dataQualityScore: 92.0
+    qualityDimensions:
+      - dimension: "completeness"
+        description: "All accounts aggregated from ACDOCA"
+        score: 95
+        measurementMethod: "Account coverage validation"
+      - dimension: "accuracy"
+        description: "Calculations verified (Opening + Debit - Credit = Closing)"
+        score: 98
+        measurementMethod: "Balance equation verification"
+      - dimension: "consistency"
+        description: "Derived consistently from source ACDOCA"
+        score: 90
+        measurementMethod: "Hash-based lineage verification"
+      - dimension: "timeliness"
+        description: "Updated daily after ACDOCA load"
+        score: 95
+        measurementMethod: "Aggregation timestamp tracking"
+    validationRules:
+      - ruleID: "TB001"
+        name: "Balance Equation"
+        description: "Closing = Opening + Debits - Credits"
+        severity: "error"
+        field: "closing_balance"
+        requirementRef: "VAL-001"
+      - ruleID: "TB002"
+        name: "Debit Credit Balance"
+        description: "Total debits must equal total credits"
+        severity: "error"
+        field: "debit_amount, credit_amount"
+        requirementRef: "VAL-001"
+      - ruleID: "TB003"
+        name: "IFRS Classification"
+        description: "All accounts must have IFRS category"
+        severity: "warning"
+        field: "ifrs_category"
+        requirementRef: "REC-002"
+      # NEW RULES - Added for DOI requirement compliance
+      - ruleID: "TB004"
+        name: "Period Data Accuracy"
+        description: "Current and prior period data must be updated correctly (REC-001)"
+        severity: "error"
+        field: "fiscal_period"
+        requirementRef: "REC-001"
+        validation: "Verify period dates match expected reporting period"
+      - ruleID: "TB005"
+        name: "GCOA Mapping Completeness"
+        description: "All GL accounts must be mapped using latest GCOA, no unmapped accounts allowed (REC-002)"
+        severity: "error"
+        field: "gcoa_mapping_status"
+        requirementRef: "REC-002"
+        validation: "COUNT(unmapped_accounts) = 0"
+      - ruleID: "TB006"
+        name: "Global Mapping Currency"
+        description: "All global mapping changes must be incorporated in variance analysis (REC-004)"
+        severity: "error"
+        field: "mapping_version"
+        requirementRef: "REC-004"
+        validation: "mapping_version = current_gcoa_version"
+    dataLineage:
+      upstream:
+        - productID: "urn:uuid:acdoca-journal-entries-v1"
+          name: "ACDOCA Journal Entries"
+          type: "source-dataset"
+      transformations:
+        - transformationID: "aggregate-by-account"
+          description: "Aggregate journal entries by G/L account and period"
+          method: "group-by-sum"
+          logic: "GROUP BY racct, rbukrs, poper; SUM(CASE drcrk WHEN 'S' THEN hsl END) AS debit"
+      downstream:
+        - productID: "urn:uuid:variances-v1"
+          name: "Period Variances"
+          relationship: "enables-variance-calculation"
+          
+  outputPort:
+    - portID: "trial-balance-rest-api"
+      name: "Trial Balance REST API"
+      description: "RESTful API for querying aggregated trial balance"
+      format: "JSON"
+      protocol: "HTTPS"
+      endpoint: "/api/v1/trial-balance"
+      authentication: "oauth2"
+      methods: ["GET"]
+      pagination: true
+      filtering:
+        - field: "business_unit"
+          operators: ["eq", "in"]
+        - field: "fiscal_period"
+          operators: ["eq", "in", "between"]
+        - field: "account_type"
+          operators: ["eq", "in"]
+      rateLimit: "500 requests/minute"
+    - portID: "trial-balance-overview-api"
+      name: "Trial Balance Overview API"
+      description: "Summary metrics and KPIs"
+      format: "JSON"
+      protocol: "HTTPS"
+      endpoint: "/api/v1/trial-balance/overview"
+      authentication: "oauth2"
+      methods: ["GET"]
+      
+  pricingPlans:
+    - planID: "internal-use"
+      name: "Internal Use Only"
+      description: "Free access for internal finance teams"
+      price: 0
+      currency: "USD"
+      billingPeriod: "monthly"
+      limitations:
+        - type: "rate-limit"
+          value: "500 requests/minute"
+        - type: "data-retention"
+          value: "7 years"
+      features:
+        - "Daily aggregation"
+        - "MTD/YTD views"
+        - "Account hierarchy"
+        - "IFRS categories"
+        
+  SLA:
+    availability: 99.5
+    uptime: "24/7 except maintenance windows"
+    responseTime:
+      p50: "200ms"
+      p95: "500ms"
+      p99: "1000ms"
+    throughput: "500 requests/second"
+    dataFreshness: "daily at 6AM HKT"
+    support:
+      - level: "business-hours"
+        hours: "9AM-5PM HKT"
+        responseTime: "8 hours"
+        channels: ["email", "slack"]
+      - level: "critical"
+        hours: "24/7"
+        responseTime: "2 hours"
+        channels: ["phone", "email"]
+    maintenance:
+      window: "Sunday 2AM-4AM HKT"
+      frequency: "monthly"
+      notificationPeriod: "7 days"
+      
+  extensions:
+    sapORD: "../../ord/trial-balance-product.json#sap.nApps.Process:dataProduct:TrialBalance:v1"
+    sapCSN: "../../csn/trial-balance.csn.json#TrialBalanceEntry"
+    aggregationMethod: "group-by-account-period"
+    calculationEngine: "balance_engine_unified.zig"
+    performance: "6.8x faster than baseline"
+    recordCount: "~5000 per month"
+    avgRecordSize: "500B"
+    industryStandards:
+      - "IFRS"
+      - "US-GAAP"
+      - "ISO-4217"
+    # Timeline requirements from DOI
+    reportingTimeline:
+      quarterly: "M+7"
+      monthly: "M+12"
+      source: "Group FRA Template"
+      
+  # BIDIRECTIONAL REQUIREMENTS TRACEABILITY
+  # This section links primary data product to DOI requirements
+  requirementsTraceability:
+    sourceRequirements: "../requirements/"
+    lastReconciled: "2026-01-27"
+    reconciliationStatus: "fully-mapped"
+    
+    implements:
+      # Report Metadata Requirements
+      - requirementID: "REQ-META-003"
+        requirementName: "Reporting Unit Scope"
+        requirementFile: "../requirements/report-metadata.odps.yaml"
+        implementedBy: "product.details.domain"
+        coverage: 100
+        status: "fully-implemented"
+        
+      - requirementID: "REQ-META-004"
+        requirementName: "Frequency and Timing Requirements"
+        requirementFile: "../requirements/report-metadata.odps.yaml"
+        implementedBy: "extensions.reportingTimeline"
+        coverage: 100
+        status: "fully-implemented"
+        
+      - requirementID: "REQ-META-005"
+        requirementName: "System Requirements"
+        requirementFile: "../requirements/report-metadata.odps.yaml"
+        implementedBy: "dataLineage.upstream"
+        coverage: 100
+        status: "fully-implemented"
+        
+      # Business Rules Requirements
+      - requirementID: "REQ-THRESH-007"
+        requirementName: "Global Chart of Accounts Mapping"
+        requirementFile: "../requirements/business-rules-thresholds.odps.yaml"
+        implementedByRules: ["TB003", "TB005"]
+        coverage: 100
+        status: "fully-implemented"
+        
+      # Control Requirements - Reconciliation Checks
+      - requirementID: "REQ-CTRL-002"
+        requirementName: "Reconciliation Checks"
+        requirementFile: "../requirements/control-requirements.odps.yaml"
+        checkIDs: ["REC-001", "REC-002", "REC-004"]
+        implementedByRules: ["TB001", "TB002", "TB004", "TB005", "TB006"]
+        coverage: 100
+        status: "fully-implemented"
+        
+      - requirementID: "REQ-CTRL-003"
+        requirementName: "Validation Checks"
+        requirementFile: "../requirements/control-requirements.odps.yaml"
+        checkIDs: ["VAL-001"]
+        implementedByRules: ["TB001", "TB002"]
+        coverage: 100
+        status: "fully-implemented"
+        note: "Balance equation and debit/credit balance ensure PSGL/S4 reconciliation"
+        
+      # IFRS Schedule Coverage
+      - requirementID: "REQ-IFRS-ASSETS"
+        requirementName: "Balance Sheet Assets Coverage"
+        requirementFile: "../requirements/ifrs-schedule-coverage.odps.yaml"
+        implementedBy: "ifrsScheduleMapping.balanceSheet.assets"
+        coverage: 100
+        status: "fully-implemented"
+        
+      - requirementID: "REQ-IFRS-LIABILITIES"
+        requirementName: "Balance Sheet Liabilities Coverage"
+        requirementFile: "../requirements/ifrs-schedule-coverage.odps.yaml"
+        implementedBy: "ifrsScheduleMapping.balanceSheet.liabilities"
+        coverage: 100
+        status: "fully-implemented"
+        
+      - requirementID: "REQ-IFRS-PL"
+        requirementName: "Profit & Loss Coverage"
+        requirementFile: "../requirements/ifrs-schedule-coverage.odps.yaml"
+        implementedBy: "ifrsScheduleMapping.profitAndLoss"
+        coverage: 100
+        status: "fully-implemented"
+        
+    # Validation rules mapped to requirement control checks
+    controlToRuleMapping:
+      - controlCheckID: "REC-001"
+        controlName: "Period Data Accuracy"
+        dataQualityRules: ["TB004"]
+        
+      - controlCheckID: "REC-002"
+        controlName: "GCOA Mapping Verification"
+        dataQualityRules: ["TB003", "TB005"]
+        
+      - controlCheckID: "REC-004"
+        controlName: "Global Mapping Changes"
+        dataQualityRules: ["TB006"]
+        
+      - controlCheckID: "VAL-001"
+        controlName: "Workings to PSGL/S4 Reconciliation"
+        dataQualityRules: ["TB001", "TB002"]
+        
+  # IFRS Schedule Mapping (43 Level 1 Schedules)
+  ifrsScheduleMapping:
+    totalSchedules: 43
+    sourceRequirement: "../requirements/ifrs-schedule-coverage.odps.yaml"
+    balanceSheet:
+      assets:
+        count: 15
+        schedules: ["01", "1A", "1BA", "1CA", "1DA", "DP", "1EA", "1FA", "1G", "HA", "HB", "1I", "1J", "1L", "1M"]
+      liabilities:
+        count: 17
+        schedules: ["02", "02A", "2O", "2P", "2Q", "2R", "2T", "2U", "2V", "2W", "2X", "2Y", "YL", "YS", "2Z", "ZAA", "2KA"]
+    profitAndLoss:
+      count: 13
+      schedules: ["3A", "3B", "3D", "3E", "3G", "3H", "3J", "3L", "3N", "3R", "3S", "3T", "3U"]
+    averageBalanceSheet:
+      count: 2
+      schedules: ["04", "05"]
+    offBalanceSheet:
+      count: 2
+      schedules: ["NAA", "NBA"]
+
+  # SCIP CODE LINEAGE - Machine-verifiable links to implementation
+  # Reference: ../lineage/odps-scip-lineage.yaml
+  scip:
+    indexVersion: "1.0.0"
+    indexedAt: "2026-01-27"
+    project: "TrialBalance"
+    lineageFile: "../lineage/odps-scip-lineage.yaml"
+    
+    # Validation Rule → Code Symbol Mapping
+    ruleImplementations:
+      TB001:
+        description: "Balance Equation validation"
+        symbols:
+          - "scip-zig+balance_engine+AccountBalance#validateTB001"
+          - "scip-zig+balance_engine+AccountBalance#calculate_closing"
+        file: "../../calculation/balance_engine.zig"
+        verified: true
+      TB002:
+        description: "Debit Credit Balance validation"
+        symbols:
+          - "scip-zig+balance_engine+TrialBalanceResult#calculate_totals"
+        file: "../../calculation/balance_engine.zig"
+        verified: true
+      TB003:
+        description: "IFRS Classification validation"
+        symbols:
+          - "scip-zig+balance_engine+AccountBalance#validateTB003"
+        file: "../../calculation/balance_engine.zig"
+        verified: true
+      TB005:
+        description: "GCOA Mapping Completeness validation"
+        symbols:
+          - "scip-zig+balance_engine+AccountBalance#validateTB005"
+        file: "../../calculation/balance_engine.zig"
+        verified: true
+        
+    # Data Quality → Code Symbol Mapping
+    qualityImplementation:
+      struct: "scip-zig+balance_engine+DataQualityResult"
+      dimensions:
+        completeness: "completeness_score"
+        accuracy: "accuracy_score"
+        consistency: "consistency_score"
+        timeliness: "timeliness_score"
+        
+    # Struct → ODPS Field Mapping
+    structMapping:
+      AccountBalance:
+        symbol: "scip-zig+balance_engine+AccountBalance"
+        fields:
+          account_id: "account_code"
+          company_code: "business_unit"
+          fiscal_year: "fiscal_period.year"
+          period: "fiscal_period.period"
+          opening_balance: "opening_balance"
+          debit_amount: "debit_amount"
+          credit_amount: "credit_amount"
+          closing_balance: "closing_balance"
+          currency: "currency"
+          ifrs_category: "ifrs_category"

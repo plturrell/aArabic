@@ -1,0 +1,61 @@
+# Snyk (https://snyk.io) policy file for zig-libc
+# Phase 1.1 Month 5: Security Scanning Configuration
+
+version: v1.25.0
+
+# Language settings
+language-settings:
+  zig:
+    # Target Zig version
+    version: '0.15.2'
+    # Scan source files
+    scan-source: true
+    # Include test files in security scan
+    include-tests: true
+
+# Ignore rules for known issues or false positives
+ignore:
+  # Add any known issues here
+  # Example:
+  # 'SNYK-ZIG-VULNID':
+  #   - '*':
+  #     reason: 'False positive - not applicable'
+  #     expires: '2026-06-01T00:00:00.000Z'
+
+# Patch rules
+patch: {}
+
+# Exclude patterns
+exclude:
+  # Build artifacts
+  - 'zig-cache/**'
+  - 'zig-out/**'
+  # Benchmarks (not production code)
+  - 'bench/**'
+  # Test files (analyzed but not for vulnerabilities)
+  - 'tests/**'
+
+# Security policy
+security:
+  # Minimum severity threshold
+  severity-threshold: 'high'
+  # Fail on high or critical vulnerabilities
+  fail-on: 'all'
+  
+# Code quality settings
+code-quality:
+  # Enable code quality checks
+  enabled: true
+  # Check for code smells
+  check-code-smells: true
+  # Check for security hotspots
+  check-security-hotspots: true
+
+# Reporting
+reporting:
+  # Generate SARIF output for GitHub Code Scanning
+  sarif: true
+  # Generate JSON output
+  json: true
+  # Generate HTML report
+  html: false

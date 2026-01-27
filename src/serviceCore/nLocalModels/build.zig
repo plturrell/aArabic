@@ -60,6 +60,8 @@ pub fn build(b: *std.Build) void {
     
     // Now add gguf_loader and thread_pool to matrix_ops (thread_pool defined later)
     matrix_ops_mod.addImport("gguf_loader", gguf_loader_mod);
+    matrix_ops_mod.addImport("mhc_constraints", mhc_constraints_mod);
+    matrix_ops_mod.addImport("mhc_configuration", mhc_configuration_mod);
     
     // Common module (quantization common)
     const common_mod = b.createModule(.{
@@ -97,6 +99,10 @@ pub fn build(b: *std.Build) void {
     });
     q8_0_mod.addImport("common", common_mod);
     
+    // Matrix ops requires quantization modules
+    matrix_ops_mod.addImport("q4_k", q4_k_mod);
+    matrix_ops_mod.addImport("q6_k", q6_k_mod);
+
     // KV cache module
     const kv_cache_mod = b.createModule(.{
         .root_source_file = b.path("inference/engine/core/kv_cache.zig"),
@@ -165,6 +171,17 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     
+    // Feed-forward module
+    const feed_forward_mod = b.createModule(.{
+        .root_source_file = b.path("inference/engine/core/feed_forward.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    feed_forward_mod.addImport("matrix_ops", matrix_ops_mod);
+    feed_forward_mod.addImport("thread_pool", thread_pool_mod);
+    feed_forward_mod.addImport("compute", compute_mod);
+    feed_forward_mod.addImport("gguf_loader", gguf_loader_mod);
+
     // Attention module - depends on config_parser
     const attention_mod = b.createModule(.{
         .root_source_file = b.path("inference/engine/core/attention.zig"),
@@ -172,7 +189,25 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     attention_mod.addImport("config_parser", config_parser_mod);
+    attention_mod.addImport("matrix_ops", matrix_ops_mod);
+    attention_mod.addImport("kv_cache", kv_cache_mod);
+    attention_mod.addImport("thread_pool", thread_pool_mod);
+    attention_mod.addImport("compute", compute_mod);
+    attention_mod.addImport("gguf_loader", gguf_loader_mod);
     
+    // LFM2 model module
+    const lfm2_model_mod = b.createModule(.{
+        .root_source_file = b.path("inference/engine/core/lfm2_model.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    lfm2_model_mod.addImport("gguf_loader", gguf_loader_mod);
+    lfm2_model_mod.addImport("tokenizer", tokenizer_mod);
+    lfm2_model_mod.addImport("matrix_ops", matrix_ops_mod);
+    lfm2_model_mod.addImport("attention", attention_mod);
+    lfm2_model_mod.addImport("kv_cache", kv_cache_mod);
+    lfm2_model_mod.addImport("thread_pool", thread_pool_mod);
+
     // Transformer module - depends on matrix_ops
     const transformer_mod = b.createModule(.{
         .root_source_file = b.path("inference/engine/core/transformer.zig"),
@@ -180,6 +215,12 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     transformer_mod.addImport("matrix_ops", matrix_ops_mod);
+    transformer_mod.addImport("mhc_configuration", mhc_configuration_mod);
+    transformer_mod.addImport("mhc_constraints", mhc_constraints_mod);
+    transformer_mod.addImport("kv_cache", kv_cache_mod);
+    transformer_mod.addImport("attention", attention_mod);
+    transformer_mod.addImport("compute", compute_mod);
+    transformer_mod.addImport("feed_forward", feed_forward_mod);
     
     // Llama model - depends on gguf_loader, transformer, kv_cache, etc.
     const llama_model_mod = b.createModule(.{
@@ -217,6 +258,7 @@ pub fn build(b: *std.Build) void {
     gguf_model_loader_mod.addImport("q4_k", q4_k_mod);
     gguf_model_loader_mod.addImport("q6_k", q6_k_mod);
     gguf_model_loader_mod.addImport("q8_0", q8_0_mod);
+    gguf_model_loader_mod.addImport("lfm2_model", lfm2_model_mod);
     
     // Batch processor - depends on llama_model, kv_cache, and performance
     const batch_processor_mod = b.createModule(.{
@@ -228,6 +270,9 @@ pub fn build(b: *std.Build) void {
     batch_processor_mod.addImport("kv_cache", kv_cache_mod);
     batch_processor_mod.addImport("matrix_ops", matrix_ops_mod);
     batch_processor_mod.addImport("performance", performance_mod);
+    batch_processor_mod.addImport("transformer", transformer_mod);
+    batch_processor_mod.addImport("compute", compute_mod);
+    batch_processor_mod.addImport("gguf_loader", gguf_loader_mod);
     
     // Sampler module
     const sampler_mod = b.createModule(.{

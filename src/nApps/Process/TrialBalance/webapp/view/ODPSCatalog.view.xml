@@ -1,0 +1,224 @@
+<mvc:View
+    controllerName="trialbalance.controller.ODPSCatalog"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:l="sap.ui.layout"
+    xmlns:core="sap.ui.core"
+    xmlns:viz="sap.viz.ui5.controls"
+    displayBlock="true">
+    
+    <Page
+        title="ODPS v4.1 Data Product Catalog"
+        showNavButton="true"
+        navButtonPress=".onNavBack">
+        
+        <headerContent>
+            <Button
+                icon="sap-icon://refresh"
+                tooltip="Refresh Data Products"
+                press=".onRefresh" />
+            <Button
+                icon="sap-icon://download"
+                tooltip="Export Catalog"
+                press=".onExport" />
+        </headerContent>
+        
+        <content>
+            <l:VerticalLayout class="sapUiSmallMargin" width="100%">
+                
+                <!-- Catalog Overview -->
+                <l:HorizontalLayout class="sapUiMediumMarginBottom">
+                    <FlexBox
+                        width="100%"
+                        justifyContent="SpaceBetween"
+                        class="sapUiSmallMarginBottom">
+                        
+                        <!-- Product Count -->
+                        <VBox class="sapUiSmallMarginEnd" width="200px">
+                            <Label text="Total Data Products" />
+                            <ObjectNumber
+                                number="{catalog>/productCount}"
+                                unit="products"
+                                emphasized="true" />
+                        </VBox>
+                        
+                        <!-- Average Quality -->
+                        <VBox class="sapUiSmallMarginEnd" width="200px">
+                            <Label text="Average Quality Score" />
+                            <ObjectNumber
+                                number="{quality>/averageQuality}"
+                                unit="%"
+                                state="{= ${quality>/averageQuality} >= 90 ? 'Success' : ${quality>/averageQuality} >= 80 ? 'Warning' : 'Error' }"
+                                emphasized="true" />
+                        </VBox>
+                        
+                        <!-- Standards -->
+                        <VBox class="sapUiSmallMarginEnd" width="200px">
+                            <Label text="Standards Compliance" />
+                            <Text text="ODPS v4.1, IFRS, ISO-4217" />
+                        </VBox>
+                        
+                        <!-- Last Updated -->
+                        <VBox width="200px">
+                            <Label text="Last Quality Update" />
+                            <Text text="{quality>/generatedAt}" />
+                        </VBox>
+                    </FlexBox>
+                </l:HorizontalLayout>
+                
+                <!-- Filter Bar -->
+                <Toolbar>
+                    <Title text="Data Products" level="H2" />
+                    <ToolbarSpacer />
+                    <SearchField
+                        width="300px"
+                        placeholder="Search products..."
+                        search=".onSearch" />
+                    <SegmentedButton
+                        selectedKey="{view>/category}"
+                        selectionChange=".onCategoryChange">
+                        <items>
+                            <SegmentedButtonItem key="all" text="All" />
+                            <SegmentedButtonItem key="primary" text="Primary" />
+                            <SegmentedButtonItem key="metadata" text="Metadata" />
+                            <SegmentedButtonItem key="operational" text="Operational" />
+                        </items>
+                    </SegmentedButton>
+                </Toolbar>
+                
+                <!-- Data Products Table -->
+                <Table
+                    id="productsTable"
+                    items="{
+                        path: 'products>/products',
+                        sorter: {
+                            path: 'qualityScore',
+                            descending: true
+                        }
+                    }"
+                    mode="SingleSelectMaster"
+                    selectionChange=".onProductSelect"
+                    class="sapUiSmallMarginTop">
+                    
+                    <columns>
+                        <Column width="12em">
+                            <Text text="Product Name" />
+                        </Column>
+                        <Column width="8em" hAlign="Center">
+                            <Text text="Category" />
+                        </Column>
+                        <Column width="6em" hAlign="Center">
+                            <Text text="Version" />
+                        </Column>
+                        <Column width="8em" hAlign="Center">
+                            <Text text="Quality Score" />
+                        </Column>
+                        <Column width="6em" hAlign="Center">
+                            <Text text="Status" />
+                        </Column>
+                        <Column width="10em">
+                            <Text text="Actions" />
+                        </Column>
+                    </columns>
+                    
+                    <items>
+                        <ColumnListItem type="Navigation" press=".onProductPress">
+                            <cells>
+                                <VBox>
+                                    <Title text="{products>name}" level="H4" />
+                                    <Label text="{products>productID}" class="sapUiTinyMarginTop" />
+                                </VBox>
+                                
+                                <ObjectStatus
+                                    text="{products>category}"
+                                    state="Information" />
+                                
+                                <Text text="{products>version}" />
+                                
+                                <ObjectNumber
+                                    number="{products>qualityScore}"
+                                    unit="%"
+                                    state="{= ${products>qualityScore} >= 95 ? 'Success' : ${products>qualityScore} >= 85 ? 'Warning' : 'Error' }" />
+                                
+                                <ObjectStatus
+                                    text="Active"
+                                    state="Success" />
+                                
+                                <HBox>
+                                    <Button
+                                        icon="sap-icon://detail-view"
+                                        tooltip="View Details"
+                                        press=".onViewDetails"
+                                        type="Transparent" />
+                                    <Button
+                                        icon="sap-icon://chain-link"
+                                        tooltip="View Lineage"
+                                        press=".onViewLineage"
+                                        type="Transparent" />
+                                    <Button
+                                        icon="sap-icon://org-chart"
+                                        tooltip="View in ORD"
+                                        press=".onViewORD"
+                                        type="Transparent" />
+                                </HBox>
+                            </cells>
+                        </ColumnListItem>
+                    </items>
+                </Table>
+                
+                <!-- Product Details Panel -->
+                <Panel
+                    id="detailsPanel"
+                    headerText="Product Details"
+                    expandable="true"
+                    expanded="false"
+                    class="sapUiSmallMarginTop">
+                    <content>
+                        <l:VerticalLayout class="sapUiSmallMargin">
+                            <Label text="Product ID:" design="Bold" />
+                            <Text text="{selectedProduct>/productID}" class="sapUiTinyMarginBottom" />
+                            
+                            <Label text="Description:" design="Bold" />
+                            <Text text="{selectedProduct>/description}" class="sapUiTinyMarginBottom" />
+                            
+                            <Label text="Owner:" design="Bold" />
+                            <Text text="{selectedProduct>/owner}" class="sapUiTinyMarginBottom" />
+                            
+                            <Label text="Update Frequency:" design="Bold" />
+                            <Text text="{selectedProduct>/updateFrequency}" class="sapUiTinyMarginBottom" />
+                            
+                            <Label text="Data Format:" design="Bold" />
+                            <Text text="{selectedProduct>/dataFormat}" class="sapUiTinyMarginBottom" />
+                            
+                            <Label text="API Endpoints:" design="Bold" />
+                            <List items="{selectedProduct>/endpoints}">
+                                <StandardListItem
+                                    title="{selectedProduct>name}"
+                                    description="{selectedProduct>endpoint}"
+                                    type="Navigation"
+                                    press=".onEndpointPress" />
+                            </List>
+                        </l:VerticalLayout>
+                    </content>
+                </Panel>
+                
+            </l:VerticalLayout>
+        </content>
+        
+        <footer>
+            <Toolbar>
+                <ToolbarSpacer />
+                <Button
+                    text="View Quality Dashboard"
+                    icon="sap-icon://quality-issue"
+                    press=".onViewQualityDashboard"
+                    type="Emphasized" />
+                <Button
+                    text="View Data Lineage"
+                    icon="sap-icon://workflow-tasks"
+                    press=".onViewDataLineage" />
+            </Toolbar>
+        </footer>
+        
+    </Page>
+</mvc:View>

@@ -1,0 +1,182 @@
+# ODPS-SCIP Lineage Mapping - Machine-verifiable links
+metadata:
+  version: "1.1.0"
+  project: "TrialBalance"
+  indexed_at: "2026-01-27T15:30:00Z"
+  verification_status: "fully_verified"
+
+trial_balance_rules:
+  TB001:
+    name: "Balance Equation"
+    control_ref: "VAL-001"
+    status: "✅ VERIFIED"
+    symbols:
+      - symbol: "scip-zig+balance_engine+AccountBalance#validateTB001"
+        file: "balance_engine.zig"
+        line: 194
+      - symbol: "scip-zig+balance_engine+AccountBalance#calculate_closing"
+        file: "balance_engine.zig"
+        line: 188
+  TB002:
+    name: "Debit Credit Balance"
+    control_ref: "VAL-001"
+    status: "✅ VERIFIED"
+    symbols:
+      - symbol: "scip-zig+balance_engine+TrialBalanceResult#calculate_totals"
+        file: "balance_engine.zig"
+        line: 247
+  TB003:
+    name: "IFRS Classification"
+    control_ref: "REC-002"
+    status: "✅ VERIFIED"
+    symbols:
+      - symbol: "scip-zig+balance_engine+AccountBalance#validateTB003"
+        file: "balance_engine.zig"
+        line: 199
+  TB004:
+    name: "Period Data Accuracy"
+    control_ref: "REC-001"
+    status: "✅ VERIFIED"
+    symbols:
+      - symbol: "scip-zig+balance_engine+AccountBalance#validateTB004"
+        file: "balance_engine.zig"
+        line: 210
+  TB005:
+    name: "GCOA Mapping"
+    control_ref: "REC-002"
+    status: "✅ VERIFIED"
+    symbols:
+      - symbol: "scip-zig+balance_engine+AccountBalance#validateTB005"
+        file: "balance_engine.zig"
+        line: 204
+  TB006:
+    name: "Global Mapping Currency"
+    control_ref: "REC-004"
+    status: "✅ VERIFIED"
+    symbols:
+      - symbol: "scip-zig+balance_engine+AccountBalance#validateTB006"
+        file: "balance_engine.zig"
+        line: 218
+
+variance_rules:
+  VAR001:
+    name: "Variance Calculation"
+    symbols:
+      - symbol: "scip-zig+balance_engine+VarianceAnalysis#calculate_variance"
+        file: "balance_engine.zig"
+        line: 300
+  VAR003:
+    name: "BS Threshold"
+    control_ref: "REQ-THRESH-001"
+    symbols:
+      - symbol: "scip-zig+balance_engine+DOIThresholds#BALANCE_SHEET_AMOUNT"
+        file: "balance_engine.zig"
+        line: 82
+  VAR004:
+    name: "PL Threshold"
+    control_ref: "REQ-THRESH-003"
+    symbols:
+      - symbol: "scip-zig+balance_engine+DOIThresholds#PROFIT_LOSS_AMOUNT"
+        file: "balance_engine.zig"
+        line: 86
+  VAR006:
+    name: "Commentary Coverage 90%"
+    control_ref: "MKR-CHK-001"
+    symbols:
+      - symbol: "scip-zig+balance_engine+TrialBalanceCalculator#calculateCommentaryCoverage"
+        file: "balance_engine.zig"
+        line: 420
+      - symbol: "scip-zig+balance_engine+TrialBalanceCalculator#meetsCommentaryCoverage"
+        file: "balance_engine.zig"
+        line: 435
+
+# FX Exchange Rate Rules (FX001-FX007)
+fx_rules:
+  FX001:
+    name: "From Currency Mandatory"
+    status: "✅ VERIFIED"
+    symbols:
+      - symbol: "scip-zig+fx_converter+ExchangeRate#validateFX001"
+        file: "fx_converter.zig"
+        line: 64
+  FX002:
+    name: "To Currency Mandatory"
+    status: "✅ VERIFIED"
+    symbols:
+      - symbol: "scip-zig+fx_converter+ExchangeRate#validateFX002"
+        file: "fx_converter.zig"
+        line: 69
+  FX003:
+    name: "Rate Positive"
+    status: "✅ VERIFIED"
+    symbols:
+      - symbol: "scip-zig+fx_converter+ExchangeRate#validateFX003"
+        file: "fx_converter.zig"
+        line: 74
+  FX004:
+    name: "Ratio Positive"
+    status: "✅ VERIFIED"
+    symbols:
+      - symbol: "scip-zig+fx_converter+ExchangeRate#validateFX004"
+        file: "fx_converter.zig"
+        line: 79
+  FX006:
+    name: "Period-Specific Rate"
+    status: "✅ VERIFIED"
+    symbols:
+      - symbol: "scip-zig+fx_converter+FXConverter#find_rate"
+        file: "fx_converter.zig"
+        line: 150
+        note: "Uses posting_date for rate lookup"
+  FX007:
+    name: "Group Rate Source"
+    control_ref: "REQ-THRESH-006"
+    status: "✅ VERIFIED"
+    symbols:
+      - symbol: "scip-zig+fx_converter+ExchangeRate#validateFX007"
+        file: "fx_converter.zig"
+        line: 84
+      - symbol: "scip-zig+fx_converter+RateSource"
+        file: "fx_converter.zig"
+        line: 40
+
+constants:
+  DOI_THRESHOLDS:
+    BALANCE_SHEET_AMOUNT:
+      value: 100000000
+      symbol: "scip-zig+balance_engine+DOIThresholds#BALANCE_SHEET_AMOUNT"
+    PROFIT_LOSS_AMOUNT:
+      value: 3000000
+      symbol: "scip-zig+balance_engine+DOIThresholds#PROFIT_LOSS_AMOUNT"
+    VARIANCE_PERCENTAGE:
+      value: 0.10
+      symbol: "scip-zig+balance_engine+DOIThresholds#VARIANCE_PERCENTAGE"
+    COMMENTARY_COVERAGE:
+      value: 0.90
+      symbol: "scip-zig+balance_engine+DOIThresholds#COMMENTARY_COVERAGE"
+
+structs:
+  AccountBalance:
+    odps_product: "trial-balance-aggregated"
+    symbol: "scip-zig+balance_engine+AccountBalance"
+    fields:
+      account_id: {odps: "account_code"}
+      company_code: {odps: "business_unit"}
+      fiscal_year: {odps: "fiscal_period.year"}
+      opening_balance: {odps: "opening_balance"}
+      closing_balance: {odps: "closing_balance"}
+  VarianceAnalysis:
+    odps_product: "variances"
+    symbol: "scip-zig+balance_engine+VarianceAnalysis"
+    fields:
+      variance_absolute: {odps: "variance_amount"}
+      variance_percentage: {odps: "variance_percentage"}
+      exceeds_threshold: {odps: "is_material"}
+  JournalEntry:
+    odps_product: "acdoca-journal-entries"
+    symbol: "scip-zig+balance_engine+JournalEntry"
+    fields:
+      company_code: {odps: "rbukrs"}
+      fiscal_year: {odps: "gjahr"}
+      account: {odps: "racct"}
+      amount: {odps: "hsl"}

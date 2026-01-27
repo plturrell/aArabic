@@ -404,7 +404,7 @@ pub const StateSnapshotManager = struct {
     pub fn init(allocator: Allocator, max_snapshots: usize) StateSnapshotManager {
         return .{
             .allocator = allocator,
-            .snapshots = StringHashMap(ArrayList(VersionedState)){},
+            .snapshots = StringHashMap(ArrayList(VersionedState)).init(allocator),
             .max_snapshots_per_workflow = max_snapshots,
         };
     }
@@ -432,7 +432,7 @@ pub const StateSnapshotManager = struct {
         const result = try self.snapshots.getOrPut(key);
         if (!result.found_existing) {
             result.key_ptr.* = key;
-            result.value_ptr.* = ArrayList(VersionedState){};
+            result.value_ptr.* = ArrayList(VersionedState).empty;
         } else {
             self.allocator.free(key);
         }

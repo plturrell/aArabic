@@ -1,0 +1,310 @@
+# ODPS v4.1 - Trial Balance Glossary & Definitions
+# Extracted from DOI for Trial Balance Process v2.0 (BCBS 239)
+
+requirement:
+  requirementID: "urn:uuid:tb-req-glossary-v1"
+  name: "Trial Balance Glossary & Definitions"
+  description: "Abbreviations, terminology, and definitions used in the Trial Balance Review process documentation."
+  version: "2.0.0"
+  status: "active"
+  sourceDocument:
+    name: "DOI for Trial Balance Process"
+    version: "2.0"
+    approvedDate: "2025-10-23"
+    sections:
+      - "Section 4 - Abbreviations and Other Definitions"
+      - "Section 10 - Appendix Notes"
+    
+  details:
+    type: "reference-specification"
+    category: "glossary"
+    subcategory: "terminology"
+    tags:
+      - "glossary"
+      - "definitions"
+      - "abbreviations"
+      - "terminology"
+    owner:
+      name: "Global Finance Services"
+      organization: "Standard Chartered Global Business Services Ltd"
+    domain: "Finance"
+    
+  abbreviations:
+    # System Abbreviations
+    - abbreviationID: "ABBR-001"
+      term: "PSGL"
+      fullName: "PeopleSoft General Ledger"
+      category: "system"
+      description: "Primary ERP system for general ledger accounting"
+      
+    - abbreviationID: "ABBR-002"
+      term: "S4"
+      fullName: "SAP S/4HANA"
+      category: "system"
+      description: "SAP's next-generation ERP system"
+      
+    - abbreviationID: "ABBR-003"
+      term: "GCOA"
+      fullName: "Global Chart of Accounts"
+      category: "reference-data"
+      description: "Standardized chart of accounts used for mapping GL accounts to IFRS categories"
+      
+    - abbreviationID: "ABBR-004"
+      term: "TP System"
+      fullName: "Transaction Processing System"
+      category: "system"
+      description: "System for processing and recording business transactions"
+      
+    # Organizational Abbreviations
+    - abbreviationID: "ABBR-005"
+      term: "GFS"
+      fullName: "Global Finance Services"
+      category: "organization"
+      description: "Part of GBS responsible for finance-related activities"
+      
+    - abbreviationID: "ABBR-006"
+      term: "GBS"
+      fullName: "Global Business Services"
+      category: "organization"
+      description: "Standard Chartered Global Business Services Ltd"
+      
+    - abbreviationID: "ABBR-007"
+      term: "SCB"
+      fullName: "Standard Chartered Bank"
+      category: "organization"
+      description: "Parent entity of Standard Chartered GBS"
+      
+    - abbreviationID: "ABBR-008"
+      term: "LEC"
+      fullName: "Legal Entity Controller"
+      category: "role"
+      description: "Controller responsible for a specific legal entity"
+      
+    - abbreviationID: "ABBR-009"
+      term: "GPM"
+      fullName: "Group Process Manager"
+      category: "role"
+      description: "Manager responsible for group-level process oversight"
+      
+    # Financial/Reporting Abbreviations
+    - abbreviationID: "ABBR-010"
+      term: "IFRS"
+      fullName: "International Financial Reporting Standards"
+      category: "standard"
+      description: "Global accounting standards for financial reporting"
+      
+    - abbreviationID: "ABBR-011"
+      term: "BS"
+      fullName: "Balance Sheet"
+      category: "report"
+      description: "Financial statement showing assets, liabilities, and equity"
+      
+    - abbreviationID: "ABBR-012"
+      term: "P&L"
+      fullName: "Profit and Loss"
+      category: "report"
+      description: "Financial statement showing income, expenses, and profit"
+      
+    - abbreviationID: "ABBR-013"
+      term: "TB"
+      fullName: "Trial Balance"
+      category: "report"
+      description: "Report listing all GL account balances"
+      
+    - abbreviationID: "ABBR-014"
+      term: "FRA"
+      fullName: "Financial Reporting & Analysis"
+      category: "process"
+      description: "Group financial reporting template/process"
+      
+    # Period Abbreviations
+    - abbreviationID: "ABBR-015"
+      term: "MTD"
+      fullName: "Month-to-Date"
+      category: "period"
+      description: "Cumulative balance from first day of month to current date"
+      
+    - abbreviationID: "ABBR-016"
+      term: "YTD"
+      fullName: "Year-to-Date"
+      category: "period"
+      description: "Cumulative balance from first day of fiscal year to current date"
+      
+    - abbreviationID: "ABBR-017"
+      term: "YoY"
+      fullName: "Year-on-Year"
+      category: "comparison"
+      description: "Comparison between current period and same period in previous year"
+      
+    - abbreviationID: "ABBR-018"
+      term: "FY"
+      fullName: "Fiscal Year"
+      category: "period"
+      description: "12-month accounting period used for financial reporting"
+      
+    # Regulatory/Compliance Abbreviations
+    - abbreviationID: "ABBR-019"
+      term: "BCBS 239"
+      fullName: "Basel Committee on Banking Supervision Principle 239"
+      category: "regulation"
+      description: "Principles for effective risk data aggregation and risk reporting"
+      
+    - abbreviationID: "ABBR-020"
+      term: "DOI"
+      fullName: "Document of Instructions"
+      category: "documentation"
+      description: "Process documentation specifying procedures and controls"
+      
+    - abbreviationID: "ABBR-021"
+      term: "ORF"
+      fullName: "Operational Risk Framework"
+      category: "framework"
+      description: "Framework for managing operational risks"
+      
+    - abbreviationID: "ABBR-022"
+      term: "EUC"
+      fullName: "End User Computing"
+      category: "controls"
+      description: "User-developed applications outside formal IT development"
+      
+    - abbreviationID: "ABBR-023"
+      term: "ECN"
+      fullName: "Externally Connected Network"
+      category: "technology"
+      description: "Network connections to external systems"
+      
+    - abbreviationID: "ABBR-024"
+      term: "KRI"
+      fullName: "Key Risk Indicator"
+      category: "risk"
+      description: "Metric used to monitor key risk areas"
+      
+    - abbreviationID: "ABBR-025"
+      term: "KCI"
+      fullName: "Key Control Indicator"
+      category: "controls"
+      description: "Metric used to monitor control effectiveness"
+      
+    - abbreviationID: "ABBR-026"
+      term: "CST"
+      fullName: "Control Sample Testing"
+      category: "controls"
+      description: "Testing of control samples for effectiveness"
+      
+    - abbreviationID: "ABBR-027"
+      term: "FORTM"
+      fullName: "Finance Operational Risk & Technical Manual"
+      category: "documentation"
+      description: "Manual for finance operational risk procedures"
+      
+  definitions:
+    - definitionID: "DEF-001"
+      term: "Reconciliation"
+      definition: "The process of ensuring that the quantitative content of reports is consistent with the source data or with accounting data where relevant."
+      extendedDescription: "Reconciliation by reporting units involves comparing two sets of data and providing explanations of any material differences. Where reconciliation rules indicate a difference, the reconciling items with meaningful and justifiable descriptions should be identified such that the remaining unreconciled differences can be considered immaterial."
+      scope:
+        - "Data quality checks covering accuracy"
+        - "Data quality checks covering consistency"
+        - "Data quality checks covering completeness"
+      category: "data-quality"
+      
+    - definitionID: "DEF-002"
+      term: "Validation"
+      definition: "Validation pertains to data quality control checks to ensure that the reported data conforms to its specification."
+      extendedDescription: "These control checks include enumeration checks, range checks and business rules amongst others. Validation is complementary to reconciliation and together they represent rule-based data quality checks."
+      types:
+        - "Enumeration checks"
+        - "Range checks"
+        - "Business rules"
+      relationship: "Complementary to reconciliation"
+      category: "data-quality"
+      
+    - definitionID: "DEF-003"
+      term: "Variance Analysis"
+      definition: "The process of comparing current period figures to comparative period figures to identify and explain significant movements."
+      purpose:
+        - "Front-loading queries for Group IFRS reporting"
+        - "Pre-emptive identification of errors"
+        - "Smooth close process"
+      category: "analysis"
+      
+    - definitionID: "DEF-004"
+      term: "Material Variance"
+      definition: "A variance that exceeds the established thresholds and requires explanation."
+      thresholds:
+        balanceSheet: "$100M and 10%"
+        profitAndLoss: "$3M and 10%"
+      category: "threshold"
+      
+    - definitionID: "DEF-005"
+      term: "Commentary"
+      definition: "Written explanation of the drivers and reasons for material variances."
+      requirements:
+        - "90% coverage of material variances"
+        - "Major drivers identified"
+        - "Deal information included where applicable"
+      category: "documentation"
+      
+    - definitionID: "DEF-006"
+      term: "Maker-Checker"
+      definition: "A control process where one person (Maker) prepares the work and another (Checker) reviews and approves it."
+      roles:
+        maker: "LEC team member"
+        checker: "Grade 5 or above"
+      category: "controls"
+      
+    - definitionID: "DEF-007"
+      term: "IFRS Node"
+      definition: "A category or line item in the IFRS reporting structure where variances are analyzed."
+      level: "Level 1 schedules"
+      category: "reporting"
+      
+    - definitionID: "DEF-008"
+      term: "Group Exchange Rate"
+      definition: "The official exchange rate published by Group for currency conversion in financial reporting."
+      usage: "Convert local currency balances to USD"
+      category: "currency"
+      
+  thresholdDefinitions:
+    balanceSheet:
+      amount:
+        value: 100000000
+        formatted: "$100 million"
+        unit: "USD"
+      percent:
+        value: 10
+        unit: "%"
+      condition: "AND (both must be met)"
+      
+    profitAndLoss:
+      amount:
+        value: 3000000
+        formatted: "$3 million"
+        unit: "USD"
+      percent:
+        value: 10
+        unit: "%"
+      condition: "AND (both must be met)"
+      
+  timelineDefinitions:
+    - code: "M+1"
+      description: "First business day after month end"
+      
+    - code: "M+7"
+      description: "Seventh day after month end"
+      context: "Target completion date for TB review (quarterly)"
+      
+    - code: "M+10"
+      description: "Tenth day after month end"
+      context: "Previous target (now accelerated to M+7)"
+      
+    - code: "M+12"
+      description: "Twelfth day after month end"
+      context: "Target for monthly P&L comments (good practice)"
+      
+  traceability:
+    sourceDocument: "DOI for Trial Balance Process .docx"
+    sections:
+      - "Section 4 - Abbreviations and Other Definitions"
+      - "Section 10 - Appendix Notes"
+    version: "2.0"

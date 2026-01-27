@@ -1,44 +1,61 @@
 sap.ui.define([
     "sap/ui/core/mvc/Controller",
-    "sap/ui/core/routing/History"
-], function (Controller, History) {
+    "sap/m/MessageToast"
+], function (Controller, MessageToast) {
     "use strict";
 
-    return Controller.extend("trial.balance.controller.Home", {
-        onInit: function () {
-            // Initialize
+    return Controller.extend("trialbalance.controller.Home", {
+
+        onNavigateToOverview: function () {
+            this.getOwnerComponent().getRouter().navTo("overview");
         },
 
-        onNavigateToTrialBalance: function () {
-            this.getOwnerComponent().getRouter().navTo("trialBalance");
+        onNavigateToYTD: function () {
+            this.getOwnerComponent().getRouter().navTo("ytdAnalysis");
         },
 
-        onNavigateToReconciliation: function () {
-            this.getOwnerComponent().getRouter().navTo("reconciliation");
+        onNavigateToRawData: function () {
+            this.getOwnerComponent().getRouter().navTo("rawData");
         },
 
-        onNavigateToApproval: function () {
-            this.getOwnerComponent().getRouter().navTo("approval");
+        onNavigateToBSVariance: function () {
+            this.getOwnerComponent().getRouter().navTo("bsVariance");
         },
 
-        onNavigateToAnalytics: function () {
-            this.getOwnerComponent().getRouter().navTo("analytics");
+        onNavigateToChecklist: function () {
+            this.getOwnerComponent().getRouter().navTo("checklist");
         },
 
-        onUserMenuPress: function (oEvent) {
-            // TODO: Implement user menu
-            var oButton = oEvent.getSource();
-            
-            // Show user menu popover
-            if (!this._oUserMenu) {
-                this._oUserMenu = sap.ui.xmlfragment(
-                    "trial.balance.view.fragments.UserMenu",
-                    this
-                );
-                this.getView().addDependent(this._oUserMenu);
+        onNavigateToMetadata: function () {
+            this.getOwnerComponent().getRouter().navTo("metadata");
+        },
+
+        onODPSCatalog: function () {
+            this.getOwnerComponent().getRouter().navTo("odpsCatalog");
+        },
+
+        onQualityDashboard: function () {
+            this.getOwnerComponent().getRouter().navTo("qualityDashboard");
+        },
+
+        onLineageGraph: function () {
+            this.getOwnerComponent().getRouter().navTo("lineageGraph");
+        },
+
+        onSearch: function (oEvent) {
+            var sQuery = oEvent.getParameter("query");
+            if (sQuery) {
+                MessageToast.show("Searching for: " + sQuery);
             }
-            
-            this._oUserMenu.openBy(oButton);
+        },
+
+        onNotificationsPress: function () {
+            MessageToast.show("3 new notifications");
+        },
+
+        onAvatarPress: function () {
+            MessageToast.show("User Profile");
         }
+
     });
 });
