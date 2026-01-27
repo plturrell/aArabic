@@ -6,9 +6,12 @@ pub fn build(b: *std.Build) void {
         .preferred_optimize_mode = .ReleaseFast,
     });
 
+    // CUDA is optional - only enable if explicitly requested AND libraries are available
+    const enable_cuda = b.option(bool, "cuda", "Enable CUDA GPU acceleration (requires CUDA toolkit)") orelse false;
+
     // Create build options
     const options = b.addOptions();
-    options.addOption(bool, "enable_cuda", target.result.os.tag == .linux);
+    options.addOption(bool, "enable_cuda", enable_cuda);
     const build_options_mod = options.createModule();
 
     // Create base modules first (no dependencies)
@@ -306,8 +309,8 @@ pub fn build(b: *std.Build) void {
         server_exe.linkFramework("Foundation");
     }
 
-    // For Linux CUDA support
-    if (target.result.os.tag == .linux) {
+    // For Linux CUDA support (only if explicitly enabled)
+    if (enable_cuda and target.result.os.tag == .linux) {
         server_exe.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
         server_exe.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
         server_exe.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
