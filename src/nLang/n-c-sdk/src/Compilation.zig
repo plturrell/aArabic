@@ -7911,7 +7911,6 @@ pub fn compilerRtOptMode(comp: Compilation) std.builtin.OptimizeMode {
         .Debug, .ReleaseSafe => return target_util.defaultCompilerRtOptimizeMode(target),
         .ReleaseFast => return .ReleaseFast,
         .ReleaseSmall => return .ReleaseSmall,
-        .ReleaseBalanced => return .ReleaseFast,
     }
 }
 
