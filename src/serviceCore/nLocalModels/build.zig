@@ -322,6 +322,44 @@ pub fn build(b: *std.Build) void {
 
     b.installArtifact(server_exe);
 
+    // HTTP Server executable (OpenAI-compatible API)
+    const http_server_module = b.createModule(.{
+        .root_source_file = b.path("src/openai_http_server.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    http_server_module.addImport("gguf_loader", gguf_loader_mod);
+    http_server_module.addImport("llama_model", llama_model_mod);
+    http_server_module.addImport("gguf_model_loader", gguf_model_loader_mod);
+    http_server_module.addImport("batch_processor", batch_processor_mod);
+    http_server_module.addImport("performance", performance_mod);
+    http_server_module.addImport("sampler", sampler_mod);
+    http_server_module.addImport("matrix_ops", matrix_ops_mod);
+    
+    const http_server_exe = b.addExecutable(.{
+        .name = "nlocalmodels-server",
+        .root_module = http_server_module,
+    });
+
+    // For macOS Metal support
+    if (target.result.os.tag == .macos) {
+        http_server_exe.linkFramework("Metal");
+        http_server_exe.linkFramework("Foundation");
+    }
+
+    // For Linux CUDA support (only if explicitly enabled)
+    if (enable_cuda and target.result.os.tag == .linux) {
+        http_server_exe.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+        http_server_exe.root_module.addLibraryPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+        http_server_exe.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/lib64" });
+        http_server_exe.root_module.addRPath(.{ .cwd_relative = "/usr/local/cuda/targets/x86_64-linux/lib" });
+        http_server_exe.linkSystemLibrary("cuda");
+        http_server_exe.linkSystemLibrary("cublas");
+        http_server_exe.linkSystemLibrary("cudart");
+    }
+
+    b.installArtifact(http_server_exe);
+
     // Run command
     const run_cmd = b.addRunArtifact(server_exe);
     run_cmd.step.dependOn(b.getInstallStep());

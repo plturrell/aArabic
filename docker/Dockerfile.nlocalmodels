@@ -81,7 +81,7 @@ USER appuser
 EXPOSE 11434
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s \
-  CMD pgrep nlocalmodels || exit 1
+  CMD curl -f http://localhost:11434/health || exit 1
 
-# Use CLI tool with model argument
-CMD ["./nlocalmodels", "--model", "/app/models/qwen2.5-0.5b-instruct-fp16.gguf", "--prompt", "Hello", "--max-tokens", "10"]
+# Use HTTP server (OpenAI-compatible API)
+CMD ["./nlocalmodels-server"]
