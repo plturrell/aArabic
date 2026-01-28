@@ -5,6 +5,8 @@ const json = std.json;
 const mem = std.mem;
 const net = std.net;
 const ModelRegistry = @import("shared/model_registry.zig");
+const gguf_model_loader = @import("gguf_model_loader");
+const sampler = @import("sampler");
 const ConfigLoader = @import("shared/config_loader.zig");
 
 // HANA Training Store for persistence
@@ -1622,84 +1624,62 @@ fn extractUserIdFromAuth(headers: []const u8) ?[]const u8 {
     return null;
 }
 
-fn loadInferenceApi() !InferenceApi {
-    var last_err: ?anyerror = null;
-    var lib: std.DynLib = undefined;
-    var opened = false;
+fn generateTextCompiled(model_id: []const u8, prompt: []const u8, max_tokens: u32, temperature: f32) ![]u8 {
+    // Resolve model path and load via compiled GGUF loader
+    const path = try resolveModelPath(model_id);
+    defer allocator.free(path);
 
-    if (getenv("SHIMMY_INFERENCE_LIB")) |path| {
-        lib = std.DynLib.open(path) catch |err| {
-            last_err = err;
-            lib = undefined;
-            opened = false;
-            return err;
-        };
-        opened = true;
-    } else {
-        const default_path = switch (builtin.os.tag) {
-            .macos => "inference/engine/zig-out/lib/libinference.dylib",
-            .linux => "inference/engine/zig-out/lib/libinference.so",
-            else => "inference/engine/zig-out/lib/libinference.so",
-        };
-        const fallback_path = "inference/engine/zig-out/bin/test_mojo_bridge";
-        const candidates = [_][]const u8{ default_path, fallback_path };
+    var loader = gguf_model_loader.GGUFModelLoader.init(allocator, .OnTheFly);
 
-        for (candidates) |path| {
-            lib = std.DynLib.open(path) catch |err| {
-                last_err = err;
-                continue;
-            };
-            opened = true;
-            break;
-        }
-    }
-
-    if (!opened) {
-        if (last_err) |err| {
-            return err;
-        }
-        return error.LibraryNotFound;
-    }
-
-    errdefer lib.close();
-
-    const load_model_v2 = lib.lookup(LoadModelFnV2, "inference_load_model_v2");
-    const generate_v2 = lib.lookup(GenerateFnV2, "inference_generate_v2");
-    const is_loaded_v2 = lib.lookup(IsLoadedFnV2, "inference_is_loaded_v2");
-    const get_info_v2 = lib.lookup(GetInfoFnV2, "inference_get_info_v2");
-    const unload_v2 = lib.lookup(UnloadFnV2, "inference_unload_v2");
-
-    std.debug.print("🔍 Symbol lookup results:\n", .{});
-    std.debug.print("   load_model_v2: {}\n", .{load_model_v2 != null});
-    std.debug.print("   generate_v2: {}\n", .{generate_v2 != null});
-    std.debug.print("   is_loaded_v2: {}\n", .{is_loaded_v2 != null});
-    std.debug.print("   get_info_v2: {}\n", .{get_info_v2 != null});
-    std.debug.print("   unload_v2: {}\n", .{unload_v2 != null});
-
-    const load_model = lib.lookup(LoadModelFn, "inference_load_model");
-    const generate = lib.lookup(GenerateFn, "inference_generate");
-    const is_loaded = lib.lookup(IsLoadedFn, "inference_is_loaded");
-    const get_info = lib.lookup(GetInfoFn, "inference_get_info");
-    const unload = lib.lookup(UnloadFn, "inference_unload") orelse return error.MissingSymbol;
-
-    if (load_model_v2 == null and load_model == null) return error.MissingSymbol;
-    if (generate_v2 == null and generate == null) return error.MissingSymbol;
-    if (is_loaded_v2 == null and is_loaded == null) return error.MissingSymbol;
-    if (get_info_v2 == null and get_info == null) return error.MissingSymbol;
-
-    return InferenceApi{
-        .lib = lib,
-        .load_model_v2 = load_model_v2,
-        .generate_v2 = generate_v2,
-        .is_loaded_v2 = is_loaded_v2,
-        .get_info_v2 = get_info_v2,
-        .unload_v2 = unload_v2,
-        .load_model = load_model,
-        .generate = generate,
-        .is_loaded = is_loaded,
-        .get_info = get_info,
-        .unload = unload,
+    // Try LLaMA architecture first
+    const llama_result = loader.loadModel(path) catch |err| switch (err) {
+        error.UnsupportedArchitecture => null,
+        else => return err,
     };
+
+    if (llama_result) |model_val| {
+        var model = model_val;
+        defer model.deinit();
+
+        // Tokenize prompt
+        const tokens = try model.tok.encode(prompt, allocator);
+        defer allocator.free(tokens);
+
+        // Sampling config (temperature-based)
+        const sampling_config = sampler.SamplingConfig.withTemperature(temperature);
+        var token_sampler = sampler.Sampler.init(allocator, sampling_config);
+
+        // Generate tokens sequentially
+        var generated = std.ArrayList(u8).empty;
+        errdefer generated.deinit(allocator);
+
+        var current_pos: u32 = @intCast(tokens.len - 1);
+        var last_token: u32 = tokens[tokens.len - 1];
+
+        var produced: u32 = 0;
+        while (produced < max_tokens) : (produced += 1) {
+            const logits = try model.forward(last_token, current_pos);
+            defer allocator.free(logits);
+
+            const next_token = try token_sampler.sample(logits);
+
+            const token_text = try model.tok.decode(&[_]u32{ next_token }, allocator);
+            defer allocator.free(token_text);
+
+            try generated.appendSlice(allocator, token_text);
+
+            last_token = next_token;
+            current_pos += 1;
+
+            // EOS (commonly 2) heuristic
+            if (next_token == 2) break;
+        }
+
+        return try generated.toOwnedSlice(allocator);
+    }
+
+    // Fallback not implemented for LFM2 in HTTP path
+    return error.GenerationFailed;
 }
 
 fn ensureInferenceApi() !*InferenceApi {
@@ -2086,7 +2066,7 @@ fn handleChat(body: []const u8) !Response {
     std.debug.print("   Body: {s}\n", .{body[0..@min(body.len, 200)]});
     const t_start = std.time.nanoTimestamp();
 
-    const api = try ensureInferenceApi();
+    // Direct compiled inference path (no dynamic library)
     const parsed = json.parseFromSlice(ChatRequest, allocator, body, .{ .ignore_unknown_fields = true }) catch {
         metrics.recordRequest(.chat, false);
         return Response{ .status = 400, .body = try errorBody("Invalid JSON payload") };
@@ -2106,7 +2086,7 @@ fn handleChat(body: []const u8) !Response {
 
     const model_id = request.model orelse resolveModelId();
     std.debug.print("   Using model_id: {s}\n", .{model_id});
-    _ = try ensureModelLoaded(api, model_id);
+    // Model load handled within generateTextCompiled
 
     // Detect and use model-specific chat template for optimal prompt formatting
     const template = detectChatTemplate(model_id);
@@ -2128,7 +2108,7 @@ fn handleChat(body: []const u8) !Response {
     const temperature = request.temperature orelse 0.7;
 
     const t_gen_start = std.time.nanoTimestamp();
-    const output = try generateText(api, model_id, prompt, max_tokens, temperature);
+    const output = try generateTextCompiled(model_id, prompt, max_tokens, temperature);
     defer allocator.free(output);
     const t_gen_end = std.time.nanoTimestamp();
 
@@ -2175,7 +2155,7 @@ fn handleChat(body: []const u8) !Response {
 
 fn handleCompletion(body: []const u8) !Response {
     const t_start = std.time.nanoTimestamp();
-    const api = try ensureInferenceApi();
+    // Direct compiled inference path (no dynamic library)
 
     const parsed = json.parseFromSlice(CompletionRequest, allocator, body, .{ .ignore_unknown_fields = true }) catch {
         metrics.recordRequest(.completion, false);
@@ -2194,14 +2174,14 @@ fn handleCompletion(body: []const u8) !Response {
     // Note: Streaming requests are handled by handleCompletionStreaming before reaching here
 
     const model_id = request.model orelse resolveModelId();
-    _ = try ensureModelLoaded(api, model_id);
+    // Model load handled within generateTextCompiled
 
     const max_tokens = request.max_tokens orelse 256;
     const temperature = request.temperature orelse 0.7;
 
     log("🔵 Starting generation: prompt_len={d} max_tokens={d}\n", .{ request.prompt.len, max_tokens });
     const t_gen_start = std.time.nanoTimestamp();
-    const output = try generateText(api, model_id, request.prompt, max_tokens, temperature);
+    const output = try generateTextCompiled(model_id, request.prompt, max_tokens, temperature);
     defer allocator.free(output);
     const t_gen_end = std.time.nanoTimestamp();
 
@@ -2421,10 +2401,7 @@ fn sendSSEDone(stream: net.Stream) !void {
 
 /// Handle streaming chat completion
 fn handleChatStreaming(stream: net.Stream, body: []const u8) !void {
-    const api = ensureInferenceApi() catch {
-        try sendResponse(stream, 500, "application/json", "{\"error\":\"Inference API not available\"}");
-        return;
-    };
+    // Direct compiled inference path (no dynamic library)
 
     const parsed = json.parseFromSlice(ChatRequest, allocator, body, .{ .ignore_unknown_fields = true }) catch {
         try sendResponse(stream, 400, "application/json", "{\"error\":\"Invalid JSON\"}");
@@ -2434,10 +2411,7 @@ fn handleChatStreaming(stream: net.Stream, body: []const u8) !void {
 
     const request = parsed.value;
     const model_id = request.model orelse resolveModelId();
-    _ = ensureModelLoaded(api, model_id) catch {
-        try sendResponse(stream, 500, "application/json", "{\"error\":\"Failed to load model\"}");
-        return;
-    };
+    // Model load handled within generateTextCompiled
 
     // Use model-specific chat template for streaming too
     const template = detectChatTemplate(model_id);
@@ -2461,7 +2435,7 @@ fn handleChatStreaming(stream: net.Stream, body: []const u8) !void {
     try sendSSEHeader(stream);
 
     // Generate tokens one at a time (simulated chunking for now)
-    const output = generateText(api, model_id, prompt, max_tokens, temperature) catch {
+    const output = generateTextCompiled(model_id, prompt, max_tokens, temperature) catch {
         try sendSSEChunk(stream, "{\"error\":\"Generation failed\"}");
         try sendSSEDone(stream);
         return;
@@ -2519,10 +2493,7 @@ fn handleChatStreaming(stream: net.Stream, body: []const u8) !void {
 
 /// Handle streaming completion
 fn handleCompletionStreaming(stream: net.Stream, body: []const u8) !void {
-    const api = ensureInferenceApi() catch {
-        try sendResponse(stream, 500, "application/json", "{\"error\":\"Inference API not available\"}");
-        return;
-    };
+    // Direct compiled inference path (no dynamic library)
 
     const parsed = json.parseFromSlice(CompletionRequest, allocator, body, .{ .ignore_unknown_fields = true }) catch {
         try sendResponse(stream, 400, "application/json", "{\"error\":\"Invalid JSON\"}");
@@ -2532,10 +2503,7 @@ fn handleCompletionStreaming(stream: net.Stream, body: []const u8) !void {
 
     const request = parsed.value;
     const model_id = request.model orelse resolveModelId();
-    _ = ensureModelLoaded(api, model_id) catch {
-        try sendResponse(stream, 500, "application/json", "{\"error\":\"Failed to load model\"}");
-        return;
-    };
+    // Model load handled within generateTextCompiled
 
     const max_tokens = request.max_tokens orelse 256;
     const temperature = request.temperature orelse 0.7;
@@ -2549,7 +2517,7 @@ fn handleCompletionStreaming(stream: net.Stream, body: []const u8) !void {
     try sendSSEHeader(stream);
 
     // Generate and stream
-    const output = generateText(api, model_id, request.prompt, max_tokens, temperature) catch {
+    const output = generateTextCompiled(model_id, request.prompt, max_tokens, temperature) catch {
         try sendSSEChunk(stream, "{\"error\":\"Generation failed\"}");
         try sendSSEDone(stream);
         return;
