@@ -43,17 +43,17 @@ spec:
           echo "======================================"
           echo ""
           
-          # Download Dolphin 3.0 Llama 3.1 8B (Q4_K_M quantized - ~4.9GB) - GGUF v3
-          if [ ! -f /app/models/Dolphin3.0-Llama3.1-8B-Q4_K_M.gguf ]; then
-            echo "📥 Downloading Dolphin3.0-Llama3.1-8B-Q4_K_M.gguf (~4.9GB)..."
-            curl -L --progress-bar -o /app/models/Dolphin3.0-Llama3.1-8B-Q4_K_M.gguf \
-              https://huggingface.co/dphn/Dolphin3.0-Llama3.1-8B-GGUF/resolve/main/Dolphin3.0-Llama3.1-8B-Q4_K_M.gguf || {
-              echo "❌ Failed to download Dolphin3.0-Llama3.1-8B"
+          # Download Qwen 2.5 0.5B Instruct (Q4_K_M quantized - ~352MB) - GGUF v3
+          if [ ! -f /app/models/qwen2.5-0.5b-instruct-q4_k_m.gguf ]; then
+            echo "📥 Downloading qwen2.5-0.5b-instruct-q4_k_m.gguf (~352MB)..."
+            curl -L --progress-bar -o /app/models/qwen2.5-0.5b-instruct-q4_k_m.gguf \
+              https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf || {
+              echo "❌ Failed to download qwen2.5-0.5b-instruct"
               exit 1
             }
-            echo "✅ Dolphin3.0-Llama3.1-8B downloaded successfully"
+            echo "✅ qwen2.5-0.5b-instruct downloaded successfully"
           else
-            echo "✅ Dolphin3.0-Llama3.1-8B already exists, skipping"
+            echo "✅ qwen2.5-0.5b-instruct already exists, skipping"
           fi
           
           echo ""
