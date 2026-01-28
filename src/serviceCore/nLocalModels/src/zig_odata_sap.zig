@@ -65,9 +65,9 @@ fn fetchOAuthToken(alloc: std.mem.Allocator) ?[]u8 {
         env_map.put("PATH", "/usr/bin:/bin") catch {};
     }
 
-    var child = std.mem.zeroes(std.process.Child);
+    var child: std.process.Child = undefined;
     child.allocator = alloc;
-    child.argv = &args;
+    child.argv = args[0..];
     child.stdin_behavior = .Inherit;
     child.stdout_behavior = .Pipe;
     child.stderr_behavior = .Inherit;
@@ -201,7 +201,7 @@ pub fn executeSqlViaHanaOData(
             try env_map.put("PATH", "/usr/bin:/bin");
         }
 
-        var child = std.mem.zeroes(std.process.Child);
+        var child: std.process.Child = undefined;
         child.allocator = allocator;
         child.argv = curl_args;
         child.stdin_behavior = .Inherit;
@@ -285,9 +285,9 @@ fn executeSqlViaHdbsql(
         try env_map.put("PATH", "/usr/bin:/bin");
     }
 
-    var child = std.mem.zeroes(std.process.Child);
+    var child: std.process.Child = undefined;
     child.allocator = allocator;
-    child.argv = &hdbsql_args;
+    child.argv = hdbsql_args[0..];
     child.stdin_behavior = .Inherit;
     child.stdout_behavior = .Inherit;
     child.stderr_behavior = .Inherit;
@@ -403,7 +403,7 @@ pub fn querySqlViaHanaOData(
             env_map.put("PATH", "/usr/bin:/bin") catch {};
         }
 
-        var child = std.mem.zeroes(std.process.Child);
+        var child: std.process.Child = undefined;
         child.allocator = allocator;
         child.argv = curl_args;
         child.stdin_behavior = .Inherit;
@@ -601,9 +601,9 @@ export fn zig_odata_test_connection(
             env_map.put("PATH", "/usr/bin:/bin") catch {};
         }
 
-        var child = std.mem.zeroes(std.process.Child);
+        var child: std.process.Child = undefined;
         child.allocator = allocator;
-        child.argv = &curl_args;
+        child.argv = curl_args[0..];
         child.stdin_behavior = .Inherit;
         child.stdout_behavior = .Pipe;
         child.stderr_behavior = .Inherit;
@@ -704,9 +704,9 @@ export fn zig_odata_diagnose(
             env_map.put("PATH", "/usr/bin:/bin") catch {};
         }
 
-        var child = std.mem.zeroes(std.process.Child);
+        var child: std.process.Child = undefined;
         child.allocator = allocator;
-        child.argv = &curl_args;
+        child.argv = curl_args[0..];
         child.stdin_behavior = .Inherit;
         child.stdout_behavior = .Pipe;
         child.stderr_behavior = .Inherit;
