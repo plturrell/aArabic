@@ -84,4 +84,4 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s \
   CMD pgrep nlocalmodels || exit 1
 
 # Use CLI tool with model argument
-CMD ["./nlocalmodels", "--model", "/app/models/llama-2-7b-chat.Q4_K_M.gguf", "--prompt", "Hello", "--max-tokens", "10"]
+CMD ["./nlocalmodels", "--model", "/app/models/dolphin-3.0-llama3.1-8b.Q4_K_M.gguf", "--prompt", "Hello", "--max-tokens", "10"]

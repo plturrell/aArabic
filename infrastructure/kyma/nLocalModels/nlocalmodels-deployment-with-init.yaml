@@ -43,30 +43,17 @@ spec:
           echo "======================================"
           echo ""
           
-          # Download llama-2-7b-chat (Q4_K_M quantized - ~4GB)
-          if [ ! -f /app/models/llama-2-7b-chat.Q4_K_M.gguf ]; then
-            echo "📥 Downloading llama-2-7b-chat.Q4_K_M.gguf (~4GB)..."
-            curl -L --progress-bar -o /app/models/llama-2-7b-chat.Q4_K_M.gguf \
-              https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf || {
-              echo "❌ Failed to download llama-2-7b-chat"
+          # Download Dolphin 3.0 Llama 3.1 8B (Q4_K_M quantized - ~4.9GB) - GGUF v3
+          if [ ! -f /app/models/dolphin-3.0-llama3.1-8b.Q4_K_M.gguf ]; then
+            echo "📥 Downloading dolphin-3.0-llama3.1-8b.Q4_K_M.gguf (~4.9GB)..."
+            curl -L --progress-bar -o /app/models/dolphin-3.0-llama3.1-8b.Q4_K_M.gguf \
+              https://huggingface.co/dphn/Dolphin3.0-Llama3.1-8B-GGUF/resolve/main/dolphin-3.0-llama3.1-8b.Q4_K_M.gguf || {
+              echo "❌ Failed to download dolphin-3.0-llama3.1-8b"
               exit 1
             }
-            echo "✅ llama-2-7b-chat downloaded successfully"
+            echo "✅ dolphin-3.0-llama3.1-8b downloaded successfully"
           else
-            echo "✅ llama-2-7b-chat already exists, skipping"
-          fi
-          
-          # Download gemma-2-2b-it (Q4_K_M - ~1.5GB)
-          if [ ! -f /app/models/gemma-2-2b-it.Q4_K_M.gguf ]; then
-            echo "📥 Downloading gemma-2-2b-it.Q4_K_M.gguf (~1.5GB)..."
-            curl -L --progress-bar -o /app/models/gemma-2-2b-it.Q4_K_M.gguf \
-              https://huggingface.co/lmstudio-community/gemma-2-2b-it-GGUF/resolve/main/gemma-2-2b-it-Q4_K_M.gguf || {
-              echo "❌ Failed to download gemma-2-2b-it"
-              exit 1
-            }
-            echo "✅ gemma-2-2b-it downloaded successfully"
-          else
-            echo "✅ gemma-2-2b-it already exists, skipping"
+            echo "✅ dolphin-3.0-llama3.1-8b already exists, skipping"
           fi
           
           echo ""
