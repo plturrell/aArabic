@@ -344,8 +344,17 @@ pub fn build(b: *std.Build) void {
     http_server_exe.root_module.addImport("sampler", sampler_mod);
     http_server_exe.root_module.addImport("matrix_ops", matrix_ops_mod);
 
-    // Link pre-compiled OData/SAP object file (provides zig_odata_query_sql and zig_odata_execute_sql)
-    http_server_exe.addObjectFile(b.path("zig_odata_sap.o"));
+    // Compile and link OData/SAP module from source (provides zig_odata_query_sql and zig_odata_execute_sql)
+    // These are C-exported functions, so we need to compile as object and link
+    const odata_sap_obj = b.addObject(.{
+        .name = "odata_sap",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/zig_odata_sap.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    http_server_exe.addObject(odata_sap_obj);
 
     // For macOS Metal support
     if (target.result.os.tag == .macos) {

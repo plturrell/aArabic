@@ -24,24 +24,24 @@ pub const allocator = gpa.allocator();
 // NOT for HANA Cloud.
 // ============================================================================
 
-fn fetchOAuthToken(allocator: std.mem.Allocator) ?[]u8 {
-    const auth_url = std.process.getEnvVarOwned(allocator, "AICORE_AUTH_URL") catch return null;
-    const client_id = std.process.getEnvVarOwned(allocator, "AICORE_CLIENT_ID") catch {
-        allocator.free(auth_url);
+fn fetchOAuthToken(alloc: std.mem.Allocator) ?[]u8 {
+    const auth_url = std.process.getEnvVarOwned(alloc, "AICORE_AUTH_URL") catch return null;
+    const client_id = std.process.getEnvVarOwned(alloc, "AICORE_CLIENT_ID") catch {
+        alloc.free(auth_url);
         return null;
     };
-    const client_secret = std.process.getEnvVarOwned(allocator, "AICORE_CLIENT_SECRET") catch {
-        allocator.free(auth_url);
-        allocator.free(client_id);
+    const client_secret = std.process.getEnvVarOwned(alloc, "AICORE_CLIENT_SECRET") catch {
+        alloc.free(auth_url);
+        alloc.free(client_id);
         return null;
     };
 
-    defer allocator.free(auth_url);
-    defer allocator.free(client_id);
-    defer allocator.free(client_secret);
+    defer alloc.free(auth_url);
+    defer alloc.free(client_id);
+    defer alloc.free(client_secret);
 
-    const payload = std.fmt.allocPrint(allocator, "grant_type=client_credentials&client_id={s}&client_secret={s}", .{ client_id, client_secret }) catch return null;
-    defer allocator.free(payload);
+    const payload = std.fmt.allocPrint(alloc, "grant_type=client_credentials&client_id={s}&client_secret={s}", .{ client_id, client_secret }) catch return null;
+    defer alloc.free(payload);
 
     const args = [_][]const u8{
         "curl",
@@ -55,27 +55,27 @@ fn fetchOAuthToken(allocator: std.mem.Allocator) ?[]u8 {
         auth_url,
     };
 
-    var child = std.process.Child.init(&args, allocator);
+    var child = std.process.Child.init(&args, alloc);
     child.stdout_behavior = .Pipe;
-    if (child.spawn() catch null) |*proc| {
-        const out = proc.stdout.?.readToEndAlloc(allocator, 1024 * 1024) catch {
-            return null;
-        };
-        _ = proc.wait() catch {};
+    child.spawn() catch return null;
+    
+    const out = child.stdout.?.readToEndAlloc(alloc, 1024 * 1024) catch {
+        return null;
+    };
+    _ = child.wait() catch {};
 
-        var parsed = std.json.parseFromSlice(std.json.Value, allocator, out, .{}) catch {
-            allocator.free(out);
-            return null;
-        };
-        defer parsed.deinit();
-        allocator.free(out);
+    var parsed = std.json.parseFromSlice(std.json.Value, alloc, out, .{}) catch {
+        alloc.free(out);
+        return null;
+    };
+    defer parsed.deinit();
+    alloc.free(out);
 
-        if (parsed.value == .object) {
-            if (parsed.value.object.get("access_token")) |tok| {
-                switch (tok) {
-                    .string => |s| return allocator.dupe(u8, s) catch null,
-                    else => {},
-                }
+    if (parsed.value == .object) {
+        if (parsed.value.object.get("access_token")) |tok| {
+            switch (tok) {
+                .string => |s| return alloc.dupe(u8, s) catch null,
+                else => {},
             }
         }
     }
@@ -140,7 +140,7 @@ pub fn executeSqlViaHanaOData(
 
         std.debug.print("   Trying endpoint: {s}\n", .{url});
 
-        var args_builder = std.ArrayList([]const u8){};
+        var args_builder = std.ArrayList([]const u8).init(allocator);
         defer args_builder.deinit();
 
         try args_builder.appendSlice(&[_][]const u8{
@@ -315,7 +315,7 @@ pub fn querySqlViaHanaOData(
         );
         defer allocator.free(url);
 
-        var args_builder = std.ArrayList([]const u8){};
+        var args_builder = std.ArrayList([]const u8).init(allocator);
         defer args_builder.deinit();
 
         try args_builder.appendSlice(&[_][]const u8{
@@ -372,21 +372,21 @@ pub fn querySqlViaHanaOData(
 
 /// Escape string for JSON
 fn escapeJsonString(input: []const u8) ![]u8 {
-    var result: std.ArrayList(u8) = .{};
-    errdefer result.deinit(allocator);
+    var result = std.ArrayList(u8).init(allocator);
+    errdefer result.deinit();
 
     for (input) |c| {
         switch (c) {
-            '"' => try result.appendSlice(allocator, "\\\""),
-            '\\' => try result.appendSlice(allocator, "\\\\"),
-            '\n' => try result.appendSlice(allocator, "\\n"),
-            '\r' => try result.appendSlice(allocator, "\\r"),
-            '\t' => try result.appendSlice(allocator, "\\t"),
-            else => try result.append(allocator, c),
+            '"' => try result.appendSlice("\\\""),
+            '\\' => try result.appendSlice("\\\\"),
+            '\n' => try result.appendSlice("\\n"),
+            '\r' => try result.appendSlice("\\r"),
+            '\t' => try result.appendSlice("\\t"),
+            else => try result.append(c),
         }
     }
 
-    return result.toOwnedSlice(allocator);
+    return result.toOwnedSlice();
 }
 
 // ============================================================================
