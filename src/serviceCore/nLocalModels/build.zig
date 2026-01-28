@@ -302,6 +302,8 @@ pub fn build(b: *std.Build) void {
         .name = "nlocalmodels",
         .root_module = server_module,
     });
+    // Link libc to enable std.process.Child environment handling on Zig 0.15.1
+    server_exe.linkLibC();
 
     // For macOS Metal support
     if (target.result.os.tag == .macos) {
@@ -334,6 +336,8 @@ pub fn build(b: *std.Build) void {
         .name = "nlocalmodels-server",
         .root_module = http_server_module,
     });
+    // Link libc to enable std.process.Child environment handling on Zig 0.15.1
+    http_server_exe.linkLibC();
     
     // Add inference engine modules to HTTP server
     http_server_exe.root_module.addImport("gguf_loader", gguf_loader_mod);
@@ -352,6 +356,7 @@ pub fn build(b: *std.Build) void {
             .root_source_file = b.path("src/zig_odata_sap.zig"),
             .target = target,
             .optimize = optimize,
+            .link_libc = true,
         }),
     });
     http_server_exe.addObject(odata_sap_obj);
