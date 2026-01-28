@@ -164,6 +164,10 @@ spec:
         - name: models
           mountPath: /app/models  # Service expects models here
           readOnly: true
+        - name: models-config
+          mountPath: /app/config.json
+          subPath: config.json
+          readOnly: true
         
         # Health checks
         livenessProbe:
@@ -198,3 +202,6 @@ spec:
       - name: models
         emptyDir:
           sizeLimit: 20Gi  # Enough for 2-3 models (Q4_K_M quantized)
+      - name: models-config
+        configMap:
+          name: nlocalmodels-models-config
