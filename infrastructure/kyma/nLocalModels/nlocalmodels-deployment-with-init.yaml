@@ -43,17 +43,17 @@ spec:
           echo "======================================"
           echo ""
           
-          # Download Qwen 2.5 0.5B Instruct (Q4_K_M quantized - ~352MB) - GGUF v3
-          if [ ! -f /app/models/qwen2.5-0.5b-instruct-q4_k_m.gguf ]; then
-            echo "📥 Downloading qwen2.5-0.5b-instruct-q4_k_m.gguf (~352MB)..."
-            curl -L --progress-bar -o /app/models/qwen2.5-0.5b-instruct-q4_k_m.gguf \
-              https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf || {
-              echo "❌ Failed to download qwen2.5-0.5b-instruct"
+          # Download Qwen 2.5 0.5B Instruct (FP16 - ~935MB) - GGUF v3, F16 is supported!
+          if [ ! -f /app/models/qwen2.5-0.5b-instruct-fp16.gguf ]; then
+            echo "📥 Downloading qwen2.5-0.5b-instruct-fp16.gguf (~935MB)..."
+            curl -L --progress-bar -o /app/models/qwen2.5-0.5b-instruct-fp16.gguf \
+              https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-fp16.gguf || {
+              echo "❌ Failed to download qwen2.5-0.5b-instruct-fp16"
               exit 1
             }
-            echo "✅ qwen2.5-0.5b-instruct downloaded successfully"
+            echo "✅ qwen2.5-0.5b-instruct-fp16 downloaded successfully"
           else
-            echo "✅ qwen2.5-0.5b-instruct already exists, skipping"
+            echo "✅ qwen2.5-0.5b-instruct-fp16 already exists, skipping"
           fi
           
           echo ""

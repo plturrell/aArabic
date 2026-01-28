@@ -13,7 +13,7 @@ data:
   
   # Model Configuration
   MODEL_PATH: "/app/models"       # Model directory (use PVC or init container)
-  MAX_SEQ_LEN: "8192"             # Maximum sequence length
+  MAX_SEQ_LEN: "2048"             # Maximum sequence length (reduced to fit memory)
   
   # Feature Flags
   ENABLE_DISTRIBUTED: "true"      # Enable HANA distributed caching
