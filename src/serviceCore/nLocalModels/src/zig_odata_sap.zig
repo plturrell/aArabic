@@ -57,6 +57,7 @@ fn fetchOAuthToken(alloc: std.mem.Allocator) ?[]u8 {
 
     var child = std.process.Child.init(&args, alloc);
     child.stdout_behavior = .Pipe;
+    child.env_map = null;
     child.spawn() catch return null;
     
     const out = child.stdout.?.readToEndAlloc(alloc, 1024 * 1024) catch {
@@ -179,6 +180,7 @@ pub fn executeSqlViaHanaOData(
         var child = std.process.Child.init(&curl_args, allocator);
         child.stdout_behavior = .Pipe;
         child.stderr_behavior = .Pipe;
+        child.env_map = null;
 
         try child.spawn();
 
@@ -248,6 +250,7 @@ fn executeSqlViaHdbsql(
     };
 
     var child = std.process.Child.init(&hdbsql_args, allocator);
+    child.env_map = null;
     const result = child.spawnAndWait() catch |err| {
         std.debug.print("   ❌ hdbsql not available: {}\n", .{err});
         return error.ODataExecutionFailed;
@@ -351,6 +354,7 @@ pub fn querySqlViaHanaOData(
 
         var child = std.process.Child.init(&curl_args, allocator);
         child.stdout_behavior = .Pipe;
+        child.env_map = null;
 
         try child.spawn();
 
@@ -535,6 +539,7 @@ export fn zig_odata_test_connection(
 
         var child = std.process.Child.init(&curl_args, allocator);
         child.stdout_behavior = .Pipe;
+        child.env_map = null;
 
         child.spawn() catch continue;
 
@@ -624,6 +629,7 @@ export fn zig_odata_diagnose(
 
         var child = std.process.Child.init(&curl_args, allocator);
         child.stdout_behavior = .Pipe;
+        child.env_map = null;
 
         child.spawn() catch {
             std.debug.print("  {s: <30} -> FAILED (spawn)\n", .{endpoint});
