@@ -163,7 +163,7 @@ pub const ModelRegistry = struct {
         return ModelRegistry{
             .allocator = allocator,
             .models = std.StringHashMap(ModelConfig).init(allocator),
-            .model_versions = std.StringHashMap(std.ArrayList(ModelVersion)){},
+            .model_versions = std.StringHashMap(std.ArrayList(ModelVersion)).init(allocator),
             .default_model_id = null,
             .model_base_path = try allocator.dupe(u8, model_base_path),
             .metadata_path = try allocator.dupe(u8, metadata_path),
@@ -529,10 +529,10 @@ fn oldToJson(self: *const ModelRegistry, allocator: std.mem.Allocator) ![]u8 {
 
 fn oldToJsonImpl(configs: []const ModelConfig, allocator: std.mem.Allocator) ![]u8 {
         _ = configs;
-        var buffer = std.ArrayList(u8){};
-        errdefer buffer.deinit();
-        try buffer.appendSlice("{\"object\":\"list\",\"data\":[]}");
-        return try buffer.toOwnedSlice();
+        var buffer = std.ArrayList(u8).empty;
+        errdefer buffer.deinit(allocator);
+        try buffer.appendSlice(allocator, "{\"object\":\"list\",\"data\":[]}");
+        return try buffer.toOwnedSlice(allocator);
     }
 
 fn escapeJsonString(alloc: std.mem.Allocator, input: []const u8) ![]u8 {

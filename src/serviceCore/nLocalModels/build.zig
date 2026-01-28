@@ -323,13 +323,16 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(server_exe);
 
     // HTTP Server executable (OpenAI-compatible API)
-    // Note: HTTP server has many dependencies (shared, auth, database, odata, orchestration)
-    // We build it as a standalone executable that discovers these modules at compile time
-    const http_server_exe = b.addExecutable(.{
-        .name = "nlocalmodels-server",
-        .root_source_file = b.path("src/openai_http_server.zig"),
+    // Moved to root level so it can access auth/, database/, odata/, etc. via relative imports
+    const http_server_module = b.createModule(.{
+        .root_source_file = b.path("openai_http_server.zig"),
         .target = target,
         .optimize = optimize,
+    });
+    
+    const http_server_exe = b.addExecutable(.{
+        .name = "nlocalmodels-server",
+        .root_module = http_server_module,
     });
     
     // Add inference engine modules to HTTP server
@@ -340,6 +343,9 @@ pub fn build(b: *std.Build) void {
     http_server_exe.root_module.addImport("performance", performance_mod);
     http_server_exe.root_module.addImport("sampler", sampler_mod);
     http_server_exe.root_module.addImport("matrix_ops", matrix_ops_mod);
+
+    // Link pre-compiled OData/SAP object file (provides zig_odata_query_sql and zig_odata_execute_sql)
+    http_server_exe.addObjectFile(b.path("zig_odata_sap.o"));
 
     // For macOS Metal support
     if (target.result.os.tag == .macos) {
