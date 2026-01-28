@@ -55,9 +55,28 @@ fn fetchOAuthToken(alloc: std.mem.Allocator) ?[]u8 {
         auth_url,
     };
 
-    var child = std.process.Child.init(&args, alloc);
-    child.stdout_behavior = .Pipe;
-    child.env_map = null;
+    var child = std.process.Child{
+        .allocator = alloc,
+        .argv = &args,
+        .stdin_behavior = .Inherit,
+        .stdout_behavior = .Pipe,
+        .stderr_behavior = .Inherit,
+        .env_map = null,
+        .id = undefined,
+        .thread_handle = undefined,
+        .stdin = null,
+        .stdout = null,
+        .stderr = null,
+        .term = null,
+        .uid = null,
+        .gid = null,
+        .err_pipe = null,
+        .expand_arg0 = .no_expand,
+        .pgid = null,
+        .cwd = null,
+        .cwd_dir = null,
+        .request_resource_usage_statistics = false,
+    };
     child.spawn() catch return null;
     
     const out = child.stdout.?.readToEndAlloc(alloc, 1024 * 1024) catch {
@@ -177,11 +196,28 @@ pub fn executeSqlViaHanaOData(
         const curl_args = try args_builder.toOwnedSlice(allocator);
         defer allocator.free(curl_args);
 
-        var child = std.process.Child.init(curl_args, allocator);
-        child.stdout_behavior = .Pipe;
-        child.stderr_behavior = .Pipe;
-        child.env_map = null;
-
+        var child = std.process.Child{
+            .allocator = allocator,
+            .argv = curl_args,
+            .stdin_behavior = .Inherit,
+            .stdout_behavior = .Pipe,
+            .stderr_behavior = .Pipe,
+            .env_map = null,
+            .id = undefined,
+            .thread_handle = undefined,
+        .stdin = null,
+        .stdout = null,
+        .stderr = null,
+        .term = null,
+        .uid = null,
+        .gid = null,
+        .err_pipe = null,
+        .expand_arg0 = .no_expand,
+        .pgid = null,
+        .cwd = null,
+        .cwd_dir = null,
+        .request_resource_usage_statistics = false,
+        };
         try child.spawn();
 
         const output = try child.stdout.?.readToEndAlloc(allocator, 1024 * 1024);
@@ -249,8 +285,28 @@ fn executeSqlViaHdbsql(
         try std.fmt.allocPrint(allocator, "SET SCHEMA {s}; {s}", .{ schema, sql }),
     };
 
-    var child = std.process.Child.init(&hdbsql_args, allocator);
-    child.env_map = null;
+    var child = std.process.Child{
+        .allocator = allocator,
+        .argv = &hdbsql_args,
+        .stdin_behavior = .Inherit,
+        .stdout_behavior = .Inherit,
+        .stderr_behavior = .Inherit,
+        .env_map = null,
+        .id = undefined,
+        .thread_handle = undefined,
+        .stdin = null,
+        .stdout = null,
+        .stderr = null,
+        .term = null,
+        .uid = null,
+        .gid = null,
+        .err_pipe = null,
+        .expand_arg0 = .no_expand,
+        .pgid = null,
+        .cwd = null,
+        .cwd_dir = null,
+        .request_resource_usage_statistics = false,
+    };
     const result = child.spawnAndWait() catch |err| {
         std.debug.print("   ❌ hdbsql not available: {}\n", .{err});
         return error.ODataExecutionFailed;
@@ -352,10 +408,28 @@ pub fn querySqlViaHanaOData(
         const curl_args = try args_builder.toOwnedSlice(allocator);
         defer allocator.free(curl_args);
 
-        var child = std.process.Child.init(curl_args, allocator);
-        child.stdout_behavior = .Pipe;
-        child.env_map = null;
-
+        var child = std.process.Child{
+            .allocator = allocator,
+            .argv = curl_args,
+            .stdin_behavior = .Inherit,
+            .stdout_behavior = .Pipe,
+            .stderr_behavior = .Inherit,
+            .env_map = null,
+            .id = undefined,
+            .thread_handle = undefined,
+        .stdin = null,
+        .stdout = null,
+        .stderr = null,
+        .term = null,
+        .uid = null,
+        .gid = null,
+        .err_pipe = null,
+        .expand_arg0 = .no_expand,
+        .pgid = null,
+        .cwd = null,
+        .cwd_dir = null,
+        .request_resource_usage_statistics = false,
+        };
         try child.spawn();
 
         const output = try child.stdout.?.readToEndAlloc(allocator, 1024 * 1024);
@@ -537,10 +611,28 @@ export fn zig_odata_test_connection(
             url,
         };
 
-        var child = std.process.Child.init(&curl_args, allocator);
-        child.stdout_behavior = .Pipe;
-        child.env_map = null;
-
+        var child = std.process.Child{
+            .allocator = allocator,
+            .argv = &curl_args,
+            .stdin_behavior = .Inherit,
+            .stdout_behavior = .Pipe,
+            .stderr_behavior = .Inherit,
+            .env_map = null,
+            .id = undefined,
+            .thread_handle = undefined,
+        .stdin = null,
+        .stdout = null,
+        .stderr = null,
+        .term = null,
+        .uid = null,
+        .gid = null,
+        .err_pipe = null,
+        .expand_arg0 = .no_expand,
+        .pgid = null,
+        .cwd = null,
+        .cwd_dir = null,
+        .request_resource_usage_statistics = false,
+        };
         child.spawn() catch continue;
 
         const output = child.stdout.?.readToEndAlloc(allocator, 8192) catch continue;
@@ -627,10 +719,28 @@ export fn zig_odata_diagnose(
             url,
         };
 
-        var child = std.process.Child.init(&curl_args, allocator);
-        child.stdout_behavior = .Pipe;
-        child.env_map = null;
-
+        var child = std.process.Child{
+            .allocator = allocator,
+            .argv = &curl_args,
+            .stdin_behavior = .Inherit,
+            .stdout_behavior = .Pipe,
+            .stderr_behavior = .Inherit,
+            .env_map = null,
+            .id = undefined,
+            .thread_handle = undefined,
+        .stdin = null,
+        .stdout = null,
+        .stderr = null,
+        .term = null,
+        .uid = null,
+        .gid = null,
+        .err_pipe = null,
+        .expand_arg0 = .no_expand,
+        .pgid = null,
+        .cwd = null,
+        .cwd_dir = null,
+        .request_resource_usage_statistics = false,
+        };
         child.spawn() catch {
             std.debug.print("  {s: <30} -> FAILED (spawn)\n", .{endpoint});
             continue;
