@@ -141,10 +141,10 @@ pub fn executeSqlViaHanaOData(
 
         std.debug.print("   Trying endpoint: {s}\n", .{url});
 
-        var args_builder = std.ArrayList([]const u8).init(allocator);
-        defer args_builder.deinit();
+        var args_builder = std.ArrayList([]const u8){};
+        defer args_builder.deinit(allocator);
 
-        try args_builder.appendSlice(&[_][]const u8{
+        try args_builder.appendSlice(allocator, &[_][]const u8{
             "curl",
             "-X",
             "POST",
@@ -157,12 +157,12 @@ pub fn executeSqlViaHanaOData(
         if (bearer) |b| {
             const auth_header = try std.fmt.allocPrint(allocator, "Authorization: Bearer {s}", .{b});
             defer allocator.free(auth_header);
-            try args_builder.appendSlice(&[_][]const u8{"-H", auth_header});
+            try args_builder.appendSlice(allocator, &[_][]const u8{"-H", auth_header});
         } else {
-            try args_builder.appendSlice(&[_][]const u8{"-u", user_pass});
+            try args_builder.appendSlice(allocator, &[_][]const u8{"-u", user_pass});
         }
 
-        try args_builder.appendSlice(&[_][]const u8{
+        try args_builder.appendSlice(allocator, &[_][]const u8{
             "-d",
             payload,
             "-k", // Accept self-signed certs for dev
@@ -174,10 +174,10 @@ pub fn executeSqlViaHanaOData(
             url,
         });
 
-        const curl_args = try args_builder.toOwnedSlice();
+        const curl_args = try args_builder.toOwnedSlice(allocator);
         defer allocator.free(curl_args);
 
-        var child = std.process.Child.init(&curl_args, allocator);
+        var child = std.process.Child.init(curl_args, allocator);
         child.stdout_behavior = .Pipe;
         child.stderr_behavior = .Pipe;
         child.env_map = null;
@@ -318,10 +318,10 @@ pub fn querySqlViaHanaOData(
         );
         defer allocator.free(url);
 
-        var args_builder = std.ArrayList([]const u8).init(allocator);
-        defer args_builder.deinit();
+        var args_builder = std.ArrayList([]const u8){};
+        defer args_builder.deinit(allocator);
 
-        try args_builder.appendSlice(&[_][]const u8{
+        try args_builder.appendSlice(allocator, &[_][]const u8{
             "curl",
             "-X",
             "POST",
@@ -334,12 +334,12 @@ pub fn querySqlViaHanaOData(
         if (bearer) |b| {
             const auth_header = try std.fmt.allocPrint(allocator, "Authorization: Bearer {s}", .{b});
             defer allocator.free(auth_header);
-            try args_builder.appendSlice(&[_][]const u8{"-H", auth_header});
+            try args_builder.appendSlice(allocator, &[_][]const u8{"-H", auth_header});
         } else {
-            try args_builder.appendSlice(&[_][]const u8{"-u", user_pass});
+            try args_builder.appendSlice(allocator, &[_][]const u8{"-u", user_pass});
         }
 
-        try args_builder.appendSlice(&[_][]const u8{
+        try args_builder.appendSlice(allocator, &[_][]const u8{
             "-d",
             payload,
             "-k",
@@ -349,10 +349,10 @@ pub fn querySqlViaHanaOData(
             url,
         });
 
-        const curl_args = try args_builder.toOwnedSlice();
+        const curl_args = try args_builder.toOwnedSlice(allocator);
         defer allocator.free(curl_args);
 
-        var child = std.process.Child.init(&curl_args, allocator);
+        var child = std.process.Child.init(curl_args, allocator);
         child.stdout_behavior = .Pipe;
         child.env_map = null;
 
