@@ -323,23 +323,23 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(server_exe);
 
     // HTTP Server executable (OpenAI-compatible API)
-    const http_server_module = b.createModule(.{
+    // Note: HTTP server has many dependencies (shared, auth, database, odata, orchestration)
+    // We build it as a standalone executable that discovers these modules at compile time
+    const http_server_exe = b.addExecutable(.{
+        .name = "nlocalmodels-server",
         .root_source_file = b.path("src/openai_http_server.zig"),
         .target = target,
         .optimize = optimize,
     });
-    http_server_module.addImport("gguf_loader", gguf_loader_mod);
-    http_server_module.addImport("llama_model", llama_model_mod);
-    http_server_module.addImport("gguf_model_loader", gguf_model_loader_mod);
-    http_server_module.addImport("batch_processor", batch_processor_mod);
-    http_server_module.addImport("performance", performance_mod);
-    http_server_module.addImport("sampler", sampler_mod);
-    http_server_module.addImport("matrix_ops", matrix_ops_mod);
     
-    const http_server_exe = b.addExecutable(.{
-        .name = "nlocalmodels-server",
-        .root_module = http_server_module,
-    });
+    // Add inference engine modules to HTTP server
+    http_server_exe.root_module.addImport("gguf_loader", gguf_loader_mod);
+    http_server_exe.root_module.addImport("llama_model", llama_model_mod);
+    http_server_exe.root_module.addImport("gguf_model_loader", gguf_model_loader_mod);
+    http_server_exe.root_module.addImport("batch_processor", batch_processor_mod);
+    http_server_exe.root_module.addImport("performance", performance_mod);
+    http_server_exe.root_module.addImport("sampler", sampler_mod);
+    http_server_exe.root_module.addImport("matrix_ops", matrix_ops_mod);
 
     // For macOS Metal support
     if (target.result.os.tag == .macos) {
