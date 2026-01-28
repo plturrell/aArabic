@@ -60,19 +60,18 @@ fn fetchOAuthToken(alloc: std.mem.Allocator) ?[]u8 {
     const path_val = std.process.getEnvVarOwned(alloc, "PATH") catch null;
     defer if (path_val) |p| alloc.free(p);
     if (path_val) |p| {
-        try env_map.put("PATH", p);
+        env_map.put("PATH", p) catch {};
     } else {
-        try env_map.put("PATH", "/usr/bin:/bin");
+        env_map.put("PATH", "/usr/bin:/bin") catch {};
     }
 
-    var child = std.process.Child{
-        .allocator = alloc,
-        .argv = &args,
-        .stdin_behavior = .Inherit,
-        .stdout_behavior = .Pipe,
-        .stderr_behavior = .Inherit,
-        .env_map = &env_map,
-    };
+    var child = std.mem.zeroes(std.process.Child);
+    child.allocator = alloc;
+    child.argv = &args;
+    child.stdin_behavior = .Inherit;
+    child.stdout_behavior = .Pipe;
+    child.stderr_behavior = .Inherit;
+    child.env_map = &env_map;
     child.spawn() catch return null;
     
     const out = child.stdout.?.readToEndAlloc(alloc, 1024 * 1024) catch {
@@ -202,14 +201,13 @@ pub fn executeSqlViaHanaOData(
             try env_map.put("PATH", "/usr/bin:/bin");
         }
 
-        var child = std.process.Child{
-            .allocator = allocator,
-            .argv = curl_args,
-            .stdin_behavior = .Inherit,
-            .stdout_behavior = .Pipe,
-            .stderr_behavior = .Pipe,
-            .env_map = &env_map,
-        };
+        var child = std.mem.zeroes(std.process.Child);
+        child.allocator = allocator;
+        child.argv = curl_args;
+        child.stdin_behavior = .Inherit;
+        child.stdout_behavior = .Pipe;
+        child.stderr_behavior = .Pipe;
+        child.env_map = &env_map;
         try child.spawn();
 
         const output = try child.stdout.?.readToEndAlloc(allocator, 1024 * 1024);
@@ -287,14 +285,13 @@ fn executeSqlViaHdbsql(
         try env_map.put("PATH", "/usr/bin:/bin");
     }
 
-    var child = std.process.Child{
-        .allocator = allocator,
-        .argv = &hdbsql_args,
-        .stdin_behavior = .Inherit,
-        .stdout_behavior = .Inherit,
-        .stderr_behavior = .Inherit,
-        .env_map = &env_map,
-    };
+    var child = std.mem.zeroes(std.process.Child);
+    child.allocator = allocator;
+    child.argv = &hdbsql_args;
+    child.stdin_behavior = .Inherit;
+    child.stdout_behavior = .Inherit;
+    child.stderr_behavior = .Inherit;
+    child.env_map = &env_map;
     const result = child.spawnAndWait() catch |err| {
         std.debug.print("   ❌ hdbsql not available: {}\n", .{err});
         return error.ODataExecutionFailed;
@@ -401,19 +398,18 @@ pub fn querySqlViaHanaOData(
         const path_val2 = std.process.getEnvVarOwned(allocator, "PATH") catch null;
         defer if (path_val2) |p| allocator.free(p);
         if (path_val2) |p| {
-            try env_map.put("PATH", p);
+            env_map.put("PATH", p) catch {};
         } else {
-            try env_map.put("PATH", "/usr/bin:/bin");
+            env_map.put("PATH", "/usr/bin:/bin") catch {};
         }
 
-        var child = std.process.Child{
-            .allocator = allocator,
-            .argv = curl_args,
-            .stdin_behavior = .Inherit,
-            .stdout_behavior = .Pipe,
-            .stderr_behavior = .Inherit,
-            .env_map = &env_map,
-        };
+        var child = std.mem.zeroes(std.process.Child);
+        child.allocator = allocator;
+        child.argv = curl_args;
+        child.stdin_behavior = .Inherit;
+        child.stdout_behavior = .Pipe;
+        child.stderr_behavior = .Inherit;
+        child.env_map = &env_map;
         try child.spawn();
 
         const output = try child.stdout.?.readToEndAlloc(allocator, 1024 * 1024);
@@ -600,19 +596,18 @@ export fn zig_odata_test_connection(
         const path_val3 = std.process.getEnvVarOwned(allocator, "PATH") catch null;
         defer if (path_val3) |p| allocator.free(p);
         if (path_val3) |p| {
-            try env_map.put("PATH", p);
+            env_map.put("PATH", p) catch {};
         } else {
-            try env_map.put("PATH", "/usr/bin:/bin");
+            env_map.put("PATH", "/usr/bin:/bin") catch {};
         }
 
-        var child = std.process.Child{
-            .allocator = allocator,
-            .argv = &curl_args,
-            .stdin_behavior = .Inherit,
-            .stdout_behavior = .Pipe,
-            .stderr_behavior = .Inherit,
-            .env_map = &env_map,
-        };
+        var child = std.mem.zeroes(std.process.Child);
+        child.allocator = allocator;
+        child.argv = &curl_args;
+        child.stdin_behavior = .Inherit;
+        child.stdout_behavior = .Pipe;
+        child.stderr_behavior = .Inherit;
+        child.env_map = &env_map;
         child.spawn() catch continue;
 
         const output = child.stdout.?.readToEndAlloc(allocator, 8192) catch continue;
@@ -704,19 +699,18 @@ export fn zig_odata_diagnose(
         const path_val4 = std.process.getEnvVarOwned(allocator, "PATH") catch null;
         defer if (path_val4) |p| allocator.free(p);
         if (path_val4) |p| {
-            try env_map.put("PATH", p);
+            env_map.put("PATH", p) catch {};
         } else {
-            try env_map.put("PATH", "/usr/bin:/bin");
+            env_map.put("PATH", "/usr/bin:/bin") catch {};
         }
 
-        var child = std.process.Child{
-            .allocator = allocator,
-            .argv = &curl_args,
-            .stdin_behavior = .Inherit,
-            .stdout_behavior = .Pipe,
-            .stderr_behavior = .Inherit,
-            .env_map = &env_map,
-        };
+        var child = std.mem.zeroes(std.process.Child);
+        child.allocator = allocator;
+        child.argv = &curl_args;
+        child.stdin_behavior = .Inherit;
+        child.stdout_behavior = .Pipe;
+        child.stderr_behavior = .Inherit;
+        child.env_map = &env_map;
         child.spawn() catch {
             std.debug.print("  {s: <30} -> FAILED (spawn)\n", .{endpoint});
             continue;
