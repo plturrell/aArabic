@@ -1683,10 +1683,9 @@ fn generateTextCompiled(model_id: []const u8, prompt: []const u8, max_tokens: u3
 }
 
 fn ensureInferenceApi() !*InferenceApi {
-    if (inference_api == null) {
-        inference_api = try loadInferenceApi();
-    }
-    return &inference_api.?;
+    // Dynamic inference API has been removed in favor of the compiled path.
+    // Returning a consistent error keeps existing callers (e.g., warmStart) working via catch paths.
+    return error.NotSupported;
 }
 
 fn resolveModelId() []const u8 {
