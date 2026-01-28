@@ -55,27 +55,23 @@ fn fetchOAuthToken(alloc: std.mem.Allocator) ?[]u8 {
         auth_url,
     };
 
+    var env_map = std.process.EnvMap.init(alloc);
+    defer env_map.deinit();
+    const path_val = std.process.getEnvVarOwned(alloc, "PATH") catch null;
+    defer if (path_val) |p| alloc.free(p);
+    if (path_val) |p| {
+        try env_map.put("PATH", p);
+    } else {
+        try env_map.put("PATH", "/usr/bin:/bin");
+    }
+
     var child = std.process.Child{
         .allocator = alloc,
         .argv = &args,
         .stdin_behavior = .Inherit,
         .stdout_behavior = .Pipe,
         .stderr_behavior = .Inherit,
-        .env_map = null,
-        .id = undefined,
-        .thread_handle = undefined,
-        .stdin = null,
-        .stdout = null,
-        .stderr = null,
-        .term = null,
-        .uid = null,
-        .gid = null,
-        .err_pipe = null,
-        .expand_arg0 = .no_expand,
-        .pgid = null,
-        .cwd = null,
-        .cwd_dir = null,
-        .request_resource_usage_statistics = false,
+        .env_map = &env_map,
     };
     child.spawn() catch return null;
     
@@ -196,27 +192,23 @@ pub fn executeSqlViaHanaOData(
         const curl_args = try args_builder.toOwnedSlice(allocator);
         defer allocator.free(curl_args);
 
+        var env_map = std.process.EnvMap.init(allocator);
+        defer env_map.deinit();
+        const path_val = std.process.getEnvVarOwned(allocator, "PATH") catch null;
+        defer if (path_val) |p| allocator.free(p);
+        if (path_val) |p| {
+            try env_map.put("PATH", p);
+        } else {
+            try env_map.put("PATH", "/usr/bin:/bin");
+        }
+
         var child = std.process.Child{
             .allocator = allocator,
             .argv = curl_args,
             .stdin_behavior = .Inherit,
             .stdout_behavior = .Pipe,
             .stderr_behavior = .Pipe,
-            .env_map = null,
-            .id = undefined,
-            .thread_handle = undefined,
-        .stdin = null,
-        .stdout = null,
-        .stderr = null,
-        .term = null,
-        .uid = null,
-        .gid = null,
-        .err_pipe = null,
-        .expand_arg0 = .no_expand,
-        .pgid = null,
-        .cwd = null,
-        .cwd_dir = null,
-        .request_resource_usage_statistics = false,
+            .env_map = &env_map,
         };
         try child.spawn();
 
@@ -285,27 +277,23 @@ fn executeSqlViaHdbsql(
         try std.fmt.allocPrint(allocator, "SET SCHEMA {s}; {s}", .{ schema, sql }),
     };
 
+    var env_map = std.process.EnvMap.init(allocator);
+    defer env_map.deinit();
+    const path_val_hdb = std.process.getEnvVarOwned(allocator, "PATH") catch null;
+    defer if (path_val_hdb) |p| allocator.free(p);
+    if (path_val_hdb) |p| {
+        try env_map.put("PATH", p);
+    } else {
+        try env_map.put("PATH", "/usr/bin:/bin");
+    }
+
     var child = std.process.Child{
         .allocator = allocator,
         .argv = &hdbsql_args,
         .stdin_behavior = .Inherit,
         .stdout_behavior = .Inherit,
         .stderr_behavior = .Inherit,
-        .env_map = null,
-        .id = undefined,
-        .thread_handle = undefined,
-        .stdin = null,
-        .stdout = null,
-        .stderr = null,
-        .term = null,
-        .uid = null,
-        .gid = null,
-        .err_pipe = null,
-        .expand_arg0 = .no_expand,
-        .pgid = null,
-        .cwd = null,
-        .cwd_dir = null,
-        .request_resource_usage_statistics = false,
+        .env_map = &env_map,
     };
     const result = child.spawnAndWait() catch |err| {
         std.debug.print("   ❌ hdbsql not available: {}\n", .{err});
@@ -408,27 +396,23 @@ pub fn querySqlViaHanaOData(
         const curl_args = try args_builder.toOwnedSlice(allocator);
         defer allocator.free(curl_args);
 
+        var env_map = std.process.EnvMap.init(allocator);
+        defer env_map.deinit();
+        const path_val2 = std.process.getEnvVarOwned(allocator, "PATH") catch null;
+        defer if (path_val2) |p| allocator.free(p);
+        if (path_val2) |p| {
+            try env_map.put("PATH", p);
+        } else {
+            try env_map.put("PATH", "/usr/bin:/bin");
+        }
+
         var child = std.process.Child{
             .allocator = allocator,
             .argv = curl_args,
             .stdin_behavior = .Inherit,
             .stdout_behavior = .Pipe,
             .stderr_behavior = .Inherit,
-            .env_map = null,
-            .id = undefined,
-            .thread_handle = undefined,
-        .stdin = null,
-        .stdout = null,
-        .stderr = null,
-        .term = null,
-        .uid = null,
-        .gid = null,
-        .err_pipe = null,
-        .expand_arg0 = .no_expand,
-        .pgid = null,
-        .cwd = null,
-        .cwd_dir = null,
-        .request_resource_usage_statistics = false,
+            .env_map = &env_map,
         };
         try child.spawn();
 
@@ -611,27 +595,23 @@ export fn zig_odata_test_connection(
             url,
         };
 
+        var env_map = std.process.EnvMap.init(allocator);
+        defer env_map.deinit();
+        const path_val3 = std.process.getEnvVarOwned(allocator, "PATH") catch null;
+        defer if (path_val3) |p| allocator.free(p);
+        if (path_val3) |p| {
+            try env_map.put("PATH", p);
+        } else {
+            try env_map.put("PATH", "/usr/bin:/bin");
+        }
+
         var child = std.process.Child{
             .allocator = allocator,
             .argv = &curl_args,
             .stdin_behavior = .Inherit,
             .stdout_behavior = .Pipe,
             .stderr_behavior = .Inherit,
-            .env_map = null,
-            .id = undefined,
-            .thread_handle = undefined,
-        .stdin = null,
-        .stdout = null,
-        .stderr = null,
-        .term = null,
-        .uid = null,
-        .gid = null,
-        .err_pipe = null,
-        .expand_arg0 = .no_expand,
-        .pgid = null,
-        .cwd = null,
-        .cwd_dir = null,
-        .request_resource_usage_statistics = false,
+            .env_map = &env_map,
         };
         child.spawn() catch continue;
 
@@ -719,27 +699,23 @@ export fn zig_odata_diagnose(
             url,
         };
 
+        var env_map = std.process.EnvMap.init(allocator);
+        defer env_map.deinit();
+        const path_val4 = std.process.getEnvVarOwned(allocator, "PATH") catch null;
+        defer if (path_val4) |p| allocator.free(p);
+        if (path_val4) |p| {
+            try env_map.put("PATH", p);
+        } else {
+            try env_map.put("PATH", "/usr/bin:/bin");
+        }
+
         var child = std.process.Child{
             .allocator = allocator,
             .argv = &curl_args,
             .stdin_behavior = .Inherit,
             .stdout_behavior = .Pipe,
             .stderr_behavior = .Inherit,
-            .env_map = null,
-            .id = undefined,
-            .thread_handle = undefined,
-        .stdin = null,
-        .stdout = null,
-        .stderr = null,
-        .term = null,
-        .uid = null,
-        .gid = null,
-        .err_pipe = null,
-        .expand_arg0 = .no_expand,
-        .pgid = null,
-        .cwd = null,
-        .cwd_dir = null,
-        .request_resource_usage_statistics = false,
+            .env_map = &env_map,
         };
         child.spawn() catch {
             std.debug.print("  {s: <30} -> FAILED (spawn)\n", .{endpoint});
@@ -777,7 +753,7 @@ export fn zig_odata_diagnose(
 // Test entry point (commented out - this is a library)
 // pub fn main() !void {
 //     std.debug.print("{s}\n", .{header_line});
-//     std.debug.print("📡 Zig OData Client for HANA Cloud\n", .{});
+//     std.debug.print("� Zig OData Client for HANA Cloud\n", .{});
 //     std.debug.print("{s}\n\n", .{header_line});
 //     
 //     std.debug.print("HANA Cloud OData Integration:\n", .{});
