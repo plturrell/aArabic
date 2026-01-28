@@ -44,16 +44,16 @@ spec:
           echo ""
           
           # Download Dolphin 3.0 Llama 3.1 8B (Q4_K_M quantized - ~4.9GB) - GGUF v3
-          if [ ! -f /app/models/dolphin-3.0-llama3.1-8b.Q4_K_M.gguf ]; then
-            echo "📥 Downloading dolphin-3.0-llama3.1-8b.Q4_K_M.gguf (~4.9GB)..."
-            curl -L --progress-bar -o /app/models/dolphin-3.0-llama3.1-8b.Q4_K_M.gguf \
-              https://huggingface.co/dphn/Dolphin3.0-Llama3.1-8B-GGUF/resolve/main/dolphin-3.0-llama3.1-8b.Q4_K_M.gguf || {
-              echo "❌ Failed to download dolphin-3.0-llama3.1-8b"
+          if [ ! -f /app/models/Dolphin3.0-Llama3.1-8B-Q4_K_M.gguf ]; then
+            echo "📥 Downloading Dolphin3.0-Llama3.1-8B-Q4_K_M.gguf (~4.9GB)..."
+            curl -L --progress-bar -o /app/models/Dolphin3.0-Llama3.1-8B-Q4_K_M.gguf \
+              https://huggingface.co/dphn/Dolphin3.0-Llama3.1-8B-GGUF/resolve/main/Dolphin3.0-Llama3.1-8B-Q4_K_M.gguf || {
+              echo "❌ Failed to download Dolphin3.0-Llama3.1-8B"
               exit 1
             }
-            echo "✅ dolphin-3.0-llama3.1-8b downloaded successfully"
+            echo "✅ Dolphin3.0-Llama3.1-8B downloaded successfully"
           else
-            echo "✅ dolphin-3.0-llama3.1-8b already exists, skipping"
+            echo "✅ Dolphin3.0-Llama3.1-8B already exists, skipping"
           fi
           
           echo ""
