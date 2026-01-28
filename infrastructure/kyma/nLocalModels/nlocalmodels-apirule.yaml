@@ -1,0 +1,31 @@
+apiVersion: gateway.kyma-project.io/v1beta1
+kind: APIRule
+metadata:
+  name: nlocalmodels
+  namespace: nservicecore
+  labels:
+    app: nlocalmodels
+spec:
+  gateway: kyma-system/kyma-gateway
+  host: nlocalmodels
+  service:
+    name: nlocalmodels
+    port: 11434
+  rules:
+  - path: /.*
+    methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - PATCH
+    - OPTIONS
+    accessStrategies:
+    - handler: noop
+    # For production, use JWT or OAuth2:
+    # - handler: jwt
+    #   config:
+    #     jwks_urls:
+    #     - "https://your-auth-server/.well-known/jwks.json"
+    #     trusted_issuers:
+    #     - "https://your-auth-server"

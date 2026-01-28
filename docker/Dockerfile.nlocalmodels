@@ -37,11 +37,12 @@ WORKDIR /app
 COPY src/nLang/ ./nLang/
 COPY src/serviceCore/nLocalModels/ ./serviceCore/nLocalModels/
 
-# Build nLocalModels service
+# Build nLocalModels HTTP server
 WORKDIR /app/serviceCore/nLocalModels
-RUN echo "=== Building nLocalModels Service ===" && \
+RUN echo "=== Building nLocalModels HTTP Server ===" && \
     ls -la && \
     test -f build.zig || (echo "ERROR: build.zig not found" && exit 1) && \
+    test -f src/openai_http_server.zig || (echo "ERROR: openai_http_server.zig not found" && exit 1) && \
     zig version && \
     { zig build --release=fast 2>&1 | tee /tmp/zig-build.log; build_status=${PIPESTATUS[0]}; \
       if [[ ${build_status} -ne 0 ]]; then \
@@ -52,7 +53,8 @@ RUN echo "=== Building nLocalModels Service ===" && \
           exit ${build_status}; \
       fi; }; \
     ls -la zig-out/bin/ && \
-    echo "✓ nLocalModels service built successfully"
+    test -f zig-out/bin/nlocalmodels-server || (echo "ERROR: nlocalmodels-server not built" && exit 1) && \
+    echo "✓ nLocalModels HTTP server built successfully"
 
 # =============================================================================
 # Stage 2: Minimal Runtime Image
@@ -82,4 +84,4 @@ EXPOSE 11434
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s \
   CMD curl -sf http://localhost:11434/health || exit 1
 
-CMD ["./nlocalmodels"]
+CMD ["./nlocalmodels-server"]

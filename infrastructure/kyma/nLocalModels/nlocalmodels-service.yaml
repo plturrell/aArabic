@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nlocalmodels
+  namespace: nservicecore
+  labels:
+    app: nlocalmodels
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 11434
+    targetPort: 11434
+    protocol: TCP
+  selector:
+    app: nlocalmodels
+  sessionAffinity: None

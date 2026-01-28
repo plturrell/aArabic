@@ -1,0 +1,17 @@
+# Ignore secrets with actual credentials
+nlocalmodels-secret.yaml
+*-secret.yaml
+*.secret.yaml
+
+# Ignore local environment files
+.env
+.env.local
+*.local
+
+# Ignore Kubernetes generated files
+*.tmp
+*.bak
+*~
+
+# Ignore kustomize build output
+kustomization-build.yaml

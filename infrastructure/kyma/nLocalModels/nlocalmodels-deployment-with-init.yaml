@@ -1,0 +1,213 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nlocalmodels
+  namespace: nservicecore
+  labels:
+    app: nlocalmodels
+    version: v1
+    model-loading: init-container
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: nlocalmodels
+  template:
+    metadata:
+      labels:
+        app: nlocalmodels
+        version: v1
+        model-loading: init-container
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "11434"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: default
+      
+      # Init container downloads models before main container starts
+      initContainers:
+      - name: model-downloader
+        image: curlimages/curl:latest
+        command:
+        - sh
+        - -c
+        - |
+          echo "======================================"
+          echo "nLocalModels - Model Downloader"
+          echo "======================================"
+          echo ""
+          
+          # Download llama-2-7b-chat (Q4_K_M quantized - ~4GB)
+          if [ ! -f /app/models/llama-2-7b-chat.Q4_K_M.gguf ]; then
+            echo "📥 Downloading llama-2-7b-chat.Q4_K_M.gguf (~4GB)..."
+            curl -L --progress-bar -o /app/models/llama-2-7b-chat.Q4_K_M.gguf \
+              https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf || {
+              echo "❌ Failed to download llama-2-7b-chat"
+              exit 1
+            }
+            echo "✅ llama-2-7b-chat downloaded successfully"
+          else
+            echo "✅ llama-2-7b-chat already exists, skipping"
+          fi
+          
+          # Download gemma-2-2b-it (Q4_K_M - ~1.5GB)
+          if [ ! -f /app/models/gemma-2-2b-it.Q4_K_M.gguf ]; then
+            echo "📥 Downloading gemma-2-2b-it.Q4_K_M.gguf (~1.5GB)..."
+            curl -L --progress-bar -o /app/models/gemma-2-2b-it.Q4_K_M.gguf \
+              https://huggingface.co/lmstudio-community/gemma-2-2b-it-GGUF/resolve/main/gemma-2-2b-it-Q4_K_M.gguf || {
+              echo "❌ Failed to download gemma-2-2b-it"
+              exit 1
+            }
+            echo "✅ gemma-2-2b-it downloaded successfully"
+          else
+            echo "✅ gemma-2-2b-it already exists, skipping"
+          fi
+          
+          echo ""
+          echo "======================================"
+          echo "Model download complete!"
+          echo "======================================"
+          ls -lh /app/models/
+          echo ""
+        volumeMounts:
+        - name: models
+          mountPath: /app/models  # FIXED: Same path as main container expects
+      
+      containers:
+      - name: nlocalmodels
+        image: plturrell/nservices:nLocalModels
+        imagePullPolicy: Always
+        
+        ports:
+        - name: http
+          containerPort: 11434
+          protocol: TCP
+        
+        env:
+        # Model configuration
+        - name: MODEL_PATH
+          value: "/app/models"
+        
+        # ConfigMap - Memory Configuration
+        - name: MAX_RAM_MB
+          valueFrom:
+            configMapKeyRef:
+              name: nlocalmodels-config
+              key: MAX_RAM_MB
+        - name: KV_CACHE_RAM_MB
+          valueFrom:
+            configMapKeyRef:
+              name: nlocalmodels-config
+              key: KV_CACHE_RAM_MB
+        - name: TENSOR_HOT_MB
+          valueFrom:
+            configMapKeyRef:
+              name: nlocalmodels-config
+              key: TENSOR_HOT_MB
+        - name: TENSOR_WARM_MB
+          valueFrom:
+            configMapKeyRef:
+              name: nlocalmodels-config
+              key: TENSOR_WARM_MB
+        - name: MAX_SEQ_LEN
+          valueFrom:
+            configMapKeyRef:
+              name: nlocalmodels-config
+              key: MAX_SEQ_LEN
+        - name: ENABLE_DISTRIBUTED
+          valueFrom:
+            configMapKeyRef:
+              name: nlocalmodels-config
+              key: ENABLE_DISTRIBUTED
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: nlocalmodels-config
+              key: PORT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: nlocalmodels-config
+              key: LOG_LEVEL
+        
+        # Secret - HANA Cloud Credentials
+        - name: HANA_HOST
+          valueFrom:
+            secretKeyRef:
+              name: nlocalmodels-secret
+              key: HANA_HOST
+        - name: HANA_PORT
+          valueFrom:
+            secretKeyRef:
+              name: nlocalmodels-secret
+              key: HANA_PORT
+        - name: HANA_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: nlocalmodels-secret
+              key: HANA_DATABASE
+        - name: HANA_USER
+          valueFrom:
+            secretKeyRef:
+              name: nlocalmodels-secret
+              key: HANA_USER
+        - name: HANA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: nlocalmodels-secret
+              key: HANA_PASSWORD
+        
+        # Resource limits
+        resources:
+          requests:
+            memory: "8Gi"
+            cpu: "2000m"
+          limits:
+            memory: "16Gi"
+            cpu: "4000m"
+        
+        # Volume mounts - models from shared emptyDir
+        volumeMounts:
+        - name: models
+          mountPath: /app/models  # Service expects models here
+          readOnly: true
+        
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        # Security context
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      
+      # Volumes - emptyDir shared between init and main container
+      volumes:
+      - name: models
+        emptyDir:
+          sizeLimit: 20Gi  # Enough for 2-3 models (Q4_K_M quantized)

@@ -322,6 +322,24 @@ pub fn build(b: *std.Build) void {
 
     b.installArtifact(server_exe);
 
+    // HTTP Server executable for production deployment
+    const http_server_exe = b.addExecutable(.{
+        .name = "nlocalmodels-server",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/openai_http_server.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+
+    // Add Metal framework for macOS
+    if (target.result.os.tag == .macos) {
+        http_server_exe.linkFramework("Metal");
+        http_server_exe.linkFramework("Foundation");
+    }
+
+    b.installArtifact(http_server_exe);
+
     // Run command
     const run_cmd = b.addRunArtifact(server_exe);
     run_cmd.step.dependOn(b.getInstallStep());

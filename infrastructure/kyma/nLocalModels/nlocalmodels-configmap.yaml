@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nlocalmodels-config
+  namespace: nservicecore
+data:
+  # Memory Configuration (adjust based on available resources)
+  MAX_RAM_MB: "8192"              # 8GB total RAM budget
+  KV_CACHE_RAM_MB: "2048"         # 2GB for KV cache
+  TENSOR_HOT_MB: "2048"           # 2GB for hot tensors (GPU VRAM or RAM)
+  TENSOR_WARM_MB: "2048"          # 2GB for warm tensors
+  MAX_SSD_MB: "32768"             # 32GB SSD cache (if using PVC)
+  
+  # Model Configuration
+  MODEL_PATH: "/app/models"       # Model directory (use PVC or init container)
+  MAX_SEQ_LEN: "8192"             # Maximum sequence length
+  
+  # Feature Flags
+  ENABLE_DISTRIBUTED: "true"      # Enable HANA distributed caching
+  ENABLE_KV_TIERING: "true"       # Enable KV cache tiering
+  ENABLE_TENSOR_TIERING: "true"   # Enable tensor tiering
+  ENABLE_PROMPT_CACHING: "true"   # Enable prompt caching
+  ENABLE_GPU: "false"             # Set to "true" if deploying to GPU nodes
+  
+  # Cache Configuration
+  KV_CACHE_TTL: "3600"            # KV cache TTL (seconds)
+  PROMPT_CACHE_TTL: "3600"        # Prompt cache TTL (seconds)
+  SESSION_TTL: "1800"             # Session TTL (seconds)
+  TENSOR_TTL: "86400"             # Tensor TTL (seconds)
+  
+  # HANA Connection Pool
+  HANA_POOL_MIN: "5"              # Minimum connections
+  HANA_POOL_MAX: "10"             # Maximum connections
+  
+  # Service Configuration
+  PORT: "11434"                   # Service port
+  LOG_LEVEL: "info"               # Log level: debug, info, warn, error
