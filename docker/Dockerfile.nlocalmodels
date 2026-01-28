@@ -37,12 +37,11 @@ WORKDIR /app
 COPY src/nLang/ ./nLang/
 COPY src/serviceCore/nLocalModels/ ./serviceCore/nLocalModels/
 
-# Build nLocalModels HTTP server
+# Build nLocalModels CLI
 WORKDIR /app/serviceCore/nLocalModels
-RUN echo "=== Building nLocalModels HTTP Server ===" && \
+RUN echo "=== Building nLocalModels CLI ===" && \
     ls -la && \
     test -f build.zig || (echo "ERROR: build.zig not found" && exit 1) && \
-    test -f src/openai_http_server.zig || (echo "ERROR: openai_http_server.zig not found" && exit 1) && \
     zig version && \
     { zig build --release=fast 2>&1 | tee /tmp/zig-build.log; build_status=${PIPESTATUS[0]}; \
       if [[ ${build_status} -ne 0 ]]; then \
@@ -53,8 +52,8 @@ RUN echo "=== Building nLocalModels HTTP Server ===" && \
           exit ${build_status}; \
       fi; }; \
     ls -la zig-out/bin/ && \
-    test -f zig-out/bin/nlocalmodels-server || (echo "ERROR: nlocalmodels-server not built" && exit 1) && \
-    echo "✓ nLocalModels HTTP server built successfully"
+    test -f zig-out/bin/nlocalmodels || (echo "ERROR: nlocalmodels not built" && exit 1) && \
+    echo "✓ nLocalModels CLI built successfully"
 
 # =============================================================================
 # Stage 2: Minimal Runtime Image
@@ -82,6 +81,7 @@ USER appuser
 EXPOSE 11434
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s \
-  CMD curl -sf http://localhost:11434/health || exit 1
+  CMD pgrep nlocalmodels || exit 1
 
-CMD ["./nlocalmodels-server"]
+# Use CLI tool with model argument
+CMD ["./nlocalmodels", "--model", "/app/models/llama-2-7b-chat.Q4_K_M.gguf", "--prompt", "Hello", "--max-tokens", "10"]
